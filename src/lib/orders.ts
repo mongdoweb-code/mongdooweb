@@ -37,6 +37,11 @@ export type AddressInput = {
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 export const phoneDigits = (s: string) => s.replace(/\D/g, "");
+/** 0801112222 → 080-111-2222 */
+export const formatPhone = (s: string) => {
+  const d = phoneDigits(s);
+  return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : s;
+};
 
 /** กฎเดียวกับฟอร์มในต้นแบบ — คืนชื่อช่องที่ไม่ผ่าน */
 export function validateAddress(raw: Record<string, unknown>): { ok: true; value: AddressInput } | { ok: false; fields: string[] } {
@@ -117,7 +122,8 @@ export async function saveCheckoutOrder(input: {
 
   const a = addr.value;
   const data = {
-    customerName: a.name, phone: a.phone, email: a.email || null, addressLine: a.addr, subdistrict: a.sub,
+    // เก็บเบอร์เป็นตัวเลขล้วน (ค้นหาได้ทั้งแบบมี/ไม่มีขีด) แล้วจัดรูปแบบตอนแสดงผล
+    customerName: a.name, phone: phoneDigits(a.phone), email: a.email || null, addressLine: a.addr, subdistrict: a.sub,
     district: a.dist, province: a.prov, postalCode: a.zip, note: a.note || null,
     subtotalSatang, shippingMethod: ship.id, shippingName: ship.name, shippingSatang, totalSatang,
   };

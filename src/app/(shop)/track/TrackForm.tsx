@@ -1,9 +1,10 @@
 "use client";
 // ฟอร์มติดตามคำสั่งซื้อ — ส่งไปตรวจที่ server (actions.ts) แล้วแสดงสถานะ
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { trackOrder, type TrackState } from "./actions";
 
 const STATUS: Record<string, string> = {
+  AWAITING_SLIP: "รอแนบสลิปการโอน",
   PENDING_VERIFICATION: "รอตรวจสลิป",
   PAID: "ชำระเงินแล้ว · รอจัดส่ง",
   SHIPPED: "จัดส่งแล้ว",
@@ -85,6 +86,9 @@ export function TrackForm() {
                 </div>
               )}
             </div>
+            {(o.status === "REJECTED" || o.status === "AWAITING_SLIP") && state.phone && (
+              <SlipUpload orderNo={o.orderNo} phone={state.phone} totalBaht={o.totalBaht} />
+            )}
             {o.events.length > 0 && (
               <ol className="timeline" aria-label="ประวัติคำสั่งซื้อ">
                 {o.events.map((e, k) => (
@@ -99,5 +103,65 @@ export function TrackForm() {
         )}
       </div>
     </>
+  );
+}
+
+/* แนบสลิป (ใหม่) — ใช้ API เดียวกับหน้าชำระเงิน ต้องใช้เบอร์โทรที่สั่งซื้อ */
+function SlipUpload({ orderNo, phone, totalBaht }: { orderNo: string; phone: string; totalBaht: number }) {
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  return (
+    <form
+      className="rows"
+      style={{ borderTop: "1px solid var(--c-line)", paddingBottom: 16 }}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const f = new FormData(e.currentTarget);
+        const fd = new FormData();
+        fd.append("phone", phone);
+        fd.append("slip", f.get("slip") as File);
+        fd.append("paidAt", `${f.get("date")}T${f.get("time")}`);
+        fd.append("amount", String(f.get("amount")));
+        setBusy(true);
+        try {
+          const res = await fetch(`/api/orders/${encodeURIComponent(orderNo)}/slip`, { method: "POST", body: fd });
+          const data = await res.json().catch(() => ({}));
+          setMsg(res.ok ? { ok: true, text: "ได้รับสลิปแล้ว ทีมงานจะตรวจสอบให้ — กด “ตรวจสถานะ” อีกครั้งเพื่อดูสถานะล่าสุด" } : { ok: false, text: data.error ?? "ส่งสลิปไม่สำเร็จ" });
+        } catch {
+          setMsg({ ok: false, text: "เชื่อมต่อไม่ได้ กรุณาลองใหม่" });
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <h3 style={{ margin: "14px 0 10px", fontSize: 16 }}>แนบสลิปการโอน (ยอด {baht(totalBaht)})</h3>
+      {msg?.ok ? (
+        <p role="status">{msg.text}</p>
+      ) : (
+        <div className="track-form" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="field" style={{ gridColumn: "1 / -1" }}>
+            <label htmlFor="slipFile">ภาพสลิป (JPG, PNG, WEBP ไม่เกิน 5 MB)</label>
+            <input id="slipFile" name="slip" type="file" accept="image/jpeg,image/png,image/webp" required style={{ paddingTop: 12 }} />
+          </div>
+          <div className="field">
+            <label htmlFor="slipDate">วันที่โอน</label>
+            <input id="slipDate" name="date" type="date" required max={today} defaultValue={today} />
+          </div>
+          <div className="field">
+            <label htmlFor="slipTime">เวลาที่โอน</label>
+            <input id="slipTime" name="time" type="time" required />
+          </div>
+          <div className="field">
+            <label htmlFor="slipAmt">ยอดที่โอน (บาท)</label>
+            <input id="slipAmt" name="amount" inputMode="decimal" required defaultValue={totalBaht.toFixed(2)} />
+          </div>
+          <button className="btn btn-primary" type="submit" disabled={busy}>
+            {busy ? "กำลังส่ง…" : "ส่งสลิป"}
+          </button>
+          {msg && !msg.ok && <p className="form-error" style={{ gridColumn: "1 / -1" }}>{msg.text}</p>}
+        </div>
+      )}
+    </form>
   );
 }
