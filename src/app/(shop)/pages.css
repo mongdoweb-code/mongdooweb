@@ -1,0 +1,68 @@
+/* สไตล์เพิ่มสำหรับหน้าย่อยของหน้าร้าน (ต้นแบบมีแค่หน้าแรก) — ใช้ token และจังหวะเดียวกับ shop.css */
+.pg-head{background:var(--c-cream);padding:40px 0 44px}
+.crumbs ol,.timeline{list-style:none}
+.crumbs ol{display:flex;flex-wrap:wrap;gap:6px;font-size:14px;color:var(--c-muted);margin-bottom:18px}
+.crumbs li+li::before{content:"/";margin-right:6px;color:var(--c-line)}
+.crumbs a:hover{color:var(--c-orange)}
+.pg-body{padding:40px 0 96px}
+.pg-empty{padding:48px 24px;text-align:center;background:var(--c-cream);color:var(--c-muted)}
+.pg-empty b{display:block;color:var(--c-ink);font-size:18px;margin-bottom:6px}
+.prod-name a:hover{color:var(--c-orange)}
+
+/* แถบกรองสินค้า */
+.filters{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--c-line)}
+.filters fieldset{border:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters legend{font-size:13px;font-weight:600;color:var(--c-muted);margin-bottom:8px;float:left;width:100%}
+.chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border:1.5px solid var(--c-line);font-size:14px;border-radius:999px;transition:border-color .2s,background .2s}
+.chip:hover{border-color:var(--c-ink)}
+.chip[aria-current="true"]{background:var(--c-black);border-color:var(--c-black);color:#fff}
+.filters .count{margin-left:auto;font-size:14px;color:var(--c-muted)}
+.cat-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+
+/* หน้าสินค้า */
+.pdp{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
+.pdp-media{aspect-ratio:1;background:var(--c-cream-dk);display:grid;place-items:center;position:relative}
+.pdp-media .ph{width:46%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff 0 22%,#d8d2c6 23% 40%,#8f897d 41% 48%,transparent 49%)}
+.pdp-media .ph.rgb{background:radial-gradient(circle,#fff 0 12%,#ffb38f 18%,#8fd3ff 26%,#c69bff 32%,#8f897d 41% 48%,transparent 49%)}
+.pdp-media .ph.acc{border-radius:4px;background:linear-gradient(#5a554c,#3a3631)}
+.pdp h1{font-size:clamp(24px,2.6vw,32px);font-weight:700;line-height:1.35;margin:6px 0 12px}
+.pdp-price{font-size:30px;font-weight:700;margin:8px 0 4px}
+.pdp-meta{font-size:14px;color:var(--c-muted)}
+.pdp-actions{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}
+.pdp-note{background:var(--c-cream);padding:16px 18px;font-size:15px;margin-top:8px}
+.spec-table{width:100%;border-collapse:collapse;margin-top:24px;font-size:15px}
+.spec-table th,.spec-table td{text-align:left;padding:10px 0;border-bottom:1px solid var(--c-line);vertical-align:top}
+.spec-table th{width:40%;font-weight:500;color:var(--c-muted)}
+.pdp-related{padding:72px 0 0}
+.pdp-desc{margin-top:28px;white-space:pre-line}
+
+/* เนื้อหาเอกสาร (นโยบาย/รับประกัน) */
+.prose{max-width:760px}
+.prose h2{font-size:22px;font-weight:700;margin:36px 0 10px}
+.prose p,.prose li{color:#3a3834}
+.prose ul{list-style:disc;padding-left:22px;display:grid;gap:6px;margin:8px 0}
+.prose .todo-box{border:1.5px dashed var(--c-orange);background:#FFF6F1;padding:14px 16px;margin-bottom:24px;font-size:15px}
+
+/* ฟอร์มติดตามคำสั่งซื้อ */
+.track-form{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;max-width:760px}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.field input{width:100%;height:52px;border:1.5px solid var(--c-line);padding:0 14px;font:inherit;font-size:16px;border-radius:0;background:#fff}
+.field input:focus{outline:2px solid var(--c-orange);outline-offset:-1px;border-color:var(--c-orange)}
+.form-error{color:#B3261E;margin-top:14px}
+.order-card{margin-top:32px;max-width:760px;border:1px solid var(--c-line)}
+.order-card header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;padding:18px 20px;background:var(--c-cream)}
+.order-card .st{font-weight:700}
+.order-card .rows{padding:8px 20px}
+.order-card .row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--c-line)}
+.order-card .row:last-child{border-bottom:0}
+.timeline{padding:16px 20px 20px;border-top:1px solid var(--c-line)}
+.timeline li{display:flex;gap:12px;font-size:14px;padding:4px 0}
+.timeline time{color:var(--c-muted);min-width:150px}
+
+@media (max-width:1024px){.pdp{gap:32px}}
+@media (max-width:768px){
+  .pdp{grid-template-columns:1fr}
+  .track-form{grid-template-columns:1fr}
+  .filters .count{margin-left:0;width:100%}
+  .pg-body{padding:28px 0 72px}
+}

@@ -132,3 +132,98 @@ export async function getHomeSlides() {
 export function jsonForScript(value: unknown) {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
+
+/** หมวดที่เปิดแสดง ตาม slug (null = ไม่พบ/ซ่อนอยู่) */
+export async function getCategory(slug: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(STOREFRONT_TAG);
+
+  const { categories } = await getShopData();
+  return categories.find((c) => c.slug === slug) ?? null;
+}
+
+/** รายละเอียดสินค้าสำหรับหน้าสินค้า (null = ไม่พบ/ปิดขาย) */
+export async function getProductDetail(slug: string) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(STOREFRONT_TAG);
+
+  const p = await prisma.product.findFirst({
+    where: { slug, isActive: true, isService: false, category: { isActive: true } },
+    include: { category: { select: { slug: true, nameTh: true, nameEn: true } } },
+  });
+  if (!p) return null;
+  return {
+    slug: p.slug,
+    sku: p.sku,
+    name: p.name,
+    description: p.description,
+    unit: p.unit,
+    price: bahtFromSatang(p.priceSatang),
+    inStock: p.stock > 0,
+    specs: Array.isArray(p.specs)
+      ? (p.specs as { label?: unknown; value?: unknown }[])
+          .map((s) => ({ label: String(s?.label ?? ""), value: String(s?.value ?? "") }))
+          .filter((s) => s.value)
+      : [],
+    badge: p.badge,
+    isAccessory: p.isAccessory,
+    includesPsu: p.includesPsu,
+    lightColor: p.lightColor.toLowerCase(),
+    category: { slug: p.category.slug, th: p.category.nameTh, en: p.category.nameEn },
+  };
+}
+
+// ---------- ค้นหา/กรองสินค้า (catalog ร้านเล็ก กรองในหน่วยความจำได้) ----------
+
+export const COLOR_FILTERS = { white: "แสงขาว", rgb: "RGB เปลี่ยนสี" } as const;
+export const USE_FILTERS = { pool: "สระว่ายน้ำ", pond: "บ่อปลา / บ่อน้ำ", fountain: "น้ำพุ", garden: "สวน" } as const;
+export const SORTS = { popular: "ยอดนิยม", "price-asc": "ราคาต่ำ → สูง", "price-desc": "ราคาสูง → ต่ำ" } as const;
+
+export type ProductFilter = {
+  category?: string;
+  color?: string;
+  use?: string;
+  sort?: string;
+};
+
+export function filterCatalog(catalog: CatalogItem[], f: ProductFilter) {
+  let list = catalog;
+  if (f.category) list = list.filter((p) => p.catId === f.category);
+  // สี "any" (ใช้ได้ทั้งสองแบบ) นับรวมด้วย แต่ไม่รวมอุปกรณ์เสริมที่ไม่ใช่ตัวโคม
+  if (f.color && f.color in COLOR_FILTERS) list = list.filter((p) => p.color === f.color || (p.color === "any" && !p.acc));
+  if (f.use && f.use in USE_FILTERS) list = list.filter((p) => p.use.includes(f.use!));
+  if (f.sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
+  else if (f.sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
+  return list;
+}
+
+// คำพ้อง ไทย ↔ อังกฤษ (ชุดเดียวกับช่องค้นหาใน shell.js)
+const SYN: Record<string, string> = {
+  pool: "สระ", สระ: "pool", fountain: "น้ำพุ", น้ำพุ: "fountain", garden: "สวน", สวน: "garden",
+  underwater: "ใต้น้ำ", ใต้น้ำ: "underwater", rgb: "เปลี่ยนสี", เปลี่ยนสี: "rgb", สีขาว: "แสงขาว",
+  white: "แสงขาว", ขาว: "white", หม้อแปลง: "adapter", อะแดปเตอร์: "หม้อแปลง",
+};
+const norm = (s: string) => s.normalize("NFC").toLowerCase().replace(/[​-‍﻿]/g, "").replace(/\s+/g, "");
+
+export function searchCatalog(catalog: CatalogItem[], categories: ShopCategory[], q: string) {
+  const toks = q.trim().split(/\s+/).map(norm).filter(Boolean).slice(0, 8);
+  if (!toks.length) return [];
+  const catName = new Map(categories.map((c) => [c.slug, `${c.th} ${c.en}`]));
+  return catalog
+    .map((p) => {
+      const name = norm(p.name);
+      const hay = norm([p.name, p.cat, catName.get(p.catId) ?? "", p.specs.join(" ")].join(" "));
+      let score = 0;
+      for (const t of toks) {
+        const alt = SYN[t] ? norm(SYN[t]) : null;
+        if (!hay.includes(t) && !(alt && hay.includes(alt))) return null;
+        score += name.startsWith(t) ? 3 : name.includes(t) ? 2 : 1;
+      }
+      return { p, score: score + (p.best ? 0.5 : 0) };
+    })
+    .filter((x): x is { p: CatalogItem; score: number } => x !== null)
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.p);
+}

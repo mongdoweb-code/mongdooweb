@@ -60,6 +60,7 @@ Rules that must move to the server (the prototype only simulates them):
 
 ## Repo status
 - Step 1 done: Next.js 16 (App Router, `cacheComponents` on) + Prisma 7.10 scaffolded, `prisma/migrations/*_init`, idempotent `prisma/seed.ts` (`npm run db:seed`, reads `docs/shared-data.js`). New English category slugs; old Thai URLs kept in `legacySlug` (ไฟส่องตึก left null until the owner confirms).
+- Step 2 done (port as-is): `src/app/(shop)/layout.tsx` injects the prototype header/footer markup (`_markup/shell.ts`) + `shop.css`; behaviour lives in `public/js/shell.js` (cart, mega menu, search, drawer, consent) and `public/js/home.js` (slider, category cards, finder). Server passes DB data as `<script id="mdw-data">` / `mdw-slides` JSON in the prototype's shapes (`src/lib/storefront.ts`, `"use cache"` + tag `storefront` — admin mutations must `updateTag("storefront")`). Shop links are plain `<a>` (full page loads) because those scripts only init on load; switch to `<Link>` when componentizing. New pages (no prototype): products, category with filters, product detail, search, track (server action, IP throttle in memory), privacy/warranty drafts, checkout placeholder (step 3).
 - Next.js 16 differs from older versions — read `node_modules/next/dist/docs/` before using an API (see `AGENTS.md`).
 - Checks: `npm run typecheck && npm run lint && npm run build`.
 

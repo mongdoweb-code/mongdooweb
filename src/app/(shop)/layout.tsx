@@ -4,6 +4,7 @@ import Script from "next/script";
 import { getShopData, jsonForScript } from "@/lib/storefront";
 import { SHELL_BOTTOM, SHELL_TOP } from "./_markup/shell";
 import "./shop.css";
+import "./pages.css";
 
 export default async function ShopLayout({ children }: LayoutProps<"/">) {
   const data = await getShopData();
