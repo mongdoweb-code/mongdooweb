@@ -44,6 +44,29 @@ model Admin {
   events       OrderEvent[]
   logs         AdminLog[]
   docEvents    SalesDocumentEvent[]
+  sessions     AdminSession[]
+}
+
+/// session หลังบ้าน — cookie เก็บ token สุ่ม, ฐานข้อมูลเก็บแค่ SHA-256 ของ token
+model AdminSession {
+  id         String   @id                    // sha256(token)
+  adminId    String
+  admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())        // ไม่มีการใช้งานเกิน 30 นาที = หมดอายุ
+  expiresAt  DateTime                        // อายุสูงสุดของ session
+  ip         String?
+  userAgent  String?
+
+  @@index([adminId])
+}
+
+/// นับการล็อกอินผิด (ต่อชื่อผู้ใช้ และต่อ IP) — ผิดครบกำหนดจะล็อกชั่วคราว
+model LoginThrottle {
+  key       String   @id                     // "user:admin" | "ip:1.2.3.4"
+  fails     Int      @default(0)
+  lockUntil DateTime?
+  updatedAt DateTime @updatedAt
 }
 
 // ---------- สินค้า ----------
@@ -124,6 +147,7 @@ model Product {
 // ---------- คำสั่งซื้อ ----------
 
 enum OrderStatus {
+  AWAITING_SLIP        // กรอกที่อยู่แล้ว รอลูกค้าโอนและแนบสลิป (ยังไม่เข้าคิวตรวจ)
   PENDING_VERIFICATION // แนบสลิปแล้ว รอแอดมินตรวจ
   PAID                 // อนุมัติแล้ว รอจัดส่ง
   SHIPPED              // ใส่เลขพัสดุแล้ว
@@ -134,7 +158,7 @@ enum OrderStatus {
 model Order {
   id              String       @id @default(cuid())
   orderNo         String       @unique        // "MDW-261017-8288" — ที่ลูกค้าเห็น
-  status          OrderStatus  @default(PENDING_VERIFICATION)
+  status          OrderStatus  @default(AWAITING_SLIP)
 
   // ผู้รับ (snapshot)
   customerName    String
