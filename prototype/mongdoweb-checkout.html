@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ชำระเงิน — มองดูเว็บ</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* โทนสีเดียวกับหน้าแรก (mongdoweb-home.html) */
+:root{
+  --c-white:#FFFFFF; --c-cream:#F2F0EB; --c-orange:#F26B38; --c-orange-dk:#D9562A; --c-black:#141414;
+  --c-ink:#1C1C1C; --c-muted:#6B6862; --c-line:#E3E0D8; --c-cream-dk:#E8E5DD;
+  --c-err:#C0392B; --c-ok:#1E8E5A;
+  --font:'Noto Sans Thai',system-ui,sans-serif; --maxw:1120px; --gutter:24px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--c-ink);background:var(--c-cream);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:16px;color:var(--c-ink)}
+.container{max-width:var(--maxw);margin:0 auto;padding:0 var(--gutter)}
+
+/* ---------- Header ---------- */
+.header{background:var(--c-white);border-bottom:1px solid var(--c-line)}
+.header .container{height:68px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px}
+.logo-mark{width:32px;height:32px;background:var(--c-orange);display:grid;place-items:center}
+.logo-mark span{width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.35)}
+.secure{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--c-muted)}
+.secure svg{width:18px;height:18px;color:var(--c-ok)}
+.logo small{display:block;font-size:11px;font-weight:500;color:var(--c-muted);letter-spacing:.5px;margin-top:-4px}
+.h-right{display:flex;align-items:center;gap:20px}
+.back-shop{display:inline-flex;align-items:center;gap:6px;min-height:44px;font-size:14px;font-weight:600;color:var(--c-ink)}
+.back-shop:hover{color:var(--c-orange)}
+.back-shop svg{width:16px;height:16px}
+.cart-btn{height:44px;min-width:44px;padding:0 12px 0 10px;display:inline-flex;align-items:center;gap:8px;position:relative;background:var(--c-cream);font-weight:600;font-size:15px;color:var(--c-black)}
+.cart-btn:hover{background:var(--c-cream-dk)}
+.cart-ico{width:26px;height:26px;flex-shrink:0}
+.cart-count{position:absolute;top:2px;left:28px;min-width:20px;height:20px;padding:0 5px;background:var(--c-orange);color:#fff;font-size:11px;font-weight:700;border-radius:10px;display:grid;place-items:center;line-height:1;box-shadow:0 0 0 2px var(--c-white);font-variant-numeric:tabular-nums}
+:focus-visible{outline:3px solid var(--c-orange);outline-offset:2px}
+.skip{position:fixed;left:12px;top:-80px;z-index:200;background:var(--c-black);color:#fff;padding:12px 18px;font-weight:600}
+.skip:focus{top:12px}
+@media (min-width:601px){.cart-btn .cart-count{position:static;box-shadow:none;margin-left:-2px}}
+
+/* ---------- Stepper ---------- */
+.stepper{display:flex;gap:0;margin:32px 0 28px;list-style:none;counter-reset:st}
+.stepper li{flex:1;position:relative;padding-top:14px;font-size:14px;color:var(--c-muted);border-top:3px solid var(--c-line)}
+.stepper li b{display:block;font-size:12px;font-weight:600;letter-spacing:1px}
+.stepper li.st-done{border-color:var(--c-ink);color:var(--c-ink)}
+.stepper li.st-now{border-color:var(--c-orange);color:var(--c-ink);font-weight:600}
+.stepper li.st-now b{color:var(--c-orange)}
+
+/* ---------- Layout ---------- */
+.layout{display:grid;grid-template-columns:1fr 380px;gap:32px;align-items:start;padding-bottom:80px}
+.card{background:var(--c-white);padding:32px}
+.card + .card{margin-top:16px}
+.card h2{font-size:22px;font-weight:700;margin-bottom:4px}
+.card .sub{color:var(--c-muted);font-size:14px;margin-bottom:24px}
+.card h3{font-size:16px;font-weight:600;margin:28px 0 12px}
+
+/* ---------- Form ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.field label{font-size:14px;font-weight:500}
+.field label i{font-style:normal;color:var(--c-muted);font-weight:400}
+.field input,.field textarea,.field select{height:48px;border:1.5px solid var(--c-line);padding:0 14px;background:#fff;outline:none;transition:border-color .2s;width:100%}
+.field textarea{height:auto;min-height:76px;padding:12px 14px;resize:vertical}
+.field input:focus,.field textarea:focus{border-color:var(--c-ink)}
+.field.err input,.field.err textarea{border-color:var(--c-err)}
+.field .msg{font-size:13px;color:var(--c-err);display:none}
+.field.err .msg{display:block}
+
+.ship-opts{display:grid;gap:10px}
+.radio{display:grid;grid-template-columns:20px 1fr auto;gap:12px;align-items:center;border:1.5px solid var(--c-line);padding:14px 16px;cursor:pointer;transition:border-color .2s}
+.radio:has(input:checked){border-color:var(--c-ink);background:#FCFBF9}
+.radio input{accent-color:var(--c-orange);width:18px;height:18px}
+.radio b{font-weight:600;font-size:15px;display:block}
+.radio small{color:var(--c-muted);font-size:13px}
+.radio .p{font-weight:700}
+.radio .p.free{color:var(--c-ok)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 28px;font-size:16px;font-weight:600;transition:background .2s,color .2s}
+.btn-primary{background:var(--c-orange);color:#fff}
+.btn-primary:hover{background:var(--c-orange-dk)}
+.btn-primary:disabled{background:#d8d2c6;cursor:not-allowed}
+.btn-outline{border:1.5px solid var(--c-black)}
+.btn-outline:hover{background:var(--c-black);color:#fff}
+.btn-line{background:#06C755;color:#fff}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:28px;flex-wrap:wrap}
+.link{color:var(--c-muted);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.link:hover{color:var(--c-ink)}
+
+/* ---------- Payment ---------- */
+.pay-amount{background:var(--c-cream);padding:20px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+.pay-amount span{color:var(--c-muted);font-size:14px;display:block}
+.pay-amount b{font-size:30px;font-weight:800;line-height:1.2}
+.pay-amount .ord{text-align:right}
+.pay-amount .ord b{font-size:16px;font-weight:700}
+.tabs{display:flex;border-bottom:1.5px solid var(--c-line);margin-bottom:24px}
+.tab{padding:12px 20px;font-weight:600;color:var(--c-muted);border-bottom:3px solid transparent;margin-bottom:-1.5px}
+.tab.on{color:var(--c-ink);border-color:var(--c-orange)}
+.pane{display:none}
+.pane.on{display:block}
+.qr-wrap{display:grid;grid-template-columns:220px 1fr;gap:28px;align-items:center}
+.qr{width:220px;height:220px;border:1.5px solid var(--c-line);display:grid;place-items:center;background:#fff;padding:12px;text-align:center}
+.qr img,.qr canvas{width:100%!important;height:auto!important}
+.qr.qr-ph{background:repeating-linear-gradient(45deg,#faf9f6 0 10px,#f2f0eb 10px 20px);color:var(--c-muted);font-size:13px}
+.howto{list-style:none;counter-reset:h;display:grid;gap:10px}
+.howto li{counter-increment:h;display:flex;gap:12px;font-size:15px}
+.howto li::before{content:counter(h);flex:0 0 24px;height:24px;background:var(--c-black);color:#fff;font-size:13px;font-weight:700;display:grid;place-items:center}
+.bank{border:1.5px solid var(--c-line)}
+.bank-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px}
+.bank-row + .bank-row{border-top:1px solid var(--c-line)}
+.bank-row span{color:var(--c-muted);font-size:14px}
+.bank-row b{font-weight:600}
+.copy{font-size:13px;font-weight:600;border:1.5px solid var(--c-line);padding:4px 10px;margin-left:10px}
+.copy:hover{border-color:var(--c-ink)}
+.note{font-size:13px;color:var(--c-muted);margin-top:16px}
+.demo-flag{display:inline-block;background:#FFF1EA;color:var(--c-orange-dk);font-size:12px;font-weight:600;padding:2px 8px;margin-bottom:12px}
+
+/* ---------- Slip upload ---------- */
+.drop{border:2px dashed #cfc9bd;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.drop:hover,.drop.drag{border-color:var(--c-orange);background:#FFFAF7}
+.drop svg{width:40px;height:40px;color:var(--c-orange);margin-bottom:8px}
+.drop b{display:block;font-size:16px}
+.drop small{color:var(--c-muted)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop.err{border-color:var(--c-err)}
+.preview{display:none;grid-template-columns:120px 1fr;gap:20px;align-items:center;border:1.5px solid var(--c-line);padding:14px}
+.preview.on{display:grid}
+.preview img{width:120px;height:160px;object-fit:cover;background:var(--c-cream)}
+.preview b{display:block;word-break:break-all}
+.preview small{color:var(--c-muted)}
+.file-msg{font-size:13px;color:var(--c-err);margin-top:8px;display:none}
+.file-msg.on{display:block}
+
+/* ---------- Summary ---------- */
+.summary{position:sticky;top:24px}
+.summary details{background:var(--c-white)}
+.summary summary{list-style:none;cursor:default;padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center}
+.summary summary::-webkit-details-marker{display:none}
+.summary summary h2{font-size:18px;font-weight:700}
+.summary summary .tot-mini{display:none;font-weight:700}
+.sum-body{padding:8px 24px 24px}
+.si{display:grid;grid-template-columns:56px 1fr auto;gap:12px;padding:12px 0;border-bottom:1px solid var(--c-line);align-items:center}
+.si-thumb{width:56px;height:56px;background:var(--c-cream);display:grid;place-items:center;position:relative}
+.si-thumb em{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;background:var(--c-black);color:#fff;font-size:11px;font-style:normal;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.ph{width:60%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff 0 22%,#d8d2c6 23% 40%,#8f897d 41% 48%,transparent 49%)}
+.ph.rgb{background:radial-gradient(circle,#fff 0 12%,#ffb38f 18%,#8fd3ff 26%,#c69bff 32%,#8f897d 41% 48%,transparent 49%)}
+.ph.acc{border-radius:4px;background:linear-gradient(#5a554c,#3a3631)}
+.si-name{font-size:14px;line-height:1.4}
+.si-price{font-weight:600;font-size:14px;white-space:nowrap}
+.rows{padding-top:14px;display:grid;gap:8px;font-size:15px}
+.rows div{display:flex;justify-content:space-between}
+.rows span{color:var(--c-muted)}
+.rows .free{color:var(--c-ok);font-weight:600}
+.rows .grand{border-top:1px solid var(--c-line);padding-top:12px;margin-top:4px;font-size:18px}
+.rows .grand span{color:var(--c-ink);font-weight:600}
+.rows .grand b{font-size:22px}
+.nudge{margin-top:14px;background:var(--c-cream);padding:12px 14px;font-size:13px}
+.nudge .bar{height:6px;background:var(--c-cream-dk);margin-top:8px}
+.nudge .bar i{display:block;height:100%;background:var(--c-orange);transition:width .3s}
+.ship-to{margin-top:16px;font-size:14px;border-top:1px solid var(--c-line);padding-top:14px;display:none}
+.ship-to.on{display:block}
+.ship-to span{color:var(--c-muted);font-size:13px;display:block}
+
+/* ---------- Done / Empty ---------- */
+.done{max-width:620px;margin:56px auto 96px;background:var(--c-white);padding:48px 40px;text-align:center}
+.done .ico{width:64px;height:64px;border-radius:50%;background:#E8F5EE;color:var(--c-ok);display:grid;place-items:center;margin:0 auto 18px}
+.done .ico svg{width:32px;height:32px}
+.done h1{font-size:26px;font-weight:700}
+.done .ordno{font-size:15px;color:var(--c-muted);margin:6px 0 24px}
+.done .ordno b{color:var(--c-ink)}
+.status{display:inline-block;background:#FFF5E0;color:#9A6400;font-weight:600;font-size:14px;padding:6px 14px;margin-bottom:28px}
+.timeline{text-align:left;list-style:none;border-left:2px solid var(--c-line);margin:0 auto 32px;max-width:400px;padding-left:22px;display:grid;gap:16px}
+.timeline li{position:relative;font-size:15px}
+.timeline li::before{content:"";position:absolute;left:-29px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--c-line)}
+.timeline li.ok::before{background:var(--c-ok)}
+.timeline li.wait::before{background:var(--c-orange)}
+.timeline small{display:block;color:var(--c-muted)}
+.done .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,120px);opacity:0;background:var(--c-black);color:#fff;padding:12px 20px;font-size:14px;z-index:60;transition:transform .3s,opacity .3s;pointer-events:none}
+.toast.show{transform:translate(-50%,0);opacity:1}
+[hidden]{display:none!important}
+
+/* ---------- Responsive ---------- */
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .summary{position:static;order:-1}
+  .summary summary{cursor:pointer;padding:16px 20px}
+  .summary details:not([open]) summary .tot-mini{display:block}
+  .summary summary h2::after{content:" ▾";font-size:13px;color:var(--c-muted)}
+  .sum-body{padding:0 20px 20px}
+}
+@media (max-width:600px){
+  :root{--gutter:16px}
+  .card{padding:22px 18px}
+  .grid2{grid-template-columns:1fr;gap:0}
+  .stepper li{font-size:12px}
+  .stepper li span{display:none}
+  .qr-wrap{grid-template-columns:1fr;justify-items:center}
+  .actions{flex-direction:column-reverse;align-items:stretch}
+  .actions .btn{width:100%}
+  .secure span{display:none}
+  .h-right{gap:8px}
+  .back-shop span{display:none}
+  .back-shop{width:44px;justify-content:center}
+  .cart-label{display:none}
+  .cart-btn{padding:0 9px}
+  .logo small{display:none}
+  .done{padding:36px 20px;margin:24px auto 64px}
+  .preview{grid-template-columns:90px 1fr}
+  .preview img{width:90px;height:120px}
+}
+</style>
+</head>
+<body>
+<a href="#content" class="skip">ข้ามไปยังเนื้อหาหลัก</a>
+
+<header class="header">
+  <div class="container">
+    <a href="mongdoweb-home.html" class="logo" aria-label="มองดูเว็บ หน้าแรก"><div class="logo-mark"><span></span></div><div>มองดูเว็บ<small>MONGDOWEB LED</small></div></a>
+    <div class="h-right">
+      <div class="secure">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <span>ข้อมูลของคุณได้รับการปกป้อง</span>
+      </div>
+      <a href="mongdoweb-home.html" class="back-shop" aria-label="กลับไปช้อปต่อ">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span>กลับไปช้อปต่อ</span>
+      </a>
+      <!-- ไอคอนตะกร้าเดียวกับหน้าแรก — กดแล้วกลับไปเปิดตะกร้าในหน้าแรกเพื่อแก้จำนวน -->
+      <a href="mongdoweb-home.html#cart" class="cart-btn" id="hdrCart" aria-label="ตะกร้าสินค้า ว่าง">
+        <svg class="cart-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h3l3 12h11l2-8H6"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+        <span class="cart-label" aria-hidden="true">ตะกร้า</span>
+        <span class="cart-count" id="hdrCount" aria-hidden="true" hidden>0</span>
+      </a>
+    </div>
+  </div>
+</header>
+<div id="content" tabindex="-1"></div>
+
+<!-- ===== ตะกร้าว่าง ===== -->
+<main class="container" id="emptyView" hidden>
+  <div class="done">
+    <h1>ยังไม่มีสินค้าในตะกร้า</h1>
+    <p class="ordno">เลือกสินค้าจากหน้าแรกก่อน แล้วกลับมาที่หน้านี้</p>
+    <div class="btns">
+      <a href="mongdoweb-home.html" class="btn btn-primary">กลับไปเลือกสินค้า</a>
+      <!-- ใช้ทดสอบ prototype เท่านั้น -->
+      <button class="btn btn-outline" id="demoFill">ใส่สินค้าตัวอย่าง (ทดสอบ)</button>
+    </div>
+  </div>
+</main>
+
+<!-- ===== Checkout ===== -->
+<main class="container" id="checkoutView" hidden>
+  <ol class="stepper" id="stepper">
+    <li><b>01</b><span>ข้อมูลจัดส่ง</span></li>
+    <li><b>02</b><span>ชำระเงิน</span></li>
+    <li><b>03</b><span>แนบสลิป</span></li>
+  </ol>
+
+  <div class="layout">
+    <div>
+      <!-- STEP 1: ข้อมูลจัดส่ง -->
+      <form class="card" id="step1" novalidate>
+        <h2>ข้อมูลจัดส่ง</h2>
+        <p class="sub">กรอกข้อมูลให้ครบ เพื่อให้พัสดุถึงมือคุณถูกต้อง</p>
+
+        <div class="grid2">
+          <div class="field"><label for="name">ชื่อ-นามสกุลผู้รับ</label><input id="name" name="name" autocomplete="name"><span class="msg">กรุณากรอกชื่อผู้รับ</span></div>
+          <div class="field"><label for="phone">เบอร์โทรศัพท์</label><input id="phone" name="phone" inputmode="tel" autocomplete="tel" placeholder="08X-XXX-XXXX"><span class="msg">กรอกเบอร์มือถือ 10 หลัก</span></div>
+        </div>
+        <div class="field"><label for="email">อีเมล <i>(ไม่บังคับ — สำหรับรับใบยืนยันคำสั่งซื้อ)</i></label><input id="email" name="email" type="email" autocomplete="email"><span class="msg">รูปแบบอีเมลไม่ถูกต้อง</span></div>
+        <div class="field"><label for="addr">ที่อยู่ <i>(บ้านเลขที่ หมู่บ้าน ถนน ซอย)</i></label><input id="addr" name="addr" autocomplete="street-address"><span class="msg">กรุณากรอกที่อยู่</span></div>
+        <div class="grid2">
+          <div class="field"><label for="sub">แขวง / ตำบล</label><input id="sub" name="sub"><span class="msg">กรุณากรอกแขวง/ตำบล</span></div>
+          <div class="field"><label for="dist">เขต / อำเภอ</label><input id="dist" name="dist"><span class="msg">กรุณากรอกเขต/อำเภอ</span></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label for="prov">จังหวัด</label><input id="prov" name="prov" list="provinces"><span class="msg">กรุณากรอกจังหวัด</span></div>
+          <div class="field"><label for="zip">รหัสไปรษณีย์</label><input id="zip" name="zip" inputmode="numeric" maxlength="5" autocomplete="postal-code"><span class="msg">รหัสไปรษณีย์ 5 หลัก</span></div>
+        </div>
+        <datalist id="provinces"></datalist>
+        <div class="field"><label for="note">หมายเหตุถึงร้าน <i>(ไม่บังคับ)</i></label><textarea id="note" name="note" placeholder="เช่น ฝากไว้ที่ป้อมยาม, ต้องการใบกำกับภาษี"></textarea></div>
+
+        <h3>วิธีจัดส่ง</h3>
+        <div class="ship-opts" id="shipOpts"></div>
+
+        <div class="actions">
+          <a href="mongdoweb-home.html" class="link">← กลับไปแก้ตะกร้า</a>
+          <button class="btn btn-primary" type="submit">ไปขั้นตอนชำระเงิน →</button>
+        </div>
+      </form>
+
+      <!-- STEP 2: ชำระเงิน -->
+      <section class="card" id="step2" hidden>
+        <h2>ชำระเงิน</h2>
+        <p class="sub">โอนเงินตามยอดด้านล่าง แล้วแนบสลิปในขั้นตอนถัดไป</p>
+        <div class="pay-amount">
+          <div><span>ยอดที่ต้องชำระ</span><b id="payAmount">฿0</b>
+            <button class="copy" data-copy-amount>คัดลอกยอด</button></div>
+          <div class="ord"><span>เลขที่คำสั่งซื้อ</span><b id="orderNo">-</b></div>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button class="tab on" data-tab="qr" role="tab">QR PromptPay</button>
+          <button class="tab" data-tab="bank" role="tab">โอนเข้าบัญชีธนาคาร</button>
+        </div>
+
+        <div class="pane on" id="pane-qr">
+          <div class="qr-wrap">
+            <div class="qr" id="qrBox"></div>
+            <ol class="howto">
+              <li>เปิดแอปธนาคารบนมือถือ เลือก "สแกนจ่าย"</li>
+              <li>สแกน QR นี้ ยอดเงินจะขึ้นให้อัตโนมัติ</li>
+              <li>ตรวจชื่อบัญชีผู้รับให้ตรงกับ <b id="qrName"></b></li>
+              <li>บันทึกสลิปไว้ เพื่อแนบในขั้นตอนถัดไป</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="pane" id="pane-bank">
+          <div class="bank" id="bankBox"></div>
+          <p class="note">โปรดโอนยอดให้ตรงกับยอดคำสั่งซื้อ เพื่อให้ตรวจสอบได้รวดเร็ว</p>
+        </div>
+
+        <div class="actions">
+          <button class="link" data-goto="1">← แก้ไขข้อมูลจัดส่ง</button>
+          <button class="btn btn-primary" data-goto="3">โอนแล้ว ไปแนบสลิป →</button>
+        </div>
+      </section>
+
+      <!-- STEP 3: แนบสลิป -->
+      <form class="card" id="step3" hidden novalidate>
+        <h2>แนบสลิปการโอน</h2>
+        <p class="sub">อัปโหลดภาพสลิป ทีมงานจะตรวจสอบและยืนยันคำสั่งซื้อให้</p>
+
+        <label class="drop" id="drop">
+          <input type="file" id="slip" accept="image/jpeg,image/png,image/webp">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></svg>
+          <b>คลิกเพื่อเลือกไฟล์ หรือลากภาพสลิปมาวาง</b>
+          <small>รองรับ JPG, PNG, WEBP ขนาดไม่เกิน 5 MB</small>
+        </label>
+        <div class="preview" id="preview">
+          <img id="previewImg" alt="ตัวอย่างสลิปที่อัปโหลด">
+          <div><b id="previewName"></b><small id="previewSize"></small><br><button type="button" class="link" id="slipRemove">เปลี่ยนไฟล์</button></div>
+        </div>
+        <div class="file-msg" id="fileMsg"></div>
+
+        <h3>รายละเอียดการโอน</h3>
+        <div class="grid2">
+          <div class="field"><label for="paidAt">วันที่โอน</label><input id="paidAt" type="date"><span class="msg">กรุณาระบุวันที่โอน</span></div>
+          <div class="field"><label for="paidTime">เวลาที่โอน</label><input id="paidTime" type="time"><span class="msg">กรุณาระบุเวลาที่โอน</span></div>
+        </div>
+        <div class="field"><label for="paidAmt">ยอดที่โอน (บาท)</label><input id="paidAmt" inputmode="decimal"><span class="msg">กรุณากรอกยอดที่โอน</span></div>
+
+        <div class="actions">
+          <button type="button" class="link" data-goto="2">← กลับไปดูวิธีโอน</button>
+          <button class="btn btn-primary" type="submit" id="submitBtn">ยืนยันคำสั่งซื้อ</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- สรุปคำสั่งซื้อ -->
+    <aside class="summary">
+      <details id="sumDetails" open>
+        <summary><h2>สรุปคำสั่งซื้อ</h2><span class="tot-mini" id="totMini"></span></summary>
+        <div class="sum-body">
+          <div id="sumItems"></div>
+          <div class="rows">
+            <div><span>ค่าสินค้า</span><b id="sSub"></b></div>
+            <div><span>ค่าจัดส่ง</span><b id="sShip"></b></div>
+            <div class="grand"><span>ยอดชำระทั้งหมด</span><b id="sTotal"></b></div>
+          </div>
+          <div class="nudge" id="nudge"></div>
+          <div class="ship-to" id="shipTo"></div>
+        </div>
+      </details>
+    </aside>
+  </div>
+</main>
+
+<!-- ===== สั่งซื้อสำเร็จ ===== -->
+<main class="container" id="doneView" hidden>
+  <div class="done">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m5 12 5 5 9-10"/></svg></div>
+    <h1>ได้รับคำสั่งซื้อแล้ว ขอบคุณครับ</h1>
+    <p class="ordno">เลขที่คำสั่งซื้อ <b id="doneNo"></b> · ยอด <b id="doneAmt"></b></p>
+    <div class="status">สถานะ: รอตรวจสอบสลิป</div>
+    <ul class="timeline">
+      <li class="ok">ได้รับคำสั่งซื้อและสลิป<small id="doneTime"></small></li>
+      <li class="wait">ทีมงานตรวจสอบยอดโอน<small id="doneCheck"></small></li>
+      <li>แพ็กและจัดส่งสินค้า<small>แจ้งเลขพัสดุทาง SMS / LINE</small></li>
+      <li>รับสินค้า<small>ภายใน 2–3 วันหลังจัดส่ง</small></li>
+    </ul>
+    <div class="btns">
+      <a href="#" class="btn btn-line" id="doneLine">ติดตามทาง LINE</a>
+      <a href="mongdoweb-home.html" class="btn btn-outline">กลับหน้าแรก</a>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =========================================================
+   SHOP CONFIG — ⚠️ ค่าตัวอย่างทั้งหมด ต้องแก้เป็นข้อมูลจริงก่อนใช้งาน
+   Next.js: ย้ายไปไว้ใน DB (ตาราง settings) ให้แอดมินแก้ได้จากหลังร้าน
+   ========================================================= */
+const SHOP = {
+  bank:      { name:'ธนาคารตัวอย่าง', account:'XXX-X-XXXXX-X', holder:'บจก. มองดูเว็บ (ตัวอย่าง)' }, // TODO
+  promptpay: null,            // TODO: ใส่เบอร์มือถือหรือเลขผู้เสียภาษีที่ผูก PromptPay เช่น '0812345678' แล้ว QR จะสร้างอัตโนมัติ
+  promptpayName: 'มองดูเว็บ', // TODO: ชื่อบัญชีที่ลูกค้าจะเห็นตอนสแกน
+  shipping: [                 // TODO: ค่าส่งจริง
+    { id:'std',     name:'ส่งธรรมดา',  desc:'ได้รับภายใน 2–3 วันทำการ', price:50 },
+    { id:'express', name:'ส่งด่วน',    desc:'ได้รับภายใน 1–2 วันทำการ', price:90 }
+  ],
+  freeShipMin: 1500,          // TODO: ยอดขั้นต่ำส่งฟรี (ใช้กับส่งธรรมดา) — ใส่ null ถ้าไม่มีโปร
+  checkWithin: 'ภายใน 2 ชั่วโมง ในเวลาทำการ', // TODO
+  line: '#'                   // TODO: ลิงก์ LINE OA
+};
+
+/* ต้องตรงกับ CATALOG ในหน้าแรก — Next.js จะดึงจาก DB ที่เดียวกัน */
+const CATALOG = [
+  { id:'uw-rgb',    name:'โคมไฟใต้น้ำ RGB เปลี่ยนสีได้ พร้อมรีโมท (ชุดพร้อมใช้)', price:890,  color:'rgb' },
+  { id:'uw-white',  name:'โคมไฟใต้น้ำ 10W แสงขาว White DC12V', price:590, color:'white' },
+  { id:'pool-rgb',  name:'โคมไฟสระว่ายน้ำ LED RGB สแตนเลส', price:1290, color:'rgb' },
+  { id:'fountain-ring', name:'ไฟส่องน้ำพุ LED แบบวงแหวน', price:1490, color:'any' },
+  { id:'pool-white',name:'โคมไฟสระว่ายน้ำ LED แสงขาว สแตนเลส', price:1190, color:'white' },
+  { id:'garden-white', name:'ไฟส่องต้นไม้ LED แบบปักดิน แสงขาว', price:450, color:'white' },
+  { id:'garden-rgb',   name:'ไฟส่องต้นไม้ LED แบบปักดิน RGB', price:590, color:'rgb' },
+  { id:'psu',    name:'หม้อแปลงไฟ DC12V สำหรับไฟ LED', price:350, acc:true },
+  { id:'shrink', name:'ท่อหดกันน้ำ สำหรับต่อสายเพิ่ม', price:59, acc:true }
+];
+const PROVINCES = ['กรุงเทพมหานคร','นนทบุรี','ปทุมธานี','สมุทรปราการ','สมุทรสาคร','นครปฐม','ชลบุรี','ระยอง','เชียงใหม่','เชียงราย','ขอนแก่น','นครราชสีมา','อุดรธานี','ภูเก็ต','สงขลา','สุราษฎร์ธานี','พระนครศรีอยุธยา','ประจวบคีรีขันธ์','เพชรบุรี','กาญจนบุรี'];
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const byId = id => CATALOG.find(p => p.id === id);
+const baht = n => '฿' + n.toLocaleString('th-TH', {minimumFractionDigits: n % 1 ? 2 : 0});
+const phClass = p => 'ph' + (p.acc ? ' acc' : p.color === 'rgb' ? ' rgb' : '');
+let tt; const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2200); };
+const store = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+
+/* ---------- state ---------- */
+/* ค่าที่แอดมินแก้ในหน้า "ตั้งค่าร้าน" (mongdoweb-admin.html) จะทับค่าตัวอย่างด้านบน */
+(function applySettings(){
+  const s = store.get('mdw_settings');
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return;
+  // ค่าที่มาจากหลังบ้าน: รับเฉพาะชนิดที่ถูกต้อง ค่าที่เสียให้คงค่าเริ่มต้นไว้ (กัน ฿NaN)
+  const money = v => (typeof v === 'number' || (typeof v === 'string' && v.trim() !== '')) && Number.isFinite(Number(v)) && Number(v) >= 0 ? Number(v) : null;
+  const text = v => typeof v === 'string' ? v.trim() : (typeof v === 'number' && Number.isFinite(v) ? String(v) : null);
+  if (s.bank && typeof s.bank === 'object' && !Array.isArray(s.bank))
+    ['name','account','holder'].forEach(k => { const t = text(s.bank[k]); if (t) SHOP.bank[k] = t; });
+  if ('promptpay' in s){ const t = text(s.promptpay); SHOP.promptpay = t && /\d{9,}/.test(t.replace(/\D/g,'')) ? t : null; }
+  ['promptpayName','checkWithin'].forEach(k => { const t = text(s[k]); if (t) SHOP[k] = t; });
+  if ('line' in s){ const t = text(s.line); SHOP.line = t && /^https?:\/\/\S+$/i.test(t) ? t : '#'; }
+  if ('freeShipMin' in s){
+    if (s.freeShipMin === null || s.freeShipMin === '') SHOP.freeShipMin = null;
+    else { const n = money(s.freeShipMin); if (n !== null) SHOP.freeShipMin = n; }
+  }
+  if (s.shipping && typeof s.shipping === 'object' && !Array.isArray(s.shipping))
+    SHOP.shipping.forEach(o => { const n = money(s.shipping[o.id]); if (n !== null) o.price = n; });
+})();
+
+let cart = store.get('mdw_cart');
+if (!cart || typeof cart !== 'object' || Array.isArray(cart)) cart = {};
+Object.keys(cart).forEach(id => { const q = Math.floor(Number(cart[id])); if (!byId(id) || !(q > 0)) delete cart[id]; else cart[id] = Math.min(q, 999); });
+/* ป้ายจำนวนบนไอคอนตะกร้าในหัวเว็บ */
+function renderHdrCart(){
+  const n = Object.values(cart).reduce((a, b) => a + b, 0), c = $('#hdrCount');
+  c.textContent = n > 99 ? '99+' : n; c.hidden = n === 0;
+  $('#hdrCart').setAttribute('aria-label', n ? `ตะกร้าสินค้า ${n} ชิ้น` : 'ตะกร้าสินค้า ว่าง');
+}
+let shipId = 'std', step = 1, slipFile = null;
+let orderNo = null;
+
+const subtotal = () => Object.entries(cart).reduce((s,[id,q]) => s + byId(id).price * q, 0);
+const shipCost = () => {
+  const o = SHOP.shipping.find(s => s.id === shipId);
+  if (shipId === 'std' && SHOP.freeShipMin && subtotal() >= SHOP.freeShipMin) return 0;
+  return o.price;
+};
+const total = () => subtotal() + shipCost();
+
+function makeOrderNo(){
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return `MDW-${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}-${Math.floor(1000 + Math.random()*9000)}`;
+}
+
+/* ---------- render: summary ---------- */
+function renderSummary(){
+  $('#sumItems').innerHTML = Object.entries(cart).map(([id,q]) => { const p = byId(id); return `
+    <div class="si"><div class="si-thumb"><div class="${phClass(p)}"></div><em>${q}</em></div>
+    <div class="si-name">${p.name}</div><div class="si-price">${baht(p.price*q)}</div></div>`; }).join('');
+  $('#sSub').textContent = baht(subtotal());
+  const sc = shipCost();
+  $('#sShip').innerHTML = sc === 0 ? '<span class="free">ส่งฟรี</span>' : baht(sc);
+  $('#sTotal').textContent = baht(total());
+  $('#totMini').textContent = baht(total());
+  const nd = $('#nudge');
+  if (SHOP.freeShipMin && subtotal() < SHOP.freeShipMin){
+    const left = SHOP.freeShipMin - subtotal();
+    nd.hidden = false;
+    nd.innerHTML = `ซื้อเพิ่มอีก <b>${baht(left)}</b> รับส่งฟรี (ส่งธรรมดา)
+      <div class="bar"><i style="width:${Math.min(100, subtotal()/SHOP.freeShipMin*100)}%"></i></div>`;
+  } else nd.hidden = true;
+}
+function renderShipOpts(){
+  $('#shipOpts').innerHTML = SHOP.shipping.map(s => {
+    const free = s.id === 'std' && SHOP.freeShipMin && subtotal() >= SHOP.freeShipMin;
+    return `<label class="radio"><input type="radio" name="ship" value="${s.id}" ${s.id === shipId ? 'checked' : ''}>
+      <div><b>${s.name}</b><small>${s.desc}</small></div>
+      <span class="p ${free ? 'free' : ''}">${free ? 'ฟรี' : baht(s.price)}</span></label>`;
+  }).join('');
+}
+$('#shipOpts').addEventListener('change', e => { shipId = e.target.value; renderSummary(); });
+
+/* ---------- step navigation ---------- */
+function go(n){
+  step = n;
+  ['#step1','#step2','#step3'].forEach((s,i) => $(s).hidden = i + 1 !== n);
+  [...$('#stepper').children].forEach((li,i) => li.className = i + 1 < n ? 'st-done' : i + 1 === n ? 'st-now' : '');
+  if (n >= 2) {
+    if (!orderNo) orderNo = makeOrderNo();
+    renderPayment();
+  }
+  if (n === 3 && !$('#paidAmt').value) $('#paidAmt').value = total().toFixed(2);
+  scrollTo({top:0, behavior:'smooth'});
+}
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-goto]');
+  if (g){ e.preventDefault(); go(Number(g.dataset.goto)); }
+});
+
+/* ---------- STEP 1: validation ---------- */
+const RULES = {
+  name:  v => v.trim().length >= 2,
+  phone: v => /^0\d{9}$/.test(v.replace(/[\s-]/g,'')),
+  email: v => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
+  addr:  v => v.trim().length >= 3,
+  sub:   v => v.trim().length >= 2,
+  dist:  v => v.trim().length >= 2,
+  prov:  v => v.trim().length >= 2,
+  zip:   v => /^\d{5}$/.test(v.trim())
+};
+function check(id){
+  const el = document.getElementById(id), ok = RULES[id](el.value);
+  el.closest('.field').classList.toggle('err', !ok);
+  return ok;
+}
+Object.keys(RULES).forEach(id => document.getElementById(id).addEventListener('blur', () => { if (document.getElementById(id).value) check(id); }));
+$('#zip').addEventListener('input', e => e.target.value = e.target.value.replace(/\D/g,''));
+$('#step1').addEventListener('submit', e => {
+  e.preventDefault();
+  const bad = Object.keys(RULES).filter(id => !check(id));
+  if (bad.length){ document.getElementById(bad[0]).focus(); toast('กรุณากรอกข้อมูลให้ครบถ้วน'); return; }
+  const f = id => document.getElementById(id).value.trim();
+  const addr = { name:f('name'), phone:f('phone'), email:f('email'), addr:f('addr'), sub:f('sub'), dist:f('dist'), prov:f('prov'), zip:f('zip'), note:f('note') };
+  store.set('mdw_ship', addr); // จำที่อยู่ไว้ใช้ครั้งหน้า
+  $('#shipTo').classList.add('on');
+  $('#shipTo').innerHTML = `<span>จัดส่งถึง</span><b>${esc(addr.name)}</b> · ${esc(addr.phone)}<br>${esc(addr.addr)} ${esc(addr.sub)} ${esc(addr.dist)} ${esc(addr.prov)} ${esc(addr.zip)}`;
+  go(2);
+});
+const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- STEP 2: payment ---------- */
+function renderPayment(){
+  $('#payAmount').textContent = baht(total());
+  $('#orderNo').textContent = orderNo;
+  $('#qrName').textContent = SHOP.promptpayName;
+  const qb = $('#qrBox');
+  if (SHOP.promptpay){
+    qb.className = 'qr'; qb.innerHTML = '';
+    loadQRLib().then(() => new QRCode(qb, { text: promptPayPayload(SHOP.promptpay, total()), width:196, height:196, correctLevel: QRCode.CorrectLevel.M }))
+      .catch(() => { qb.className = 'qr qr-ph'; qb.textContent = 'โหลด QR ไม่สำเร็จ กรุณาใช้การโอนเข้าบัญชี'; });
+  } else {
+    qb.className = 'qr qr-ph';
+    qb.innerHTML = '<div><span class="demo-flag">ตัวอย่าง</span><br>QR PromptPay จะแสดงที่นี่<br>เมื่อใส่เลข PromptPay ใน SHOP config</div>';
+  }
+  $('#bankBox').innerHTML = `
+    <div class="bank-row"><span>ธนาคาร</span><b>${esc(SHOP.bank.name)}</b></div>
+    <div class="bank-row"><span>เลขที่บัญชี</span><div><b>${esc(SHOP.bank.account)}</b><button class="copy" data-copy="${esc(SHOP.bank.account.replace(/\D/g,'') || SHOP.bank.account)}">คัดลอก</button></div></div>
+    <div class="bank-row"><span>ชื่อบัญชี</span><b>${esc(SHOP.bank.holder)}</b></div>`;
+}
+document.querySelectorAll('[data-tab]').forEach(t => t.onclick = () => {
+  document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('on', x === t));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + t.dataset.tab));
+});
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-copy],[data-copy-amount]');
+  if (!c) return;
+  const text = c.hasAttribute('data-copy-amount') ? total().toFixed(2) : c.dataset.copy;
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('คัดลอกแล้ว: ' + text), () => toast(text));
+});
+
+/* PromptPay QR (มาตรฐาน EMVCo ของ ธปท.) — สร้าง payload พร้อมยอดเงิน */
+function promptPayPayload(id, amount){
+  const f = (tag, v) => tag + String(v.length).padStart(2,'0') + v;
+  const t = String(id).replace(/\D/g,'');
+  const acc = t.length >= 13 ? f('02', t) : f('01', ('0000000000000' + t.replace(/^0/, '66')).slice(-13));
+  let p = f('00','01') + f('01', amount ? '12' : '11') + f('29', f('00','A000000677010111') + acc)
+        + f('53','764') + (amount ? f('54', amount.toFixed(2)) : '') + f('58','TH') + '6304';
+  return p + crc16(p);
+}
+function crc16(s){
+  let crc = 0xFFFF;
+  for (let i = 0; i < s.length; i++){
+    crc ^= s.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+    crc &= 0xFFFF;
+  }
+  return crc.toString(16).toUpperCase().padStart(4,'0');
+}
+let qrLib;
+function loadQRLib(){
+  return qrLib ||= new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload = res; s.onerror = rej; document.head.appendChild(s);
+  });
+}
+
+/* ---------- STEP 3: slip upload ---------- */
+const MAX = 5 * 1024 * 1024, TYPES = ['image/jpeg','image/png','image/webp'];
+function setSlip(file){
+  const msg = $('#fileMsg');
+  msg.classList.remove('on'); $('#drop').classList.remove('err');
+  if (!file) return;
+  if (!TYPES.includes(file.type)){ msg.textContent = 'รองรับเฉพาะไฟล์ภาพ JPG, PNG หรือ WEBP'; msg.classList.add('on'); return; }
+  if (file.size > MAX){ msg.textContent = 'ไฟล์ใหญ่เกิน 5 MB กรุณาเลือกไฟล์ใหม่'; msg.classList.add('on'); return; }
+  slipFile = file;
+  $('#previewImg').src = URL.createObjectURL(file);
+  $('#previewName').textContent = file.name;
+  $('#previewSize').textContent = (file.size / 1024).toFixed(0) + ' KB';
+  $('#preview').classList.add('on'); $('#drop').hidden = true;
+}
+$('#slip').addEventListener('change', e => setSlip(e.target.files[0]));
+const drop = $('#drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', e => setSlip(e.dataTransfer.files[0]));
+$('#slipRemove').onclick = () => { slipFile = null; $('#slip').value = ''; $('#preview').classList.remove('on'); $('#drop').hidden = false; };
+
+$('#step3').addEventListener('submit', async e => {
+  e.preventDefault();
+  let ok = true;
+  if (!slipFile){ $('#fileMsg').textContent = 'กรุณาแนบสลิปการโอน'; $('#fileMsg').classList.add('on'); $('#drop').classList.add('err'); ok = false; }
+  [['paidAt', v => !!v], ['paidTime', v => !!v], ['paidAmt', v => Number(v) > 0]].forEach(([id, fn]) => {
+    const el = document.getElementById(id), good = fn(el.value);
+    el.closest('.field').classList.toggle('err', !good); if (!good) ok = false;
+  });
+  if (!ok){ toast('กรุณาแนบสลิปและกรอกรายละเอียดให้ครบ'); return; }
+
+  const btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'กำลังส่งคำสั่งซื้อ...';
+  /* TODO (Next.js): ส่งจริงด้วย FormData
+     POST /api/orders  { items, shipping, address }  → ได้ orderId
+     POST /api/orders/:id/slip  (multipart: slip, paidAt, paidAmt) → เก็บผ่าน storage driver (local | s3)
+     ฝั่ง server คำนวณ SHA-256 ของไฟล์ซ้ำอีกรอบ (ห้ามเชื่อค่าจาก browser) แล้วเช็กกับ PaymentSlip.sha256
+     สถานะเริ่มต้น: PENDING_VERIFICATION → แอดมินตรวจแล้วเปลี่ยนเป็น PAID / REJECTED */
+  let orders = store.get('mdw_orders');
+  if (!Array.isArray(orders)) orders = [];
+  const hash = await sha256(slipFile);
+  const dup = orders.find(o => o && Array.isArray(o.slips) && o.slips.some(s => s && s.sha256 === hash));
+  if (dup){
+    btn.disabled = false; btn.textContent = 'ยืนยันคำสั่งซื้อ';
+    $('#fileMsg').textContent = 'สลิปนี้เคยถูกใช้กับคำสั่งซื้ออื่นแล้ว กรุณาแนบสลิปของการโอนครั้งนี้';
+    $('#fileMsg').classList.add('on'); $('#drop').classList.add('err');
+    return;
+  }
+
+  const amt = total();
+  const ship = SHOP.shipping.find(s => s.id === shipId);
+  const addr = store.get('mdw_ship') || {};
+  const now = new Date().toISOString();
+  // โครงสร้างเดียวกับ Prisma (Order + OrderItem + PaymentSlip + OrderEvent) เพื่อย้ายไป API ได้ตรงๆ
+  orders.push({
+    id: orderNo, createdAt: now, status: 'PENDING_VERIFICATION',
+    customer: { name: addr.name, phone: addr.phone, email: addr.email },
+    address: { addr: addr.addr, sub: addr.sub, dist: addr.dist, prov: addr.prov, zip: addr.zip },
+    note: addr.note || '',
+    items: Object.entries(cart).map(([id,q]) => ({ id, name: byId(id).name, price: byId(id).price, qty: q })),
+    subtotal: subtotal(), shipping: { id: ship.id, name: ship.name }, shippingCost: shipCost(), total: amt,
+    slips: [{ dataUrl: await shrinkImage(slipFile), sha256: hash, size: slipFile.size, mime: slipFile.type,
+              paidAt: `${$('#paidAt').value}T${$('#paidTime').value}`, amount: Number($('#paidAmt').value), uploadedAt: now }],
+    tracking: null, rejectReason: null,
+    events: [{ at: now, type: 'CREATED', by: 'ลูกค้า', note: 'สั่งซื้อและแนบสลิป' }]
+  });
+  try { localStorage.setItem('mdw_orders', JSON.stringify(orders)); }
+  catch(err){ console.warn('พื้นที่ localStorage เต็ม — prototype เท่านั้น', err); }
+  await new Promise(r => setTimeout(r, 400));
+
+  store.del('mdw_cart'); cart = {}; renderHdrCart();
+  $('#checkoutView').hidden = true; $('#doneView').hidden = false;
+  $('#doneNo').textContent = orderNo;
+  $('#doneAmt').textContent = baht(amt);
+  $('#doneTime').textContent = new Date().toLocaleString('th-TH', { dateStyle:'medium', timeStyle:'short' });
+  $('#doneCheck').textContent = SHOP.checkWithin;
+  $('#doneLine').href = SHOP.line;
+  scrollTo({top:0});
+});
+
+/* SHA-256 ของไฟล์สลิป — ใช้จับสลิปที่ถูกส่งซ้ำ (crypto.subtle ใช้ได้บน https/localhost/file) */
+async function sha256(file){
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+  } catch(e){ return 'fallback-' + file.name + '-' + file.size + '-' + file.lastModified; }
+}
+/* ย่อภาพสลิปก่อนเก็บใน prototype (กว้างสุด 900px, JPEG) — ระบบจริงเก็บไฟล์ต้นฉบับใน storage */
+function shrinkImage(file){
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 900 / img.width), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL('image/jpeg', .72));
+    };
+    img.onerror = () => res('');
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ลบสถานะ error ทันทีที่ผู้ใช้แก้ช่องนั้น
+document.addEventListener('input', e => { const f = e.target.closest('.field.err'); if (f) f.classList.remove('err'); });
+
+/* ---------- init ---------- */
+$('#provinces').innerHTML = PROVINCES.map(p => `<option value="${p}">`).join('');
+const today = new Date();
+$('#paidAt').value = today.toISOString().slice(0,10);
+$('#paidAt').max = $('#paidAt').value;
+
+const saved = store.get('mdw_ship');
+if (saved && typeof saved === 'object' && !Array.isArray(saved)) Object.entries(saved).forEach(([k,v]) => { const el = document.getElementById(k); if (el && v) el.value = v; });
+
+function start(){
+  renderHdrCart();
+  const has = Object.keys(cart).length > 0;
+  $('#emptyView').hidden = has; $('#checkoutView').hidden = !has;
+  if (!has) return;
+  if (matchMedia('(max-width:900px)').matches) $('#sumDetails').open = false;
+  renderShipOpts(); renderSummary(); go(1);
+}
+// บนเดสก์ท็อปให้สรุปคำสั่งซื้อเปิดค้างไว้ตลอด (พับได้เฉพาะมือถือ)
+$('#sumDetails summary').addEventListener('click', e => { if (!matchMedia('(max-width:900px)').matches) e.preventDefault(); });
+$('#demoFill').onclick = () => { cart = { 'uw-rgb':2, 'shrink':1 }; store.set('mdw_cart', cart); start(); };
+start();
+</script>
+</body>
+</html>

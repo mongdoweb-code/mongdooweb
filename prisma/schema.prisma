@@ -1,0 +1,536 @@
+// =============================================================
+// MongdoWeb — Prisma schema (PostgreSQL)
+// ออกแบบจาก prototype: mongdoweb-home / checkout / admin
+//
+// หลักการสำคัญ
+// - เงินเก็บเป็น "สตางค์" (Int) เช่น ฿1,290.00 = 129000 → ไม่มีปัญหาทศนิยมปัดเศษ
+// - OrderItem เก็บชื่อและราคา ณ ตอนสั่ง (snapshot) → แก้ราคาสินค้าทีหลัง ออเดอร์เก่าไม่เปลี่ยน
+// - ที่อยู่จัดส่งเก็บในออเดอร์เลย (ยังไม่มีระบบสมาชิก) → ลูกค้าย้ายบ้าน ออเดอร์เก่าไม่เปลี่ยน
+// - สลิปเก็บแค่ storageKey → ไฟล์จริงอยู่ใน storage driver (STORAGE_DRIVER=local|s3)
+// - ทุกการเปลี่ยนสถานะบันทึกใน OrderEvent (ใครทำ ทำเมื่อไร)
+// =============================================================
+
+// Prisma ORM 7: วางไฟล์นี้ที่ prisma/schema.prisma
+// - generator ใหม่ "prisma-client" ต้องระบุ output (ไม่ generate ลง node_modules แล้ว)
+// - DATABASE_URL ย้ายไปอยู่ใน prisma.config.ts (ที่ root ข้าง package.json)
+// - PrismaClient ต่อฐานข้อมูลผ่าน driver adapter @prisma/adapter-pg
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Admin (ล็อกอินที่ /admin/login) ----------
+
+enum AdminRole {
+  OWNER  // จัดการทุกอย่าง รวมถึงตั้งค่าร้านและเพิ่มแอดมิน
+  STAFF  // ตรวจสลิป ใส่เลขพัสดุ
+}
+
+model Admin {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  passwordHash String     // bcrypt / argon2 — ห้ามเก็บรหัสผ่านตรงๆ
+  displayName  String
+  role         AdminRole  @default(STAFF)
+  isActive     Boolean    @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  events       OrderEvent[]
+  logs         AdminLog[]
+  docEvents    SalesDocumentEvent[]
+}
+
+// ---------- สินค้า ----------
+
+/// กลุ่มในเมนูหมวดสินค้า (mega menu หน้าแรก) — CATEGORY_GROUPS
+enum CategoryGroup {
+  WATER    // งานน้ำ
+  OUTDOOR  // สวนและภายนอก
+  BUILDING // อาคารและภายใน
+  DECO     // อุปกรณ์และตกแต่ง
+}
+
+model Category {
+  id          String        @id @default(cuid())
+  slug        String        @unique            // เช่น "underwater-light" (ทำ redirect 301 จาก URL ภาษาไทยเดิม)
+  legacySlug  String?       @unique            // slug เดิมจาก WooCommerce สำหรับ redirect
+  nameTh      String                           // "ไฟใต้น้ำ"
+  nameEn      String                           // "Underwater Light"
+  icon        String?                          // key ไอคอน เช่น "water", "pool"
+  group       CategoryGroup @default(DECO)
+  popular     String[]                         // รายการยอดนิยมใน dropdown (สูงสุด 4)
+  sortOrder   Int           @default(0)
+  isActive    Boolean       @default(true)     // = visible ในหน้าแรก
+  products    Product[]
+}
+
+/// พื้นที่ใช้งาน — ใช้ในตัวช่วยเลือกไฟ (CATALOG.use)
+enum UseArea {
+  POOL
+  POND
+  FOUNTAIN
+  GARDEN
+}
+
+/// สีแสง — ใช้ในตัวช่วยเลือกไฟ (CATALOG.color)
+enum LightColor {
+  WHITE
+  RGB
+  ANY
+}
+
+model Product {
+  id            String       @id @default(cuid())
+  sku           String       @unique        // เช่น "DL1-ww", "GDL-F24WH-1-2-1-1"
+  slug          String       @unique
+  name          String
+  description   String?      @db.Text
+  unit          String       @default("ชิ้น") // หน่วยในเอกสารขาย: อัน, ชุด, กล่อง
+  isService     Boolean      @default(false) // ค่าบริการ/ค่าส่ง ไม่ตัดสต็อก (เช่น sku "Shipping")
+  priceSatang   Int                         // ราคาขาย (สตางค์)
+  stock         Int          @default(0)
+  specs         Json?                       // [{"label":"กำลังไฟ","value":"10W COB"}, ...]
+  images        String[]                    // storage keys เรียงตามลำดับแสดง
+  model3dKey    String?                     // ไฟล์ .glb สำหรับตัวหมุนดู 3D (ถ้ามี)
+
+  // ข้อมูลสำหรับตัวช่วยเลือกไฟ
+  useAreas      UseArea[]
+  lightColor    LightColor   @default(ANY)
+  includesPsu   Boolean      @default(false) // ชุดพร้อมใช้ มีหม้อแปลงในกล่องแล้ว (CATALOG.kit)
+  isAccessory   Boolean      @default(false) // อุปกรณ์เสริม เช่น หม้อแปลง ท่อหด (CATALOG.acc)
+
+  badge         String?                     // "ขายดี", "แนะนำ"
+  isBestSeller  Boolean      @default(false)
+  isActive      Boolean      @default(true)
+
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id])
+  orderItems    OrderItem[]
+  docItems      SalesDocumentItem[]
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([categoryId, isActive])
+  @@index([isBestSeller, isActive])
+}
+
+// ---------- คำสั่งซื้อ ----------
+
+enum OrderStatus {
+  PENDING_VERIFICATION // แนบสลิปแล้ว รอแอดมินตรวจ
+  PAID                 // อนุมัติแล้ว รอจัดส่ง
+  SHIPPED              // ใส่เลขพัสดุแล้ว
+  REJECTED             // สลิปไม่ผ่าน รอลูกค้าแนบใหม่
+  CANCELLED            // ยกเลิก (เช่น ไม่แนบสลิปใหม่ภายในกำหนด)
+}
+
+model Order {
+  id              String       @id @default(cuid())
+  orderNo         String       @unique        // "MDW-261017-8288" — ที่ลูกค้าเห็น
+  status          OrderStatus  @default(PENDING_VERIFICATION)
+
+  // ผู้รับ (snapshot)
+  customerName    String
+  phone           String
+  email           String?
+  addressLine     String
+  subdistrict     String
+  district        String
+  province        String
+  postalCode      String       @db.VarChar(5)
+  note            String?
+
+  // ยอดเงิน (สตางค์)
+  subtotalSatang  Int
+  shippingMethod  String                      // "std" | "express"
+  shippingName    String                      // "ส่งธรรมดา"
+  shippingSatang  Int
+  totalSatang     Int
+
+  // จัดส่ง
+  carrier         String?
+  trackingNo      String?
+  shippedAt       DateTime?
+
+  rejectReason    String?
+  paidAt          DateTime?                   // เวลาที่แอดมินอนุมัติ
+
+  items           OrderItem[]
+  slips           PaymentSlip[]
+  events          OrderEvent[]
+  documents       SalesDocument[]             // ใบแจ้งหนี้/ใบเสร็จที่ออกจากคำสั่งซื้อนี้
+
+  customerId      String?
+  customer        Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([status, createdAt])                // คิว "รอตรวจสลิป" เรียงเก่าสุดก่อน
+  @@index([phone])                            // ค้นหา + หน้าติดตามคำสั่งซื้อ (เลขที่ + เบอร์โทร)
+  @@index([trackingNo])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String?
+  product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  nameSnapshot String                         // ชื่อ ณ ตอนสั่ง
+  priceSatang  Int                            // ราคาต่อชิ้น ณ ตอนสั่ง
+  qty          Int
+
+  @@index([orderId])
+}
+
+// ---------- สลิปการโอน ----------
+
+enum SlipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model PaymentSlip {
+  id            String      @id @default(cuid())
+  orderId       String
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  storageKey    String                        // path ใน local หรือ key ใน S3
+  mimeType      String
+  sizeBytes     Int
+  sha256        String                        // คำนวณฝั่ง server เท่านั้น ใช้จับสลิปซ้ำ
+
+  declaredAmountSatang Int                    // ยอดที่ลูกค้ากรอก
+  transferredAt DateTime                      // วัน-เวลาโอนที่ลูกค้ากรอก
+  status        SlipStatus  @default(PENDING)
+
+  uploadedAt    DateTime    @default(now())
+
+  // ไม่ใส่ @unique ที่ sha256: ให้ระบบ "ติดธง" สลิปซ้ำให้แอดมินตัดสิน แทนการบล็อกเงียบๆ
+  @@index([sha256])
+  @@index([orderId, uploadedAt])
+}
+
+// ---------- ประวัติการเปลี่ยนสถานะ (audit log) ----------
+
+enum OrderEventType {
+  CREATED
+  SLIP_UPLOADED
+  APPROVED
+  REJECTED
+  REOPENED
+  SHIPPED
+  CANCELLED
+  NOTE
+}
+
+model OrderEvent {
+  id        String          @id @default(cuid())
+  orderId   String
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type      OrderEventType
+  note      String?
+  adminId   String?                           // null = ลูกค้า/ระบบเป็นผู้ทำ
+  admin     Admin?          @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  notified  Boolean         @default(false)   // แจ้งลูกค้าแล้วหรือไม่ (LINE Messaging API / SMS)
+  createdAt DateTime        @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+// ---------- ตั้งค่าร้าน (แทน SHOP config ในหน้าชำระเงิน) ----------
+
+/// แถวเดียว id = "shop" — แก้จากหน้า "ตั้งค่าร้าน" ในแอดมิน
+model ShopSetting {
+  id                 String   @id @default("shop")
+  bankName           String
+  bankAccount        String
+  bankHolder         String
+  promptpayId        String?                  // เบอร์ 10 หลัก หรือเลข 13/15 หลัก — null = ไม่แสดง QR
+  promptpayName      String
+  shippingStdSatang  Int      @default(5000)
+  shippingExpSatang  Int      @default(9000)
+  freeShipMinSatang  Int?                     // null = ไม่มีส่งฟรี
+  slipCheckWithin    String                   // "ภายใน 2 ชั่วโมง ในเวลาทำการ"
+  lineOaUrl          String?
+  newOrderSound      Boolean  @default(true)
+
+  // ผู้ส่ง / หัวเอกสาร (ใบปะหน้า + เอกสารขาย)
+  legalName          String   @default("ร้านมองดูเว็บ")
+  addressText        String                   // "88/2 หมู่ที่ 8 ตำบลบางกรวย อำเภอบางกรวย จังหวัดนนทบุรี 11130"
+  phone              String
+  lineId             String?                  // "@mongdoweb"
+  email              String?
+  taxId              String?  @db.VarChar(13)
+  branch             String?                  // "สำนักงานใหญ่" | "สาขาที่ 00001"
+  logoKey            String?                  // storage key ของโลโก้
+
+  // ภาษีและเลขเอกสาร
+  vatEnabled         Boolean  @default(false)
+  vatMode            VatMode  @default(EXCLUSIVE)
+  vatRateBp          Int      @default(700)   // 7.00% เก็บเป็น basis point
+  prefixQuote        String   @default("QT")
+  prefixInvoice      String   @default("IV")
+  prefixReceipt      String   @default("RC")
+  dateEra            DateEra  @default(AD)
+  quoteValidDays     Int      @default(30)
+  invoiceDueDays     Int      @default(7)
+  termsQuote         String?  @db.Text
+  termsInvoice       String?  @db.Text
+
+  updatedAt          DateTime @updatedAt
+}
+
+enum VatMode {
+  NONE      // ไม่คิด VAT
+  EXCLUSIVE // ราคาไม่รวม VAT → บวกเพิ่ม 7%
+  INCLUSIVE // ราคารวม VAT แล้ว → ถอดภาษีออกมาแสดง
+}
+
+enum DateEra {
+  AD // 5/5/2026 (ตามเอกสารเดิมของร้าน)
+  BE // 5/5/2569
+}
+
+// ---------- เนื้อหาหน้าแรก (สไลด์ + หมวดหมู่ แก้จากหลังบ้าน) ----------
+
+enum SlideAlign {
+  LEFT
+  CENTER
+}
+
+model HeroSlide {
+  id          String     @id @default(cuid())
+  sortOrder   Int
+  isActive    Boolean    @default(false)    // ไม่ระบุ = ไม่แสดง (ตรงกับหน้าแรก)
+  imageKey    String?                       // รูปที่อัปโหลด (storage) …
+  imageUrl    String?                       // … หรือ URL https (เช่น Unsplash)
+  focalX      Int        @default(50)       // 0–100 (%)
+  focalY      Int        @default(50)
+  alt         String
+  eyebrow     String     @default("")
+  title       String
+  subtitle    String     @default("")
+  cta1Label   String
+  cta1Href    String
+  cta2Label   String?
+  cta2Href    String?
+  align       SlideAlign @default(LEFT)
+  overlay     Int        @default(55)       // 30–90 (หน้าแรกบังคับขั้นต่ำ 30)
+  startAt     DateTime?
+  endAt       DateTime?
+  credit      String     @default("")
+  updatedAt   DateTime   @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+/// เวอร์ชันที่เผยแพร่ของสไลด์/หมวดหมู่ — ใช้ "ย้อนกลับเป็นเวอร์ชันก่อนหน้า"
+enum ContentKind {
+  SLIDES
+  CATEGORIES
+}
+
+model ContentVersion {
+  id          String      @id @default(cuid())
+  kind        ContentKind
+  snapshot    Json                           // รายการทั้งชุด ณ ตอนเผยแพร่
+  publishedAt DateTime    @default(now())
+  publishedBy String?
+
+  @@index([kind, publishedAt])
+}
+
+// ---------- บันทึกการใช้งานของแอดมิน (นอกเหนือจาก OrderEvent) ----------
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  type      String                           // LOGIN, SLIDES_PUBLISH, DOC_ISSUE, PAYMENT, …
+  note      String?
+  adminId   String?
+  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// =============================================================
+// เอกสารขาย: ใบเสนอราคา → ใบแจ้งหนี้ → ใบเสร็จรับเงิน
+// =============================================================
+
+enum CustomerKind {
+  COMPANY
+  PERSON
+}
+
+model Customer {
+  id           String          @id @default(cuid())
+  code         String          @unique       // "0495" (รหัสลูกค้า 4 หลัก ตามเอกสารเดิม)
+  kind         CustomerKind    @default(PERSON)
+  name         String
+  taxId        String?         @db.VarChar(13) // ตรวจ checksum 13 หลัก
+  branch       String?                       // "สำนักงานใหญ่" | "สาขาที่ 00001"
+  contactName  String?
+  phone        String?
+  email        String?
+  addressLine  String?
+  subdistrict  String?
+  district     String?
+  province     String?
+  postalCode   String?         @db.VarChar(5)
+  shipTo       Json?                         // ที่อยู่จัดส่งแยก {name, phone, address}
+  note         String?
+
+  documents    SalesDocument[]
+  orders       Order[]
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([phone])
+  @@index([taxId])
+  @@index([name])
+}
+
+enum DocType {
+  QUOTATION // ใบเสนอราคา  (QT)
+  INVOICE   // ใบแจ้งหนี้/ใบวางบิล (IV)
+  RECEIPT   // ใบเสร็จรับเงิน (/ใบกำกับภาษี เมื่อเปิด VAT) (RC)
+}
+
+enum DocStatus {
+  DRAFT     // ยังไม่ออกเลขที่
+  ISSUED    // ออกแล้ว (QT รอตอบรับ / IV ค้างชำระ / RC ออกแล้ว)
+  ACCEPTED  // QT: ลูกค้าตอบรับ
+  REJECTED  // QT: ไม่ตอบรับ
+  PARTIAL   // IV: ชำระบางส่วน
+  PAID      // IV: ชำระครบ
+  VOID      // ยกเลิก — เก็บเลขที่ไว้ ห้ามลบ
+}
+
+/// เลขที่เอกสาร: PREFIX + YYMM + "-" + เลขรัน 5 หลัก (QT2610-00001) รีเซ็ตทุกเดือน
+/// จองเลขใน transaction เดียวกับการออกเอกสาร (UPDATE … SET next = next + 1) — ห้ามนับจาก MAX(no)
+model DocSequence {
+  type    DocType
+  period  String   @db.VarChar(4)            // "2610"
+  next    Int      @default(1)
+
+  @@id([type, period])
+}
+
+model SalesDocument {
+  id               String          @id @default(cuid())
+  type             DocType
+  docNo            String?         @unique   // null ระหว่างเป็นฉบับร่าง
+  status           DocStatus       @default(DRAFT)
+  issueDate        DateTime?
+  validUntil       DateTime?                 // QT: ยืนราคาถึง
+  dueDate          DateTime?                 // IV: ครบกำหนดชำระ
+
+  customerId       String?
+  customer         Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerSnapshot Json                      // ชื่อ ที่อยู่ เลขผู้เสียภาษี สาขา ณ วันที่ออก (เอกสารต้องไม่เปลี่ยนตามข้อมูลลูกค้าใหม่)
+
+  // ยอดเงิน (สตางค์) — คำนวณฝั่ง server จากรายการเสมอ
+  subtotalSatang   Int             @default(0)
+  discountSatang   Int             @default(0)
+  vatMode          VatMode         @default(NONE)
+  vatRateBp        Int             @default(0)
+  vatSatang        Int             @default(0)
+  grandSatang      Int             @default(0)
+  paidSatang       Int             @default(0) // IV: รวมที่รับชำระแล้ว
+
+  paymentMethod    String?                   // เงินสด, โอนเงินผ่านธนาคาร, QR PromptPay
+  paymentTerms     String?
+  carrier          String?                   // EMS, Kerry …
+  note             String?         @db.Text  // แสดงบนเอกสาร
+  internalNote     String?         @db.Text  // ภายในร้านเท่านั้น
+  voidReason       String?
+
+  // ความเชื่อมโยง QT → IV → RC และคำสั่งซื้อเว็บ
+  sourceId         String?
+  source           SalesDocument?  @relation("DocChain", fields: [sourceId], references: [id], onDelete: SetNull)
+  derived          SalesDocument[] @relation("DocChain")
+  orderId          String?
+  order            Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  items            SalesDocumentItem[]
+  payments         DocPayment[]    @relation("InvoicePayments")
+  receiptFor       DocPayment?     @relation("PaymentReceipt")
+  events           SalesDocumentEvent[]
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([type, status, issueDate])
+  @@index([customerId])
+  @@index([dueDate])
+}
+
+model SalesDocumentItem {
+  id             String        @id @default(cuid())
+  documentId     String
+  document       SalesDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sortOrder      Int
+  productId      String?
+  product        Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sku            String?                       // snapshot: "DL1-ww", "Shipping"
+  name           String                        // snapshot
+  detail         String?
+  unit           String                        // อัน, ชุด, กล่อง
+  qtyMilli       Int                           // จำนวน ×1000 (รองรับ 2.5 เมตร)
+  priceSatang    Int
+  discountSatang Int           @default(0)
+
+  @@index([documentId, sortOrder])
+}
+
+/// การรับชำระของใบแจ้งหนี้ — 1 ครั้ง = ใบเสร็จ 1 ใบ (รองรับชำระบางส่วน)
+model DocPayment {
+  id          String         @id @default(cuid())
+  invoiceId   String
+  invoice     SalesDocument  @relation("InvoicePayments", fields: [invoiceId], references: [id], onDelete: Cascade)
+  receiptId   String?        @unique
+  receipt     SalesDocument? @relation("PaymentReceipt", fields: [receiptId], references: [id], onDelete: SetNull)
+  paidAt      DateTime
+  amountSatang Int
+  method      String
+  reference   String?                         // เลขอ้างอิงการโอน / เลขเช็ค
+  createdAt   DateTime       @default(now())
+
+  @@index([invoiceId])
+}
+
+enum DocEventType {
+  CREATED
+  ISSUED
+  CONVERTED
+  ACCEPTED
+  REJECTED
+  PAYMENT
+  PRINTED
+  VOIDED
+  NOTE
+}
+
+model SalesDocumentEvent {
+  id         String        @id @default(cuid())
+  documentId String
+  document   SalesDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  type       DocEventType
+  note       String?
+  adminId    String?
+  admin      Admin?        @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt  DateTime      @default(now())
+
+  @@index([documentId, createdAt])
+}

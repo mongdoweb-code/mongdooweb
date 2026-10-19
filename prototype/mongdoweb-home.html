@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>มองดูเว็บ — ไฟ LED สระว่ายน้ำ น้ำพุ และภายนอกอาคาร</title>
+<meta name="description" content="ร้านมองดูเว็บ จำหน่ายไฟ LED ใต้น้ำ ไฟสระว่ายน้ำ ไฟน้ำพุ ไฟสนาม และไฟส่องอาคาร กันน้ำ IP67/IP68 รับประกันสินค้า">
+<meta name="theme-color" content="#F26B38">
+<link rel="canonical" href="https://www.xn--72c0asz6a7a5fqc6c.com/">
+<!-- Open Graph / Twitter -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="มองดูเว็บ">
+<meta property="og:locale" content="th_TH">
+<meta property="og:url" content="https://www.xn--72c0asz6a7a5fqc6c.com/">
+<meta property="og:title" content="มองดูเว็บ — ไฟ LED สระว่ายน้ำ น้ำพุ และภายนอกอาคาร">
+<meta property="og:description" content="ไฟใต้น้ำ ไฟสระว่ายน้ำ ไฟน้ำพุ ไฟสวน และไฟส่องอาคาร กันน้ำ IP67–IP68 ใช้ไฟ DC12V ปลอดภัย ส่งไว 2–3 วัน">
+<meta property="og:image" content="https://images.unsplash.com/photo-1517384084767-6bc118943770?auto=format&fit=crop&w=1200&h=630&q=75">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="แสงสะท้อนบนผิวน้ำสระว่ายน้ำสีฟ้า">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="มองดูเว็บ — ไฟ LED สระว่ายน้ำ น้ำพุ และภายนอกอาคาร">
+<meta name="twitter:description" content="ไฟใต้น้ำ ไฟสระว่ายน้ำ ไฟน้ำพุ ไฟสวน และไฟส่องอาคาร กันน้ำ IP67–IP68 ใช้ไฟ DC12V ปลอดภัย">
+<meta name="twitter:image" content="https://images.unsplash.com/photo-1517384084767-6bc118943770?auto=format&fit=crop&w=1200&h=630&q=75">
+<link rel="preconnect" href="https://images.unsplash.com">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"Organization","@id":"https://www.xn--72c0asz6a7a5fqc6c.com/#org","name":"มองดูเว็บ","alternateName":"MongdoWeb","url":"https://www.xn--72c0asz6a7a5fqc6c.com/",
+  "logo":"https://www.xn--72c0asz6a7a5fqc6c.com/logo.png",
+  "contactPoint":{"@type":"ContactPoint","contactType":"customer service","areaServed":"TH","availableLanguage":["th"],"email":"contact@mongdoweb.com"}},
+ {"@type":"WebSite","@id":"https://www.xn--72c0asz6a7a5fqc6c.com/#website","url":"https://www.xn--72c0asz6a7a5fqc6c.com/","name":"มองดูเว็บ","inLanguage":"th-TH","publisher":{"@id":"https://www.xn--72c0asz6a7a5fqc6c.com/#org"},
+  "potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https://www.xn--72c0asz6a7a5fqc6c.com/?s={search_term_string}&post_type=product"},"query-input":"required name=search_term_string"}}
+]}
+</script>
+<!-- TODO: logo.png / contactPoint (โทรศัพท์) ใส่ค่าจริงก่อนขึ้นระบบ — ItemList ของสินค้าขายดีสร้างจาก CATALOG ด้วย JS ด้านล่าง -->
+<style>
+/* =========================================================
+   DESIGN TOKENS — โค้ดสีอ้างอิงจากภาพตัวอย่าง
+   1 = ส่วนหัวสีขาว   2 = พื้นครีม   3 = ปุ่มส้ม   4 = ฟุตเตอร์ดำ
+   ========================================================= */
+:root{
+  --c-white:   #FFFFFF;   /* (1) header / พื้นหลักของ section */
+  --c-cream:   #F2F0EB;   /* (2) hero / section สลับ */
+  --c-orange:  #F26B38;   /* (3) ปุ่ม CTA / accent */
+  --c-orange-dk:#D9562A;  /* hover ของปุ่มส้ม */
+  --c-black:   #141414;   /* (4) footer / ตัวอักษรหลัก */
+
+  --c-ink:     #1C1C1C;
+  --c-muted:   #6B6862;
+  --c-line:    #E3E0D8;
+  --c-cream-dk:#E8E5DD;
+
+  --font: 'Noto Sans Thai', system-ui, sans-serif;
+  --maxw: 1200px;
+  --gutter: 24px;
+  --header-h: 76px;
+  --consent-h: 0px;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+section[id],footer[id],div[id="privacy"]{scroll-margin-top:var(--header-h)}
+body{font-family:var(--font);color:var(--c-ink);background:var(--c-white);line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+ul{list-style:none}
+.container{max-width:var(--maxw);margin:0 auto;padding:0 var(--gutter)}
+[hidden]{display:none!important}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---------- Focus (U26) ---------- */
+:focus-visible{outline:3px solid var(--c-orange);outline-offset:2px}
+:focus:not(:focus-visible){outline:none}
+.skip{position:fixed;left:12px;top:-80px;z-index:200;background:var(--c-black);color:#fff;padding:12px 18px;font-weight:600;transition:top .2s}
+.skip:focus{top:12px}
+main:focus{outline:none}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  height:52px;padding:0 28px;font-size:16px;font-weight:600;letter-spacing:.2px;
+  transition:background .2s,color .2s,border-color .2s,transform .2s}
+.btn-primary{background:var(--c-orange);color:#fff}
+.btn-primary:hover{background:var(--c-orange-dk)}
+.btn-outline{border:1.5px solid var(--c-black);color:var(--c-black)}
+.btn-outline:hover{background:var(--c-black);color:#fff}
+.btn-light{border:1.5px solid rgba(255,255,255,.75);color:#fff;background:rgba(255,255,255,.04)}
+.btn-light:hover{background:#fff;color:var(--c-black);border-color:#fff}
+.btn-sm{height:44px;padding:0 18px;font-size:15px}
+.btn .arr{transition:transform .2s}
+.btn:hover .arr{transform:translateX(4px)}
+
+.eyebrow{font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--c-orange);margin-bottom:12px}
+.sec-title{font-size:clamp(26px,3.2vw,38px);font-weight:700;line-height:1.3;letter-spacing:-.3px}
+.sec-sub{color:var(--c-muted);margin-top:10px;max-width:560px}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:40px;flex-wrap:wrap}
+.link-more{font-weight:600;border-bottom:1.5px solid var(--c-ink);padding-bottom:2px;white-space:nowrap}
+.link-more:hover{color:var(--c-orange);border-color:var(--c-orange)}
+section{padding:96px 0}
+
+/* ---------- (0) Announcement bar (U22) ---------- */
+.topbar{background:var(--c-black);color:#cfcac0;font-size:13px;position:relative}
+.topbar .tb-in{position:relative;height:40px;display:flex;align-items:center;justify-content:center;padding:0 48px}
+.tb-msg{position:absolute;left:48px;right:48px;top:0;bottom:0;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.4;opacity:0;visibility:hidden;transition:opacity .45s,visibility 0s .45s}
+.tb-msg.on{opacity:1;visibility:visible;transition:opacity .45s}
+.topbar b{color:#fff;font-weight:600}
+.topbar a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.tb-close{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;display:grid;place-items:center;color:#8d887f}
+.tb-close:hover{color:#fff}
+.tb-close svg{width:16px;height:16px}
+
+/* ---------- (1) HEADER — สีขาว ---------- */
+.header{position:sticky;top:0;z-index:50;background:var(--c-white);border-bottom:1px solid transparent;transition:border-color .2s}
+.header.scrolled{border-color:var(--c-line)}
+.header-row{height:var(--header-h);display:flex;align-items:center;gap:36px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.3px;flex-shrink:0}
+.logo-mark{width:34px;height:34px;background:var(--c-orange);display:grid;place-items:center;flex-shrink:0}
+.logo-mark span{width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.35)}
+.logo small{display:block;font-size:11px;font-weight:500;color:var(--c-muted);letter-spacing:.5px;margin-top:-4px}
+.nav{display:flex;align-items:center;gap:26px;font-size:15px;font-weight:500;height:100%}
+.nav > a, .nav-trigger .t{position:relative;padding:6px 0}
+.nav > a::after, .nav-trigger .t::after{content:"";position:absolute;left:0;bottom:0;width:0;height:2px;background:var(--c-orange);transition:width .2s}
+.nav > a:hover::after,.nav > a.active::after,.nav-trigger:hover .t::after,.nav-mega.open .nav-trigger .t::after{width:100%}
+.header-actions{margin-left:auto;display:flex;align-items:center;gap:4px}
+.icon-btn{width:44px;height:44px;display:grid;place-items:center;position:relative;color:var(--c-ink)}
+.icon-btn:hover{color:var(--c-orange)}
+.icon-btn svg{width:22px;height:22px}
+.menu-toggle{display:none}
+
+/* Mega dropdown (U11–U13) */
+.nav-mega{height:100%;display:flex;align-items:center}
+.nav-trigger{height:100%;display:flex;align-items:center;gap:6px;font-size:15px;font-weight:500}
+.nav-trigger .chev{width:14px;height:14px;transition:transform .2s}
+.nav-mega.open .nav-trigger .chev{transform:rotate(180deg)}
+.nav-mega.open .nav-trigger{color:var(--c-orange)}
+.mega{position:absolute;left:0;right:0;top:100%;background:var(--c-white);border-top:1px solid var(--c-line);
+  box-shadow:0 28px 56px -12px rgba(20,20,20,.18);max-height:calc(100vh - var(--header-h) - 8px);overflow-y:auto;
+  opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .18s,transform .18s var(--ease),visibility 0s .18s}
+.nav-mega.open .mega{opacity:1;visibility:visible;transform:none;transition:opacity .18s,transform .18s var(--ease),visibility 0s}
+.mega::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:14px} /* bridge */
+.mega-in{display:grid;grid-template-columns:1fr 300px;gap:40px;padding-top:32px;padding-bottom:32px}
+.mega-cols{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:28px}
+.mega-gh{font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--c-muted);text-transform:uppercase;padding-bottom:10px;margin-bottom:6px;border-bottom:1px solid var(--c-line)}
+.mega-link{display:flex;gap:12px;align-items:center;padding:8px 8px;margin:0 -8px;min-height:52px;transition:background .15s}
+.mega-link:hover,.mega-link:focus-visible{background:var(--c-cream)}
+.mega-link .mi{width:36px;height:36px;flex-shrink:0;background:var(--c-cream);display:grid;place-items:center;transition:background .15s,color .15s}
+.mega-link:hover .mi,.mega-link:focus-visible .mi{background:var(--c-orange);color:#fff}
+.mega-link .mi svg{width:20px;height:20px}
+.mega-link b{display:block;font-size:14px;font-weight:600;line-height:1.35}
+.mega-link small{display:block;font-size:12px;color:var(--c-muted);line-height:1.3}
+.mega-promo{display:grid;gap:12px;align-content:start}
+.mp-finder{background:var(--c-black);color:#fff;padding:20px;position:relative;overflow:hidden}
+.mp-finder::after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(242,107,56,.5),transparent 65%)}
+.mp-finder small{font-size:12px;color:var(--c-orange);font-weight:600;letter-spacing:1px}
+.mp-finder b{display:block;font-size:17px;line-height:1.4;margin:4px 0 6px;position:relative}
+.mp-finder p{font-size:13px;color:#bdb8ae;margin-bottom:12px}
+.mp-finder a{display:inline-flex;align-items:center;gap:8px;min-height:40px;font-weight:600;font-size:14px;color:#fff;border-bottom:1.5px solid var(--c-orange)}
+.mp-best{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;border:1px solid var(--c-line);padding:12px}
+.mp-best .thumb{width:64px;height:64px;background:var(--c-cream);display:grid;place-items:center}
+.mp-best .thumb .ph{width:62%}
+.mp-best small{font-size:11px;font-weight:700;color:var(--c-orange);letter-spacing:.5px}
+.mp-best b{display:block;font-size:13px;font-weight:600;line-height:1.4}
+.mp-best .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
+.mp-best .pr{font-weight:700}
+.mp-best button{height:40px;padding:0 12px;background:var(--c-black);color:#fff;font-size:13px;font-weight:600}
+.mp-best button:hover{background:var(--c-orange)}
+.mega-foot{border-top:1px solid var(--c-line);background:#FBFAF7}
+.mega-foot .container{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:52px;font-size:14px;color:var(--c-muted)}
+.mega-foot a{font-weight:600;color:var(--c-ink);display:inline-flex;align-items:center;min-height:44px}
+.mega-foot a:hover{color:var(--c-orange)}
+
+/* Cart button (U18–U20) */
+.cart-wrap{position:relative}
+.cart-btn{height:44px;min-width:44px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:8px;position:relative;
+  color:var(--c-black);font-weight:600;font-size:15px;transition:background .15s,color .15s}
+.cart-btn:hover{color:var(--c-orange)}
+.cart-ico{width:26px;height:26px;flex-shrink:0}
+.cart-label{display:none}
+.cart-count{position:absolute;top:2px;left:26px;min-width:20px;height:20px;padding:0 5px;background:var(--c-orange);color:#fff;font-size:11px;font-weight:700;border-radius:10px;
+  display:grid;place-items:center;line-height:1;box-shadow:0 0 0 2px var(--c-white);font-variant-numeric:tabular-nums}
+@keyframes bump{40%{transform:scale(1.35)}}
+.cart-count.bump{animation:bump .35s}
+.cart-pop{position:absolute;right:0;top:calc(100% + 10px);width:300px;background:#fff;border:1px solid var(--c-line);box-shadow:0 20px 44px rgba(20,20,20,.14);padding:18px;z-index:5;
+  opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility 0s .15s}
+.cart-pop::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:12px}
+.cart-wrap.pop-open .cart-pop{opacity:1;visibility:visible;transform:none;transition:opacity .15s,transform .15s,visibility 0s}
+.cart-pop .cp-head{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--c-muted)}
+.cart-pop .cp-head b{color:var(--c-ink);font-size:15px}
+.cart-pop ul{margin:10px 0;border-top:1px solid var(--c-line)}
+.cart-pop li{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--c-line)}
+.cart-pop li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cart-pop li span:last-child{color:var(--c-muted);white-space:nowrap}
+.cart-pop .cp-more{font-size:12px;color:var(--c-muted);margin:-4px 0 8px}
+.cart-pop .cp-sum{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 14px}
+.cart-pop .cp-sum b{font-size:20px}
+.cart-pop .cp-empty{font-size:14px;color:var(--c-muted);margin:10px 0 14px}
+.cart-pop .btn{width:100%}
+
+/* Search + suggestions (U21) */
+.search-panel{display:none;border-top:1px solid var(--c-line);background:var(--c-white)}
+.search-panel.open{display:block}
+.search-box{position:relative;padding:16px 0}
+.search-panel form{display:flex}
+.search-panel input{flex:1;min-width:0;height:52px;border:1.5px solid var(--c-line);border-right:0;padding:0 18px;font-family:inherit;font-size:16px;outline:none;border-radius:0;-webkit-appearance:none;appearance:none}
+.search-panel input:focus{border-color:var(--c-ink)}
+.search-panel .btn{flex-shrink:0;width:auto}
+.suggest{position:absolute;left:0;right:0;top:calc(100% - 12px);background:#fff;border:1px solid var(--c-line);box-shadow:0 20px 44px rgba(20,20,20,.14);z-index:5;max-height:min(70vh,460px);overflow-y:auto}
+.sg-opt{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;padding:10px 16px;cursor:pointer;min-height:60px}
+.sg-opt + .sg-opt{border-top:1px solid var(--c-line)}
+.sg-opt[aria-selected="true"],.sg-opt:hover{background:var(--c-cream)}
+.sg-opt .thumb{width:48px;height:48px;background:var(--c-cream);display:grid;place-items:center}
+.sg-opt[aria-selected="true"] .thumb,.sg-opt:hover .thumb{background:#fff}
+.sg-opt .thumb .ph{width:62%}
+.sg-opt b{display:block;font-size:14px;font-weight:600;line-height:1.4}
+.sg-opt mark{background:none;color:var(--c-orange)}
+.sg-opt small{font-size:12px;color:var(--c-muted)}
+.sg-opt .pr{font-weight:700;white-space:nowrap}
+.sg-empty{padding:20px 16px;font-size:14px;color:var(--c-muted)}
+.sg-empty b{display:block;color:var(--c-ink);font-size:15px;margin-bottom:2px}
+.sg-empty a{color:var(--c-orange);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.sg-foot{padding:10px 16px;font-size:12px;color:var(--c-muted);border-top:1px solid var(--c-line);background:#FBFAF7}
+
+/* Mobile drawer (U16) */
+.drawer{position:fixed;inset:0;z-index:100;pointer-events:none;visibility:hidden;transition:visibility 0s .3s}
+.drawer-bg{position:absolute;inset:0;background:rgba(20,20,20,.5);opacity:0;transition:opacity .25s}
+.drawer-panel{position:absolute;top:0;right:0;bottom:0;width:min(360px,88vw);background:var(--c-white);transform:translateX(100%);transition:transform .3s var(--ease);padding:16px 20px 32px;overflow-y:auto}
+.drawer.open{pointer-events:auto;visibility:visible;transition:none}
+.drawer.open .drawer-bg{opacity:1}
+.drawer.open .drawer-panel{transform:none}
+.drawer-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.drawer-panel nav > a,.dr-other a{display:flex;align-items:center;min-height:52px;border-bottom:1px solid var(--c-line);font-weight:500}
+.dr-label{font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--c-muted);padding:18px 0 6px}
+.acc{border-bottom:1px solid var(--c-line)}
+.acc-btn{width:100%;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:16px;font-weight:600;text-align:left}
+.acc-btn .n{font-size:12px;color:var(--c-muted);font-weight:500;margin-left:6px}
+.acc-btn svg{width:16px;height:16px;transition:transform .2s;flex-shrink:0}
+.acc-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.acc-btn[aria-expanded="true"]{color:var(--c-orange)}
+.acc-panel{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s var(--ease),visibility 0s .25s;visibility:hidden}
+.acc.open .acc-panel{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .25s var(--ease)}
+.acc-panel > div{overflow:hidden}
+.acc-panel a{display:flex;align-items:center;gap:12px;min-height:48px;padding:4px 0 4px 4px;font-size:15px}
+.acc-panel a:last-child{margin-bottom:8px}
+.acc-panel .mi{width:32px;height:32px;background:var(--c-cream);display:grid;place-items:center;flex-shrink:0}
+.acc-panel .mi svg{width:18px;height:18px}
+.acc-panel small{display:block;font-size:12px;color:var(--c-muted);line-height:1.3}
+.dr-other{margin-top:8px}
+
+/* ---------- (2) HERO SLIDER (U1–U10) ---------- */
+.hero{padding:0;background:var(--c-black)}
+.slider{position:relative;height:clamp(560px,80vh,720px);overflow:hidden;color:#fff;background:#111;isolation:isolate;touch-action:pan-y}
+.slider:focus-visible{outline-offset:-3px}
+.slides{position:absolute;inset:0}
+.slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .9s ease,visibility 0s linear .9s;
+  background:
+    radial-gradient(55% 75% at 82% 28%,rgba(242,107,56,.30),transparent 62%),
+    radial-gradient(45% 60% at 12% 90%,rgba(120,190,255,.16),transparent 60%),
+    linear-gradient(135deg,var(--fb,#1F2A3A) 0%,color-mix(in srgb,var(--fb,#1F2A3A) 55%,#000) 100%)}
+.slide.is-active{opacity:1;visibility:visible;z-index:2;transition:opacity .9s ease,visibility 0s}
+.slide.is-leaving{z-index:1;visibility:visible}
+.s-media{position:absolute;inset:0;overflow:hidden}
+.s-img{width:100%;height:100%;object-fit:cover;object-position:var(--fx,50%) var(--fy,50%);transform-origin:var(--fx,50%) var(--fy,50%);
+  color:transparent;opacity:0;transition:opacity .6s ease;user-select:none;-webkit-user-drag:none}
+.s-img.is-loaded{opacity:1}
+.s-img.is-broken{display:none}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.08)}}
+.is-active .s-img,.is-leaving .s-img{animation:kb 9s ease-out both}
+.s-shade{position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(0deg,rgba(10,10,10,.6) 0%,rgba(10,10,10,0) 30%),
+    linear-gradient(90deg,rgba(10,10,10,var(--ov)) 0%,rgba(10,10,10,calc(var(--ov)*.78)) 38%,rgba(10,10,10,calc(var(--ov)*.25)) 72%,rgba(10,10,10,calc(var(--ov)*.12)) 100%)}
+.slide.align-center .s-shade{background:
+    linear-gradient(0deg,rgba(10,10,10,.6) 0%,rgba(10,10,10,0) 30%),
+    radial-gradient(ellipse 70% 80% at 50% 50%,rgba(10,10,10,var(--ov)) 0%,rgba(10,10,10,calc(var(--ov)*.6)) 100%)}
+.s-inner{position:relative;height:100%;display:flex;align-items:center;padding-bottom:calc(72px + var(--lift,0px));padding-top:24px;transition:padding .25s}
+.s-copy{max-width:620px;text-shadow:0 2px 20px rgba(0,0,0,.35)}
+.slide.align-center .s-copy{margin:0 auto;text-align:center}
+.s-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:600;letter-spacing:1.5px;color:#FFB692;margin-bottom:16px}
+.s-eyebrow::before{content:"";width:28px;height:2px;background:var(--c-orange);flex-shrink:0}
+.s-title{font-size:clamp(30px,4.4vw,56px);font-weight:800;line-height:1.3;letter-spacing:-.5px;text-wrap:balance}
+.s-sub{font-size:clamp(16px,1.35vw,18px);line-height:1.75;color:rgba(255,255,255,.88);margin-top:18px;max-width:560px}
+.slide.align-center .s-sub{margin-left:auto;margin-right:auto}
+.s-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:32px}
+.slide.align-center .s-ctas{justify-content:center}
+@keyframes sIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.is-active .s-copy > *{animation:sIn .8s var(--ease) both;animation-delay:calc(.2s + var(--i,0) * .1s)}
+.s-credit{position:absolute;right:16px;top:12px;font-size:11px;color:rgba(255,255,255,.6);text-shadow:0 1px 4px rgba(0,0,0,.6);max-width:60%;text-align:right;line-height:1.4}
+.slide.img-broken .s-credit{display:none}
+.s-controls{position:absolute;left:0;right:0;bottom:var(--lift,0px);z-index:3;transition:bottom .25s}
+/* กันพื้นที่ขวาให้คอลัมน์ปุ่มลอย (LINE/ตะกร้า/ขึ้นบน: right 20 + กว้าง 56 + ระยะห่าง) — ปุ่มสไลด์ต้องไม่ถูกบัง
+   92px = ระยะจากขอบจอขวาที่ต้องว่าง ลบด้วยพื้นที่นอก container ที่มีอยู่แล้ว */
+.s-controls .container{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:16px;
+  padding-right:max(var(--gutter), calc(92px - (100vw - min(100vw, var(--maxw))) / 2))}
+.s-dots{display:flex;gap:4px;flex-wrap:wrap}
+.seg{width:44px;height:44px;display:flex;align-items:center;padding:0 4px}
+.seg i{display:block;width:100%;height:3px;background:rgba(255,255,255,.32);position:relative;overflow:hidden;transition:height .2s}
+.seg i::after{content:"";position:absolute;inset:0;background:#fff;transform:scaleX(var(--p,0));transform-origin:left}
+.seg[aria-current="true"] i{height:4px}
+.seg[aria-current="true"] i::after{background:var(--c-orange)}
+.seg:hover i{background:rgba(255,255,255,.6)}
+.s-nav{display:flex;align-items:center;gap:6px}
+.s-count{font-size:13px;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.75);margin-right:8px;letter-spacing:1px}
+.s-count b{color:#fff}
+.s-btn{width:44px;height:44px;display:grid;place-items:center;border:1.5px solid rgba(255,255,255,.4);color:#fff;background:rgba(20,20,20,.25);transition:background .2s,border-color .2s}
+.s-btn:hover{background:#fff;color:var(--c-black);border-color:#fff}
+.s-btn svg{width:18px;height:18px}
+.hero-stats-band{background:var(--c-cream);border-bottom:1px solid var(--c-line)}
+.hero-stats{display:flex;gap:16px 48px;flex-wrap:wrap;padding-top:22px;padding-bottom:22px;align-items:baseline}
+.hero-stats div{display:flex;align-items:baseline;gap:10px}
+.hero-stats strong{font-size:24px;font-weight:800;line-height:1.1}
+.hero-stats span{font-size:14px;color:var(--c-muted)}
+
+/* ---------- TRUST STRIP ---------- */
+.trust{padding:0;border-bottom:1px solid var(--c-line)}
+.trust .container{display:grid;grid-template-columns:repeat(4,1fr)}
+.trust-item{display:flex;gap:14px;align-items:center;padding:28px 20px}
+.trust-item+.trust-item{border-left:1px solid var(--c-line)}
+.trust-item svg{width:30px;height:30px;color:var(--c-orange);flex-shrink:0}
+.trust-item b{display:block;font-size:15px}
+.trust-item span{font-size:13px;color:var(--c-muted)}
+
+/* ---------- CATEGORIES — dimensional (U14, U15) ---------- */
+.cats{background:linear-gradient(180deg,#fff 0%,#FAF9F6 100%)}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.cat-card{position:relative;z-index:1}
+.cat-card:hover,.cat-card:focus-within,.cat-card.open{z-index:6}
+.cat-tilt{position:relative;height:100%;transform-style:preserve-3d;will-change:transform;transition:transform .35s var(--ease)}
+.cat-tilt::before{content:"";position:absolute;inset:0;background:var(--c-cream-dk);transform:translate(6px,6px);transition:transform .3s var(--ease),background .3s;z-index:-1}
+.cat-main{position:relative;display:flex;flex-direction:column;gap:16px;min-height:208px;height:100%;padding:26px 22px 22px;background:var(--c-white);border:1px solid var(--c-line);
+  box-shadow:0 1px 1px rgba(20,20,20,.03),0 2px 4px rgba(20,20,20,.03),0 6px 14px rgba(20,20,20,.04);transition:box-shadow .3s,border-color .3s}
+.cat-icon{position:relative;width:54px;height:54px;background:var(--c-cream);display:grid;place-items:center;color:var(--c-ink);transition:background .25s,color .25s}
+.cat-icon::before{content:"";position:absolute;inset:-18px;border-radius:50%;background:radial-gradient(circle,rgba(242,107,56,.38),rgba(242,107,56,0) 68%);opacity:.0;transform:scale(.7);transition:opacity .3s,transform .3s;z-index:-1;filter:blur(2px)}
+.cat-icon svg{width:26px;height:26px;position:relative}
+.cat-main h3{font-size:17px;font-weight:600;line-height:1.4}
+.cat-en{display:block;font-size:13px;color:var(--c-muted)}
+.cat-main .go{margin-top:auto;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--c-muted)}
+.cat-main .go .chev{width:16px;height:16px;transition:transform .2s}
+.cat-card.active .cat-main{border-color:#d9d4c8;box-shadow:0 2px 4px rgba(20,20,20,.04),0 10px 20px rgba(20,20,20,.07),0 24px 48px rgba(20,20,20,.10)}
+.cat-card.active .cat-tilt::before{transform:translate(10px,10px);background:#F7D6C6}
+.cat-card.active .cat-icon{background:var(--c-orange);color:#fff}
+.cat-card.active .cat-icon::before{opacity:1;transform:scale(1)}
+.cat-card.active .go{color:var(--c-orange)}
+.cat-card.active .go .chev{transform:rotate(180deg)}
+.cat-pop{position:absolute;left:0;right:0;top:100%;padding-top:10px;z-index:2;
+  opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .18s,transform .18s var(--ease),visibility 0s .18s}
+.cat-card.active .cat-pop{opacity:1;visibility:visible;transform:none;transition:opacity .18s,transform .18s var(--ease),visibility 0s}
+.cat-pop-in{background:var(--c-white);border:1px solid var(--c-line);border-top:3px solid var(--c-orange);box-shadow:0 18px 40px rgba(20,20,20,.16);padding:8px 0}
+.cat-pop-h{font-size:11px;font-weight:700;letter-spacing:1.2px;color:var(--c-muted);padding:6px 16px 4px}
+.cat-pop a{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:42px;padding:0 16px;font-size:14px;font-weight:500}
+.cat-pop a:hover,.cat-pop a:focus-visible{background:var(--c-cream);color:var(--c-orange-dk)}
+.cat-pop a::after{content:"→";color:var(--c-muted);font-size:13px}
+.cat-pop a.cat-all{border-top:1px solid var(--c-line);margin-top:4px;font-weight:700;color:var(--c-orange-dk)}
+.cat-pop a.cat-all::after{color:var(--c-orange)}
+
+/* ---------- PRODUCTS ---------- */
+.products{background:var(--c-cream)}
+.prod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.prod-card{background:var(--c-white);display:flex;flex-direction:column;transition:transform .25s,box-shadow .25s}
+.prod-card:hover{transform:translateY(-4px);box-shadow:0 16px 36px rgba(20,20,20,.08)}
+.prod-img{aspect-ratio:1;background:var(--c-cream-dk);position:relative;display:grid;place-items:center;overflow:hidden}
+.prod-img .ph{width:44%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff 0 22%,#d8d2c6 23% 40%,#8f897d 41% 48%,transparent 49%)}
+.prod-img .ph.rgb{background:radial-gradient(circle,#fff 0 12%,#ffb38f 18%,#8fd3ff 26%,#c69bff 32%,#8f897d 41% 48%,transparent 49%)}
+.prod-badge{position:absolute;top:12px;left:12px;background:var(--c-orange);color:#fff;font-size:12px;font-weight:600;padding:4px 10px}
+.prod-body{padding:18px 18px 20px;display:flex;flex-direction:column;flex:1}
+.prod-cat{font-size:12px;color:var(--c-muted);letter-spacing:.3px}
+.prod-name{font-size:16px;font-weight:600;line-height:1.45;margin:4px 0 8px}
+.prod-specs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.prod-specs span{font-size:12px;background:var(--c-cream);padding:2px 8px;color:var(--c-ink)}
+.prod-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.prod-price{font-size:20px;font-weight:700}
+.add-btn{height:44px;min-width:112px;padding:0 16px;background:var(--c-black);color:#fff;font-size:14px;font-weight:600;transition:background .2s;white-space:nowrap}
+.add-btn:hover{background:var(--c-orange)}
+.add-btn.added{background:#1E8E5A}
+
+/* ---------- FEATURE (ทำไมต้องมองดูเว็บ) ---------- */
+.feature .container{display:grid;grid-template-columns:1fr 1.2fr;gap:72px;align-items:center}
+.feature-visual{aspect-ratio:4/5;background:var(--c-black);position:relative;overflow:hidden}
+.feature-visual::before{content:"";position:absolute;inset:-20%;background:radial-gradient(circle at 50% 70%,rgba(242,107,56,.55),transparent 45%),radial-gradient(circle at 30% 30%,rgba(120,190,255,.18),transparent 40%)}
+.feature-visual .cap{position:absolute;left:24px;right:24px;bottom:24px;color:#fff}
+.feature-visual .cap b{font-size:22px;display:block}
+.feature-visual .cap span{color:#bdb8ae;font-size:14px}
+.feature-list{display:grid;grid-template-columns:1fr 1fr;gap:36px 32px;margin-top:40px}
+.feature-list .num{font-size:14px;font-weight:700;color:var(--c-orange);margin-bottom:8px}
+.feature-list h3{font-size:18px;font-weight:600;margin-bottom:6px}
+.feature-list p{font-size:15px;color:var(--c-muted)}
+
+/* ---------- HOW TO ORDER (โอน + แนบสลิป) ---------- */
+.steps{background:var(--c-cream)}
+.step-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+.step{padding:28px 24px 0 0;position:relative;border-top:2px solid var(--c-line)}
+.step::before{content:"";position:absolute;top:-2px;left:0;width:48px;height:2px;background:var(--c-orange)}
+.step .n{font-size:40px;font-weight:800;color:var(--c-cream-dk);line-height:1;-webkit-text-stroke:1px #c9c3b7}
+.step h3{font-size:17px;font-weight:600;margin:14px 0 6px}
+.step p{font-size:14px;color:var(--c-muted)}
+.pay-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:48px;align-items:center}
+.pay-row .lbl{font-size:14px;color:var(--c-muted);margin-right:8px}
+.pay-chip{background:var(--c-white);border:1px solid var(--c-line);padding:8px 14px;font-size:14px;font-weight:500;display:inline-flex;align-items:center;gap:8px}
+.pay-chip svg{width:18px;height:18px;color:var(--c-orange)}
+
+/* ---------- CTA BAND ---------- */
+.cta{padding:80px 0}
+.cta .container{display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap;border:1px solid var(--c-line);padding:48px}
+.cta h2{font-size:clamp(24px,2.6vw,32px);font-weight:700;line-height:1.35}
+.cta p{color:var(--c-muted);margin-top:6px}
+.cta-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn-line{background:#06C755;color:#fff}
+.btn-line:hover{background:#05a948}
+
+/* ---------- (4) FOOTER — สีดำ (U28) ---------- */
+.footer{background:var(--c-black);color:#bdb8ae;padding:72px 0 0}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.3fr;gap:48px}
+.footer .logo{color:#fff}
+.footer .logo small{color:#8d887f}
+.footer p.about{font-size:14px;margin-top:18px;max-width:320px}
+.footer .f-h{color:#fff;font-size:15px;font-weight:600;margin-bottom:18px}
+.footer ul{display:grid;gap:4px;font-size:14px}
+.footer ul a{display:inline-flex;align-items:center;min-height:32px}
+.footer ul a:hover,.footer .contact a:hover{color:var(--c-orange)}
+.footer .contact li{display:flex;gap:10px;min-height:32px;align-items:center}
+.footer .contact li span{color:#8d887f;min-width:64px}
+.social{display:flex;gap:8px;margin-top:22px}
+.social a{width:44px;height:44px;display:grid;place-items:center;border:1px solid #2f2f2f;color:#d8d3c9;transition:background .2s,border-color .2s,color .2s}
+.social a:hover{border-color:var(--c-orange);color:#fff;background:#1f1f1f}
+.social svg{width:20px;height:20px}
+.line-cta{margin-top:20px;display:grid;grid-template-columns:44px 1fr;gap:12px 14px;align-items:center;background:#1c1c1c;border:1px solid #2a2a2a;padding:14px}
+.line-cta .lc-ico{width:44px;height:44px;background:#06C755;color:#fff;display:grid;place-items:center;flex-shrink:0;font-weight:800;font-size:11px}
+.line-cta b{display:block;color:#fff;font-size:14px}
+.line-cta small{font-size:12px;color:#8d887f}
+.line-cta .btn{grid-column:1/-1;height:44px;font-size:14px;width:100%}
+.f-pay{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.f-pay span{display:inline-flex;align-items:center;gap:8px;border:1px solid #2f2f2f;padding:6px 12px;font-size:13px;color:#d8d3c9}
+.f-pay svg{width:16px;height:16px;color:var(--c-orange)}
+.privacy{margin-top:48px;border-top:1px solid #2a2a2a;padding-top:28px;display:grid;grid-template-columns:1fr auto;gap:16px 32px;align-items:start}
+.privacy p{font-size:13px;max-width:760px}
+.privacy .f-h{margin-bottom:6px}
+.privacy button{min-height:44px;padding:0 16px;border:1px solid #3a3a3a;color:#fff;font-size:14px;font-weight:600}
+.privacy button:hover{border-color:var(--c-orange)}
+.todo{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.5px;color:#141414;background:#E9C46A;padding:0 6px;margin-left:6px;vertical-align:middle;line-height:18px}
+.footer-bottom{margin-top:40px;border-top:1px solid #2a2a2a;padding:22px 0;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:#8d887f}
+
+/* ---------- Floating buttons: LINE / cart / back-to-top (U20, U24) ---------- */
+.fabs{position:fixed;right:20px;bottom:calc(20px + var(--consent-h));z-index:40;display:flex;flex-direction:column-reverse;align-items:center;gap:12px;transition:bottom .25s}
+.float-line{width:56px;height:56px;border-radius:50%;background:#06C755;color:#fff;display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.18);font-weight:800;font-size:13px}
+.fab{width:48px;height:48px;display:grid;place-items:center;background:var(--c-white);color:var(--c-black);border:1px solid var(--c-line);box-shadow:0 8px 24px rgba(0,0,0,.12);position:relative;transition:opacity .2s,transform .2s}
+.fab:hover{color:var(--c-orange)}
+.fab svg{width:22px;height:22px}
+.fab-cart{width:56px;height:56px;border-radius:50%;background:var(--c-orange);color:#fff;border-color:var(--c-orange);box-shadow:0 8px 24px rgba(242,107,56,.35),0 0 0 3px rgba(255,255,255,.9)}
+.fab-cart:hover{color:#fff;background:var(--c-orange-dk);border-color:var(--c-orange-dk)}
+.fab-cart .cart-ico{width:26px;height:26px}
+.fab-cart .cart-count{top:2px;left:auto;right:0;background:var(--c-black);box-shadow:0 0 0 2px #fff}
+.fab.is-hidden{display:none}
+@keyframes fabIn{from{opacity:0;transform:translateY(8px)}}
+.fab{animation:fabIn .2s ease}
+.toast{position:fixed;left:50%;bottom:calc(28px + var(--consent-h));transform:translate(-50%,120px);background:var(--c-black);color:#fff;padding:14px 22px;font-size:14px;z-index:120;transition:transform .3s,opacity .3s;opacity:0;pointer-events:none;display:flex;gap:10px;align-items:center;max-width:calc(100vw - 32px)}
+.toast.show{transform:translate(-50%,0);opacity:1}
+.toast i{width:8px;height:8px;border-radius:50%;background:var(--c-orange);display:inline-block;flex-shrink:0}
+
+/* ---------- PDPA consent (U27) ---------- */
+.consent{position:fixed;left:0;right:0;bottom:0;z-index:90;background:var(--c-white);border-top:3px solid var(--c-orange);box-shadow:0 -12px 40px rgba(20,20,20,.14)}
+.consent-in{display:grid;grid-template-columns:1fr auto;gap:12px 32px;align-items:center;padding-top:18px;padding-bottom:18px}
+.consent-text b{font-size:15px}
+.consent-text p{font-size:13px;color:var(--c-muted);max-width:720px}
+.consent-text .ct-short,.consent-act .bl-short{display:none}
+.consent-text a{color:var(--c-ink);text-decoration:underline;text-underline-offset:3px;font-weight:600}
+.consent-act{display:flex;gap:10px}
+.consent-act .btn{width:auto}
+.consent-prefs{grid-column:1/-1;display:grid;gap:8px;border-top:1px solid var(--c-line);padding-top:12px}
+.consent-prefs label{display:flex;gap:12px;align-items:flex-start;font-size:14px;min-height:40px;cursor:pointer}
+.consent-prefs input{width:20px;height:20px;accent-color:var(--c-orange);margin-top:3px;flex-shrink:0}
+.consent-prefs small{display:block;color:var(--c-muted);font-size:12px}
+
+/* ---------- FINDER (ตัวช่วยเลือกรุ่น) — พื้นดำ ---------- */
+.finder{background:var(--c-black);color:#fff}
+.finder .container{display:grid;grid-template-columns:1fr 1.35fr;gap:64px;align-items:start}
+.finder .sec-sub{color:#a9a49a}
+.finder-safe{margin-top:28px;border-left:3px solid var(--c-orange);padding:14px 18px;background:#1f1f1f;font-size:14px;color:#cfcac0}
+.finder-safe b{color:#fff}
+.finder-box{background:#1f1f1f;padding:32px;min-height:380px}
+.f-progress{display:flex;gap:6px;margin-bottom:24px}
+.f-progress i{flex:1;height:3px;background:#333;transition:background .3s}
+.f-progress i.on{background:var(--c-orange)}
+.f-step-label{font-size:13px;color:#8d887f;margin-bottom:6px}
+.f-q{font-size:22px;font-weight:700;margin-bottom:20px;line-height:1.4}
+.f-opts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.f-opt{border:1.5px solid #333;padding:16px 18px;text-align:left;color:#fff;transition:border-color .2s,background .2s}
+.f-opt:hover,.f-opt:focus-visible{border-color:var(--c-orange);background:#262626;outline:none}
+.f-opt b{display:block;font-size:16px;font-weight:600}
+.f-opt span{font-size:13px;color:#8d887f}
+.f-link{margin-top:20px;color:#a9a49a;font-size:14px;text-decoration:underline;text-underline-offset:3px;min-height:40px}
+.f-link:hover{color:#fff}
+.f-anim{animation:fIn .35s ease}
+@keyframes fIn{from{opacity:0;transform:translateY(8px)}}
+.f-summary{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.f-summary span{font-size:12px;border:1px solid #333;padding:3px 10px;color:#cfcac0}
+.f-recs{display:grid;gap:10px}
+.f-rec{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;background:var(--c-black);padding:12px}
+.f-rec .thumb{width:64px;height:64px;background:#2a2a2a;display:grid;place-items:center}
+.f-rec .thumb .ph{width:60%}
+.f-rec small{color:#8d887f;font-size:12px;display:block}
+.f-rec b{font-size:15px;font-weight:600;line-height:1.4;display:block}
+.f-rec .pr{font-weight:700;white-space:nowrap}
+.f-rec.acc{background:transparent;border:1px dashed #333}
+.f-notes{margin:18px 0 22px;display:grid;gap:8px;list-style:none}
+.f-notes li{font-size:14px;color:#cfcac0;padding-left:18px;position:relative}
+.f-notes li::before{content:"";position:absolute;left:0;top:9px;width:8px;height:8px;background:var(--c-orange)}
+.f-actions{display:flex;gap:10px;flex-wrap:wrap}
+.thumb .ph,.ci-thumb .ph{aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#fff 0 22%,#d8d2c6 23% 40%,#8f897d 41% 48%,transparent 49%)}
+.thumb .ph.rgb,.ci-thumb .ph.rgb{background:radial-gradient(circle,#fff 0 12%,#ffb38f 18%,#8fd3ff 26%,#c69bff 32%,#8f897d 41% 48%,transparent 49%)}
+.thumb .ph.acc,.ci-thumb .ph.acc,.prod-img .ph.acc{border-radius:4px;background:linear-gradient(#5a554c,#3a3631)}
+
+/* ---------- MINI CART DRAWER ---------- */
+.cart{position:fixed;inset:0;z-index:110;pointer-events:none;visibility:hidden;transition:visibility 0s .3s}
+.cart-bg{position:absolute;inset:0;background:rgba(20,20,20,.5);opacity:0;transition:opacity .25s}
+.cart-panel{position:absolute;top:0;right:0;bottom:0;width:min(420px,100vw);background:var(--c-white);transform:translateX(100%);transition:transform .3s;display:flex;flex-direction:column}
+.cart.open{pointer-events:auto;visibility:visible;transition:none}
+.cart.open .cart-bg{opacity:1}
+.cart.open .cart-panel{transform:none}
+.cart-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px 16px 24px;border-bottom:1px solid var(--c-line)}
+.cart-head h2{font-size:18px;font-weight:700}
+.cart-head h2 span{color:var(--c-muted);font-weight:500;font-size:15px}
+.cart-body{flex:1;overflow-y:auto;padding:8px 24px 24px}
+.ci{display:grid;grid-template-columns:72px 1fr auto;gap:14px;padding:16px 0;border-bottom:1px solid var(--c-line)}
+.ci-thumb{width:72px;height:72px;background:var(--c-cream);display:grid;place-items:center}
+.ci-thumb .ph{width:60%}
+.ci-name{font-size:14px;font-weight:600;line-height:1.45}
+.ci-unit{font-size:13px;color:var(--c-muted)}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--c-line);margin-top:8px}
+.qty button{width:40px;height:40px;font-size:16px;color:var(--c-ink)}
+.qty button:hover{background:var(--c-cream)}
+.qty span{min-width:32px;text-align:center;font-size:14px;font-weight:600}
+.ci-right{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between}
+.ci-line{font-weight:700;white-space:nowrap}
+.ci-del{font-size:13px;color:var(--c-muted);text-decoration:underline;text-underline-offset:3px;min-height:40px;padding:0 4px}
+.ci-del:hover{color:var(--c-orange)}
+.cart-empty{text-align:center;padding:64px 12px;color:var(--c-muted)}
+.cart-empty b{display:block;color:var(--c-ink);font-size:17px;margin-bottom:6px}
+.cart-empty .btn{margin-top:20px}
+.upsell{margin-top:24px;background:var(--c-cream);padding:16px}
+.upsell h3{font-size:14px;font-weight:600;margin-bottom:10px}
+.up-item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:8px 0}
+.up-item+.up-item{border-top:1px solid var(--c-line)}
+.up-item b{font-size:14px;font-weight:500;display:block}
+.up-item small{color:var(--c-muted)}
+.up-item button{height:40px;padding:0 12px;border:1.5px solid var(--c-black);font-size:13px;font-weight:600}
+.up-item button:hover{background:var(--c-black);color:#fff}
+.cart-foot{border-top:1px solid var(--c-line);padding:20px 24px 24px;display:grid;gap:12px}
+.cart-total{display:flex;justify-content:space-between;align-items:baseline}
+.cart-total span{color:var(--c-muted)}
+.cart-total b{font-size:22px}
+.cart-foot small{color:var(--c-muted);font-size:13px}
+.cart-foot .btn{width:100%}
+.cart-foot .f-link{margin:0;text-align:center;color:var(--c-muted)}
+body.locked{overflow:hidden}
+
+/* ---------- Reveal on scroll ---------- */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- Responsive ---------- */
+@media (min-width:1025px){
+  .cart-label{display:inline}
+  .cart-btn{padding:0 14px 0 10px;background:var(--c-cream)}
+  .cart-btn:hover{background:var(--c-cream-dk);color:var(--c-black)}
+  /* เดสก์ท็อป: ป้ายจำนวนเป็น pill ต่อท้ายคำว่า "ตะกร้า" ไม่ทับตัวอักษร */
+  .cart-btn .cart-count{position:static;box-shadow:none;margin-left:-2px}
+}
+@media (max-width:1180px) and (min-width:1025px){
+  .header-row{gap:24px}
+  .nav{gap:18px;font-size:14.5px}
+  .header-actions .hide-md{display:none}
+  .mega-in{grid-template-columns:1fr 260px;gap:28px}
+  .mega-cols{gap:20px}
+}
+@media (max-width:1024px){
+  .nav{display:none}
+  .menu-toggle{display:grid}
+  .cat-grid{grid-template-columns:repeat(3,1fr)}
+  .prod-grid{grid-template-columns:repeat(2,1fr)}
+  .feature .container{gap:48px}
+  .footer-grid{grid-template-columns:1fr 1fr}
+  .slider{height:600px}
+}
+@media (max-width:768px){
+  :root{--gutter:16px;--header-h:64px}
+  section{padding:64px 0}
+  .header-row{gap:12px}
+  .logo{font-size:18px}
+  .logo-mark{width:30px;height:30px}
+  /* มือถือ: สูงไม่เกินพื้นที่มองเห็น (ลบหัวเว็บ + แถบประกาศ) — ปุ่มในสไลด์จะไม่ไปอยู่ใต้ปุ่มลอยที่มุมล่าง */
+  .slider{height:620px;height:clamp(520px,calc(100vh - var(--header-h) - var(--tb-h,44px)),620px);height:clamp(520px,calc(100svh - var(--header-h) - var(--tb-h,44px)),620px)}
+  .s-inner{align-items:flex-end;padding-bottom:84px}
+  .s-shade,.slide.align-center .s-shade{background:linear-gradient(180deg,rgba(10,10,10,calc(var(--ov)*.45)) 0%,rgba(10,10,10,calc(var(--ov)*.85)) 45%,rgba(10,10,10,calc(var(--ov)*1.15 + .1)) 100%)}
+  .s-sub{margin-top:14px}
+  .s-ctas{margin-top:24px}
+  .s-count{display:none}
+  .s-controls .container{flex-wrap:wrap;gap:0;padding-bottom:8px}
+  .s-nav{order:1;margin-left:auto;gap:8px}
+  .s-dots{order:2;width:100%;flex-wrap:nowrap;gap:0;margin:0 -4px}
+  .seg{flex:1;width:auto}
+  .s-inner{padding-bottom:calc(116px + var(--lift,0px))}
+  .hero-stats{display:grid;grid-template-columns:1fr 1fr}
+  .s-credit{top:8px;right:10px;font-size:10px}
+  .hero-stats{gap:10px 28px;padding-top:16px;padding-bottom:16px}
+  .hero-stats strong{font-size:20px}
+  .hero-stats span{font-size:13px}
+  .trust .container{grid-template-columns:1fr 1fr}
+  .trust-item{padding:20px 12px}
+  .trust-item:nth-child(3){border-left:0}
+  .trust-item:nth-child(n+3){border-top:1px solid var(--c-line)}
+  .cat-grid{grid-template-columns:repeat(2,1fr);gap:14px}
+  .cat-main{padding:18px 14px 16px;min-height:184px;gap:12px}
+  .cat-main h3{font-size:15.5px}
+  .cat-tilt::before{transform:translate(4px,4px)}
+  .feature .container{grid-template-columns:1fr}
+  .feature-visual{aspect-ratio:16/10}
+  .feature-list{grid-template-columns:1fr}
+  .step-grid{grid-template-columns:1fr 1fr;gap:32px 16px}
+  .cta .container{padding:28px 20px}
+  .footer-grid{grid-template-columns:1fr;gap:36px}
+  .privacy{grid-template-columns:1fr}
+  .header-actions .hide-sm{display:none}
+  .finder .container{grid-template-columns:1fr;gap:32px}
+  .finder-box{padding:20px;min-height:0}
+  .f-q{font-size:19px}
+  /* แบนเนอร์แบบกะทัดรัด (≈90px): ข้อความสั้น 1 บรรทัด + ปุ่ม 2 ปุ่ม */
+  .consent-in{grid-template-columns:1fr;gap:8px;padding-top:10px;padding-bottom:10px}
+  .consent-text b,.consent-text .ct-long{display:none}
+  .consent-text .ct-short{display:block;font-size:13px;line-height:1.5;color:var(--c-ink)}
+  .consent-act .btn{flex:1;height:40px;font-size:14px}
+  .consent-act .bl-long{display:none}
+  .consent-act .bl-short{display:inline}
+  .topbar .tb-in{height:44px;padding:0 44px 0 16px}
+  .tb-msg{left:16px;right:44px;font-size:12px}
+}
+@media (max-width:1024px) and (min-width:769px){
+  .finder .container{grid-template-columns:1fr;gap:32px}
+}
+@media (max-width:480px){
+  .prod-grid{grid-template-columns:1fr 1fr;gap:12px}
+  .prod-body{padding:12px}
+  .prod-name{font-size:14px}
+  .prod-specs{display:none}
+  .prod-foot{flex-direction:column;align-items:stretch}
+  .add-btn{width:100%;min-width:0}
+  .btn{width:100%}
+  .f-opts{grid-template-columns:1fr}
+  .f-rec{grid-template-columns:52px 1fr;gap:12px}
+  .f-rec .thumb{width:52px;height:52px}
+  .f-rec .pr{grid-column:2}
+  .s-ctas{gap:10px}
+  .s-title{font-size:29px}
+  .sg-opt{grid-template-columns:40px 1fr;padding:10px 12px}
+  .sg-opt .thumb{width:40px;height:40px}
+  .sg-opt .pr{grid-column:2;font-size:13px}
+  .logo small{display:none}
+}
+@media (max-width:374px){
+  .header-row{gap:6px}
+  .logo{font-size:17px;gap:8px}
+}
+/* ลดการเคลื่อนไหว — ปิด animation/transition ทั้งหมด (U7) */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<a href="#main" class="skip">ข้ามไปยังเนื้อหาหลัก</a>
+
+<!-- ==================== TOP BAR (ข้อความหมุนเวียน + ปิดได้) ==================== -->
+<div class="topbar" id="topbar" role="region" aria-label="ประกาศจากร้าน">
+  <div class="tb-in" id="tbMsgs"></div>
+  <button class="tb-close" id="tbClose" aria-label="ปิดแถบประกาศ">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+</div>
+
+<!-- ==================== (1) HEADER ==================== -->
+<header class="header" id="header">
+  <div class="container header-row">
+    <a href="#" class="logo" id="logoLink" aria-label="มองดูเว็บ หน้าแรก">
+      <div class="logo-mark"><span></span></div>
+      <div>มองดูเว็บ<small>MONGDOWEB LED</small></div>
+    </a>
+    <nav class="nav" aria-label="เมนูหลัก">
+      <a href="#" class="active" aria-current="page">หน้าแรก</a>
+      <div class="nav-mega" id="navMega">
+        <button class="nav-trigger" id="megaBtn" aria-expanded="false" aria-controls="megaPanel" aria-haspopup="true">
+          <span class="t">หมวดสินค้า</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="mega" id="megaPanel" role="region" aria-label="หมวดสินค้าทั้งหมด"></div>
+      </div>
+      <a href="#finder">ช่วยเลือกไฟ</a>
+      <a href="#products">สินค้าขายดี</a>
+      <a href="#how">วิธีสั่งซื้อ</a>
+      <a href="#contact">ติดต่อเรา</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn" id="searchBtn" aria-label="ค้นหาสินค้า" aria-expanded="false" aria-controls="searchPanel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <a href="#" class="icon-btn hide-sm hide-md" aria-label="บัญชีของฉัน">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+      </a>
+      <div class="cart-wrap" id="cartWrap">
+        <button class="cart-btn" id="cartBtn" aria-label="ตะกร้าสินค้า ว่าง" aria-controls="cart" aria-haspopup="dialog">
+          <!-- ไอคอนรถเข็น: กริด 24px พิกัดจำนวนเต็ม stroke 2 -->
+          <svg class="cart-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h3l3 12h11l2-8H6"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+          <span class="cart-label" aria-hidden="true">ตะกร้า</span>
+          <span class="cart-count" id="cartCount" aria-hidden="true" hidden>0</span>
+        </button>
+        <div class="cart-pop" id="cartPop" aria-hidden="true"></div>
+      </div>
+      <button class="icon-btn menu-toggle" id="menuBtn" aria-label="เปิดเมนู" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="search-panel" id="searchPanel">
+    <div class="container">
+      <div class="search-box">
+        <form id="searchForm" role="search" action="https://www.xn--72c0asz6a7a5fqc6c.com/" method="get">
+          <label for="q" class="sr-only">ค้นหาสินค้า</label>
+          <input id="q" name="s" type="search" autocomplete="off" placeholder="ค้นหาสินค้า เช่น ไฟใต้น้ำ 12V, Pool Light RGB"
+            role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest">
+          <input type="hidden" name="post_type" value="product">
+          <button class="btn btn-primary" type="submit">ค้นหา</button>
+        </form>
+        <div class="suggest" id="suggestWrap" hidden>
+          <div id="suggest" role="listbox" aria-label="สินค้าที่ตรงกับคำค้น"></div>
+          <div class="sg-foot" id="sgFoot">ใช้ ↑ ↓ เพื่อเลือก · Enter เพื่อเปิด · Esc เพื่อปิด</div>
+        </div>
+        <div class="sr-only" id="sgStatus" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile drawer -->
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-bg" data-close></div>
+  <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="เมนู">
+    <div class="drawer-top">
+      <div class="logo"><div class="logo-mark"><span></span></div><div>มองดูเว็บ</div></div>
+      <button class="icon-btn" data-close aria-label="ปิดเมนู">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <nav aria-label="เมนูมือถือ">
+      <a href="#" data-close>หน้าแรก</a>
+      <p class="dr-label">หมวดสินค้า</p>
+      <div id="drawerCats"></div>
+      <div class="dr-other">
+        <a href="#finder" data-close>ช่วยเลือกไฟ</a>
+        <a href="#products" data-close>สินค้าขายดี</a>
+        <a href="#how" data-close>วิธีสั่งซื้อ</a>
+        <a href="#contact" data-close>ติดต่อเรา</a>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- Mini cart drawer -->
+<div class="cart" id="cart" aria-hidden="true">
+  <div class="cart-bg" data-cart-close></div>
+  <aside class="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+    <div class="cart-head">
+      <h2 id="cartTitle">ตะกร้าสินค้า <span id="cartHeadCount"></span></h2>
+      <button class="icon-btn" data-cart-close aria-label="ปิดตะกร้า">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="cart-body" id="cartBody"></div>
+    <div class="cart-foot" id="cartFoot">
+      <div class="cart-total"><span>ยอดรวมสินค้า</span><b id="cartTotal">฿0</b></div>
+      <small>ยังไม่รวมค่าจัดส่ง · ชำระด้วยการโอนเงินแล้วแนบสลิป</small>
+      <button class="btn btn-primary" id="checkoutBtn">ดำเนินการสั่งซื้อ <span class="arr">→</span></button>
+      <button class="f-link" data-cart-close>เลือกซื้อสินค้าต่อ</button>
+    </div>
+  </aside>
+</div>
+
+<main id="main" tabindex="-1">
+<!-- ==================== (2) HERO SLIDER — แก้ไขสไลด์ได้จากหลังบ้าน (mdw_slides) ==================== -->
+<section class="hero" aria-label="แนะนำร้าน">
+  <div class="slider" id="slider" role="region" aria-roledescription="carousel" aria-label="โปรโมชันและสินค้าแนะนำ" tabindex="0">
+    <div class="slides" id="slides" aria-live="off"></div>
+    <div class="s-controls">
+      <div class="container">
+        <div class="s-dots" id="sDots" role="group" aria-label="เลือกสไลด์"></div>
+        <div class="s-nav">
+          <span class="s-count" id="sCount" aria-hidden="true"></span>
+          <button class="s-btn" id="sPrev" aria-label="สไลด์ก่อนหน้า">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button class="s-btn" id="sPlay" aria-label="หยุดสไลด์อัตโนมัติ"></button>
+          <button class="s-btn" id="sNext" aria-label="สไลด์ถัดไป">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-stats-band">
+    <div class="container hero-stats">
+      <div><strong id="statCats">12</strong><span>หมวดสินค้า</span></div>
+      <div><strong>IP68</strong><span>กันน้ำสูงสุด</span></div>
+      <div><strong>50,000</strong><span>ชม. อายุหลอด</span></div>
+      <div><strong>DC12V</strong><span>ปลอดภัยสำหรับงานน้ำ</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== TRUST STRIP ==================== -->
+<section class="trust" aria-label="จุดเด่นของร้าน">
+  <div class="container">
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>
+      <div><b>ส่งไว 2–3 วัน</b><span>จัดส่งทั่วประเทศ</span></div>
+    </div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+      <div><b>รับประกัน 1 ปี</b><span>เคลมง่าย ทีมงานคนไทย</span></div>
+    </div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z"/></svg>
+      <div><b>กันน้ำ IP67–IP68</b><span>จุ่มน้ำใช้งานได้จริง</span></div>
+    </div>
+    <div class="trust-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+      <div><b>ไฟ DC12V ปลอดภัย</b><span>เหมาะกับงานน้ำโดยเฉพาะ</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CATEGORIES (render จาก mdw_categories / DEFAULT_CATEGORIES) ==================== -->
+<section id="categories" class="cats">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="eyebrow">หมวดหมู่สินค้า</div>
+        <h2 class="sec-title">เลือกไฟให้ตรงกับพื้นที่ของคุณ</h2>
+        <p class="sec-sub">ตั้งแต่สระว่ายน้ำ น้ำพุ สวน ไปจนถึงอาคารและเวที ครบใน <span id="catCount">12</span> หมวด</p>
+      </div>
+      <a href="https://www.xn--72c0asz6a7a5fqc6c.com/shop/" class="link-more">ดูสินค้าทั้งหมด</a>
+    </div>
+    <div class="cat-grid" id="catGrid"></div>
+  </div>
+</section>
+
+<!-- ==================== FINDER — ตัวช่วยเลือกรุ่น (render จาก JS: FINDER_STEPS) ==================== -->
+<section class="finder" id="finder">
+  <div class="container">
+    <div class="reveal">
+      <div class="eyebrow">ตัวช่วยเลือกไฟ</div>
+      <h2 class="sec-title">ไม่แน่ใจว่าควรใช้รุ่นไหน?<br>ตอบ 3 ข้อ เราแนะนำให้</h2>
+      <p class="sec-sub">เลือกพื้นที่ สีแสง และแหล่งไฟที่มี ระบบจะแนะนำรุ่นที่เหมาะ พร้อมอุปกรณ์ที่ต้องใช้คู่กัน</p>
+      <div class="finder-safe"><b>ควรรู้ก่อนซื้อ:</b> ไฟใต้น้ำของร้านใช้ไฟ DC12V ต้องต่อผ่านหม้อแปลง <b>ห้ามต่อไฟบ้าน 220V โดยตรง</b></div>
+    </div>
+    <div class="finder-box reveal" id="finderBox" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ==================== BEST SELLERS (render จาก JS: CATALOG ที่ best:true) ==================== -->
+<section class="products" id="products">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="eyebrow">สินค้าขายดี</div>
+        <h2 class="sec-title">ลูกค้าเลือกมากที่สุด</h2>
+      </div>
+      <a href="https://www.xn--72c0asz6a7a5fqc6c.com/shop/" class="link-more">ดูทั้งหมด</a>
+    </div>
+    <div class="prod-grid" id="prodGrid"></div>
+  </div>
+</section>
+
+<!-- ==================== WHY US ==================== -->
+<section class="feature">
+  <div class="container">
+    <!-- TODO: เปลี่ยนเป็นรูปผลงานติดตั้งจริง -->
+    <div class="feature-visual reveal">
+      <div class="cap"><b>แสงที่ทำงานได้จริงใต้น้ำ</b><span>ภาพผลงาน / งานติดตั้งจากลูกค้า</span></div>
+    </div>
+    <div class="reveal">
+      <div class="eyebrow">ทำไมต้องมองดูเว็บ</div>
+      <h2 class="sec-title">เลือกสินค้าที่เหมาะกับงานน้ำ<br>ไม่ใช่แค่ไฟที่สว่าง</h2>
+      <div class="feature-list">
+        <div><div class="num">01</div><h3>สเปกชัดเจนทุกชิ้น</h3><p>บอกวัตต์ ความสว่าง ระดับกันน้ำ ขนาด และน้ำหนัก ครบก่อนตัดสินใจ</p></div>
+        <div><div class="num">02</div><h3>แรงดันต่ำ ปลอดภัย</h3><p>ใช้ไฟ DC12V ต่อผ่านหม้อแปลง หรือต่อแบตเตอรี่ 12V ได้</p></div>
+        <div><div class="num">03</div><h3>ชุดพร้อมใช้งาน</h3><p>หลายรุ่นมาพร้อมหม้อแปลง ท่อคอนเน็คเตอร์ และท่อหดกันน้ำ</p></div>
+        <div><div class="num">04</div><h3>วัสดุทนทาน</h3><p>ฝาครอบอลูมิเนียม อายุการใช้งานมากกว่า 50,000 ชั่วโมง</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== HOW TO ORDER ==================== -->
+<section class="steps" id="how">
+  <div class="container">
+    <div class="sec-head reveal">
+      <div>
+        <div class="eyebrow">วิธีสั่งซื้อ</div>
+        <h2 class="sec-title">สั่งง่าย 4 ขั้นตอน</h2>
+      </div>
+    </div>
+    <div class="step-grid reveal">
+      <div class="step"><div class="n">01</div><h3>เลือกสินค้า</h3><p>หยิบใส่ตะกร้า ตรวจจำนวนและที่อยู่จัดส่ง</p></div>
+      <div class="step"><div class="n">02</div><h3>โอนเงิน</h3><p>โอนผ่านบัญชีธนาคารหรือสแกน QR PromptPay</p></div>
+      <div class="step"><div class="n">03</div><h3>แนบสลิป</h3><p>อัปโหลดสลิปในหน้าคำสั่งซื้อ ทีมงานตรวจสอบให้</p></div>
+      <div class="step"><div class="n">04</div><h3>รับสินค้า</h3><p>จัดส่งพร้อมเลขพัสดุ ได้รับภายใน 2–3 วัน</p></div>
+    </div>
+    <div class="pay-row reveal">
+      <span class="lbl">ช่องทางชำระเงิน</span>
+      <span class="pay-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 10h18M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18M12 3l9 5H3z"/></svg>โอนผ่านธนาคาร</span>
+      <span class="pay-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/></svg>QR PromptPay</span>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="cta">
+  <div class="container reveal">
+    <div>
+      <h2>ไม่แน่ใจว่าควรใช้ไฟรุ่นไหน?</h2>
+      <p>ส่งรูปพื้นที่มาให้ทีมงานช่วยแนะนำรุ่นและจำนวนที่เหมาะสม ฟรี</p>
+    </div>
+    <div class="cta-actions">
+      <a href="#" class="btn btn-line" data-line target="_blank" rel="noopener">ปรึกษาทาง LINE</a>
+      <a href="#contact" class="btn btn-primary">ขอใบเสนอราคา <span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ==================== (4) FOOTER ==================== -->
+<footer class="footer" id="contact">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><div class="logo-mark"><span></span></div><div>มองดูเว็บ<small>MONGDOWEB LED</small></div></div>
+        <p class="about">ร้านจำหน่ายไฟ LED สำหรับงานใต้น้ำ สระว่ายน้ำ น้ำพุ สวน และอาคาร คัดสรรสินค้ากันน้ำ ทนทาน พร้อมรับประกัน</p>
+        <!-- TODO: ใส่ลิงก์โซเชียลจริง -->
+        <div class="social">
+          <a href="#" data-line target="_blank" rel="noopener" aria-label="LINE Official Account มองดูเว็บ">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s5.9-3.5 8.1-6C21.4 14.3 22 12.7 22 11c0-4.4-4.5-8-10-8zM8.3 13.4H6.3c-.3 0-.5-.2-.5-.5V9c0-.3.2-.5.5-.5s.5.2.5.5v3.4h1.5c.3 0 .5.2.5.5s-.2.5-.5.5zm2.1-.5c0 .3-.2.5-.5.5s-.5-.2-.5-.5V9c0-.3.2-.5.5-.5s.5.2.5.5zm4.8 0c0 .2-.1.4-.3.5h-.2c-.2 0-.3-.1-.4-.2l-2-2.8v2.5c0 .3-.2.5-.5.5s-.5-.2-.5-.5V9c0-.2.1-.4.3-.5h.2c.2 0 .3.1.4.2l2 2.8V9c0-.3.2-.5.5-.5s.5.2.5.5zm3.2-2.5c.3 0 .5.2.5.5s-.2.5-.5.5h-1.5v1h1.5c.3 0 .5.2.5.5s-.2.5-.5.5h-2c-.3 0-.5-.2-.5-.5V9c0-.3.2-.5.5-.5h2c.3 0 .5.2.5.5s-.2.5-.5.5h-1.5v1z"/></svg>
+          </a>
+          <a href="#" aria-label="Facebook มองดูเว็บ" data-todo="facebook-url">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14 8h3V4h-3c-2.8 0-4 1.8-4 4.3V10H7v4h3v7h4v-7h3l1-4h-4V8.6c0-.4.3-.6.6-.6z"/></svg>
+          </a>
+          <a href="#" aria-label="YouTube มองดูเว็บ" data-todo="youtube-url">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 7.2c-.2-.9-.9-1.6-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4c-.9.2-1.6.9-1.8 1.8C2 8.8 2 12 2 12s0 3.2.4 4.8c.2.9.9 1.6 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.6.4-4.8.4-4.8s0-3.2-.4-4.8zM10 15V9l5.2 3z"/></svg>
+          </a>
+          <a href="#" aria-label="TikTok มองดูเว็บ" data-todo="tiktok-url">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3c.4 2.2 1.8 3.6 4 3.8v3.1c-1.5 0-2.8-.4-4-1.2v6.1c0 3.4-2.5 5.7-5.6 5.7S5.3 18.3 5.3 15c0-3.4 2.9-5.9 6.4-5.4v3.2c-1.6-.4-3.2.6-3.2 2.2 0 1.3 1 2.3 2.4 2.3 1.5 0 2.4-1 2.4-2.6V3z"/></svg>
+          </a>
+        </div>
+      </div>
+      <div>
+        <h2 class="f-h">หมวดยอดนิยม</h2>
+        <ul id="footerCats"></ul>
+      </div>
+      <div>
+        <h2 class="f-h">ช่วยเหลือ</h2>
+        <ul>
+          <li><a href="#how">วิธีสั่งซื้อ</a></li>
+          <li><a href="mongdoweb-checkout.html">แจ้งชำระเงิน / แนบสลิป</a></li>
+          <li><a href="#">ติดตามพัสดุ</a></li>
+          <li><a href="#">การรับประกันและเคลม</a></li>
+          <li><a href="#privacy">นโยบายความเป็นส่วนตัว</a></li>
+        </ul>
+        <h2 class="f-h" style="margin-top:28px">ช่องทางชำระเงิน</h2>
+        <div class="f-pay">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 10h18M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18M12 3l9 5H3z"/></svg>โอนผ่านธนาคาร</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/></svg>QR PromptPay</span>
+        </div>
+      </div>
+      <div>
+        <h2 class="f-h">ติดต่อเรา</h2>
+        <!-- TODO: ใส่ข้อมูลธุรกิจจริงทั้งหมดในบล็อกนี้ -->
+        <ul class="contact">
+          <li><span>LINE</span><a href="#" data-line target="_blank" rel="noopener">@mongdoweb</a></li>
+          <li data-todo="phone"><span>โทร</span>0X-XXX-XXXX<span class="todo">TODO</span></li>
+          <li><span>อีเมล</span><a href="mailto:contact@mongdoweb.com">contact@mongdoweb.com</a></li>
+          <li data-todo="hours"><span>เวลาทำการ</span>จ.–ส. 09:00–18:00</li>
+          <li data-todo="address"><span>ที่อยู่</span>รอข้อมูลที่ตั้งร้าน<span class="todo">TODO</span></li>
+          <li data-todo="tax-id"><span>เลขนิติบุคคล</span>รอข้อมูล<span class="todo">TODO</span></li>
+        </ul>
+        <div class="line-cta">
+          <div class="lc-ico" aria-hidden="true">LINE</div>
+          <div><b>เพิ่มเพื่อนทาง LINE</b><small>รับโปรและปรึกษาฟรี</small></div>
+          <a href="#" class="btn btn-line" data-line target="_blank" rel="noopener">เพิ่มเพื่อน</a>
+        </div>
+      </div>
+    </div>
+    <div class="privacy" id="privacy">
+      <div>
+        <h2 class="f-h">นโยบายความเป็นส่วนตัว (ฉบับย่อ)</h2>
+        <!-- TODO: แทนที่ด้วยนโยบายความเป็นส่วนตัวฉบับเต็มที่ผ่านการตรวจทางกฎหมาย และลิงก์ไปหน้า /privacy-policy -->
+        <p>ร้านเก็บข้อมูลชื่อ ที่อยู่ เบอร์โทร และสลิปการโอน เพื่อจัดส่งสินค้าและยืนยันการชำระเงินเท่านั้น ไม่ขายหรือเปิดเผยข้อมูลแก่บุคคลภายนอก คุณขอดู แก้ไข หรือลบข้อมูลได้ทาง LINE หรืออีเมลของร้าน ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 <span class="todo">TODO ฉบับเต็ม</span></p>
+      </div>
+      <button type="button" id="openConsent">ตั้งค่าคุกกี้</button>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="yr"></span> มองดูเว็บ (MongdoWeb). สงวนลิขสิทธิ์</span>
+      <span>มองดูเว็บ.com</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ปุ่มลอย: LINE (ล่างสุด) → ตะกร้า (มือถือ) → กลับขึ้นด้านบน — เรียงซ้อนกันอัตโนมัติไม่ทับกัน -->
+<div class="fabs" id="fabs">
+  <a href="#" class="float-line" data-line target="_blank" rel="noopener" aria-label="แชทกับร้านทาง LINE">LINE</a>
+  <button class="fab fab-cart is-hidden" id="fabCart" aria-label="ตะกร้าสินค้า ว่าง" aria-controls="cart" aria-haspopup="dialog" tabindex="-1">
+    <svg class="cart-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h3l3 12h11l2-8H6"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+    <span class="cart-count" id="fabCount" aria-hidden="true" hidden>0</span>
+  </button>
+  <button class="fab is-hidden" id="toTop" aria-label="กลับขึ้นด้านบน" tabindex="-1">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"><i></i><span></span></div>
+
+<!-- PDPA consent -->
+<div class="consent" id="consent" role="region" aria-label="การใช้คุกกี้" hidden>
+  <div class="container consent-in">
+    <div class="consent-text">
+      <b>เว็บไซต์นี้ใช้คุกกี้</b>
+      <p class="ct-short">เราใช้คุกกี้เพื่อให้เว็บทำงานได้ · <a href="#privacy">นโยบายความเป็นส่วนตัว</a></p>
+      <p class="ct-long">เราใช้คุกกี้ที่จำเป็นเพื่อให้ตะกร้าสินค้าและการสั่งซื้อทำงานได้ และใช้คุกกี้วิเคราะห์เพื่อปรับปรุงเว็บไซต์เมื่อคุณอนุญาต ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล (PDPA) <a href="#privacy">อ่านนโยบายความเป็นส่วนตัว</a></p>
+    </div>
+    <div class="consent-act">
+      <button class="btn btn-outline btn-sm" id="consentSettings" aria-expanded="false" aria-controls="consentPrefs">ตั้งค่า</button>
+      <button class="btn btn-primary btn-sm" id="consentAccept"><span class="bl-long">ยอมรับทั้งหมด</span><span class="bl-short">ยอมรับ</span></button>
+    </div>
+    <div class="consent-prefs" id="consentPrefs" hidden>
+      <label><input type="checkbox" checked disabled><span>คุกกี้ที่จำเป็น <small>ใช้จำตะกร้าสินค้าและการตั้งค่า — ปิดไม่ได้</small></span></label>
+      <label><input type="checkbox" id="ckAnalytics"><span>คุกกี้วิเคราะห์การใช้งาน <small>ช่วยให้เรารู้ว่าหน้าไหนมีประโยชน์ (ไม่ระบุตัวตน)</small></span></label>
+      <label><input type="checkbox" id="ckMarketing"><span>คุกกี้การตลาด <small>ใช้แสดงโฆษณาที่เกี่ยวข้องบนแพลตฟอร์มอื่น</small></span></label>
+      <div><button class="btn btn-primary btn-sm" id="consentSave">บันทึกการตั้งค่า</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   DATA — แยกข้อมูลไว้ด้านบน พอย้ายไป Next.js แทนที่ด้วย
+   ข้อมูลจาก DB (Prisma) ได้ทันที
+   ========================================================= */
+const BASE = 'https://www.xn--72c0asz6a7a5fqc6c.com/product-category/';
+const SITE = 'https://www.xn--72c0asz6a7a5fqc6c.com/';
+const LINE_URL = 'https://line.me/R/ti/p/@mongdoweb'; // TODO: ยืนยัน LINE OA ID จริง
+
+// ไอคอนเส้น (stroke) สำหรับแต่ละหมวด
+const ICONS = {
+  water:   '<path d="M3 15c2 0 2-1.5 4.5-1.5S9.5 15 12 15s2.5-1.5 4.5-1.5S19 15 21 15M3 19c2 0 2-1.5 4.5-1.5S9.5 19 12 19s2.5-1.5 4.5-1.5S19 19 21 19"/><circle cx="12" cy="7" r="3"/>',
+  pool:    '<path d="M3 17c2 0 2-1.5 4.5-1.5S9.5 17 12 17s2.5-1.5 4.5-1.5S19 17 21 17"/><path d="M8 14V5a2 2 0 0 1 4 0M14 14V5a2 2 0 0 1 4 0M8 9h6"/>',
+  fountain:'<path d="M12 21v-9M12 12c-1-4-4-6-7-6M12 12c1-4 4-6 7-6M12 12V4"/><path d="M5 21h14"/>',
+  uplight: '<rect x="7" y="16" width="10" height="4"/><path d="M12 13V3M8 12 5 6M16 12l3-6"/>',
+  garden:  '<path d="M12 21v-7M12 14c-4 0-6-3-6-6 3 0 6 2 6 6zM12 14c4 0 6-3 6-6-3 0-6 2-6 6z"/><path d="M6 21h12"/>',
+  down:    '<path d="M3 5h18"/><path d="M8 5v3a4 4 0 0 0 8 0V5"/><path d="M9 15l-2 4M12 15v5M15 15l2 4"/>',
+  strip:   '<path d="M3 8c3 0 3 8 6 8s3-8 6-8 3 8 6 8"/><circle cx="6" cy="11" r=".8"/><circle cx="12" cy="12" r=".8"/><circle cx="18" cy="13" r=".8"/>',
+  stage:   '<circle cx="8" cy="8" r="3"/><path d="M10 10l9 9M5 21h14"/><path d="M14 4l2-2M17 7l3-1"/>',
+  wash:    '<rect x="4" y="3" width="16" height="18"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"/>',
+  spot:    '<path d="M4 10h9v6H4z"/><path d="M13 10l7-4v14l-7-4"/><path d="M8 16v4"/>',
+  wall:    '<path d="M4 3v18"/><path d="M4 8h5l3 4-3 4H4"/><path d="M15 12h5M14 8l4-2M14 16l4 2"/>',
+  deco:    '<path d="M3 11 12 4l9 7v9H3z"/><path d="M10 20v-5h4v5"/>'
+};
+
+/* ===== SHARED DEFAULT DATA — copy verbatim into mongdoweb-home.html AND mongdoweb-admin.html ===== */
+/* รูปทั้งหมดจาก Unsplash (ฟรีภายใต้ Unsplash License ใช้เชิงพาณิชย์ได้) — เปลี่ยนเป็นรูปสินค้าจริงได้จากหลังบ้าน */
+const DEFAULT_SLIDES = [
+  { id:'s1', active:true, order:1,
+    image:'https://images.unsplash.com/photo-1517384084767-6bc118943770', focal:{x:50,y:50},
+    alt:'แสงสะท้อนบนผิวน้ำสระว่ายน้ำสีฟ้า',
+    eyebrow:'ไฟสระว่ายน้ำ · กันน้ำ IP68',
+    title:'เปลี่ยนสระว่ายน้ำธรรมดา ให้สวยระดับรีสอร์ต',
+    subtitle:'ไฟสระ LED RGB เปลี่ยนสีได้ด้วยรีโมท ใช้ไฟ 12V ปลอดภัยสำหรับทุกคนในบ้าน ติดตั้งได้ทั้งสระใหม่และสระเดิม',
+    cta1:{ label:'ดูไฟสระว่ายน้ำ', href:'#categories' }, cta2:{ label:'ช่วยเลือกรุ่นให้', href:'#finder' },
+    align:'left', overlay:55, startAt:null, endAt:null, credit:'Photo: Marissa Rodriguez / Unsplash' },
+  { id:'s2', active:true, order:2,
+    image:'https://images.unsplash.com/photo-1679343904169-959fadade81d', focal:{x:50,y:60},
+    alt:'น้ำพุกลางเมืองยามค่ำคืนที่ส่องสว่างด้วยไฟ',
+    eyebrow:'ไฟส่องน้ำพุ',
+    title:'ให้น้ำพุของคุณ เป็นจุดสนใจตลอดทั้งคืน',
+    subtitle:'ไฟส่องน้ำพุแบบวงแหวนสแตนเลส กันน้ำ ทนทาน อายุการใช้งานมากกว่า 50,000 ชั่วโมง',
+    cta1:{ label:'ดูไฟส่องน้ำพุ', href:'#categories' }, cta2:null,
+    align:'left', overlay:50, startAt:null, endAt:null, credit:'Photo: Gruescu Ovidiu / Unsplash' },
+  { id:'s3', active:true, order:3,
+    image:'https://images.unsplash.com/photo-1584891800774-6f8c93265d8a', focal:{x:50,y:50},
+    alt:'สวนยามค่ำคืนที่ประดับไฟสีม่วงและฟ้า',
+    eyebrow:'ไฟสวนและภูมิทัศน์',
+    title:'สวนที่สวยที่สุด คือสวนที่สวยทั้งกลางวันและกลางคืน',
+    subtitle:'ไฟส่องต้นไม้และไฟฝังพื้น สร้างมิติให้สวนและทางเดิน เลือกได้ทั้งแสงขาวและ RGB',
+    cta1:{ label:'ดูไฟสวน', href:'#categories' }, cta2:{ label:'ช่วยเลือกรุ่นให้', href:'#finder' },
+    align:'center', overlay:50, startAt:null, endAt:null, credit:'Photo: Touann Gatouillat Vergos / Unsplash' },
+  { id:'s4', active:true, order:4,
+    image:'https://images.unsplash.com/photo-1718828299195-0b0546523fbd', focal:{x:50,y:45},
+    alt:'อาคารเสาโรมันที่ส่องไฟยามค่ำคืน',
+    eyebrow:'ไฟส่องอาคาร · สำหรับธุรกิจ',
+    title:'ยกระดับอาคารด้วยแสง ให้แบรนด์โดดเด่นแม้ยามค่ำคืน',
+    subtitle:'ไฟส่องตึกและสปอร์ตไลท์ สำหรับโรงแรม ร้านค้า และอาคารสำนักงาน ทีมงานช่วยคำนวณจำนวนโคมให้ฟรี',
+    cta1:{ label:'ขอใบเสนอราคา', href:'#contact' }, cta2:{ label:'ดูไฟส่องอาคาร', href:'#categories' },
+    align:'left', overlay:60, startAt:null, endAt:null, credit:'Photo: Yaroslav Yaryi / Unsplash' },
+  { id:'s5', active:true, order:5,
+    image:'https://images.unsplash.com/photo-1712594832776-1ed106270255', focal:{x:50,y:50},
+    alt:'ฝูงปลาคาร์ปว่ายในบ่อน้ำ',
+    eyebrow:'ไฟใต้น้ำ · ชุดพร้อมใช้',
+    title:'ไฟใต้น้ำชุดพร้อมใช้ แกะกล่องติดตั้งได้ทันที',
+    subtitle:'มาพร้อมหม้อแปลงและรีโมท กันน้ำ IP67 เหมาะกับบ่อปลาและบ่อน้ำ สั่งวันนี้รับสินค้าภายใน 2–3 วัน',
+    cta1:{ label:'ช้อปไฟใต้น้ำ', href:'#products' }, cta2:{ label:'ปรึกษาทาง LINE', href:'#contact' },
+    align:'left', overlay:55, startAt:null, endAt:null, credit:'Photo: Jose Fabula / Unsplash' }
+];
+/* สีพื้นสำรองเมื่อโหลดรูปไม่ได้ (เรียงตามสไลด์) */
+const SLIDE_FALLBACK_BG = ['#0E3A52','#1F2A3A','#2A1F45','#2B2B2B','#123B33'];
+
+const CATEGORY_GROUPS = { water:'งานน้ำ', outdoor:'สวนและภายนอก', building:'อาคารและภายใน', deco:'อุปกรณ์และตกแต่ง' };
+
+const DEFAULT_CATEGORIES = [
+  { id:'underwater', th:'ไฟใต้น้ำ', en:'Underwater Light', icon:'water', group:'water', order:1, visible:true,
+    popular:['แสงขาว','RGB เปลี่ยนสี','ชุดพร้อมใช้ 12V'],
+    slug:'%e0%b9%84%e0%b8%9f%e0%b9%83%e0%b8%95%e0%b9%89%e0%b8%99%e0%b9%89%e0%b8%b3-underwater-light' },
+  { id:'pool', th:'โคมไฟสระว่ายน้ำ', en:'Pool Light RGB', icon:'pool', group:'water', order:2, visible:true,
+    popular:['RGB สแตนเลส','แสงขาว','กันน้ำ IP68'],
+    slug:'%e0%b9%82%e0%b8%84%e0%b8%a1%e0%b9%84%e0%b8%9f%e0%b8%aa%e0%b8%a3%e0%b8%b0%e0%b8%a7%e0%b9%88%e0%b8%b2%e0%b8%a2%e0%b8%99%e0%b9%89%e0%b8%b3-%e0%b8%aa%e0%b9%81%e0%b8%95%e0%b8%99%e0%b9%80%e0%b8%a5%e0%b8%aa-%e0%b9%80%e0%b8%9b%e0%b8%a5%e0%b8%b5%e0%b9%88%e0%b8%a2%e0%b8%99%e0%b8%aa%e0%b8%b5-led-pool-light-rgb' },
+  { id:'fountain', th:'ไฟส่องน้ำพุ', en:'Fountain Light', icon:'fountain', group:'water', order:3, visible:true,
+    popular:['แบบวงแหวน','ส่องสายน้ำ','สแตนเลส'],
+    slug:'%e0%b9%84%e0%b8%9f%e0%b8%aa%e0%b9%88%e0%b8%ad%e0%b8%87%e0%b8%99%e0%b9%89%e0%b8%b3%e0%b8%9e%e0%b8%b8-%e0%b9%84%e0%b8%9f%e0%b9%83%e0%b8%95%e0%b9%89%e0%b8%99%e0%b9%89%e0%b8%b3-fountain-light-led' },
+  { id:'uplight', th:'ไฟฝังพื้น', en:'Uplight LED', icon:'uplight', group:'outdoor', order:4, visible:true,
+    popular:['ทางเดิน','ส่องผนัง','กันน้ำ'],
+    slug:'%E0%B9%82%E0%B8%84%E0%B8%A1%E0%B9%84%E0%B8%9F%E0%B8%9D%E0%B8%B1%E0%B8%87%E0%B8%9E%E0%B8%B7%E0%B9%89%E0%B8%99-uplight-led' },
+  { id:'garden', th:'ไฟส่องต้นไม้', en:'Garden Light', icon:'garden', group:'outdoor', order:5, visible:true,
+    popular:['แบบปักดิน','แสงขาว','RGB'],
+    slug:'%e0%b9%84%e0%b8%9f%e0%b8%aa%e0%b9%88%e0%b8%ad%e0%b8%87%e0%b8%95%e0%b9%89%e0%b8%99%e0%b9%84%e0%b8%a1%e0%b9%89-led-garden-light' },
+  { id:'spot', th:'ไฟสปอร์ตไลท์', en:'Spotlight LED', icon:'spot', group:'outdoor', order:6, visible:true,
+    popular:['ฟลัดไลท์','ส่องป้าย','ส่องลาน'],
+    slug:'%e0%b9%84%e0%b8%9f%e0%b9%81%e0%b8%ad%e0%b8%a5%e0%b8%ad%e0%b8%94%e0%b8%b5/%e0%b8%aa%e0%b8%9b%e0%b8%ad%e0%b8%a3%e0%b9%8c%e0%b8%95%e0%b9%84%e0%b8%a5%e0%b8%97%e0%b9%8c-flood-light' },
+  { id:'wash', th:'ไฟส่องตึก', en:'LED Wall Washer', icon:'wash', group:'building', order:7, visible:true,
+    popular:['ย้อมสีอาคาร','RGB','ภายนอกอาคาร'],
+    // TODO: slug เดิมซ้ำกับ Stage Lighting — ตรวจ slug จริงอีกครั้ง
+    slug:'%e0%b9%84%e0%b8%9f%e0%b8%84%e0%b8%ad%e0%b8%99%e0%b9%80%e0%b8%aa%e0%b8%b4%e0%b8%a3%e0%b9%8c%e0%b8%95-%e0%b9%84%e0%b8%9f%e0%b9%80%e0%b8%a7%e0%b8%97%e0%b8%b5-%e0%b9%84%e0%b8%9f%e0%b8%a2%e0%b9%89%e0%b8%ad%e0%b8%a1%e0%b8%aa%e0%b8%b5' },
+  { id:'wall', th:'โคมไฟติดผนัง', en:'Wall Lamp', icon:'wall', group:'building', order:8, visible:true,
+    popular:['ภายนอก','ภายใน','ส่องขึ้น-ลง'],
+    slug:'%e0%b9%84%e0%b8%9f%e0%b9%81%e0%b8%ad%e0%b8%a5%e0%b8%ad%e0%b8%94%e0%b8%b5/%e0%b9%82%e0%b8%84%e0%b8%a1%e0%b9%84%e0%b8%9f%e0%b8%95%e0%b8%b4%e0%b8%94%e0%b8%9c%e0%b8%99%e0%b8%b1%e0%b8%87-led-wall-lamp' },
+  { id:'down', th:'ดาวน์ไลท์ฝังฝ้า', en:'Downlight LED', icon:'down', group:'building', order:9, visible:true,
+    popular:['ฝังฝ้า','ติดลอย','ประหยัดไฟ'],
+    slug:'%e0%b9%84%e0%b8%9f%e0%b8%9d%e0%b8%b1%e0%b8%87%e0%b8%9d%e0%b9%89%e0%b8%b2-%e0%b9%84%e0%b8%9f%e0%b8%95%e0%b8%b4%e0%b8%94%e0%b9%80%e0%b8%9e%e0%b8%94%e0%b8%b2%e0%b8%99-%e0%b8%94%e0%b8%b2%e0%b8%a7%e0%b8%99%e0%b9%8c%e0%b9%84%e0%b8%a5%e0%b8%97%e0%b9%8c-%e0%b8%9d%e0%b8%b1%e0%b8%87%e0%b8%9d%e0%b9%89%e0%b8%b2-downlight' },
+  { id:'stage', th:'ไฟเวทีคอนเสิร์ต', en:'Stage Lighting', icon:'stage', group:'building', order:10, visible:true,
+    popular:['ไฟพาร์','ไฟย้อมสี','งานอีเวนต์'],
+    slug:'%e0%b9%84%e0%b8%9f%e0%b8%84%e0%b8%ad%e0%b8%99%e0%b9%80%e0%b8%aa%e0%b8%b4%e0%b8%a3%e0%b9%8c%e0%b8%95-%e0%b9%84%e0%b8%9f%e0%b9%80%e0%b8%a7%e0%b8%97%e0%b8%b5-%e0%b9%84%e0%b8%9f%e0%b8%a2%e0%b9%89%e0%b8%ad%e0%b8%a1%e0%b8%aa%e0%b8%b5' },
+  { id:'strip', th:'ไฟเส้นแอลอีดี', en:'Strip Light', icon:'strip', group:'deco', order:11, visible:true,
+    popular:['12V','กันน้ำ','RGB'],
+    slug:'%e0%b9%84%e0%b8%9f%e0%b9%80%e0%b8%aa%e0%b9%89%e0%b8%99%e0%b9%81%e0%b8%ad%e0%b8%a5%e0%b8%ad%e0%b8%b5%e0%b8%94%e0%b8%b5-strip-light' },
+  { id:'decor', th:'สินค้าตกแต่งบ้านและสวน', en:'Home & Garden Decor', icon:'deco', group:'deco', order:12, visible:true,
+    popular:['ของแต่งสวน','อุปกรณ์เสริม'],
+    slug:'%e0%b8%aa%e0%b8%b4%e0%b8%99%e0%b8%84%e0%b9%89%e0%b8%b2%e0%b8%95%e0%b8%81%e0%b9%81%e0%b8%95%e0%b9%88%e0%b8%87%e0%b8%9a%e0%b9%89%e0%b8%b2%e0%b8%99%e0%b9%81%e0%b8%a5%e0%b8%b0%e0%b8%aa%e0%b8%a7%e0%b8%99' }
+];
+/* ===== END SHARED DEFAULT DATA ===== */
+
+/* CATALOG — สินค้าทั้งหมดที่หน้าแรกใช้
+   best: โชว์ใน "สินค้าขายดี" · use: พื้นที่ที่เหมาะ (ใช้ในตัวช่วยเลือก)
+   color: white | rgb | any · kit: ในชุดมีหม้อแปลงแล้ว · acc: อุปกรณ์เสริม
+   catId: หมวด (id ใน mdw_categories) ใช้ลิงก์จากผลค้นหา · kw: คำค้นเพิ่มเติม
+   TODO: ราคาและบางรุ่นเป็นค่าตัวอย่าง — แทนด้วยข้อมูลจริงจากหลังร้าน */
+const CATALOG = [
+  { id:'uw-rgb',    name:'โคมไฟใต้น้ำ RGB เปลี่ยนสีได้ พร้อมรีโมท (ชุดพร้อมใช้)', cat:'ไฟใต้น้ำ', specs:['10W COB','DC12V','IP67'], price:890,  badge:'ขายดี', best:true, use:['pond','fountain'], color:'rgb', kit:true, catId:'underwater', kw:'underwater pond บ่อปลา บ่อน้ำ 12v' },
+  { id:'uw-white',  name:'โคมไฟใต้น้ำ 10W แสงขาว White DC12V', cat:'ไฟใต้น้ำ', specs:['10W','850 LM','IP67'], price:590, best:true, use:['pond','fountain'], color:'white', catId:'underwater', kw:'underwater pond บ่อปลา บ่อน้ำ 12v' },
+  { id:'pool-rgb',  name:'โคมไฟสระว่ายน้ำ LED RGB สแตนเลส', cat:'Pool Light', specs:['12W','IP68','RGB'], price:1290, badge:'แนะนำ', best:true, use:['pool'], color:'rgb', catId:'pool', kw:'pool สระ เปลี่ยนสี' },
+  { id:'fountain-ring', name:'ไฟส่องน้ำพุ LED แบบวงแหวน', cat:'Fountain Light', specs:['DC12V','IP68','สแตนเลส'], price:1490, best:true, use:['fountain'], color:'any', catId:'fountain', kw:'fountain น้ำพุ ring' },
+  { id:'pool-white',name:'โคมไฟสระว่ายน้ำ LED แสงขาว สแตนเลส', cat:'Pool Light', specs:['12W','IP68','แสงขาว'], price:1190, use:['pool'], color:'white', catId:'pool', kw:'pool สระ white' },
+  { id:'garden-white', name:'ไฟส่องต้นไม้ LED แบบปักดิน แสงขาว', cat:'Garden Light', specs:['DC12V','ปักดิน'], price:450, use:['garden'], color:'white', catId:'garden', kw:'garden สวน spike white' },
+  { id:'garden-rgb',   name:'ไฟส่องต้นไม้ LED แบบปักดิน RGB', cat:'Garden Light', specs:['DC12V','RGB'], price:590, use:['garden'], color:'rgb', catId:'garden', kw:'garden สวน spike เปลี่ยนสี' },
+  { id:'psu',    name:'หม้อแปลงไฟ DC12V สำหรับไฟ LED', cat:'อุปกรณ์เสริม', specs:['AC220V → DC12V'], price:350, acc:true, catId:'underwater', kw:'power supply adapter transformer อะแดปเตอร์ 12v' },
+  { id:'shrink', name:'ท่อหดกันน้ำ สำหรับต่อสายเพิ่ม', cat:'อุปกรณ์เสริม', specs:['กันน้ำรอยต่อ'], price:59, acc:true, catId:'underwater', kw:'heat shrink tube สายไฟ' }
+];
+const byId = id => CATALOG.find(p => p.id === id);
+const PRODUCTS = CATALOG.filter(p => p.best);
+
+/* ตัวช่วยเลือกรุ่น: 3 คำถาม */
+const FINDER_STEPS = [
+  { key:'where', q:'จะติดตั้งไฟที่ไหน?', opts:[
+    { v:'pool',     t:'สระว่ายน้ำ',      d:'ติดผนังสระ ใต้ระดับน้ำ' },
+    { v:'pond',     t:'บ่อปลา / บ่อน้ำ',  d:'จุ่มในน้ำ ส่องใต้น้ำ' },
+    { v:'fountain', t:'น้ำพุ',            d:'ส่องสายน้ำพุให้เด่น' },
+    { v:'garden',   t:'สวน / ต้นไม้',     d:'ส่องต้นไม้ ทางเดิน บนดิน' } ]},
+  { key:'color', q:'อยากได้แสงแบบไหน?', opts:[
+    { v:'white', t:'แสงขาว',         d:'สว่าง ดูเรียบหรู' },
+    { v:'rgb',   t:'RGB เปลี่ยนสีได้', d:'ปรับสีด้วยรีโมท' },
+    { v:'any',   t:'ยังไม่แน่ใจ',     d:'แนะนำได้ทั้งสองแบบ' } ]},
+  { key:'power', q:'จุดติดตั้งมีไฟฟ้าแบบไหน?', opts:[
+    { v:'plug', t:'มีปลั๊กไฟบ้านใกล้ๆ',     d:'ต้องใช้หม้อแปลง DC12V' },
+    { v:'far',  t:'ปลั๊กอยู่ไกล',          d:'ต้องเดินสายเพิ่ม' },
+    { v:'batt', t:'ใช้แบตเตอรี่ 12V',      d:'ไม่มีไฟบ้านบริเวณนั้น' },
+    { v:'have', t:'มีหม้อแปลง 12V แล้ว',    d:'ต้องการแค่ตัวโคม' } ]}
+];
+const LABEL = {};
+FINDER_STEPS.forEach(s => s.opts.forEach(o => LABEL[s.key + ':' + o.v] = o.t));
+
+function finderResult(a){
+  let list = CATALOG.filter(p => !p.acc && p.use.includes(a.where));
+  const exact = list.filter(p => a.color === 'any' || p.color === a.color || p.color === 'any');
+  if (exact.length) list = exact;
+  const recs = list.slice(0, 2);
+  const main = recs[0];
+  const acc = [];
+  if (main && (a.power === 'plug' || a.power === 'far') && !main.kit) acc.push('psu');
+  if (a.power === 'far' || (a.where !== 'garden' && a.power !== 'have')) acc.push('shrink');
+  const notes = ['ใช้กับไฟ DC12V เท่านั้น ห้ามต่อไฟบ้าน 220V โดยตรง'];
+  if (a.where !== 'garden') notes.push('เช็กระดับกันน้ำ: IP67 จุ่มได้ไม่เกิน 90 ซม. ถ้าลึกกว่านั้นให้เลือกรุ่น IP68');
+  if (main && main.kit) notes.push('รุ่นนี้มาเป็นชุดพร้อมใช้ มีหม้อแปลงไฟในกล่องแล้ว');
+  if (a.power === 'far')  notes.push('เดินสายเพิ่มได้ ใช้ท่อหดกันน้ำปิดรอยต่อทุกจุด');
+  if (a.power === 'batt') notes.push('ต่อกับแบตเตอรี่ 12V ได้โดยตรง ไม่ต้องใช้หม้อแปลง');
+  return { recs, acc, notes };
+}
+
+/* =========================================================
+   HELPERS — storage ปลอดภัย (ห่อ try/catch ทุกครั้ง), escape, URL ที่อนุญาต
+   ========================================================= */
+const LS = {
+  get(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } },
+  set(k, v){ try { window.localStorage.setItem(k, v); return true; } catch(e){ return false; } },
+  json(k){ const r = LS.get(k); if (r == null) return null; try { return JSON.parse(r); } catch(e){ return null; } }
+};
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const str = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
+const num = (v, d) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
+const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+// ลิงก์จากหลังบ้าน: อนุญาตเฉพาะ #..., /... (ไม่ใช่ //), http(s)://, tel:, mailto:
+function safeHref(h){
+  const s = typeof h === 'string' ? h.trim() : '';
+  if (/^#[^\s]*$/.test(s) || /^\/(?!\/)/.test(s) || /^https?:\/\/[^\s]+$/i.test(s) || /^(tel|mailto):[^\s]+$/i.test(s)) return s;
+  return '#';
+}
+// รูปจากหลังบ้าน: อนุญาตเฉพาะ https:// หรือ data:image/...
+function safeImg(u){
+  const s = typeof u === 'string' ? u.trim() : '';
+  if (/^https:\/\/[^\s"'<>]+$/i.test(s) || /^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+$/i.test(s)) return s;
+  return '';
+}
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.deco}</svg>`;
+const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const baht = n => '฿' + Number(n).toLocaleString('th-TH');
+const phClass = p => 'ph' + (p.acc ? ' acc' : p.color === 'rgb' ? ' rgb' : '');
+let lastPointer = 'mouse';
+addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }, true);
+
+/* LINE links (placeholder — ตั้งค่า LINE_URL ด้านบน) */
+$$('[data-line]').forEach(a => a.href = LINE_URL);
+
+/* =========================================================
+   HERO SLIDER (U1–U10)
+   ========================================================= */
+function normSlide(s, i){
+  if (!s || typeof s !== 'object') return null;
+  const title = str(s.title, 120);
+  if (!title) return null;
+  const cta = c => (c && typeof c === 'object' && str(c.label, 40)) ? { label: str(c.label, 40), href: safeHref(c.href) } : null;
+  const f = s.focal && typeof s.focal === 'object' ? s.focal : {};
+  return {
+    id: str(s.id, 64) || ('slide' + i), active: !!s.active, order: num(s.order, i),
+    image: safeImg(s.image), focal: { x: clamp(num(f.x, 50), 0, 100), y: clamp(num(f.y, 50), 0, 100) },
+    alt: str(s.alt, 200), eyebrow: str(s.eyebrow, 60), title, subtitle: str(s.subtitle, 240),
+    cta1: cta(s.cta1), cta2: cta(s.cta2), align: s.align === 'center' ? 'center' : 'left',
+    overlay: clamp(num(s.overlay, 50), 0, 90), startAt: s.startAt || null, endAt: s.endAt || null,
+    credit: str(s.credit, 120), _i: i
+  };
+}
+function inSchedule(s, now){
+  const a = s.startAt ? Date.parse(s.startAt) : NaN, b = s.endAt ? Date.parse(s.endAt) : NaN;
+  if (!isNaN(a) && now < a) return false;
+  if (!isNaN(b) && now > b) return false;
+  return true;
+}
+// กฎจาก SHARED_CONTRACT: (mdw_slides ?? DEFAULT).filter(active && schedule).sort(order) — ว่าง → DEFAULT_SLIDES[0]
+function getSlides(){
+  const raw = LS.json('mdw_slides');
+  const src = Array.isArray(raw) ? raw : DEFAULT_SLIDES;
+  const now = Date.now();
+  const list = src.map(normSlide).filter(s => s && s.active && inSchedule(s, now))
+    .sort((a, b) => (a.order - b.order) || (a._i - b._i));
+  return list.length ? list : [normSlide(DEFAULT_SLIDES[0], 0)];
+}
+function unsplash(u){
+  if (!u.startsWith('https://images.unsplash.com/')) return null;
+  const b = u.split('?')[0], q = w => `${b}?auto=format&fit=crop&w=${w}&q=75`;
+  return { src: q(1920), srcset: [828, 1280, 1920].map(w => `${q(w)} ${w}w`).join(', ') };
+}
+const Slider = (() => {
+  const DUR = 6000;
+  const root = $('#slider'), wrap = $('#slides'), dots = $('#sDots'), countEl = $('#sCount');
+  const btnPlay = $('#sPlay');
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>';
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+  let slides = [], cur = 0, elapsed = 0, last = 0, raf = 0, sig = '';
+  let userPaused = RM.matches; // ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว: ไม่เล่นอัตโนมัติจนกว่าจะกดเล่นเอง
+  const reasons = new Set();
+
+  function fallbackColor(s, i){
+    const d = DEFAULT_SLIDES.findIndex(x => x.id === s.id);
+    return SLIDE_FALLBACK_BG[(d >= 0 ? d : i) % SLIDE_FALLBACK_BG.length];
+  }
+  function slideHTML(s, i, n){
+    const tag = i === 0 ? 'h1' : 'h2';
+    const ov = Math.max(s.overlay, 30) / 100; // ขั้นต่ำ 30% เพื่อให้อ่านตัวอักษรได้ทุกภาพ
+    let img = '';
+    if (s.image){
+      const u = unsplash(s.image);
+      const attrs = i === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
+      img = `<img class="s-img" src="${esc(u ? u.src : s.image)}"${u ? ` srcset="${esc(u.srcset)}" sizes="100vw"` : ''}
+        alt="${esc(s.alt)}" width="1920" height="1080" decoding="async" draggable="false" ${attrs}>`;
+    }
+    const c1 = s.cta1 ? `<a class="btn btn-primary" href="${esc(s.cta1.href)}">${esc(s.cta1.label)} <span class="arr" aria-hidden="true">→</span></a>` : '';
+    const c2 = s.cta2 ? `<a class="btn btn-light" href="${esc(s.cta2.href)}">${esc(s.cta2.label)}</a>` : '';
+    return `<div class="slide align-${s.align}${s.image ? '' : ' img-broken'}" role="group" aria-roledescription="slide" aria-label="${i + 1} จาก ${n}"
+        data-id="${esc(s.id)}" style="--fb:${fallbackColor(s, i)};--ov:${ov};--fx:${s.focal.x}%;--fy:${s.focal.y}%">
+      <div class="s-media">${img}</div>
+      <div class="s-shade" aria-hidden="true"></div>
+      <div class="container s-inner"><div class="s-copy">
+        ${s.eyebrow ? `<p class="s-eyebrow" style="--i:0">${esc(s.eyebrow)}</p>` : ''}
+        <${tag} class="s-title" style="--i:1">${esc(s.title)}</${tag}>
+        ${s.subtitle ? `<p class="s-sub" style="--i:2">${esc(s.subtitle)}</p>` : ''}
+        ${c1 || c2 ? `<div class="s-ctas" style="--i:3">${c1}${c2}</div>` : ''}
+      </div></div>
+      ${s.credit ? `<span class="s-credit">${esc(s.credit)}</span>` : ''}
+    </div>`;
+  }
+  function render(keepId){
+    slides = getSlides();
+    sig = JSON.stringify(slides);
+    const n = slides.length;
+    wrap.innerHTML = slides.map((s, i) => slideHTML(s, i, n)).join('');
+    dots.innerHTML = slides.map((s, i) => `<button class="seg" type="button" aria-label="ไปสไลด์ที่ ${i + 1}: ${esc(s.title)}"><i></i></button>`).join('');
+    $$('.s-img', wrap).forEach(img => { if (img.complete) markImg(img); });
+    root.querySelector('.s-controls').hidden = n < 2;
+    let idx = keepId ? slides.findIndex(s => s.id === keepId) : 0;
+    cur = -1;
+    go(idx < 0 ? 0 : idx, true);
+  }
+  function markImg(img){
+    const ok = img.naturalWidth > 0;
+    img.classList.toggle('is-loaded', ok);
+    img.classList.toggle('is-broken', img.complete && !ok);
+    img.closest('.slide').classList.toggle('img-broken', img.complete && !ok);
+  }
+  // load/error ไม่ bubble — ใช้ capture
+  wrap.addEventListener('load', e => { if (e.target.classList && e.target.classList.contains('s-img')) markImg(e.target); }, true);
+  wrap.addEventListener('error', e => { if (e.target.classList && e.target.classList.contains('s-img')) markImg(e.target); }, true);
+
+  function go(i, instant){
+    const n = slides.length, els = $$('.slide', wrap);
+    if (!n) return;
+    i = ((i % n) + n) % n;
+    const prev = cur;
+    els.forEach((el, k) => {
+      const on = k === i;
+      el.classList.toggle('is-active', on);
+      el.classList.toggle('is-leaving', !instant && k === prev && k !== i);
+      el.setAttribute('aria-hidden', on ? 'false' : 'true');
+      el.inert = !on;
+    });
+    if (!instant && prev >= 0 && prev !== i){
+      const leaving = els[prev];
+      setTimeout(() => leaving && leaving.classList.remove('is-leaving'), 1000);
+    }
+    cur = i;
+    $$('.seg', dots).forEach((d, k) => { d.setAttribute('aria-current', k === i ? 'true' : 'false'); d.querySelector('i').style.setProperty('--p', 0); });
+    countEl.innerHTML = `<b>${String(i + 1).padStart(2, '0')}</b> / ${String(n).padStart(2, '0')}`;
+    // โหลดรูปสไลด์ถัดไปล่วงหน้า เพื่อให้ crossfade ไม่กระตุก
+    const nx = els[(i + 1) % n] && els[(i + 1) % n].querySelector('.s-img');
+    if (nx) nx.loading = 'eager';
+    elapsed = 0; last = 0;
+    paint();
+  }
+  function paint(){
+    const d = $$('.seg', dots)[cur];
+    if (d) d.querySelector('i').style.setProperty('--p', RM.matches && isPlaying() ? 1 : Math.min(1, elapsed / DUR));
+  }
+  const isPlaying = () => !userPaused && reasons.size === 0 && slides.length > 1;
+  function tick(t){
+    if (!last) last = t;
+    elapsed += t - last; last = t;
+    if (elapsed >= DUR) go(cur + 1); else paint();
+    raf = requestAnimationFrame(tick);
+  }
+  function update(){
+    const play = isPlaying();
+    if (play && !raf){ last = 0; raf = requestAnimationFrame(tick); }
+    if (!play && raf){ cancelAnimationFrame(raf); raf = 0; }
+    // live region: polite เฉพาะตอนที่ไม่ได้เล่นอัตโนมัติ (APG carousel)
+    wrap.setAttribute('aria-live', play ? 'off' : 'polite');
+    // อัปเดตไอคอนเฉพาะตอนสถานะเปลี่ยน (ถ้าเขียนทับทุกครั้ง คลิกจะหลุดเพราะ element ถูกแทนที่ระหว่าง mousedown/up)
+    if (btnPlay.dataset.state !== String(userPaused)){
+      btnPlay.dataset.state = String(userPaused);
+      btnPlay.innerHTML = userPaused ? ICON_PLAY : ICON_PAUSE;
+      btnPlay.setAttribute('aria-label', userPaused ? 'เล่นสไลด์อัตโนมัติ' : 'หยุดสไลด์อัตโนมัติ');
+    }
+    root.dataset.playing = play ? '1' : '0';
+  }
+  const pause = r => { reasons.add(r); update(); };
+  const resume = r => { reasons.delete(r); update(); };
+
+  $('#sPrev').addEventListener('click', () => go(cur - 1));
+  $('#sNext').addEventListener('click', () => go(cur + 1));
+  btnPlay.addEventListener('click', () => { userPaused = !userPaused; update(); });
+  dots.addEventListener('click', e => { const b = e.target.closest('.seg'); if (b) go($$('.seg', dots).indexOf(b)); });
+  // หยุดเมื่อเอาเมาส์วาง / โฟกัสด้วยคีย์บอร์ด / แท็บถูกซ่อน
+  root.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') pause('hover'); });
+  root.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') resume('hover'); });
+  // กันสถานะ hover ค้าง (เช่น element ใต้เมาส์ถูกแทนที่แล้วเบราว์เซอร์ส่ง enter/leave ไม่ครบ)
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    const inside = root.contains(e.target);
+    if (inside && !reasons.has('hover')) pause('hover');
+    else if (!inside && reasons.has('hover')) resume('hover');
+  }, { passive: true });
+  root.addEventListener('focusin', e => { if (e.target.matches(':focus-visible')) pause('focus'); });
+  root.addEventListener('focusout', e => { if (!root.contains(e.relatedTarget)) resume('focus'); });
+  document.addEventListener('visibilitychange', () => document.hidden ? pause('hidden') : resume('hidden'));
+  root.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft'){ e.preventDefault(); go(cur - 1); }
+    else if (e.key === 'ArrowRight'){ e.preventDefault(); go(cur + 1); }
+  });
+  // ปัดซ้าย/ขวา (pointer events) — touch-action: pan-y ทำให้เลื่อนแนวตั้งได้ตามปกติ
+  let sx = 0, sy = 0, tracking = false, dragged = false;
+  root.addEventListener('pointerdown', e => {
+    if (e.target.closest('.s-controls') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    sx = e.clientX; sy = e.clientY; tracking = true; dragged = false;
+  });
+  root.addEventListener('pointermove', e => {
+    if (tracking && Math.abs(e.clientX - sx) > 10 && Math.abs(e.clientX - sx) > Math.abs(e.clientY - sy)) dragged = true;
+  });
+  root.addEventListener('pointerup', e => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.2) go(cur + (dx < 0 ? 1 : -1));
+  });
+  root.addEventListener('pointercancel', () => { tracking = false; });
+  root.addEventListener('click', e => { if (dragged){ e.preventDefault(); e.stopPropagation(); dragged = false; } }, true);
+  RM.addEventListener && RM.addEventListener('change', () => { if (RM.matches){ userPaused = true; update(); } });
+
+  // ตรวจตารางเวลา (startAt/endAt) ทุก 60 วินาที — เปลี่ยนสไลด์เองเมื่อถึงเวลา
+  setInterval(() => { if (JSON.stringify(getSlides()) !== sig) render(slides[cur] && slides[cur].id); }, 60000);
+
+  render();
+  update();
+  return { render: () => render(slides[cur] && slides[cur].id), go: i => go(i), get index(){ return cur; }, get count(){ return slides.length; }, get playing(){ return isPlaying(); } };
+})();
+
+/* =========================================================
+   CATEGORIES (U11–U17) — render จาก mdw_categories
+   ========================================================= */
+function normCat(c, i){
+  if (!c || typeof c !== 'object') return null;
+  const th = str(c.th, 80);
+  if (!th) return null;
+  return {
+    id: str(c.id, 64) || ('cat' + i), th, en: str(c.en, 80),
+    icon: ICONS[c.icon] ? c.icon : 'deco',
+    group: CATEGORY_GROUPS[c.group] ? c.group : 'deco',
+    slug: str(c.slug, 600).replace(/^\/+/, ''),
+    popular: Array.isArray(c.popular) ? c.popular.map(p => str(p, 40)).filter(Boolean).slice(0, 4) : [],
+    visible: !!c.visible, order: num(c.order, i), _i: i
+  };
+}
+function getCats(){
+  const raw = LS.json('mdw_categories');
+  const src = Array.isArray(raw) ? raw : DEFAULT_CATEGORIES;
+  let list = src.map(normCat).filter(c => c && c.visible).sort((a, b) => (a.order - b.order) || (a._i - b._i));
+  // ข้อมูลเสีย (แปลงไม่ได้สักรายการ แต่ไม่ได้ตั้งใจซ่อนทั้งหมด) → ใช้ค่าเริ่มต้น
+  if (!list.length && Array.isArray(raw) && !raw.some(c => c && typeof c === 'object' && str(c.th, 80))) list = DEFAULT_CATEGORIES.map(normCat);
+  return list;
+}
+const catHref = c => BASE + c.slug;
+let CATS = [];
+
+function renderCats(){
+  CATS = getCats();
+  const n = CATS.length;
+  $('#statCats').textContent = n;
+  $('#catCount').textContent = n;
+  const groups = Object.keys(CATEGORY_GROUPS).map(g => ({ g, label: CATEGORY_GROUPS[g], items: CATS.filter(c => c.group === g) })).filter(x => x.items.length);
+
+  // การ์ดหมวด + dropdown รายการยอดนิยม
+  $('#catGrid').innerHTML = CATS.map(c => {
+    const href = esc(catHref(c));
+    return `<div class="cat-card reveal in" data-cat="${esc(c.id)}">
+      <div class="cat-tilt">
+        <a class="cat-main" href="${href}" aria-describedby="pop-${esc(c.id)}">
+          <span class="cat-icon">${svg(c.icon)}</span>
+          <div><h3>${esc(c.th)}</h3><span class="cat-en">${esc(c.en)}</span></div>
+          <span class="go">ดูสินค้า ${CHEV}</span>
+        </a>
+      </div>
+      <div class="cat-pop" id="pop-${esc(c.id)}">
+        <div class="cat-pop-in">
+          ${c.popular.length ? `<p class="cat-pop-h">ยอดนิยมใน${esc(c.th)}</p>
+          <ul>${c.popular.map(p => `<li><a href="${href}">${esc(p)}</a></li>`).join('')}</ul>` : ''}
+          <a class="cat-all" href="${href}">ดูทั้งหมด</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('') || '<p class="sec-sub">ยังไม่มีหมวดสินค้าที่เปิดแสดง</p>';
+
+  // Mega panel
+  const best = PRODUCTS.find(p => p.badge === 'ขายดี') || PRODUCTS[0];
+  $('#megaPanel').innerHTML = `
+    <div class="container mega-in">
+      <div class="mega-cols" style="--cols:${Math.max(1, groups.length)}">
+        ${groups.map(g => `<div class="mega-col">
+          <p class="mega-gh">${esc(g.label)}</p>
+          <ul>${g.items.map(c => `<li><a class="mega-link" href="${esc(catHref(c))}">
+            <span class="mi">${svg(c.icon)}</span><span><b>${esc(c.th)}</b><small>${esc(c.en)}</small></span></a></li>`).join('')}</ul>
+        </div>`).join('')}
+      </div>
+      <aside class="mega-promo" aria-label="แนะนำ">
+        <div class="mp-finder">
+          <small>ตัวช่วยเลือกไฟ</small>
+          <b>ไม่แน่ใจว่าควรใช้รุ่นไหน?</b>
+          <p>ตอบ 3 ข้อ เราแนะนำรุ่นที่เหมาะพร้อมอุปกรณ์ที่ต้องใช้</p>
+          <a href="#finder" data-mega-close>เริ่มเลือกไฟ <span aria-hidden="true">→</span></a>
+        </div>
+        ${best ? `<div class="mp-best">
+          <div class="thumb"><div class="${phClass(best)}"></div></div>
+          <div><small>ขายดีอันดับ 1</small><b>${esc(best.name)}</b>
+            <div class="row"><span class="pr">${baht(best.price)}</span><button type="button" data-add="${best.id}" data-mega-close>ใส่ตะกร้า</button></div></div>
+        </div>` : ''}
+      </aside>
+    </div>
+    <div class="mega-foot"><div class="container"><span>${n} หมวดสินค้า · ส่งไว 2–3 วัน</span><a href="#categories" data-mega-close>ดูหมวดสินค้าทั้งหมด →</a></div></div>`;
+
+  // Drawer accordion (มือถือ)
+  $('#drawerCats').innerHTML = groups.map((g, k) => `<div class="acc">
+      <button class="acc-btn" type="button" aria-expanded="false" aria-controls="acc-${g.g}" id="accb-${g.g}">
+        <span>${esc(g.label)}<span class="n">${g.items.length} หมวด</span></span>${CHEV}
+      </button>
+      <div class="acc-panel" id="acc-${g.g}" role="region" aria-labelledby="accb-${g.g}"><div>
+        ${g.items.map(c => `<a href="${esc(catHref(c))}" data-close><span class="mi">${svg(c.icon)}</span><span>${esc(c.th)}<small>${esc(c.en)}</small></span></a>`).join('')}
+      </div></div>
+    </div>`).join('');
+
+  $('#footerCats').innerHTML = CATS.slice(0, 5).map(c => `<li><a href="${esc(catHref(c))}">${esc(c.th)}</a></li>`).join('');
+}
+renderCats();
+
+/* ---------- Mega dropdown: hover-intent + keyboard + touch (U12) ---------- */
+const Mega = (() => {
+  const wrap = $('#navMega'), btn = $('#megaBtn'), panel = $('#megaPanel');
+  let tOpen = 0, tClose = 0, openedBy = '', leavePt = null, leaveAt = 0;
+  const isOpen = () => wrap.classList.contains('open');
+  function open(by){
+    clearTimeout(tClose); clearTimeout(tOpen);
+    if (isOpen()) return;
+    openedBy = by || '';
+    const sp = $('#searchPanel'); if (sp.classList.contains('open')){ sp.classList.remove('open'); $('#searchBtn').setAttribute('aria-expanded','false'); $('#suggestWrap').hidden = true; }
+    wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+    CartPop.hide();
+  }
+  function close(focusBtn){
+    clearTimeout(tClose); clearTimeout(tOpen);
+    if (!isOpen()) return;
+    wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false');
+    if (focusBtn) btn.focus();
+  }
+  const links = () => $$('a, button', panel);
+  // safe triangle: จุดที่เมาส์ออก → ขอบบนซ้าย/ขวาของ panel
+  function inTriangle(x, y){
+    if (!leavePt) return false;
+    const r = panel.getBoundingClientRect();
+    const [ax, ay] = leavePt, bx = r.left, by = r.top, cx = r.right, cy = r.top;
+    const s = (px, py, qx, qy, rx, ry) => (px - rx) * (qy - ry) - (qx - rx) * (py - ry);
+    const d1 = s(x, y, ax, ay, bx, by), d2 = s(x, y, bx, by, cx, cy), d3 = s(x, y, cx, cy, ax, ay);
+    return !(((d1 < 0) || (d2 < 0) || (d3 < 0)) && ((d1 > 0) || (d2 > 0) || (d3 > 0)));
+  }
+  function scheduleClose(){
+    clearTimeout(tClose);
+    tClose = setTimeout(close, 250);
+  }
+  wrap.addEventListener('pointerenter', e => {
+    if (e.pointerType !== 'mouse') return;
+    clearTimeout(tClose);
+    if (!isOpen()){ clearTimeout(tOpen); tOpen = setTimeout(() => open('hover'), 120); }
+  });
+  wrap.addEventListener('pointerleave', e => {
+    if (e.pointerType !== 'mouse') return;
+    clearTimeout(tOpen);
+    leavePt = [e.clientX, e.clientY]; leaveAt = Date.now();
+    scheduleClose();
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || !isOpen() || !leavePt || wrap.contains(e.target)) return;
+    // ยังเคลื่อนเข้าหา panel ในแนวทแยง → ยืดเวลาปิด (สูงสุด 1 วินาที)
+    if (inTriangle(e.clientX, e.clientY) && Date.now() - leaveAt < 1000) scheduleClose();
+  }, { passive: true });
+  btn.addEventListener('click', e => {
+    const kb = e.detail === 0; // Enter/Space
+    if (!kb && lastPointer === 'mouse' && isOpen() && openedBy === 'hover'){ openedBy = 'click'; return; }
+    if (isOpen()) close(); else { open(kb ? 'key' : 'click'); if (kb) links()[0] && links()[0].focus(); }
+  });
+  btn.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown'){ e.preventDefault(); open('key'); const l = links(); l[0] && l[0].focus(); }
+    else if (e.key === 'Escape' && isOpen()){ e.preventDefault(); close(true); }
+  });
+  panel.addEventListener('keydown', e => {
+    const l = links(), i = l.indexOf(document.activeElement);
+    if (e.key === 'Escape'){ e.preventDefault(); close(true); return; }
+    const cols = $$('.mega-col', panel);
+    const colOf = el => cols.findIndex(c => c.contains(el));
+    let t = null;
+    if (e.key === 'ArrowDown') t = l[(i + 1) % l.length];
+    else if (e.key === 'ArrowUp') t = l[(i - 1 + l.length) % l.length];
+    else if (e.key === 'Home') t = l[0];
+    else if (e.key === 'End') t = l[l.length - 1];
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
+      const c = colOf(document.activeElement), dir = e.key === 'ArrowRight' ? 1 : -1;
+      if (c >= 0 && cols[c + dir]) t = cols[c + dir].querySelector('a');
+      else if (c >= 0 && dir > 0) t = $('.mega-promo a, .mega-promo button', panel);
+      else if (c < 0 && dir < 0 && cols.length) t = cols[cols.length - 1].querySelector('a');
+    }
+    if (t){ e.preventDefault(); t.focus(); }
+  });
+  wrap.addEventListener('focusout', e => { if (isOpen() && e.relatedTarget && !wrap.contains(e.relatedTarget)) close(); });
+  panel.addEventListener('click', e => { if (e.target.closest('a, [data-mega-close]')) close(); });
+  document.addEventListener('click', e => { if (isOpen() && !wrap.contains(e.target)) close(); });
+  return { open, close, isOpen };
+})();
+
+/* ---------- Category cards: tilt 3D + dropdown (U14, U15) ---------- */
+(() => {
+  const grid = $('#catGrid');
+  const fine = matchMedia('(hover: hover) and (pointer: fine)');
+  const st = new WeakMap();
+  const active = new Set();
+  let raf = 0;
+  function loop(){
+    raf = 0;
+    active.forEach(card => {
+      const s = st.get(card), tilt = card.querySelector('.cat-tilt');
+      if (!s || !tilt){ active.delete(card); return; }
+      s.rx += (s.tx - s.rx) * .15; s.ry += (s.ty - s.ry) * .15; s.l += (s.tl - s.l) * .15;
+      tilt.style.transform = `perspective(900px) rotateX(${s.rx.toFixed(2)}deg) rotateY(${s.ry.toFixed(2)}deg) translateY(${s.l.toFixed(2)}px)`;
+      if (Math.abs(s.tx - s.rx) + Math.abs(s.ty - s.ry) + Math.abs(s.tl - s.l) < .02 && s.tx === 0 && s.ty === 0 && s.tl === 0){
+        tilt.style.transform = ''; active.delete(card);
+      }
+    });
+    if (active.size) raf = requestAnimationFrame(loop);
+  }
+  const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
+  const canTilt = () => fine.matches && !RM.matches;
+  function setActive(card, on){ card.classList.toggle('active', on); }
+
+  grid.addEventListener('pointerover', e => {
+    if (e.pointerType !== 'mouse') return;
+    const card = e.target.closest('.cat-card');
+    if (card && !card.contains(e.relatedTarget)) setActive(card, true);
+  });
+  grid.addEventListener('pointerout', e => {
+    if (e.pointerType !== 'mouse') return;
+    const card = e.target.closest('.cat-card');
+    if (card && !card.contains(e.relatedTarget)){
+      if (!card.contains(document.activeElement) || !document.activeElement.matches(':focus-visible')) setActive(card, false);
+      const s = st.get(card); if (s){ s.tx = s.ty = s.tl = 0; kick(); }
+    }
+  });
+  grid.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || !canTilt()) return;
+    const card = e.target.closest('.cat-card'); if (!card) return;
+    const tilt = card.querySelector('.cat-tilt');
+    let s = st.get(card); if (!s){ s = { rx:0, ry:0, l:0, tx:0, ty:0, tl:0 }; st.set(card, s); }
+    if (tilt.contains(e.target)){
+      const r = tilt.getBoundingClientRect();
+      const px = clamp((e.clientX - r.left) / r.width, 0, 1) - .5, py = clamp((e.clientY - r.top) / r.height, 0, 1) - .5;
+      s.ty = px * 12; s.tx = -py * 12; // สูงสุด ±6°
+    } else { s.tx = 0; s.ty = 0; } // เมาส์อยู่บน dropdown: เลิกเอียงแต่ยังยกขึ้น
+    s.tl = -6;
+    active.add(card); kick();
+  });
+  grid.addEventListener('focusin', e => { const c = e.target.closest('.cat-card'); if (c) setActive(c, true); });
+  grid.addEventListener('focusout', e => {
+    const c = e.target.closest('.cat-card');
+    if (c && !c.contains(e.relatedTarget) && !c.matches(':hover')) setActive(c, false);
+  });
+  // แตะครั้งแรก = เปิดรายการ, แตะครั้งที่สอง = ไปหน้าหมวด
+  grid.addEventListener('click', e => {
+    const main = e.target.closest('.cat-main'); if (!main) return;
+    const card = main.closest('.cat-card');
+    if (e.detail !== 0 && lastPointer !== 'mouse' && !card.classList.contains('open')){
+      e.preventDefault();
+      $$('.cat-card.open', grid).forEach(c => { c.classList.remove('open'); setActive(c, false); });
+      card.classList.add('open'); setActive(card, true);
+    }
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.cat-card')) $$('.cat-card.open', grid).forEach(c => { c.classList.remove('open'); setActive(c, false); });
+  });
+  grid.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ const c = e.target.closest('.cat-card'); if (c){ c.classList.remove('open', 'active'); c.querySelector('.cat-main').focus(); } }
+  });
+})();
+
+/* ---------- Drawer accordion (U16) ---------- */
+$('#drawerCats').addEventListener('click', e => {
+  const b = e.target.closest('.acc-btn'); if (!b) return;
+  const acc = b.parentElement, open = !acc.classList.contains('open');
+  acc.classList.toggle('open', open); b.setAttribute('aria-expanded', open);
+});
+
+/* =========================================================
+   PRODUCTS + JSON-LD ItemList (U23, U25)
+   ========================================================= */
+$('#prodGrid').innerHTML = PRODUCTS.map(p => `
+  <article class="prod-card reveal" id="prod-${p.id}">
+    <div class="prod-img">
+      ${p.badge ? `<span class="prod-badge">${p.badge}</span>` : ''}
+      <div class="${phClass(p)}"></div>
+    </div>
+    <div class="prod-body">
+      <div class="prod-cat">${p.cat}</div>
+      <h3 class="prod-name">${p.name}</h3>
+      <div class="prod-specs">${p.specs.map(s => `<span>${s}</span>`).join('')}</div>
+      <div class="prod-foot">
+        <div class="prod-price">${baht(p.price)}</div>
+        <button class="add-btn" data-add="${p.id}" aria-label="ใส่ตะกร้า: ${esc(p.name)}">ใส่ตะกร้า</button>
+      </div>
+    </div>
+  </article>`).join('');
+(() => {
+  const ld = { '@context':'https://schema.org', '@type':'ItemList', name:'สินค้าขายดี — มองดูเว็บ',
+    itemListElement: PRODUCTS.map((p, i) => ({ '@type':'ListItem', position: i + 1,
+      item: { '@type':'Product', name: p.name, category: p.cat, brand: { '@type':'Brand', name:'มองดูเว็บ' },
+        offers: { '@type':'Offer', price: p.price, priceCurrency:'THB', availability:'https://schema.org/InStock', url: SITE + '#prod-' + p.id } } })) };
+  const s = document.createElement('script'); s.type = 'application/ld+json'; s.textContent = JSON.stringify(ld);
+  document.head.appendChild(s);
+})();
+
+/* ---------- Finder render ---------- */
+const finderBox = document.getElementById('finderBox');
+let fStep = 0, fAns = {};
+
+function progress(n){
+  return `<div class="f-progress">${[0,1,2].map(i => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div>`;
+}
+function renderFinder(){
+  if (fStep < FINDER_STEPS.length){
+    const s = FINDER_STEPS[fStep];
+    finderBox.innerHTML = `<div class="f-anim">
+      ${progress(fStep + 1)}
+      <div class="f-step-label">คำถามที่ ${fStep + 1} จาก ${FINDER_STEPS.length}</div>
+      <div class="f-q">${s.q}</div>
+      <div class="f-opts">${s.opts.map(o => `
+        <button class="f-opt" data-fv="${o.v}"><b>${o.t}</b><span>${o.d}</span></button>`).join('')}
+      </div>
+      ${fStep > 0 ? '<button class="f-link" data-fback>← ย้อนกลับ</button>' : ''}
+    </div>`;
+    return;
+  }
+  const r = finderResult(fAns);
+  const row = (p, isAcc) => `
+    <div class="f-rec ${isAcc ? 'acc' : ''}">
+      <div class="thumb"><div class="${phClass(p)}"></div></div>
+      <div><small>${isAcc ? 'ใช้คู่กัน · ' : ''}${p.cat}</small><b>${p.name}</b></div>
+      <div class="pr">${baht(p.price)}</div>
+    </div>`;
+  finderBox.innerHTML = `<div class="f-anim">
+    ${progress(3)}
+    <div class="f-q">รุ่นที่แนะนำสำหรับคุณ</div>
+    <div class="f-summary">${FINDER_STEPS.map(s => `<span>${LABEL[s.key + ':' + fAns[s.key]]}</span>`).join('')}</div>
+    <div class="f-recs">
+      ${r.recs.map(p => row(p, false)).join('')}
+      ${r.acc.map(id => row(byId(id), true)).join('')}
+    </div>
+    <ul class="f-notes">${r.notes.map(n => `<li>${n}</li>`).join('')}</ul>
+    <div class="f-actions">
+      <button class="btn btn-primary" data-fadd="${[r.recs[0].id, ...r.acc].join(',')}">ใส่ชุดที่แนะนำลงตะกร้า <span class="arr">→</span></button>
+      <a href="${LINE_URL}" class="btn btn-line" target="_blank" rel="noopener">ถามทีมงานทาง LINE</a>
+    </div>
+    <button class="f-link" data-freset>เริ่มเลือกใหม่</button>
+  </div>`;
+}
+finderBox.addEventListener('click', e => {
+  const opt = e.target.closest('[data-fv]');
+  if (opt){ fAns[FINDER_STEPS[fStep].key] = opt.dataset.fv; fStep++; renderFinder(); return; }
+  if (e.target.closest('[data-fback]')){ fStep--; renderFinder(); return; }
+  if (e.target.closest('[data-freset]')){ fStep = 0; fAns = {}; renderFinder(); return; }
+  const add = e.target.closest('[data-fadd]');
+  if (add){ add.dataset.fadd.split(',').forEach(id => addToCart(id, 1, 'silent')); openCart(add); }
+});
+renderFinder();
+
+/* =========================================================
+   MINI CART
+   state: { productId: qty } — จำไว้ใน localStorage (ห่อ try/catch กันเบราว์เซอร์ที่ปิด storage)
+   ตอนย้ายไป Next.js: ย้าย state นี้ไป Context/Zustand แล้ว sync กับ API ตะกร้า
+   ========================================================= */
+const CART_KEY = 'mdw_cart';
+function loadCart(){
+  const raw = LS.json(CART_KEY), out = {};
+  if (raw && typeof raw === 'object' && !Array.isArray(raw))
+    Object.keys(raw).forEach(id => { const q = Math.floor(Number(raw[id])); if (byId(id) && q > 0) out[id] = Math.min(q, 999); });
+  return out;
+}
+let cart = loadCart();
+
+const cartEl = document.getElementById('cart');
+const saveCart = () => LS.set(CART_KEY, JSON.stringify(cart));
+const cartQty = () => Object.values(cart).reduce((a,b) => a + b, 0);
+const cartSum = () => Object.entries(cart).reduce((s,[id,q]) => s + byId(id).price * q, 0);
+const capCount = n => n > 99 ? '99+' : String(n);
+const cartAria = n => n ? `ตะกร้าสินค้า ${n} ชิ้น` : 'ตะกร้าสินค้า ว่าง';
+
+function addToCart(id, qty = 1, mode = 'open'){ // mode: open | toast | silent
+  if (!byId(id)) return;
+  cart[id] = Math.min((cart[id] || 0) + qty, 999);
+  saveCart(); renderCart();
+  ['cartCount', 'fabCount'].forEach(k => { const c = document.getElementById(k); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); });
+  if (mode === 'open') openCart(); else if (mode === 'toast') toast('เพิ่ม "' + byId(id).name + '" ลงตะกร้าแล้ว');
+}
+function setQty(id, q){
+  if (q <= 0) delete cart[id]; else cart[id] = Math.min(q, 999);
+  saveCart(); renderCart();
+}
+function renderBadges(){
+  const n = cartQty();
+  [['cartCount', 'cartBtn'], ['fabCount', 'fabCart']].forEach(([c, b]) => {
+    const el = document.getElementById(c);
+    el.textContent = capCount(n); el.hidden = n === 0;
+    document.getElementById(b).setAttribute('aria-label', cartAria(n));
+  });
+  CartPop.render();
+  updateFabs();
+}
+function renderCart(){
+  const n = cartQty();
+  renderBadges();
+  document.getElementById('cartHeadCount').textContent = n ? `(${n} ชิ้น)` : '';
+  document.getElementById('cartTotal').textContent = baht(cartSum());
+  document.getElementById('cartFoot').style.display = n ? '' : 'none';
+  const body = document.getElementById('cartBody');
+  if (!n){
+    body.innerHTML = `<div class="cart-empty"><b>ยังไม่มีสินค้าในตะกร้า</b>ลองใช้ตัวช่วยเลือกไฟ เพื่อหารุ่นที่เหมาะกับพื้นที่ของคุณ
+      <br><a href="#finder" class="btn btn-primary" data-cart-close>ช่วยเลือกไฟ</a></div>`;
+    return;
+  }
+  const items = Object.entries(cart).map(([id,q]) => { const p = byId(id); return `
+    <div class="ci">
+      <div class="ci-thumb"><div class="${phClass(p)}"></div></div>
+      <div>
+        <div class="ci-name">${p.name}</div>
+        <div class="ci-unit">${baht(p.price)} / ชิ้น</div>
+        <div class="qty">
+          <button data-qty="${id}" data-d="-1" aria-label="ลดจำนวน ${esc(p.name)}">−</button>
+          <span aria-label="จำนวน">${q}</span>
+          <button data-qty="${id}" data-d="1" aria-label="เพิ่มจำนวน ${esc(p.name)}">+</button>
+        </div>
+      </div>
+      <div class="ci-right">
+        <div class="ci-line">${baht(p.price * q)}</div>
+        <button class="ci-del" data-del="${id}" aria-label="ลบ ${esc(p.name)} ออกจากตะกร้า">ลบ</button>
+      </div>
+    </div>`; }).join('');
+  // สินค้าที่ซื้อคู่กัน: อุปกรณ์เสริมที่ยังไม่อยู่ในตะกร้า (ข้ามหม้อแปลงถ้ามีแต่ชุดที่มีหม้อแปลงแล้ว)
+  const ids = Object.keys(cart);
+  const needPsu = ids.some(id => !byId(id).acc && !byId(id).kit);
+  const ups = CATALOG.filter(p => p.acc && !cart[p.id] && (p.id !== 'psu' || needPsu));
+  body.innerHTML = items + (ups.length ? `
+    <div class="upsell"><h3>มักซื้อคู่กัน</h3>${ups.map(p => `
+      <div class="up-item"><div><b>${p.name}</b><small>${baht(p.price)}</small></div>
+      <button data-up="${p.id}" aria-label="เพิ่ม ${esc(p.name)}">+ เพิ่ม</button></div>`).join('')}
+    </div>` : '');
+}
+
+/* โฟกัสในหน้าต่าง (drawer/cart) — จำปุ่มที่เปิด, วนโฟกัสด้วย Tab, คืนโฟกัสตอนปิด */
+function trapFocus(container, e){
+  const f = $$('a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])', container).filter(el => el.offsetParent !== null);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+}
+let cartReturn = null;
+function openCart(from){
+  renderCart(); CartPop.hide(); Mega.close();
+  cartReturn = (from && from.focus) ? from : document.activeElement;
+  cartEl.classList.add('open'); cartEl.setAttribute('aria-hidden','false'); document.body.classList.add('locked');
+  setTimeout(() => { const b = $('.cart-head [data-cart-close]'); b && b.focus({ preventScroll: true }); }, 30);
+}
+function closeCart(){
+  if (!cartEl.classList.contains('open')) return;
+  cartEl.classList.remove('open'); cartEl.setAttribute('aria-hidden','true'); document.body.classList.remove('locked');
+  if (cartReturn && document.contains(cartReturn)) cartReturn.focus({ preventScroll: true });
+}
+cartEl.addEventListener('keydown', e => { if (e.key === 'Tab') trapFocus($('.cart-panel'), e); });
+
+document.getElementById('cartBtn').onclick = e => openCart(e.currentTarget);
+document.getElementById('fabCart').onclick = e => openCart(e.currentTarget);
+cartEl.addEventListener('click', e => {
+  const q = e.target.closest('[data-qty]');
+  if (q){ const id = q.dataset.qty; setQty(id, cart[id] + Number(q.dataset.d)); return; }
+  const d = e.target.closest('[data-del]');
+  if (d){ setQty(d.dataset.del, 0); $('.cart-head [data-cart-close]').focus(); return; }
+  const u = e.target.closest('[data-up]');
+  if (u){ addToCart(u.dataset.up, 1, 'silent'); return; }
+  if (e.target.closest('[data-cart-close]')) closeCart();
+});
+document.getElementById('checkoutBtn').onclick = () => { location.href = 'mongdoweb-checkout.html'; };
+
+// ปุ่ม "ใส่ตะกร้า" — ยืนยันด้วยสถานะ ✓ เพิ่มแล้ว (U23) + เปิดตะกร้า
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-add]');
+  if (!b) return;
+  addToCart(b.dataset.add, 1, 'silent');
+  if (b.classList.contains('add-btn')){
+    clearTimeout(b._t);
+    b.classList.add('added'); b.textContent = '✓ เพิ่มแล้ว';
+    b._t = setTimeout(() => { b.classList.remove('added'); b.textContent = 'ใส่ตะกร้า'; }, 1500);
+  }
+  openCart(b);
+});
+
+/* ---------- Cart hover preview (U20, เดสก์ท็อป) ---------- */
+const CartPop = (() => {
+  const wrap = $('#cartWrap'), pop = $('#cartPop');
+  const can = matchMedia('(hover: hover) and (pointer: fine) and (min-width: 1025px)');
+  let t = 0;
+  const show = () => { if (!can.matches || cartEl.classList.contains('open')) return; render(); wrap.classList.add('pop-open'); pop.setAttribute('aria-hidden', 'false'); };
+  const hide = () => { clearTimeout(t); wrap.classList.remove('pop-open'); pop.setAttribute('aria-hidden', 'true'); };
+  function render(){
+    const n = cartQty(), items = Object.entries(cart);
+    pop.innerHTML = n ? `
+      <div class="cp-head"><span>ในตะกร้า</span><b>${n} ชิ้น</b></div>
+      <ul>${items.slice(0, 3).map(([id, q]) => `<li><span>${esc(byId(id).name)}</span><span>× ${q}</span></li>`).join('')}</ul>
+      ${items.length > 3 ? `<p class="cp-more">และอีก ${items.length - 3} รายการ</p>` : ''}
+      <div class="cp-sum"><span>ยอดรวมสินค้า</span><b>${baht(cartSum())}</b></div>
+      <button class="btn btn-primary btn-sm" type="button" data-pop-open tabindex="-1">ดูตะกร้า</button>`
+      : `<div class="cp-head"><span>ตะกร้าสินค้า</span><b>0 ชิ้น</b></div>
+      <p class="cp-empty">ยังไม่มีสินค้าในตะกร้า</p>
+      <a class="btn btn-outline btn-sm" href="#products" data-pop-close tabindex="-1">ดูสินค้าขายดี</a>`;
+  }
+  wrap.addEventListener('pointerenter', e => { if (e.pointerType !== 'mouse') return; clearTimeout(t); t = setTimeout(show, 150); });
+  wrap.addEventListener('pointerleave', e => { if (e.pointerType !== 'mouse') return; clearTimeout(t); t = setTimeout(hide, 250); });
+  pop.addEventListener('click', e => {
+    if (e.target.closest('[data-pop-open]')) openCart($('#cartBtn'));
+    else if (e.target.closest('[data-pop-close]')) hide();
+  });
+  return { show, hide, render };
+})();
+
+/* ---------- Floating cart + back-to-top (U20, U24) ---------- */
+const fabCart = $('#fabCart'), toTop = $('#toTop'), header = document.getElementById('header');
+const mobileMQ = matchMedia('(max-width: 768px)');
+function setFab(el, show){ el.classList.toggle('is-hidden', !show); el.tabIndex = show ? 0 : -1; el.setAttribute('aria-hidden', show ? 'false' : 'true'); }
+function updateFabs(){
+  const y = window.scrollY;
+  // header เป็น sticky — offsetTop เปลี่ยนตามการเลื่อน จึงใช้ตำแหน่งปลายสไลเดอร์เทียบกับขอบบนแทน
+  const pastHeader = $('#slider').getBoundingClientRect().top < -header.offsetHeight;
+  setFab(fabCart, mobileMQ.matches && pastHeader && cartQty() > 0);
+  setFab(toTop, y > 700);
+}
+toTop.addEventListener('click', () => {
+  scrollTo({ top: 0, behavior: RM.matches ? 'auto' : 'smooth' });
+  $('#logoLink').focus({ preventScroll: true });
+});
+let scrollRaf = 0;
+addEventListener('scroll', () => {
+  if (scrollRaf) return;
+  scrollRaf = requestAnimationFrame(() => { scrollRaf = 0; header.classList.toggle('scrolled', scrollY > 8); updateFabs(); });
+}, { passive: true });
+mobileMQ.addEventListener && mobileMQ.addEventListener('change', updateFabs);
+renderCart();
+
+/* ---------- Toast ---------- */
+let tt;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.querySelector('span').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* =========================================================
+   SEARCH + instant suggestions (U21)
+   ========================================================= */
+(() => {
+  const panel = $('#searchPanel'), btn = $('#searchBtn'), input = $('#q'), box = $('#suggestWrap'), list = $('#suggest'), status = $('#sgStatus');
+  const SEARCH_URL = SITE + '?post_type=product&s=';
+  const norm = s => String(s).normalize('NFC').toLowerCase().replace(/[​-‍﻿]/g, '').replace(/\s+/g, '');
+  // คำพ้อง ไทย ↔ อังกฤษ ที่ลูกค้าใช้บ่อย
+  const SYN = { pool:'สระ', 'สระ':'pool', fountain:'น้ำพุ', 'น้ำพุ':'fountain', garden:'สวน', 'สวน':'garden', underwater:'ใต้น้ำ', 'ใต้น้ำ':'underwater',
+    rgb:'เปลี่ยนสี', 'เปลี่ยนสี':'rgb', 'สีขาว':'แสงขาว', white:'แสงขาว', 'ขาว':'white', 'หม้อแปลง':'adapter', 'อะแดปเตอร์':'หม้อแปลง' };
+  const INDEX = CATALOG.map(p => ({ p, name: norm(p.name), hay: norm([p.name, p.cat, (p.specs || []).join(' '), p.kw || ''].join(' ')) }));
+  let results = [], sel = -1;
+
+  function search(q){
+    const toks = q.trim().split(/\s+/).map(norm).filter(Boolean);
+    if (!toks.length) return [];
+    return INDEX.map(x => {
+      let ok = true, score = 0;
+      toks.forEach(t => {
+        const alt = SYN[t] ? norm(SYN[t]) : null;
+        if (x.hay.includes(t) || (alt && x.hay.includes(alt))){ score += x.name.startsWith(t) ? 3 : x.name.includes(t) ? 2 : 1; }
+        else ok = false;
+      });
+      return ok ? { p: x.p, score: score + (x.p.best ? .5 : 0) } : null;
+    }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 6).map(x => x.p);
+  }
+  function highlight(name, q){
+    const t = q.trim().split(/\s+/).sort((a, b) => b.length - a.length)[0] || '';
+    const i = t ? name.toLowerCase().indexOf(t.toLowerCase()) : -1;
+    if (i < 0) return esc(name);
+    return esc(name.slice(0, i)) + '<mark>' + esc(name.slice(i, i + t.length)) + '</mark>' + esc(name.slice(i + t.length));
+  }
+  const linkFor = p => { const c = CATS.find(c => c.id === p.catId); return c ? catHref(c) : '#products'; };
+  function show(on){ box.hidden = !on; input.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  function render(){
+    const q = input.value;
+    if (!q.trim()){ show(false); results = []; sel = -1; input.removeAttribute('aria-activedescendant'); status.textContent = ''; return; }
+    results = search(q); sel = -1; input.removeAttribute('aria-activedescendant');
+    if (!results.length){
+      list.innerHTML = `<div class="sg-empty" role="option" aria-disabled="true" aria-selected="false"><b>ไม่พบสินค้า “${esc(q.trim())}”</b>ลองคำอื่น เช่น “ไฟใต้น้ำ” “สระ” “RGB” หรือ <a href="#finder" data-sg-close>ให้เราช่วยเลือกรุ่น</a></div>`;
+      $('#sgFoot').hidden = true;
+      status.textContent = 'ไม่พบสินค้า';
+    } else {
+      list.innerHTML = results.map((p, i) => `<a class="sg-opt" role="option" id="sg-${i}" aria-selected="false" href="${esc(linkFor(p))}" tabindex="-1">
+        <span class="thumb"><span class="${phClass(p)}"></span></span>
+        <span><b>${highlight(p.name, q)}</b><small>${esc(p.cat)}</small></span>
+        <span class="pr">${baht(p.price)}</span></a>`).join('');
+      $('#sgFoot').hidden = false;
+      status.textContent = `พบ ${results.length} รายการ`;
+    }
+    show(true);
+  }
+  function move(d){
+    if (!results.length) return;
+    sel += d;
+    if (sel >= results.length) sel = -1;
+    else if (sel < -1) sel = results.length - 1;
+    $$('.sg-opt', list).forEach((o, i) => o.setAttribute('aria-selected', i === sel ? 'true' : 'false'));
+    if (sel >= 0){ const o = $('#sg-' + sel); input.setAttribute('aria-activedescendant', o.id); o.scrollIntoView({ block: 'nearest' }); }
+    else input.removeAttribute('aria-activedescendant');
+  }
+  input.addEventListener('input', render);
+  input.addEventListener('focus', () => { if (input.value.trim()) render(); });
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown'){ e.preventDefault(); if (box.hidden) render(); move(1); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); move(-1); }
+    else if (e.key === 'Enter' && sel >= 0){ e.preventDefault(); $('#sg-' + sel).click(); }
+    else if (e.key === 'Escape'){
+      e.stopPropagation();
+      if (!box.hidden){ show(false); } else { closePanel(true); }
+    }
+  });
+  list.addEventListener('click', e => { if (e.target.closest('[data-sg-close]')) closePanel(); });
+  $('#searchForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const q = input.value.trim();
+    if (!q){ input.focus(); return; }
+    location.href = SEARCH_URL + encodeURIComponent(q);
+  });
+  function openPanel(){ panel.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); Mega.close(); input.focus(); }
+  function closePanel(focusBtn){ panel.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); show(false); if (focusBtn) btn.focus(); }
+  btn.addEventListener('click', () => panel.classList.contains('open') ? closePanel() : openPanel());
+  document.addEventListener('click', e => { if (!box.hidden && !e.target.closest('.search-box')) show(false); });
+})();
+
+/* ---------- Mobile drawer ---------- */
+const drawer = document.getElementById('drawer'), menuBtn = document.getElementById('menuBtn');
+function openDrawer(){ drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false'); menuBtn.setAttribute('aria-expanded','true'); document.body.classList.add('locked');
+  setTimeout(() => $('.drawer-top [data-close]').focus({ preventScroll: true }), 30); }
+function closeDrawer(){ if (!drawer.classList.contains('open')) return; drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); menuBtn.setAttribute('aria-expanded','false'); document.body.classList.remove('locked'); menuBtn.focus({ preventScroll: true }); }
+menuBtn.onclick = openDrawer;
+drawer.addEventListener('click', e => { if (e.target.closest('[data-close]')) closeDrawer(); });
+drawer.addEventListener('keydown', e => { if (e.key === 'Tab') trapFocus($('.drawer-panel'), e); });
+
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (cartEl.classList.contains('open')) closeCart();
+  else if (drawer.classList.contains('open')) closeDrawer();
+  else if (Mega.isOpen()) Mega.close(true);
+  CartPop.hide();
+});
+
+/* =========================================================
+   ANNOUNCEMENT BAR (U22)
+   ========================================================= */
+(() => {
+  const bar = $('#topbar'), host = $('#tbMsgs'), KEY = 'mdw_topbar_closed', VER = 'v1';
+  if (LS.get(KEY) === VER){ bar.remove(); document.documentElement.style.setProperty('--tb-h','0px'); return; }
+  const st = LS.json('mdw_settings');
+  // ให้ตรงกับหน้า checkout: รับเฉพาะตัวเลขจำกัดค่า ≥ 0, null = ไม่มีโปร, ค่าอื่นใช้ค่าเริ่มต้น
+  let free = 1500;
+  if (st && typeof st === 'object' && 'freeShipMin' in st){
+    const v = st.freeShipMin;
+    if (v === null || v === '') free = 0;
+    else if ((typeof v === 'number' || typeof v === 'string') && Number.isFinite(Number(v)) && Number(v) >= 0) free = Number(v);
+  }
+  const msgs = ['สั่งวันนี้ <b>รับสินค้าภายใน 2–3 วัน</b> · ชำระเงินด้วยการโอนและแนบสลิป'];
+  if (free > 0) msgs.push(`<b>ส่งฟรี</b> เมื่อซื้อครบ ${baht(free)} (ส่งธรรมดา)`);
+  msgs.push('ไม่แน่ใจว่ารุ่นไหน? <a href="#finder">ให้เราช่วยเลือก</a> หรือปรึกษาทาง LINE ฟรี');
+  host.innerHTML = msgs.map((m, i) => `<p class="tb-msg${i ? '' : ' on'}" ${i ? 'aria-hidden="true"' : ''}><span>${m}</span></p>`).join('');
+  let i = 0, paused = false;
+  bar.addEventListener('pointerenter', () => paused = true);
+  bar.addEventListener('pointerleave', () => paused = false);
+  bar.addEventListener('focusin', () => paused = true);
+  bar.addEventListener('focusout', () => paused = false);
+  const timer = setInterval(() => {
+    if (paused || document.hidden) return;
+    const els = $$('.tb-msg', host);
+    els[i].classList.remove('on'); els[i].setAttribute('aria-hidden', 'true');
+    i = (i + 1) % els.length;
+    els[i].classList.add('on'); els[i].removeAttribute('aria-hidden');
+  }, 5000);
+  $('#tbClose').addEventListener('click', () => { clearInterval(timer); LS.set(KEY, VER); bar.remove(); document.documentElement.style.setProperty('--tb-h','0px'); window.mdwLayoutSync && window.mdwLayoutSync(); $('#logoLink').focus(); });
+})();
+
+/* =========================================================
+   PDPA CONSENT (U27)
+   ========================================================= */
+(() => {
+  const el = $('#consent'), KEY = 'mdw_consent', prefs = $('#consentPrefs'), setBtn = $('#consentSettings');
+  const saved = LS.json(KEY);
+  const slider = $('#slider');
+  let lift = 0;
+  function sync(){
+    const h = el.hidden ? 0 : el.offsetHeight;
+    document.documentElement.style.setProperty('--consent-h', h + 'px');
+    // ยกเนื้อหา/ปุ่มควบคุมสไลด์ขึ้นเท่าที่แบนเนอร์บังขอบล่างของสไลเดอร์ (ณ ตำแหน่งบนสุดของหน้า)
+    // คำนวณเฉพาะตอนแผงตั้งค่าปิด เพื่อไม่ให้เนื้อหาสไลด์กระโดดตอนกด "ตั้งค่า"
+    if (el.hidden) lift = 0;
+    else if (prefs.hidden){
+      const bottom = slider.getBoundingClientRect().bottom + window.scrollY;
+      lift = Math.round(clamp(bottom - (window.innerHeight - h) + 8, 0, 160));
+    }
+    slider.style.setProperty('--lift', lift + 'px');
+  }
+  window.mdwLayoutSync = sync;
+  addEventListener('resize', sync);
+  const ro = window.ResizeObserver ? new ResizeObserver(sync) : null;
+  function openBanner(withPrefs){
+    const s = LS.json(KEY) || {};
+    $('#ckAnalytics').checked = !!s.analytics; $('#ckMarketing').checked = !!s.marketing;
+    el.hidden = false; prefs.hidden = !withPrefs; setBtn.setAttribute('aria-expanded', withPrefs ? 'true' : 'false');
+    ro ? ro.observe(el) : sync(); sync();
+  }
+  function save(analytics, marketing){
+    LS.set(KEY, JSON.stringify({ v: 1, necessary: true, analytics, marketing, at: new Date().toISOString() }));
+    el.hidden = true; sync(); ro && ro.unobserve(el);
+    toast('บันทึกการตั้งค่าคุกกี้แล้ว');
+  }
+  if (!saved || saved.v !== 1) openBanner(false);
+  $('#consentAccept').onclick = () => save(true, true);
+  setBtn.onclick = () => { const o = prefs.hidden; prefs.hidden = !o; setBtn.setAttribute('aria-expanded', o ? 'true' : 'false'); sync(); };
+  $('#consentSave').onclick = () => save($('#ckAnalytics').checked, $('#ckMarketing').checked);
+  $('#openConsent').onclick = () => { openBanner(true); $('#ckAnalytics').focus(); };
+})();
+
+/* =========================================================
+   LIVE UPDATE จากหลังบ้าน (storage event — มาจากแท็บอื่นเท่านั้น) (U10, U17)
+   ========================================================= */
+addEventListener('storage', e => {
+  if (e.key === null || e.key === 'mdw_slides') Slider.render();
+  if (e.key === null || e.key === 'mdw_categories') renderCats();
+  if (e.key === null || e.key === CART_KEY){ cart = loadCart(); renderCart(); }
+});
+
+/* ---------- Reveal on scroll ---------- */
+if ('IntersectionObserver' in window){
+  const io = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting){ x.target.classList.add('in'); io.unobserve(x.target); } }), {threshold:.12});
+  $$('.reveal:not(.in)').forEach(el => io.observe(el));
+} else $$('.reveal').forEach(el => el.classList.add('in'));
+
+document.getElementById('yr').textContent = new Date().getFullYear();
+// เปิดตะกร้าทันทีเมื่อมาจากลิงก์ #cart (เช่น ไอคอนตะกร้าในหน้า checkout)
+if (location.hash === '#cart'){ history.replaceState(null, '', location.pathname + location.search); openCart($('#cartBtn')); }
+</script>
+</body>
+</html>

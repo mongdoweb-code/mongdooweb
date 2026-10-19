@@ -1,0 +1,26 @@
+/* Design tokens จากต้นแบบ (docs/SHARED_CONTRACT.md) */
+:root {
+  --c-white: #ffffff;
+  --c-cream: #f2f0eb;
+  --c-cream-dk: #e8e5dd;
+  --c-orange: #f26b38;
+  --c-orange-dk: #d9562a;
+  --c-black: #141414;
+  --c-ink: #1c1c1c;
+  --c-muted: #6b6862;
+  --c-line: #e3e0d8;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--c-white);
+  color: var(--c-ink);
+  font-family: var(--font-noto-thai), "Noto Sans Thai", sans-serif;
+  line-height: 1.6;
+}
