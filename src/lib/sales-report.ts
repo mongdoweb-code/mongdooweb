@@ -149,5 +149,98 @@ export function prevMonthSameSpan(ymd: string) {
   return { from: `${py}-${pad(pm)}-01`, to: `${py}-${pad(pm)}-${pad(Math.min(d, last))}` };
 }
 
+// ---------- ตัวกรองหน้ารายงาน (อยู่ใน URL) ----------
+
+export const PRESETS = { month: "เดือนนี้", lastMonth: "เดือนที่แล้ว", d7: "7 วัน", d30: "30 วัน", year: "ปีนี้", custom: "กำหนดเอง" } as const;
+export type Preset = keyof typeof PRESETS;
+export const VIEWS = { period: "ยอดตามช่วงเวลา", product: "ตามสินค้า", category: "ตามหมวด", channel: "ตามช่องทาง", list: "รายการขาย" } as const;
+export type View = keyof typeof VIEWS;
+export type ReportFilter = { preset: Preset; from: string; to: string; unit: "day" | "month"; view: View };
+
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+const ymdRe = /^\d{4}-\d{2}-\d{2}$/;
+
+export function parseReportFilter(sp: Record<string, string | string[] | undefined>): ReportFilter & { bad: boolean } {
+  const today = todayYmd();
+  const preset: Preset = one(sp.preset) in PRESETS ? (one(sp.preset) as Preset) : ymdRe.test(one(sp.from)) ? "custom" : "month";
+  let from = monthStart(today), to = today;
+  if (preset === "lastMonth") {
+    const p = prevMonthSameSpan(today);
+    from = p.from;
+    to = addDaysYmd(monthStart(today), -1);
+  } else if (preset === "d7") from = addDaysYmd(today, -6);
+  else if (preset === "d30") from = addDaysYmd(today, -29);
+  else if (preset === "year") from = `${today.slice(0, 4)}-01-01`;
+  else if (preset === "custom") {
+    from = ymdRe.test(one(sp.from)) ? one(sp.from) : from;
+    to = ymdRe.test(one(sp.to)) ? one(sp.to) : to;
+  }
+  let bad = false;
+  if (from > to) { bad = true; [from, to] = [to, from]; }
+  // จำกัดช่วงไม่เกิน 3 ปี
+  if (from < addDaysYmd(to, -1100)) { bad = true; from = addDaysYmd(to, -1100); }
+  const days = Math.round((Date.parse(to) - Date.parse(from)) / 864e5) + 1;
+  const unit = one(sp.unit) === "month" || (one(sp.unit) !== "day" && days > 62) ? "month" : "day";
+  const view: View = one(sp.view) in VIEWS ? (one(sp.view) as View) : "period";
+  return { preset, from, to, unit, view, bad };
+}
+
+export function reportQuery(f: ReportFilter, patch: Partial<ReportFilter> = {}) {
+  const v = { ...f, ...patch };
+  const qs = new URLSearchParams();
+  if (v.preset !== "month") qs.set("preset", v.preset);
+  if (v.preset === "custom") { qs.set("from", v.from); qs.set("to", v.to); }
+  if (v.view !== "period") qs.set("view", v.view);
+  if (!("preset" in patch)) qs.set("unit", v.unit); // เปลี่ยนช่วงเวลา → ให้เลือกหน่วยวัน/เดือนอัตโนมัติ
+  return `?${qs.toString()}`;
+}
+
+// ---------- รายงานภาษีขาย (ใบเสร็จรับเงิน/ใบกำกับภาษีที่คิด VAT) ----------
+
+export type VatRow = { no: number; date: string; docNo: string; buyer: string; taxId: string; branch: string; baseSatang: number; vatSatang: number; totalSatang: number };
+
+/** เดือน "YYYY-MM" (เวลาไทย) — ไม่รวมใบที่ยกเลิก (นับจำนวนไว้แจ้งในรายงาน) */
+export async function vatReport(month: string) {
+  const from = new Date(`${month}-01T00:00:00+07:00`);
+  const [y, m] = month.split("-").map(Number);
+  const to = new Date(`${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01T00:00:00+07:00`);
+  const base = { type: "RECEIPT" as const, docNo: { not: null }, vatMode: { not: "NONE" as const }, issueDate: { gte: from, lt: to } };
+  const [docs, voided] = await Promise.all([
+    prisma.salesDocument.findMany({ where: { ...base, status: { notIn: ["VOID", "DRAFT"] } }, orderBy: [{ issueDate: "asc" }, { docNo: "asc" }] }),
+    prisma.salesDocument.findMany({ where: { ...base, status: "VOID" }, select: { docNo: true } }),
+  ]);
+  const rows: VatRow[] = docs.map((d, i) => {
+    const c = (d.customerSnapshot && typeof d.customerSnapshot === "object" ? d.customerSnapshot : {}) as { name?: string; taxId?: string; branch?: string; kind?: string };
+    const taxId = String(c.taxId ?? "").replace(/\D/g, "");
+    return {
+      no: i + 1, date: ymdBkk(d.issueDate!), docNo: d.docNo!, buyer: c.name || "ลูกค้าทั่วไป", taxId,
+      branch: taxId ? c.branch || (c.kind === "COMPANY" ? "สำนักงานใหญ่" : "") : "",
+      baseSatang: d.grandSatang - d.vatSatang, vatSatang: d.vatSatang, totalSatang: d.grandSatang,
+    };
+  });
+  const sum = rows.reduce((a, r) => ({ base: a.base + r.baseSatang, vat: a.vat + r.vatSatang, total: a.total + r.totalSatang }), { base: 0, vat: 0, total: 0 });
+  return { rows, sum, voided: voided.map((v) => v.docNo!) };
+}
+
+/** ตารางสำหรับส่งออก CSV ตามมุมมองที่เลือก (ตัวเลขเงินเป็นบาท ทศนิยม 2 ตำแหน่ง) */
+export function reportCsv(f: ReportFilter, list: Sale[]): unknown[][] {
+  const b = (s: number) => (s / 100).toFixed(2);
+  switch (f.view) {
+    case "product":
+      return [["อันดับ", "รหัสสินค้า", "ชื่อสินค้า", "จำนวน", "ยอดขาย (บาท)"], ...byProduct(list).map((r, i) => [i + 1, r.sku ?? "", r.label, r.qty ?? 0, b(r.satang)])];
+    case "category":
+      return [["หมวด", "จำนวนชิ้น", "ยอดขาย (บาท)"], ...byCategory(list).map((r) => [r.label, r.qty ?? 0, b(r.satang)])];
+    case "channel":
+      return [["ช่องทาง", "จำนวนรายการ", "ยอดขาย (บาท)"], ...byChannel(list).map((r) => [r.label, r.count, b(r.satang)])];
+    case "list":
+      return [
+        ["วันที่", "เลขที่", "ช่องทาง", "จำนวนชิ้น", "ค่าส่ง (บาท)", "ยอดรวม (บาท)"],
+        ...list.map((s) => [s.day, s.ref, CHANNEL_LABEL[s.channel], s.lines.reduce((a, l) => a + l.qty, 0), b(s.shippingSatang), b(s.totalSatang)]),
+      ];
+    default:
+      return [[f.unit === "day" ? "วันที่" : "เดือน", "จำนวนรายการ", "ยอดขาย (บาท)"], ...byPeriod(list, f.from, f.to, f.unit).map((r) => [r.key, r.count, b(r.satang)])];
+  }
+}
+
 /** เปอร์เซ็นต์เปลี่ยนแปลง (null = ช่วงก่อนเป็น 0) */
 export const pctChange = (now: number, prev: number) => (prev ? ((now - prev) / prev) * 100 : null);
