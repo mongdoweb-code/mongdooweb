@@ -64,6 +64,13 @@ const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const baht = n => '฿' + Number(n).toLocaleString('th-TH');
 const phClass = p => 'ph' + (p.acc ? ' acc' : p.color === 'rgb' ? ' rgb' : '');
+/* รูปสินค้า (ถ้ามี) หรือภาพแทนแบบต้นแบบ */
+const thumb = (p, tag = 'div') => p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" decoding="async">` : `<${tag} class="${phClass(p)}"></${tag}>`;
+/* ราคา 0 = ต้องสอบถามราคา, สินค้าหมด/ต้องสอบถาม = สั่งออนไลน์ไม่ได้ */
+const priceTxt = p => p.price > 0 ? baht(p.price) : 'สอบถามราคา';
+const canBuy = p => !!p && p.price > 0 && p.inStock !== false;
+const maxQty = p => Math.max(0, Math.min(999, p && p.maxQty != null ? p.maxQty : 999));
+const FINDER_ACC = MDW_DATA.finderAcc || {};
 let lastPointer = 'mouse';
 addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }, true);
 
@@ -121,7 +128,7 @@ function renderCats(){
   }).join('') || '<p class="sec-sub">ยังไม่มีหมวดสินค้าที่เปิดแสดง</p>';
 
   // Mega panel
-  const best = PRODUCTS.find(p => p.badge === 'ขายดี') || PRODUCTS[0];
+  const best = PRODUCTS.find(p => p.badge === 'ขายดี' && canBuy(p)) || PRODUCTS.find(canBuy);
   $('#megaPanel').innerHTML = `
     <div class="container mega-in">
       <div class="mega-cols" style="--cols:${Math.max(1, groups.length)}">
@@ -139,7 +146,7 @@ function renderCats(){
           <a href="/#finder" data-mega-close>เริ่มเลือกไฟ <span aria-hidden="true">→</span></a>
         </div>
         ${best ? `<div class="mp-best">
-          <div class="thumb"><div class="${phClass(best)}"></div></div>
+          <div class="thumb">${thumb(best)}</div>
           <div><small>ขายดีอันดับ 1</small><b>${esc(best.name)}</b>
             <div class="row"><span class="pr">${baht(best.price)}</span><button type="button" data-add="${esc(best.id)}" data-mega-close>ใส่ตะกร้า</button></div></div>
         </div>` : ''}
@@ -259,7 +266,7 @@ const CART_KEY = 'mdw_cart';
 function loadCart(){
   const raw = LS.json(CART_KEY), out = {};
   if (raw && typeof raw === 'object' && !Array.isArray(raw))
-    Object.keys(raw).forEach(id => { const q = Math.floor(Number(raw[id])); if (byId(id) && q > 0) out[id] = Math.min(q, 999); });
+    Object.keys(raw).forEach(id => { const q = Math.floor(Number(raw[id])); const p = byId(id); if (canBuy(p) && q > 0 && maxQty(p) > 0) out[id] = Math.min(q, maxQty(p)); });
   return out;
 }
 let cart = loadCart();
@@ -272,14 +279,22 @@ const capCount = n => n > 99 ? '99+' : String(n);
 const cartAria = n => n ? `ตะกร้าสินค้า ${n} ชิ้น` : 'ตะกร้าสินค้า ว่าง';
 
 function addToCart(id, qty = 1, mode = 'open'){ // mode: open | toast | silent
-  if (!byId(id)) return;
-  cart[id] = Math.min((cart[id] || 0) + qty, 999);
+  const p = byId(id);
+  if (!p) return false;
+  if (!canBuy(p)){ toast(p.price > 0 ? `"${p.name}" สินค้าหมดชั่วคราว` : `"${p.name}" กรุณาสอบถามราคาทาง LINE`); return false; }
+  const want = (cart[id] || 0) + qty;
+  if (want > maxQty(p)) toast(`"${p.name}" มีสินค้าเหลือ ${maxQty(p)} ชิ้น`);
+  cart[id] = Math.min(want, maxQty(p));
+  if (!cart[id]){ delete cart[id]; return false; }
   saveCart(); renderCart();
   ['cartCount', 'fabCount'].forEach(k => { const c = document.getElementById(k); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); });
   if (mode === 'open') openCart(); else if (mode === 'toast') toast('เพิ่ม "' + byId(id).name + '" ลงตะกร้าแล้ว');
+  return true;
 }
 function setQty(id, q){
-  if (q <= 0) delete cart[id]; else cart[id] = Math.min(q, 999);
+  const p = byId(id);
+  if (p && q > maxQty(p)) toast(`"${p.name}" มีสินค้าเหลือ ${maxQty(p)} ชิ้น`);
+  if (q <= 0 || !p) delete cart[id]; else cart[id] = Math.min(q, maxQty(p));
   saveCart(); renderCart();
 }
 function renderBadges(){
@@ -306,9 +321,9 @@ function renderCart(){
   }
   const items = Object.entries(cart).map(([id,q]) => { const p = byId(id); return `
     <div class="ci">
-      <div class="ci-thumb"><div class="${phClass(p)}"></div></div>
+      <a class="ci-thumb" href="/product/${encodeURIComponent(p.id)}" tabindex="-1" aria-hidden="true">${thumb(p)}</a>
       <div>
-        <div class="ci-name">${esc(p.name)}</div>
+        <div class="ci-name"><a href="/product/${encodeURIComponent(p.id)}">${esc(p.name)}</a></div>
         <div class="ci-unit">${baht(p.price)} / ชิ้น</div>
         <div class="qty">
           <button data-qty="${esc(id)}" data-d="-1" aria-label="ลดจำนวน ${esc(p.name)}">−</button>
@@ -321,10 +336,10 @@ function renderCart(){
         <button class="ci-del" data-del="${esc(id)}" aria-label="ลบ ${esc(p.name)} ออกจากตะกร้า">ลบ</button>
       </div>
     </div>`; }).join('');
-  // สินค้าที่ซื้อคู่กัน: อุปกรณ์เสริมที่ยังไม่อยู่ในตะกร้า (ข้ามหม้อแปลงถ้ามีแต่ชุดที่มีหม้อแปลงแล้ว)
+  // สินค้าที่ซื้อคู่กัน: หม้อแปลง (เฉพาะเมื่อมีโคมที่ไม่ใช่ชุดพร้อมใช้) และท่อหดกันน้ำ ที่ยังไม่อยู่ในตะกร้า
   const ids = Object.keys(cart);
   const needPsu = ids.some(id => !byId(id).acc && !byId(id).kit);
-  const ups = CATALOG.filter(p => p.acc && !cart[p.id] && (p.id !== 'psu' || needPsu));
+  const ups = [needPsu && FINDER_ACC.psu, FINDER_ACC.shrink].map(id => id && byId(id)).filter(p => canBuy(p) && !cart[p.id]);
   body.innerHTML = items + (ups.length ? `
     <div class="upsell"><h3>มักซื้อคู่กัน</h3>${ups.map(p => `
       <div class="up-item"><div><b>${esc(p.name)}</b><small>${baht(p.price)}</small></div>
@@ -485,9 +500,9 @@ function toast(msg){
       status.textContent = 'ไม่พบสินค้า';
     } else {
       list.innerHTML = results.map((p, i) => `<a class="sg-opt" role="option" id="sg-${i}" aria-selected="false" href="${esc(linkFor(p))}" tabindex="-1">
-        <span class="thumb"><span class="${phClass(p)}"></span></span>
+        <span class="thumb">${thumb(p, 'span')}</span>
         <span><b>${highlight(p.name, q)}</b><small>${esc(p.cat)}</small></span>
-        <span class="pr">${baht(p.price)}</span></a>`).join('');
+        <span class="pr">${priceTxt(p)}</span></a>`).join('');
       $('#sgFoot').hidden = false;
       status.textContent = `พบ ${results.length} รายการ`;
     }
@@ -553,7 +568,7 @@ addEventListener('keydown', e => {
   const v = MDW_DATA.settings ? MDW_DATA.settings.freeShipMin : null;
   const free = typeof v === 'number' && v > 0 ? v : 0;
   const msgs = ['สั่งวันนี้ <b>รับสินค้าภายใน 2–3 วัน</b> · ชำระเงินด้วยการโอนและแนบสลิป'];
-  if (free > 0) msgs.push(`<b>ส่งฟรี</b> เมื่อซื้อครบ ${baht(free)} (ส่งธรรมดา)`);
+  if (free > 0) msgs.push(`<b>ส่งฟรี</b> เมื่อซื้อครบ ${baht(free)}`);
   msgs.push('ไม่แน่ใจว่ารุ่นไหน? <a href="/#finder">ให้เราช่วยเลือก</a> หรือปรึกษาทาง LINE ฟรี');
   host.innerHTML = msgs.map((m, i) => `<p class="tb-msg${i ? '' : ' on'}" ${i ? 'aria-hidden="true"' : ''}><span>${m}</span></p>`).join('');
   let i = 0, paused = false;

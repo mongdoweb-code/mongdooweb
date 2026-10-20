@@ -206,3 +206,14 @@ input,select,textarea{font-family:inherit;font-size:16px;color:var(--c-ink)}
   .preview{grid-template-columns:90px 1fr}
   .preview img{width:90px;height:120px}
 }
+
+/* ---------- เพิ่มสำหรับระบบจริง ---------- */
+.bank-card + .bank-card{margin-top:14px;padding-top:14px;border-top:1px dashed var(--c-line)}
+.si-thumb img{width:100%;height:100%;object-fit:contain;background:#fff}
+.ship-rates{margin-top:10px;font-size:14px;color:var(--c-muted)}
+.ship-rates summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px;width:max-content}
+.ship-rates ul{list-style:none;margin-top:8px;border:1px solid var(--c-line);background:#fff}
+.ship-rates li{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-bottom:1px solid var(--c-line)}
+.ship-rates li:last-child{border-bottom:0}
+.ship-rates b{color:var(--c-ink)}
+.tab[hidden]{display:none}

@@ -7,6 +7,8 @@
 const BOOT = (() => { try { return JSON.parse(document.getElementById('mdw-checkout').textContent); } catch (e) { return {}; } })();
 const SHOP = BOOT.shop;
 const CATALOG = Array.isArray(BOOT.catalog) ? BOOT.catalog : [];
+/* เลขบัญชี 10 หลัก → XXX-X-XXXXX-X ให้อ่านง่าย */
+const fmtAcc = a => { const d = String(a).replace(/\D/g, ''); return d.length === 10 ? `${d.slice(0,3)}-${d.slice(3,4)}-${d.slice(4,9)}-${d.slice(9)}` : a; };
 const PROVINCES = ['กรุงเทพมหานคร','กระบี่','กาญจนบุรี','กาฬสินธุ์','กำแพงเพชร','ขอนแก่น','จันทบุรี','ฉะเชิงเทรา','ชลบุรี','ชัยนาท','ชัยภูมิ','ชุมพร','เชียงราย','เชียงใหม่','ตรัง','ตราด','ตาก','นครนายก','นครปฐม','นครพนม','นครราชสีมา','นครศรีธรรมราช','นครสวรรค์','นนทบุรี','นราธิวาส','น่าน','บึงกาฬ','บุรีรัมย์','ปทุมธานี','ประจวบคีรีขันธ์','ปราจีนบุรี','ปัตตานี','พระนครศรีอยุธยา','พะเยา','พังงา','พัทลุง','พิจิตร','พิษณุโลก','เพชรบุรี','เพชรบูรณ์','แพร่','ภูเก็ต','มหาสารคาม','มุกดาหาร','แม่ฮ่องสอน','ยโสธร','ยะลา','ร้อยเอ็ด','ระนอง','ระยอง','ราชบุรี','ลพบุรี','ลำปาง','ลำพูน','เลย','ศรีสะเกษ','สกลนคร','สงขลา','สตูล','สมุทรปราการ','สมุทรสงคราม','สมุทรสาคร','สระแก้ว','สระบุรี','สิงห์บุรี','สุโขทัย','สุพรรณบุรี','สุราษฎร์ธานี','สุรินทร์','หนองคาย','หนองบัวลำภู','อ่างทอง','อำนาจเจริญ','อุดรธานี','อุตรดิตถ์','อุทัยธานี','อุบลราชธานี'];
 
 /* ---------- helpers ---------- */
@@ -36,17 +38,16 @@ let orderNo = null;   // ได้จาก server หลังกรอกข�
 let srv = null;       // ยอดที่ server คำนวณ (สตางค์) — ใช้แสดงยอดชำระและสร้าง QR
 
 const subtotal = () => Object.entries(cart).reduce((s,[id,q]) => s + byId(id).price * q, 0);
-const shipCost = () => {
-  const o = SHOP.shipping.find(s => s.id === shipId);
-  if (shipId === 'std' && SHOP.freeShipMin && subtotal() >= SHOP.freeShipMin) return 0;
-  return o.price;
-};
+/* ค่าส่งตามยอดสั่งซื้อ (ขั้นจากหน้าตั้งค่าร้าน) — server คำนวณซ้ำอีกครั้งตอนบันทึกคำสั่งซื้อ */
+const tierFee = sub => SHOP.tiers.reduce((fee, t) => sub >= t.min ? t.fee : fee, SHOP.tiers[0] ? SHOP.tiers[0].fee : 0);
+const freeFrom = () => { const t = SHOP.tiers.find(t => t.fee === 0 && t.min > 0); return t ? t.min : null; };
+const shipCost = (id = shipId) => tierFee(subtotal()) + (id === 'express' ? SHOP.expressExtra : 0);
 const total = () => srv && step >= 2 ? srv.totalSatang / 100 : subtotal() + shipCost();
 
 /* ---------- render: summary ---------- */
 function renderSummary(){
   $('#sumItems').innerHTML = Object.entries(cart).map(([id,q]) => { const p = byId(id); return `
-    <div class="si"><div class="si-thumb"><div class="${phClass(p)}"></div><em>${q}</em></div>
+    <div class="si"><div class="si-thumb">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : `<div class="${phClass(p)}"></div>`}<em>${q}</em></div>
     <div class="si-name">${esc(p.name)}</div><div class="si-price">${baht(p.price*q)}</div></div>`; }).join('');
   $('#sSub').textContent = baht(subtotal());
   const sc = shipCost();
@@ -54,22 +55,27 @@ function renderSummary(){
   $('#sTotal').textContent = baht(total());
   $('#totMini').textContent = baht(total());
   const nd = $('#nudge');
-  if (SHOP.freeShipMin && subtotal() < SHOP.freeShipMin){
-    const left = SHOP.freeShipMin - subtotal();
+  const ff = freeFrom();
+  if (ff && subtotal() < ff){
+    const left = ff - subtotal();
     nd.hidden = false;
-    nd.innerHTML = `ซื้อเพิ่มอีก <b>${baht(left)}</b> รับส่งฟรี (ส่งธรรมดา)
-      <div class="bar"><i style="width:${Math.min(100, subtotal()/SHOP.freeShipMin*100)}%"></i></div>`;
+    nd.innerHTML = `ซื้อเพิ่มอีก <b>${baht(left)}</b> รับส่งฟรี
+      <div class="bar"><i style="width:${Math.min(100, subtotal()/ff*100)}%"></i></div>`;
   } else nd.hidden = true;
 }
 function renderShipOpts(){
   $('#shipOpts').innerHTML = SHOP.shipping.map(s => {
-    const free = s.id === 'std' && SHOP.freeShipMin && subtotal() >= SHOP.freeShipMin;
+    const fee = shipCost(s.id), free = fee === 0;
     return `<label class="radio"><input type="radio" name="ship" value="${s.id}" ${s.id === shipId ? 'checked' : ''}>
-      <div><b>${s.name}</b><small>${s.desc}</small></div>
-      <span class="p ${free ? 'free' : ''}">${free ? 'ฟรี' : baht(s.price)}</span></label>`;
-  }).join('');
+      <div><b>${esc(s.name)}</b><small>${esc(s.desc)}</small></div>
+      <span class="p ${free ? 'free' : ''}">${free ? 'ฟรี' : baht(fee)}</span></label>`;
+  }).join('') + (SHOP.tiers.length > 1 ? `<details class="ship-rates"><summary>ดูอัตราค่าส่งตามยอดสั่งซื้อ</summary><ul>${SHOP.tiers.map((t, i) => {
+      const next = SHOP.tiers[i + 1];
+      const range = next ? `${baht(t.min)} – ${baht(next.min - 0.01)}` : `ตั้งแต่ ${baht(t.min)}`;
+      return `<li><span>${range}</span><b>${t.fee ? baht(t.fee) : 'ส่งฟรี'}</b></li>`;
+    }).join('')}</ul></details>` : '');
 }
-$('#shipOpts').addEventListener('change', e => { shipId = e.target.value; renderSummary(); });
+$('#shipOpts').addEventListener('change', e => { if (e.target.name === 'ship'){ shipId = e.target.value; renderSummary(); } });
 
 /* ---------- step navigation ---------- */
 function go(n){
@@ -150,10 +156,15 @@ function renderPayment(){
     qb.className = 'qr qr-ph';
     qb.innerHTML = '<div>ร้านยังไม่ได้ตั้งค่า QR PromptPay<br>กรุณาใช้การโอนเข้าบัญชี</div>';
   }
-  $('#bankBox').innerHTML = `
-    <div class="bank-row"><span>ธนาคาร</span><b>${esc(SHOP.bank.name)}</b></div>
-    <div class="bank-row"><span>เลขที่บัญชี</span><div><b>${esc(SHOP.bank.account)}</b><button class="copy" data-copy="${esc(SHOP.bank.account.replace(/\D/g,'') || SHOP.bank.account)}">คัดลอก</button></div></div>
-    <div class="bank-row"><span>ชื่อบัญชี</span><b>${esc(SHOP.bank.holder)}</b></div>`;
+  // บัญชีรับโอนหลายบัญชี — เลือกโอนเข้าบัญชีใดก็ได้
+  $('#bankBox').innerHTML = SHOP.banks.length ? SHOP.banks.map(b => `<div class="bank-card">
+    <div class="bank-row"><span>ธนาคาร</span><b>${esc(b.bankName)}</b></div>
+    <div class="bank-row"><span>เลขที่บัญชี</span><div><b>${esc(fmtAcc(b.account))}</b><button class="copy" data-copy="${esc(b.account.replace(/\D/g,'') || b.account)}">คัดลอก</button></div></div>
+    ${b.holder ? `<div class="bank-row"><span>ชื่อบัญชี</span><b>${esc(b.holder)}</b></div>` : ''}</div>`).join('')
+    : '<p class="note">ร้านยังไม่ได้ตั้งค่าบัญชีรับโอน กรุณาติดต่อร้านทาง LINE</p>';
+  // ยังไม่มี PromptPay → ซ่อนแท็บ QR และเปิดแท็บโอนเข้าบัญชี
+  const qrTab = document.querySelector('[data-tab="qr"]');
+  if (!SHOP.promptpay && qrTab){ qrTab.hidden = true; document.querySelector('[data-tab="bank"]').click(); }
 }
 document.querySelectorAll('[data-tab]').forEach(t => t.onclick = () => {
   document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('on', x === t));

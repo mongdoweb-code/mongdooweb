@@ -1,7 +1,6 @@
 // ที่เก็บไฟล์ (สลิป รูปสไลด์ รูปสินค้า โลโก้) — เลือกด้วย STORAGE_DRIVER=local|s3
 // ตอนนี้ใช้ local: เก็บในโฟลเดอร์ UPLOAD_DIR บนเซิร์ฟเวอร์ (ค่าเริ่มต้น ./uploads)
 // ไฟล์ไม่ได้อยู่ใน public/ — สลิปเปิดได้ผ่าน route ที่ตรวจสิทธิ์แอดมินเท่านั้น
-import "server-only";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 

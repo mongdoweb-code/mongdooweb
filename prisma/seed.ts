@@ -154,23 +154,37 @@ async function main() {
     await prisma.product.upsert({ where: { sku: p.sku }, update: data, create: { sku: p.sku, ...data } });
   }
 
-  // ตั้งค่าร้าน — TODO: ค่าตัวอย่างทั้งหมด เจ้าของร้านต้องแก้จากหลังบ้าน
+  // ตั้งค่าร้าน (ข้อมูลจากเจ้าของร้าน) — สร้างครั้งแรกเท่านั้น หลังจากนั้นแก้จากหลังบ้าน /admin/settings
+  // TODO: ชื่อบัญชีธนาคาร, PromptPay, ที่อยู่ และเลขผู้เสียภาษี รอเจ้าของร้านยืนยัน
   await prisma.shopSetting.upsert({
     where: { id: "shop" },
     update: {},
     create: {
       id: "shop",
-      bankName: "ธนาคารตัวอย่าง",
-      bankAccount: "XXX-X-XXXXX-X",
-      bankHolder: "บจก. มองดูเว็บ (ตัวอย่าง)",
+      legalName: "ร้านมองดูเว็บ",
+      bankAccounts: [
+        { bank: "KBANK", account: "4982105000", holder: "" },
+        { bank: "SCB", account: "0852358798", holder: "" },
+      ],
       promptpayId: null,
       promptpayName: "มองดูเว็บ",
-      shippingStdSatang: 5000,
-      shippingExpSatang: 9000,
-      freeShipMinSatang: 150000,
+      // ค่าส่งตามยอดสั่งซื้อ 6 ขั้น (ช่วงยอดเป็นค่าเริ่มต้น แก้ได้ในหลังบ้าน)
+      shippingTiers: [
+        { minSatang: 0, feeSatang: 6000 },
+        { minSatang: 100000, feeSatang: 10000 },
+        { minSatang: 300000, feeSatang: 15000 },
+        { minSatang: 500000, feeSatang: 25000 },
+        { minSatang: 1000000, feeSatang: 36000 },
+        { minSatang: 2000000, feeSatang: 0 },
+      ],
       slipCheckWithin: "ภายใน 2 ชั่วโมง ในเวลาทำการ",
-      addressText: "ที่อยู่ร้าน (ตัวอย่าง)",
-      phone: "0X-XXX-XXXX",
+      addressText: "88/2 หมู่ที่ 8 ตำบลบางกรวย อำเภอบางกรวย จังหวัดนนทบุรี 11130",
+      phone: "080-884-9597",
+      email: "mongdoweb@gmail.com",
+      lineId: "@mongdoweb",
+      lineOaUrl: "https://line.me/ti/p/~@mongdoweb",
+      website: "https://www.mongdooweb.com",
+      businessHours: "จ.–ส. 09:00–18:00",
     },
   });
 

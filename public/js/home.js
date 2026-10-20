@@ -31,14 +31,14 @@ const LABEL = {};
 FINDER_STEPS.forEach(s => s.opts.forEach(o => LABEL[s.key + ':' + o.v] = o.t));
 
 function finderResult(a){
-  let list = CATALOG.filter(p => !p.acc && p.use.includes(a.where));
+  let list = CATALOG.filter(p => !p.acc && p.use.includes(a.where) && canBuy(p));
   const exact = list.filter(p => a.color === 'any' || p.color === a.color || p.color === 'any');
   if (exact.length) list = exact;
   const recs = list.slice(0, 2);
   const main = recs[0];
   const acc = [];
-  if (main && (a.power === 'plug' || a.power === 'far') && !main.kit) acc.push('psu');
-  if (a.power === 'far' || (a.where !== 'garden' && a.power !== 'have')) acc.push('shrink');
+  if (main && (a.power === 'plug' || a.power === 'far') && !main.kit && canBuy(byId(FINDER_ACC.psu))) acc.push(FINDER_ACC.psu);
+  if ((a.power === 'far' || (a.where !== 'garden' && a.power !== 'have')) && canBuy(byId(FINDER_ACC.shrink))) acc.push(FINDER_ACC.shrink);
   const notes = ['ใช้กับไฟ DC12V เท่านั้น ห้ามต่อไฟบ้าน 220V โดยตรง'];
   if (a.where !== 'garden') notes.push('เช็กระดับกันน้ำ: IP67 จุ่มได้ไม่เกิน 90 ซม. ถ้าลึกกว่านั้นให้เลือกรุ่น IP68');
   if (main && main.kit) notes.push('รุ่นนี้มาเป็นชุดพร้อมใช้ มีหม้อแปลงไฟในกล่องแล้ว');
@@ -323,17 +323,18 @@ const Slider = (() => {
    ========================================================= */
 $('#prodGrid').innerHTML = PRODUCTS.map(p => `
   <article class="prod-card reveal" id="prod-${esc(p.id)}">
-    <div class="prod-img">
+    <a class="prod-img" href="/product/${encodeURIComponent(p.id)}" tabindex="-1" aria-hidden="true">
       ${p.badge ? `<span class="prod-badge">${esc(p.badge)}</span>` : ''}
-      <div class="${phClass(p)}"></div>
-    </div>
+      ${thumb(p)}
+    </a>
     <div class="prod-body">
       <div class="prod-cat">${esc(p.cat)}</div>
       <h3 class="prod-name"><a href="/product/${encodeURIComponent(p.id)}">${esc(p.name)}</a></h3>
       <div class="prod-specs">${p.specs.map(s => `<span>${esc(s)}</span>`).join('')}</div>
       <div class="prod-foot">
-        <div class="prod-price">${baht(p.price)}</div>
-        <button class="add-btn" data-add="${esc(p.id)}" aria-label="ใส่ตะกร้า: ${esc(p.name)}">ใส่ตะกร้า</button>
+        <div class="prod-price">${priceTxt(p)}${p.compareAt ? ` <s>${baht(p.compareAt)}</s>` : ''}</div>
+        ${canBuy(p) ? `<button class="add-btn" data-add="${esc(p.id)}" aria-label="ใส่ตะกร้า: ${esc(p.name)}">ใส่ตะกร้า</button>`
+          : `<a class="add-btn" href="/product/${encodeURIComponent(p.id)}">${p.price > 0 ? 'สินค้าหมด' : 'ดูรายละเอียด'}</a>`}
       </div>
     </div>
   </article>`).join('');
@@ -341,7 +342,8 @@ $('#prodGrid').innerHTML = PRODUCTS.map(p => `
   const ld = { '@context':'https://schema.org', '@type':'ItemList', name:'สินค้าขายดี — มองดูเว็บ',
     itemListElement: PRODUCTS.map((p, i) => ({ '@type':'ListItem', position: i + 1,
       item: { '@type':'Product', name: p.name, category: p.cat, brand: { '@type':'Brand', name:'มองดูเว็บ' },
-        offers: { '@type':'Offer', price: p.price, priceCurrency:'THB', availability:'https://schema.org/InStock', url: SITE + '#prod-' + p.id } } })) };
+        ...(p.img ? { image: new URL(p.img, SITE).href } : {}),
+        offers: { '@type':'Offer', price: p.price, priceCurrency:'THB', availability: canBuy(p) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock', url: SITE + 'product/' + encodeURIComponent(p.id) } } })) };
   const s = document.createElement('script'); s.type = 'application/ld+json'; s.textContent = JSON.stringify(ld);
   document.head.appendChild(s);
 })();
@@ -368,11 +370,19 @@ function renderFinder(){
     return;
   }
   const r = finderResult(fAns);
+  if (!r.recs.length){
+    finderBox.innerHTML = `<div class="f-anim">${progress(3)}
+      <div class="f-q">ยังไม่มีรุ่นที่ตรงกับคำตอบนี้บนหน้าเว็บ</div>
+      <p class="sec-sub">ส่งรูปพื้นที่มาให้ทีมงานช่วยแนะนำรุ่นที่เหมาะสมได้ฟรี</p>
+      <div class="f-actions"><a href="${LINE_URL}" class="btn btn-line" target="_blank" rel="noopener">ถามทีมงานทาง LINE</a></div>
+      <button class="f-link" data-freset>เริ่มเลือกใหม่</button></div>`;
+    return;
+  }
   const row = (p, isAcc) => `
     <div class="f-rec ${isAcc ? 'acc' : ''}">
-      <div class="thumb"><div class="${phClass(p)}"></div></div>
-      <div><small>${isAcc ? 'ใช้คู่กัน · ' : ''}${esc(p.cat)}</small><b>${esc(p.name)}</b></div>
-      <div class="pr">${baht(p.price)}</div>
+      <div class="thumb">${thumb(p)}</div>
+      <div><small>${isAcc ? 'ใช้คู่กัน · ' : ''}${esc(p.cat)}</small><b><a href="/product/${encodeURIComponent(p.id)}">${esc(p.name)}</a></b></div>
+      <div class="pr">${priceTxt(p)}</div>
     </div>`;
   finderBox.innerHTML = `<div class="f-anim">
     ${progress(3)}
@@ -380,7 +390,7 @@ function renderFinder(){
     <div class="f-summary">${FINDER_STEPS.map(s => `<span>${LABEL[s.key + ':' + fAns[s.key]]}</span>`).join('')}</div>
     <div class="f-recs">
       ${r.recs.map(p => row(p, false)).join('')}
-      ${r.acc.map(id => row(byId(id), true)).join('')}
+      ${r.acc.map(byId).filter(Boolean).map(p => row(p, true)).join('')}
     </div>
     <ul class="f-notes">${r.notes.map(n => `<li>${n}</li>`).join('')}</ul>
     <div class="f-actions">

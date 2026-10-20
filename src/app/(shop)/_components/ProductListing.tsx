@@ -3,6 +3,7 @@ import { COLOR_FILTERS, SORTS, USE_FILTERS, filterCatalog, getShopData } from "@
 import { ProductGrid } from "./ProductCard";
 
 type Params = Record<string, string | string[] | undefined>;
+const PER_PAGE = 24;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export async function ProductListing({
@@ -17,7 +18,15 @@ export async function ProductListing({
   const sp = await searchParams;
   const current = { color: one(sp.color), use: one(sp.use), sort: one(sp.sort) };
   const { catalog } = await getShopData();
-  const items = filterCatalog(catalog, { category, ...current });
+  const all = filterCatalog(catalog, { category, ...current });
+  // แบ่งหน้าละ 24 รายการ
+  const pages = Math.max(1, Math.ceil(all.length / PER_PAGE));
+  const page = Math.min(pages, Math.max(1, Math.floor(Number(one(sp.page))) || 1));
+  const items = all.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const pageHref = (n: number) => {
+    const qs = new URLSearchParams(Object.entries({ ...current, page: n > 1 ? String(n) : "" }).filter(([, v]) => v)).toString();
+    return qs ? `${basePath}?${qs}` : basePath;
+  };
 
   // ลิงก์ของชิปแต่ละตัว: กดซ้ำตัวที่เลือกอยู่ = ยกเลิกตัวกรองนั้น
   const href = (key: keyof typeof current, value: string) => {
@@ -43,7 +52,7 @@ export async function ProductListing({
         {group("use", "พื้นที่ใช้งาน", USE_FILTERS)}
         {group("sort", "เรียงตาม", SORTS)}
         <span className="count" role="status">
-          {items.length} รายการ
+          {all.length} รายการ
         </span>
       </div>
       <ProductGrid
@@ -63,6 +72,17 @@ export async function ProductListing({
           )
         }
       />
+      {pages > 1 && (
+        <nav className="pager-shop" aria-label="แบ่งหน้า">
+          {page > 1 && <a href={pageHref(page - 1)} rel="prev">← ก่อนหน้า</a>}
+          {Array.from({ length: pages }, (_, i) => i + 1).map((n) => (
+            <a key={n} href={pageHref(n)} aria-current={n === page ? "page" : undefined}>
+              {n}
+            </a>
+          ))}
+          {page < pages && <a href={pageHref(page + 1)} rel="next">ถัดไป →</a>}
+        </nav>
+      )}
     </>
   );
 }

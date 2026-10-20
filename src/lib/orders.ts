@@ -3,27 +3,22 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { bankLabel, getSettings, parseBankAccounts, parseShippingTiers, shippingFee, shippingOptions } from "@/lib/settings";
 import { sniffImage, storage } from "@/lib/storage";
 
 export const SLIP_MAX_BYTES = 5 * 1024 * 1024;
 export const MAX_QTY = 999;
 
-export type ShippingOption = { id: "std" | "express"; name: string; desc: string; satang: number };
-
-/** ค่าตั้งร้านที่หน้าชำระเงินใช้ (บัญชี, PromptPay, ค่าส่ง, ส่งฟรี) */
+/** ค่าตั้งร้านที่หน้าชำระเงินใช้ (บัญชี, PromptPay, ค่าส่งตามยอด) */
 export async function getCheckoutConfig() {
-  const s = await prisma.shopSetting.findUnique({ where: { id: "shop" } });
-  if (!s) throw new Error("ยังไม่ได้ตั้งค่าร้าน (รัน npm run db:seed)");
-  const shipping: ShippingOption[] = [
-    { id: "std", name: "ส่งธรรมดา", desc: "ได้รับภายใน 2–3 วันทำการ", satang: s.shippingStdSatang },
-    { id: "express", name: "ส่งด่วน", desc: "ได้รับภายใน 1–2 วันทำการ", satang: s.shippingExpSatang },
-  ];
+  const s = await getSettings();
   return {
-    bank: { name: s.bankName, account: s.bankAccount, holder: s.bankHolder },
+    banks: parseBankAccounts(s.bankAccounts).map((b) => ({ ...b, bankName: bankLabel(b.bank) })),
     promptpay: s.promptpayId && /\d{9,}/.test(s.promptpayId.replace(/\D/g, "")) ? s.promptpayId : null,
     promptpayName: s.promptpayName,
-    shipping,
-    freeShipMinSatang: s.freeShipMinSatang,
+    shipping: shippingOptions(s),
+    tiers: parseShippingTiers(s.shippingTiers),
+    expressExtraSatang: s.expressEnabled ? s.expressExtraSatang : 0,
     checkWithin: s.slipCheckWithin,
     line: s.lineOaUrl && /^https?:\/\/\S+$/i.test(s.lineOaUrl) ? s.lineOaUrl : null,
   };
@@ -36,12 +31,8 @@ export type AddressInput = {
 };
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
-export const phoneDigits = (s: string) => s.replace(/\D/g, "");
-/** 0801112222 → 080-111-2222 */
-export const formatPhone = (s: string) => {
-  const d = phoneDigits(s);
-  return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : s;
-};
+export { formatPhone, phoneDigits } from "@/lib/format";
+import { phoneDigits } from "@/lib/format";
 
 /** กฎเดียวกับฟอร์มในต้นแบบ — คืนชื่อช่องที่ไม่ผ่าน */
 export function validateAddress(raw: Record<string, unknown>): { ok: true; value: AddressInput } | { ok: false; fields: string[] } {
@@ -108,16 +99,22 @@ export async function saveCheckoutOrder(input: {
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const missing = wanted.filter(([s]) => !bySlug.has(s));
   if (missing.length) throw new OrderError("สินค้าบางรายการในตะกร้าไม่มีจำหน่ายแล้ว กรุณากลับไปแก้ตะกร้า", 409);
+  for (const [slug, qty] of wanted) {
+    const p = bySlug.get(slug)!;
+    if (p.priceSatang <= 0) throw new OrderError(`"${p.name}" ต้องสอบถามราคาก่อนสั่งซื้อ กรุณาติดต่อร้านทาง LINE`, 409);
+    if (p.trackStock ? p.stock < qty : !p.inStock)
+      throw new OrderError(p.trackStock && p.stock > 0 ? `"${p.name}" เหลือเพียง ${p.stock} ชิ้น กรุณาแก้จำนวนในตะกร้า` : `"${p.name}" สินค้าหมด กรุณานำออกจากตะกร้า`, 409);
+  }
   const items = wanted.map(([slug, qty]) => {
     const p = bySlug.get(slug)!;
     return { productId: p.id, nameSnapshot: p.name, priceSatang: p.priceSatang, qty };
   });
 
-  const cfg = await getCheckoutConfig();
-  const ship = cfg.shipping.find((s) => s.id === input.shipping) ?? cfg.shipping[0];
+  const settings = await getSettings();
+  const opts = shippingOptions(settings);
+  const ship = opts.find((s) => s.id === input.shipping) ?? opts[0];
   const subtotalSatang = items.reduce((s, i) => s + i.priceSatang * i.qty, 0);
-  const free = ship.id === "std" && cfg.freeShipMinSatang != null && cfg.freeShipMinSatang > 0 && subtotalSatang >= cfg.freeShipMinSatang;
-  const shippingSatang = free ? 0 : ship.satang;
+  const shippingSatang = shippingFee(settings, ship.id, subtotalSatang);
   const totalSatang = subtotalSatang + shippingSatang;
 
   const a = addr.value;

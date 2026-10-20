@@ -15,15 +15,19 @@ async function CheckoutData() {
   const [cfg, { catalog }] = await Promise.all([getCheckoutConfig(), getShopData()]);
   const boot = {
     shop: {
-      bank: cfg.bank,
+      banks: cfg.banks,
       promptpay: cfg.promptpay,
       promptpayName: cfg.promptpayName,
-      shipping: cfg.shipping.map((s) => ({ id: s.id, name: s.name, desc: s.desc, price: s.satang / 100 })),
-      freeShipMin: cfg.freeShipMinSatang ? cfg.freeShipMinSatang / 100 : null,
+      shipping: cfg.shipping,
+      tiers: cfg.tiers.map((t) => ({ min: t.minSatang / 100, fee: t.feeSatang / 100 })),
+      expressExtra: cfg.expressExtraSatang / 100,
       checkWithin: cfg.checkWithin,
       line: cfg.line,
     },
-    catalog: catalog.map((p) => ({ id: p.id, name: p.name, price: p.price, color: p.color, ...(p.acc ? { acc: true } : {}) })),
+    // ตะกร้าแสดงเฉพาะสินค้าที่สั่งได้ (มีราคา + มีของ)
+    catalog: catalog
+      .filter((p) => p.price > 0 && p.inStock)
+      .map((p) => ({ id: p.id, name: p.name, price: p.price, color: p.color, img: p.img, ...(p.acc ? { acc: true } : {}) })),
   };
   return (
     <>

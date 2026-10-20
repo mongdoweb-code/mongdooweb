@@ -2,14 +2,16 @@
 // เพื่อให้สคริปต์ที่ย้ายมา (public/js/*.js) ใช้ได้โดยไม่ต้องแก้ตรรกะ
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
+import { STOREFRONT_TAG, getPublicShopInfo } from "@/lib/settings";
 
 /** tag ของข้อมูลหน้าร้าน — หลังบ้านเรียก updateTag(STOREFRONT_TAG) หลังแก้สินค้า/หมวด/สไลด์/ตั้งค่า */
-export const STOREFRONT_TAG = "storefront";
+export { STOREFRONT_TAG };
 
 export const bahtFromSatang = (satang: number) => satang / 100;
 
-/** สินค้าแบบ CATALOG ของต้นแบบ: id = slug, price = บาท */
+/** สินค้าแบบ CATALOG ของต้นแบบ: id = slug, price = บาท (0 = สอบถามราคา) */
 export type CatalogItem = {
   id: string;
   name: string;
@@ -17,12 +19,17 @@ export type CatalogItem = {
   catId: string;
   specs: string[];
   price: number;
+  compareAt?: number;
+  img?: string;
+  inStock: boolean;
+  maxQty?: number;
   badge?: string;
   best?: boolean;
   use: string[];
   color: "white" | "rgb" | "any";
   kit?: boolean;
   acc?: boolean;
+  kw?: string;
 };
 
 export type ShopCategory = {
@@ -33,11 +40,12 @@ export type ShopCategory = {
   group: string;
   slug: string;
   popular: string[];
+  /** แสดงในเมนู/การ์ดหน้าแรก */
   visible: boolean;
   order: number;
 };
 
-/** specs ในฐานข้อมูลเป็น [{label, value}] — หน้าร้านแสดงแค่ value */
+/** specs ในฐานข้อมูลเป็น [{label, value}] — การ์ดสินค้าแสดงแค่ value */
 export function specValues(specs: unknown): string[] {
   if (!Array.isArray(specs)) return [];
   return specs
@@ -45,19 +53,21 @@ export function specValues(specs: unknown): string[] {
     .filter(Boolean);
 }
 
+const available = (p: { trackStock: boolean; stock: number; inStock: boolean }) => (p.trackStock ? p.stock > 0 : p.inStock);
+
 export async function getShopData() {
   "use cache";
   cacheLife("hours");
   cacheTag(STOREFRONT_TAG);
 
-  const [categories, products, settings] = await Promise.all([
+  const [categories, products, shop] = await Promise.all([
     prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.product.findMany({
       where: { isActive: true, isService: false, category: { isActive: true } },
-      orderBy: [{ isBestSeller: "desc" }, { createdAt: "asc" }],
-      include: { category: { select: { slug: true, nameEn: true } } },
+      orderBy: [{ isBestSeller: "desc" }, { views: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+      include: { category: { select: { slug: true, nameTh: true } } },
     }),
-    prisma.shopSetting.findUnique({ where: { id: "shop" } }),
+    getPublicShopInfo(),
   ]);
 
   const shopCategories: ShopCategory[] = categories.map((c) => ({
@@ -68,31 +78,45 @@ export async function getShopData() {
     group: c.group.toLowerCase(),
     slug: c.slug,
     popular: c.popular,
-    visible: c.isActive,
+    visible: c.showOnHome,
     order: c.sortOrder,
   }));
 
-  const catalog: CatalogItem[] = products.map((p) => ({
-    id: p.slug,
-    name: p.name,
-    cat: p.isAccessory ? "อุปกรณ์เสริม" : p.category.nameEn,
-    catId: p.category.slug,
-    specs: specValues(p.specs),
-    price: bahtFromSatang(p.priceSatang),
-    ...(p.badge ? { badge: p.badge } : {}),
-    ...(p.isBestSeller ? { best: true } : {}),
-    use: p.useAreas.map((u) => u.toLowerCase()),
-    color: p.lightColor.toLowerCase() as CatalogItem["color"],
-    ...(p.includesPsu ? { kit: true } : {}),
-    ...(p.isAccessory ? { acc: true } : {}),
-  }));
+  const catalog: CatalogItem[] = products.map((p) => {
+    const img = mediaUrl(p.images[0], "sm");
+    return {
+      id: p.slug,
+      name: p.name,
+      cat: p.category.nameTh,
+      catId: p.category.slug,
+      specs: specValues(p.specs).slice(0, 3),
+      price: bahtFromSatang(p.priceSatang),
+      ...(p.compareAtSatang && p.compareAtSatang > p.priceSatang ? { compareAt: bahtFromSatang(p.compareAtSatang) } : {}),
+      ...(img ? { img } : {}),
+      inStock: available(p),
+      ...(p.trackStock ? { maxQty: p.stock } : {}),
+      ...(p.badge ? { badge: p.badge } : {}),
+      ...(p.isBestSeller ? { best: true } : {}),
+      use: p.useAreas.map((u) => u.toLowerCase()),
+      color: p.lightColor.toLowerCase() as CatalogItem["color"],
+      ...(p.includesPsu ? { kit: true } : {}),
+      ...(p.isAccessory ? { acc: true } : {}),
+      ...(p.keywords ? { kw: p.keywords.slice(0, 160) } : {}),
+    };
+  });
+
+  // อุปกรณ์ที่ตัวช่วยเลือกไฟแนะนำคู่กัน: หม้อแปลง DC12V และท่อหดกันน้ำ (ถ้ามีขาย)
+  const orderable = catalog.filter((p) => p.price > 0 && p.inStock);
+  const psu = orderable.find((p) => p.catId === "power-supply" && /12\s*v/i.test(p.name)) ?? orderable.find((p) => p.catId === "power-supply");
+  const shrink = orderable.find((p) => /ท่อหด|heat\s*shrink/i.test(p.name));
 
   return {
     categories: shopCategories,
     catalog,
+    finderAcc: { psu: psu?.id ?? null, shrink: shrink?.id ?? null },
     settings: {
-      lineUrl: settings?.lineOaUrl ?? null,
-      freeShipMin: settings?.freeShipMinSatang != null ? bahtFromSatang(settings.freeShipMinSatang) : null,
+      lineUrl: shop.lineUrl,
+      freeShipMin: shop.freeShipMinSatang != null ? bahtFromSatang(shop.freeShipMinSatang) : null,
     },
   };
 }
@@ -111,8 +135,7 @@ export async function getHomeSlides() {
     id: s.id,
     active: s.isActive,
     order: s.sortOrder,
-    // TODO: รูปที่อัปโหลด (imageKey) ต่อกับ storage driver ในขั้นที่ 4
-    image: s.imageUrl ?? "",
+    image: mediaUrl(s.imageKey) ?? s.imageUrl ?? "",
     focal: { x: s.focalX, y: s.focalY },
     alt: s.alt,
     eyebrow: s.eyebrow,
@@ -133,14 +156,15 @@ export function jsonForScript(value: unknown) {
   return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-/** หมวดที่เปิดแสดง ตาม slug (null = ไม่พบ/ซ่อนอยู่) */
+/** หมวดที่เปิดขาย ตาม slug (null = ไม่พบ/ปิดอยู่) */
 export async function getCategory(slug: string) {
   "use cache";
   cacheLife("hours");
   cacheTag(STOREFRONT_TAG);
 
-  const { categories } = await getShopData();
-  return categories.find((c) => c.slug === slug) ?? null;
+  const c = await prisma.category.findFirst({ where: { slug, isActive: true } });
+  if (!c) return null;
+  return { slug: c.slug, th: c.nameTh, en: c.nameEn, popular: c.popular, description: c.description, showOnHome: c.showOnHome };
 }
 
 /** รายละเอียดสินค้าสำหรับหน้าสินค้า (null = ไม่พบ/ปิดขาย) */
@@ -159,9 +183,15 @@ export async function getProductDetail(slug: string) {
     sku: p.sku,
     name: p.name,
     description: p.description,
+    shortDescription: p.shortDescription,
+    seoTitle: p.seoTitle,
+    seoDescription: p.seoDescription,
     unit: p.unit,
     price: bahtFromSatang(p.priceSatang),
-    inStock: p.stock > 0,
+    compareAt: p.compareAtSatang && p.compareAtSatang > p.priceSatang ? bahtFromSatang(p.compareAtSatang) : null,
+    inStock: available(p),
+    stockLeft: p.trackStock ? p.stock : null,
+    images: p.images.map((k) => ({ full: mediaUrl(k)!, sm: mediaUrl(k, "sm")! })),
     specs: Array.isArray(p.specs)
       ? (p.specs as { label?: unknown; value?: unknown }[])
           .map((s) => ({ label: String(s?.label ?? ""), value: String(s?.value ?? "") }))
@@ -173,6 +203,12 @@ export async function getProductDetail(slug: string) {
     lightColor: p.lightColor.toLowerCase(),
     category: { slug: p.category.slug, th: p.category.nameTh, en: p.category.nameEn },
   };
+}
+
+/** หา slug ใหม่จาก URL เดิมของเว็บ WooCommerce (/product/...) */
+export async function findByLegacyPath(path: string) {
+  const p = await prisma.product.findUnique({ where: { legacyPath: path }, select: { slug: true, isActive: true } });
+  return p?.isActive ? p.slug : null;
 }
 
 // ---------- ค้นหา/กรองสินค้า (catalog ร้านเล็ก กรองในหน่วยความจำได้) ----------
@@ -214,7 +250,7 @@ export function searchCatalog(catalog: CatalogItem[], categories: ShopCategory[]
   return catalog
     .map((p) => {
       const name = norm(p.name);
-      const hay = norm([p.name, p.cat, catName.get(p.catId) ?? "", p.specs.join(" ")].join(" "));
+      const hay = norm([p.name, p.cat, catName.get(p.catId) ?? "", p.specs.join(" "), p.kw ?? ""].join(" "));
       let score = 0;
       for (const t of toks) {
         const alt = SYN[t] ? norm(SYN[t]) : null;

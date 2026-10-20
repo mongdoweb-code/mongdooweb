@@ -89,7 +89,9 @@ model Category {
   group       CategoryGroup @default(DECO)
   popular     String[]                         // รายการยอดนิยมใน dropdown (สูงสุด 4)
   sortOrder   Int           @default(0)
-  isActive    Boolean       @default(true)     // = visible ในหน้าแรก
+  isActive    Boolean       @default(true)     // เปิดขาย/เปิดหน้าหมวด
+  showOnHome  Boolean       @default(true)     // แสดงในเมนูและการ์ดหมวดของหน้าแรก (สินค้าที่ไม่ใช่ไฟ = false)
+  description String?       @db.Text
   products    Product[]
 }
 
@@ -116,8 +118,20 @@ model Product {
   description   String?      @db.Text
   unit          String       @default("ชิ้น") // หน่วยในเอกสารขาย: อัน, ชุด, กล่อง
   isService     Boolean      @default(false) // ค่าบริการ/ค่าส่ง ไม่ตัดสต็อก (เช่น sku "Shipping")
-  priceSatang   Int                         // ราคาขาย (สตางค์)
+  priceSatang   Int                         // ราคาขาย (สตางค์) — 0 = "สอบถามราคา" สั่งออนไลน์ไม่ได้
+  compareAtSatang Int?                      // ราคาปกติก่อนลด (แสดงขีดฆ่า)
+  trackStock    Boolean      @default(false) // นับสต็อก: true = ขายได้ไม่เกิน stock
+  inStock       Boolean      @default(true)  // ใช้เมื่อไม่นับสต็อก: false = สินค้าหมด
   stock         Int          @default(0)
+  shortDescription String?   @db.Text
+  keywords      String?      @db.Text        // คำค้นเพิ่มเติม (จาก tag เดิมของ WooCommerce)
+  seoTitle      String?
+  seoDescription String?
+  weightGram    Int?
+  sortOrder     Int          @default(0)
+  views         Int          @default(0)     // ยอดเข้าชมจากเว็บเดิม (ใช้จัดอันดับขายดีเริ่มต้น)
+  wooId         Int?         @unique         // ID สินค้าในเว็บเดิม (นำเข้าซ้ำได้)
+  legacyPath    String?      @unique         // URL เดิม /product/... (redirect 301 มาหน้าใหม่)
   specs         Json?                       // [{"label":"กำลังไฟ","value":"10W COB"}, ...]
   images        String[]                    // storage keys เรียงตามลำดับแสดง
   model3dKey    String?                     // ไฟล์ .glb สำหรับตัวหมุนดู 3D (ถ้ามี)
@@ -276,16 +290,21 @@ model OrderEvent {
 /// แถวเดียว id = "shop" — แก้จากหน้า "ตั้งค่าร้าน" ในแอดมิน
 model ShopSetting {
   id                 String   @id @default("shop")
-  bankName           String
-  bankAccount        String
-  bankHolder         String
+  /// บัญชีรับโอน [{ bank: "KBANK", account: "4982105000", holder: "..." }]
+  bankAccounts       Json     @default("[]")
   promptpayId        String?                  // เบอร์ 10 หลัก หรือเลข 13/15 หลัก — null = ไม่แสดง QR
   promptpayName      String
-  shippingStdSatang  Int      @default(5000)
-  shippingExpSatang  Int      @default(9000)
-  freeShipMinSatang  Int?                     // null = ไม่มีส่งฟรี
+  /// ค่าส่งตามยอดสั่งซื้อ [{ minSatang: 0, feeSatang: 6000 }, …] — fee 0 = ส่งฟรี
+  shippingTiers      Json     @default("[]")
+  expressEnabled     Boolean  @default(false)
+  expressExtraSatang Int      @default(4000)  // ส่งด่วน = ค่าส่งตามยอด + ส่วนนี้
   slipCheckWithin    String                   // "ภายใน 2 ชั่วโมง ในเวลาทำการ"
   lineOaUrl          String?
+  website            String?
+  facebookUrl        String?
+  youtubeUrl         String?
+  tiktokUrl          String?
+  businessHours      String?
   newOrderSound      Boolean  @default(true)
 
   // ผู้ส่ง / หัวเอกสาร (ใบปะหน้า + เอกสารขาย)
