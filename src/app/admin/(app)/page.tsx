@@ -15,9 +15,12 @@ import {
   parseFilter,
   type OrderFilter,
 } from "@/lib/admin-orders";
+import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { formatPhone } from "@/lib/orders";
 import { AutoRefresh, ConfirmSubmit, CopyButton, DrawerKeys, SlipImage } from "../_components/AdminClient";
+import { LabelOptions } from "../_components/LabelOptions";
+import { docFromOrder } from "./docs/actions";
 import { addOrderNote, approveOrder, cancelOrder, rejectOrder, reopenOrder, shipOrder } from "./order-actions";
 
 const baht = (satang: number) =>
@@ -70,6 +73,11 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 4v12M7 11l5 5 5-5" /><path d="M4 20h16" /></svg>
             ส่งออก CSV
           </a>
+          {count("PAID") > 0 && (
+            <a className="btn btn-outline" href="/admin/print/labels?status=PAID&auto=1" target="_blank" rel="noopener" title="ใบปะหน้า A6 ของทุกคำสั่งซื้อที่ชำระแล้วรอจัดส่ง (ตั้งขนาด/จำนวนกล่องรายออเดอร์ได้ในรายละเอียดคำสั่งซื้อ)">
+              พิมพ์ใบปะหน้ารอส่ง ({count("PAID")})
+            </a>
+          )}
           {firstPending ? (
             <a className="btn btn-primary" href={`/admin${filterQuery({ ...f, tab: "PENDING_VERIFICATION", q: "", page: 1 }, { open: firstPending })}`}>
               ตรวจสลิปที่ค้างอยู่ →
@@ -572,6 +580,43 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
                     ยกเลิกคำสั่งซื้อ
                   </ConfirmSubmit>
                 </form>
+              </div>
+            )}
+
+            {(o.status === "PAID" || o.status === "SHIPPED" || o.documents.length > 0) && (
+              <div className="box">
+                <h3>เอกสารขายและใบปะหน้า</h3>
+                {o.documents.length > 0 && (
+                  <ul className="dv-links" style={{ marginBottom: 10 }}>
+                    {o.documents.map((d) => (
+                      <li key={d.id}>
+                        <span className="sub">{d.type === "RECEIPT" ? "ใบเสร็จ" : d.type === "INVOICE" ? "ใบแจ้งหนี้" : "ใบเสนอราคา"}</span>
+                        <Link className="link" href={`/admin/docs/${d.type}/${d.id}`}>{d.docNo ?? "ฉบับร่าง"}</Link>
+                        {d.status === "VOID" && <span className="dst dst-void">ยกเลิก</span>}
+                        {d.status !== "VOID" && d.docNo && <a className="link" href={`/admin/print/doc/${d.id}?auto=1`} target="_blank" rel="noopener">พิมพ์</a>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {(o.status === "PAID" || o.status === "SHIPPED") && (
+                  <div className="act-row" style={{ marginBottom: 12 }}>
+                    {!o.documents.some((d) => d.type === "RECEIPT" && d.status !== "VOID") && (
+                      <form action={docFromOrder}>
+                        <input type="hidden" name="orderNo" value={o.orderNo} />
+                        <input type="hidden" name="type" value="RECEIPT" />
+                        <ConfirmSubmit className="btn btn-outline" title="ออกใบเสร็จรับเงิน?" body={`ออกใบเสร็จจากคำสั่งซื้อ ${o.orderNo} ยอด ${baht(o.totalSatang)} (ระบบจะสร้างข้อมูลลูกค้าจากเบอร์โทรให้ ถ้ายังไม่มี)`} confirmLabel="ออกใบเสร็จ">ออกใบเสร็จรับเงิน</ConfirmSubmit>
+                      </form>
+                    )}
+                    {!o.documents.some((d) => d.type === "INVOICE" && d.status !== "VOID") && (
+                      <form action={docFromOrder}>
+                        <input type="hidden" name="orderNo" value={o.orderNo} />
+                        <input type="hidden" name="type" value="INVOICE" />
+                        <button className="btn btn-ghost" type="submit">สร้างใบแจ้งหนี้ (ฉบับร่าง)</button>
+                      </form>
+                    )}
+                  </div>
+                )}
+                {o.status !== "CANCELLED" && <LabelOptions target={`orders=${encodeURIComponent(o.orderNo)}`} idKey={o.orderNo} />}
               </div>
             )}
 

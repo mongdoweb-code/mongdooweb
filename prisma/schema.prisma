@@ -550,6 +550,7 @@ model DocPayment {
   amountSatang Int
   method      String
   reference   String?                         // เลขอ้างอิงการโอน / เลขเช็ค
+  voided      Boolean        @default(false)  // ยกเลิกใบเสร็จของงวดนี้ → ไม่นับเป็นยอดชำระ
   createdAt   DateTime       @default(now())
 
   @@index([invoiceId])

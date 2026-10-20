@@ -212,6 +212,7 @@ export async function getOrderDetail(orderNo: string) {
       items: { orderBy: { id: "asc" } },
       slips: { orderBy: { uploadedAt: "asc" } },
       events: { orderBy: { createdAt: "asc" }, include: { admin: { select: { displayName: true } } } },
+      documents: { orderBy: { createdAt: "asc" }, select: { id: true, type: true, docNo: true, status: true } },
     },
   });
   if (!o) return null;
