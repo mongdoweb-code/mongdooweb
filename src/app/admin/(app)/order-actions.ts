@@ -340,7 +340,7 @@ export async function addOrderNote(f: FormData) {
 
 export type ManualPayload = {
   customerId?: string; name: string; phone: string; email?: string; addr: string; sub: string; dist: string; prov: string; zip: string; note?: string;
-  source: string; items: { productId: string; qty: number; price: string }[];
+  source: string; items: { productId: string; qty: number | string; price: string }[];
   shipping: "std" | "express" | "custom" | "pickup"; shippingFee?: string;
   paid: boolean; payMethod?: string; payNote?: string; tax?: TaxIn;
 };
