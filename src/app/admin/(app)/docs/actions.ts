@@ -9,7 +9,8 @@ import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
 import { allocDocNo, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, prefixOf, todayYmd, totalsFor, type Tx } from "@/lib/docs";
-import { isValidThaiTaxId } from "@/lib/format";
+import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
+import { formatPhone, isValidThaiTaxId } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 
@@ -373,14 +374,25 @@ export async function docFromOrder(f: FormData) {
   const totals = totalsFor(items, 0, vatMode, s.vatRateBp);
   const today = todayYmd();
   const payYmd = o.paidAt ? ymdBkk(o.paidAt) : today;
+  // ลูกค้าขอใบกำกับภาษีตอนสั่งซื้อ (A15) → ออกในนามผู้ขอ (เลขผู้เสียภาษี/สาขา/ที่อยู่ออกบิล) ส่งของถึงผู้รับในคำสั่งซื้อ
+  const tax = parseTaxInvoice(o.taxInvoice);
   let id = "", no = "";
   try {
     await prisma.$transaction(async (tx) => {
       const c = await customerFromOrder(tx, o);
       if (!o.customerId) await tx.order.update({ where: { id: o.id }, data: { customerId: c.id } });
+      const billTo = tax ? await customerForTaxInvoice(tx, tax, o) : c;
+      const snap = custSnapshot(billTo);
+      if (tax) {
+        snap.address = { line: tax.address };
+        snap.shipTo = {
+          name: o.customerName, phone: formatPhone(o.phone),
+          address: { line: o.addressLine, sub: o.subdistrict, dist: o.district, prov: o.province, zip: o.postalCode },
+        };
+      }
       const d = await tx.salesDocument.create({
         data: {
-          type, status: "DRAFT", customerId: c.id, customerSnapshot: custSnapshot(c), orderId: o.id,
+          type, status: "DRAFT", customerId: billTo.id, customerSnapshot: snap, orderId: o.id,
           issueDate: fromYmd(type === "RECEIPT" ? payYmd : today), dueDate: type === "INVOICE" ? fromYmd(ymdBkk(new Date(fromYmd(today).getTime() + s.invoiceDueDays * 864e5))) : null,
           ...totals, vatMode, vatRateBp: vatMode === "NONE" ? 0 : s.vatRateBp,
           paymentMethod: "โอนเงินผ่านธนาคาร", carrier: o.carrier, paymentTerms: type === "INVOICE" ? defaultTerms(s, "INVOICE") : s.termsReceipt,
