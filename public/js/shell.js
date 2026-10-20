@@ -6,6 +6,13 @@
 const MDW_DATA = (() => { try { return JSON.parse(document.getElementById('mdw-data').textContent); } catch (e) { return {}; } })();
 const SITE = location.origin + '/';
 const LINE_URL = (MDW_DATA.settings && MDW_DATA.settings.lineUrl) || 'https://line.me/R/ti/p/@mongdoweb'; // TODO: ยืนยัน LINE OA ID จริง (ตั้งค่าในหลังบ้าน)
+/* ขั้นค่าส่งตามยอดสั่งซื้อ (ชุดเดียวกับที่ server ใช้) — ใช้แสดงค่าส่งโดยประมาณในตะกร้า */
+const SHOP_CFG = (() => { try { return JSON.parse(document.getElementById('mdw-shop').textContent) || {}; } catch (e) { return {}; } })();
+const SHIP_TIERS = Array.isArray(SHOP_CFG.tiers) ? SHOP_CFG.tiers : [];
+const FREE_SHIP = typeof SHOP_CFG.freeShipMin === 'number' && SHOP_CFG.freeShipMin > 0 ? SHOP_CFG.freeShipMin : null;
+const tierFee = sub => SHIP_TIERS.reduce((fee, t) => sub >= t.min ? t.fee : fee, SHIP_TIERS[0] ? SHIP_TIERS[0].fee : 0);
+/* ส่ง event ให้ analytics.js (โหลดสคริปต์ภายนอกเฉพาะเมื่อลูกค้ายินยอม) */
+window.mdwTrack = window.mdwTrack || function(){ (window.mdwQ = window.mdwQ || []).push(arguments); };
 
 // ไอคอนเส้น (stroke) สำหรับแต่ละหมวด
 const ICONS = {
@@ -262,17 +269,73 @@ $('#drawerCats').addEventListener('click', e => {
    state: { productId: qty } — จำไว้ใน localStorage (ห่อ try/catch กันเบราว์เซอร์ที่ปิด storage)
    TODO: ย้าย state นี้ไป React (Context/Zustand) ตอนแยก component — server ตรวจราคาซ้ำตอนสั่งซื้อเสมอ
    ========================================================= */
-const CART_KEY = 'mdw_cart';
-function loadCart(){
+const CART_KEY = 'mdw_cart', SEEN_KEY = 'mdw_cart_seen';
+/* ตะกร้าดิบจากเครื่อง { slug: qty } — รวมสินค้าที่ไม่อยู่ในข้อมูลหน้าร้านแล้ว (ให้ server ตรวจและแจ้งลูกค้า) */
+function rawCart(){
   const raw = LS.json(CART_KEY), out = {};
   if (raw && typeof raw === 'object' && !Array.isArray(raw))
-    Object.keys(raw).forEach(id => { const q = Math.floor(Number(raw[id])); const p = byId(id); if (canBuy(p) && q > 0 && maxQty(p) > 0) out[id] = Math.min(q, maxQty(p)); });
+    Object.keys(raw).slice(0, 50).forEach(id => { const q = Math.floor(Number(raw[id])); if (q > 0) out[id] = Math.min(q, 999); });
   return out;
 }
+function loadCart(){
+  const raw = rawCart(), out = {};
+  Object.keys(raw).forEach(id => { const p = byId(id); if (canBuy(p) && maxQty(p) > 0) out[id] = Math.min(raw[id], maxQty(p)); });
+  return out;
+}
+let cartAtLoad = rawCart();
 let cart = loadCart();
+/* ราคาที่ลูกค้าเห็นตอนใส่ตะกร้า { slug: บาท } — ใช้แจ้งเมื่อราคาเปลี่ยน */
+const seenPrices = () => { const s = LS.json(SEEN_KEY); return s && typeof s === 'object' && !Array.isArray(s) ? s : {}; };
+function saveSeen(){ const old = seenPrices(), s = {}; Object.keys(cart).forEach(id => { const p = byId(id); s[id] = old[id] != null ? old[id] : p.price; }); LS.set(SEEN_KEY, JSON.stringify(s)); }
+let cartFlags = {};      // { slug: ข้อความแจ้งใต้รายการ } จากการตรวจครั้งล่าสุด
+let cartNotes = [];      // ข้อความสรุปด้านบนตะกร้า
+let validating = null, validatedAt = 0;
+
+/* U16: ตรวจตะกร้ากับ server — ราคาเปลี่ยน/ปิดขาย/ของหมด/สต็อกไม่พอ → ปรับให้และแจ้งลูกค้า */
+function validateCart(force){
+  const items = Object.assign({}, cartAtLoad || {}, cart);
+  if (!Object.keys(items).length){ cartAtLoad = null; return Promise.resolve(false); }
+  if (validating) return validating;
+  if (!force && Date.now() - validatedAt < 3000) return Promise.resolve(false);
+  const body = $('#cartBody'); body.setAttribute('aria-busy', 'true');
+  validating = fetch('/api/cart/validate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items, seen: seenPrices() }) })
+    .then(r => r.ok ? r.json() : null)
+    .then(res => {
+      if (!res || !Array.isArray(res.lines)) return false;
+      const next = {}, flags = {}, notes = [], seen = seenPrices();
+      res.lines.forEach(l => {
+        let p = byId(l.id);
+        if (l.status !== 'gone'){
+          // อัปเดตข้อมูลสินค้าในหน้าให้ตรงกับฐานข้อมูล (ตะกร้า, ป๊อปอัป, ปุ่มซื้อคู่กัน ใช้ชุดเดียวกัน)
+          if (!p){ p = { id: l.id, name: l.name, cat: '', catId: '', specs: [], use: [], color: l.color || 'any' }; CATALOG.push(p); }
+          p.name = l.name; p.price = l.price; p.inStock = l.status !== 'out' && l.status !== 'ask';
+          if (l.maxQty != null) p.maxQty = l.maxQty; else delete p.maxQty;
+          if (l.img) p.img = l.img;
+        }
+        const nm = l.name || (p && p.name) || 'สินค้า';
+        if (l.status === 'gone') notes.push(`นำ "${nm || 'สินค้าที่ปิดการขาย'}" ออกจากตะกร้า เพราะปิดการขายแล้ว`);
+        else if (l.status === 'out') notes.push(`นำ "${nm}" ออกจากตะกร้า เพราะสินค้าหมด`);
+        else if (l.status === 'ask') notes.push(`นำ "${nm}" ออกจากตะกร้า — สินค้านี้ต้องสอบถามราคาทาง LINE`);
+        else if (l.status === 'qty'){ notes.push(`"${nm}" เหลือ ${l.qty} ชิ้น ปรับจำนวนในตะกร้าให้แล้ว`); flags[l.id] = `ปรับเป็น ${l.qty} ชิ้นตามสต็อก`; }
+        else if (l.status === 'price'){ notes.push(`"${nm}" ราคาเปลี่ยนจาก ${baht(l.oldPrice)} เป็น ${baht(l.price)}`); flags[l.id] = `ราคาเดิม ${baht(l.oldPrice)}`; }
+        if (l.qty > 0){ next[l.id] = l.qty; seen[l.id] = l.price; } else delete seen[l.id];
+      });
+      cartAtLoad = null;
+      const changed = notes.length > 0 || JSON.stringify(next) !== JSON.stringify(cart);
+      cart = next; cartFlags = flags; cartNotes = notes;
+      LS.set(CART_KEY, JSON.stringify(cart)); LS.set(SEEN_KEY, JSON.stringify(seen));
+      renderCart();
+      if (notes.length && !cartEl.classList.contains('open')) toast(notes.length === 1 ? notes[0] : `ตะกร้ามีการเปลี่ยนแปลง ${notes.length} รายการ — เปิดตะกร้าเพื่อดูรายละเอียด`);
+      document.dispatchEvent(new CustomEvent('mdw:cart-validated', { detail: { changed, notes } }));
+      return changed;
+    })
+    .catch(() => false)
+    .finally(() => { validating = null; validatedAt = Date.now(); body.removeAttribute('aria-busy'); });
+  return validating;
+}
 
 const cartEl = document.getElementById('cart');
-const saveCart = () => LS.set(CART_KEY, JSON.stringify(cart));
+const saveCart = () => { LS.set(CART_KEY, JSON.stringify(cart)); saveSeen(); };
 const cartQty = () => Object.values(cart).reduce((a,b) => a + b, 0);
 const cartSum = () => Object.entries(cart).reduce((s,[id,q]) => s + byId(id).price * q, 0);
 const capCount = n => n > 99 ? '99+' : String(n);
@@ -289,12 +352,14 @@ function addToCart(id, qty = 1, mode = 'open'){ // mode: open | toast | silent
   saveCart(); renderCart();
   ['cartCount', 'fabCount'].forEach(k => { const c = document.getElementById(k); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); });
   if (mode === 'open') openCart(); else if (mode === 'toast') toast('เพิ่ม "' + byId(id).name + '" ลงตะกร้าแล้ว');
+  window.mdwTrack('add_to_cart', { value: p.price * qty, items: [{ id: p.id, name: p.name, price: p.price, qty }] });
   return true;
 }
 function setQty(id, q){
   const p = byId(id);
   if (p && q > maxQty(p)) toast(`"${p.name}" มีสินค้าเหลือ ${maxQty(p)} ชิ้น`);
   if (q <= 0 || !p) delete cart[id]; else cart[id] = Math.min(q, maxQty(p));
+  delete cartFlags[id];
   saveCart(); renderCart();
 }
 function renderBadges(){
@@ -311,7 +376,21 @@ function renderCart(){
   const n = cartQty();
   renderBadges();
   document.getElementById('cartHeadCount').textContent = n ? `(${n} ชิ้น)` : '';
-  document.getElementById('cartTotal').textContent = baht(cartSum());
+  const sum = cartSum(), fee = n ? tierFee(sum) : 0;
+  document.getElementById('cartTotal').textContent = baht(sum);
+  document.getElementById('cartShip').innerHTML = !SHIP_TIERS.length ? 'คำนวณตอนชำระเงิน' : fee === 0 ? '<span class="free">ส่งฟรี</span>' : baht(fee);
+  document.getElementById('cartGrand').textContent = baht(sum + fee);
+  const bar = document.getElementById('cartShipBar');
+  bar.hidden = !n || !FREE_SHIP;
+  if (n && FREE_SHIP){
+    const left = Math.max(0, Math.round((FREE_SHIP - sum) * 100) / 100), pct = Math.min(100, sum / FREE_SHIP * 100);
+    bar.classList.toggle('done', left <= 0);
+    bar.innerHTML = (left > 0 ? `ซื้อเพิ่มอีก <b>${baht(left)}</b> รับสิทธิ์ส่งฟรี` : '<b>ยอดนี้ได้รับสิทธิ์ส่งฟรี</b>')
+      + `<span class="bar" role="progressbar" aria-label="ความคืบหน้าสู่ส่งฟรี" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><i style="width:${pct.toFixed(1)}%"></i></span>`;
+  }
+  const note = document.getElementById('cartNotice');
+  note.hidden = !cartNotes.length;
+  note.innerHTML = cartNotes.length ? `<b>ตะกร้าอัปเดตตามข้อมูลล่าสุดของร้าน</b><ul>${cartNotes.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : '';
   document.getElementById('cartFoot').style.display = n ? '' : 'none';
   const body = document.getElementById('cartBody');
   if (!n){
@@ -324,7 +403,7 @@ function renderCart(){
       <a class="ci-thumb" href="/product/${encodeURIComponent(p.id)}" tabindex="-1" aria-hidden="true">${thumb(p)}</a>
       <div>
         <div class="ci-name"><a href="/product/${encodeURIComponent(p.id)}">${esc(p.name)}</a></div>
-        <div class="ci-unit">${baht(p.price)} / ชิ้น</div>
+        <div class="ci-unit">${baht(p.price)} / ชิ้น</div>${cartFlags[id] ? `<div class="ci-flag">${esc(cartFlags[id])}</div>` : ''}
         <div class="qty">
           <button data-qty="${esc(id)}" data-d="-1" aria-label="ลดจำนวน ${esc(p.name)}">−</button>
           <span aria-label="จำนวน">${q}</span>
@@ -358,6 +437,7 @@ function trapFocus(container, e){
 let cartReturn = null;
 function openCart(from){
   renderCart(); CartPop.hide(); Mega.close();
+  validateCart(); // U16: ตรวจราคา/สต็อกล่าสุดทุกครั้งที่เปิดตะกร้า
   cartReturn = (from && from.focus) ? from : document.activeElement;
   cartEl.classList.add('open'); cartEl.setAttribute('aria-hidden','false'); document.body.classList.add('locked');
   setTimeout(() => { const b = $('.cart-head [data-cart-close]'); b && b.focus({ preventScroll: true }); }, 30);
@@ -380,7 +460,14 @@ cartEl.addEventListener('click', e => {
   if (u){ addToCart(u.dataset.up, 1, 'silent'); return; }
   if (e.target.closest('[data-cart-close]')) closeCart();
 });
-document.getElementById('checkoutBtn').onclick = () => { location.href = '/checkout'; };
+document.getElementById('checkoutBtn').onclick = async e => {
+  const b = e.currentTarget; b.disabled = true;
+  const changed = await validateCart(true);
+  b.disabled = false;
+  // ตะกร้าเปลี่ยน (ราคา/สต็อก) → ให้ลูกค้าเห็นข้อความก่อน แล้วค่อยกดสั่งซื้ออีกครั้ง
+  if (changed || !cartQty()){ const n = $('#cartNotice'); if (!n.hidden){ n.tabIndex = -1; n.focus(); } return; }
+  location.href = '/checkout';
+};
 
 // ปุ่ม "ใส่ตะกร้า" — ยืนยันด้วยสถานะ ✓ เพิ่มแล้ว (U23) + เปิดตะกร้า
 document.addEventListener('click', e => {
@@ -562,28 +649,26 @@ addEventListener('keydown', e => {
    ANNOUNCEMENT BAR (U22)
    ========================================================= */
 (() => {
-  const bar = $('#topbar'), host = $('#tbMsgs'), KEY = 'mdw_topbar_closed', VER = 'v1';
-  if (LS.get(KEY) === VER){ bar.remove(); document.documentElement.style.setProperty('--tb-h','0px'); return; }
-  // ยอดส่งฟรีจากตั้งค่าร้าน (บาท) — null = ไม่มีโปร
-  const v = MDW_DATA.settings ? MDW_DATA.settings.freeShipMin : null;
-  const free = typeof v === 'number' && v > 0 ? v : 0;
-  const msgs = ['สั่งวันนี้ <b>รับสินค้าภายใน 2–3 วัน</b> · ชำระเงินด้วยการโอนและแนบสลิป'];
-  if (free > 0) msgs.push(`<b>ส่งฟรี</b> เมื่อซื้อครบ ${baht(free)}`);
-  msgs.push('ไม่แน่ใจว่ารุ่นไหน? <a href="/#finder">ให้เราช่วยเลือก</a> หรือปรึกษาทาง LINE ฟรี');
-  host.innerHTML = msgs.map((m, i) => `<p class="tb-msg${i ? '' : ' on'}" ${i ? 'aria-hidden="true"' : ''}><span>${m}</span></p>`).join('');
+  const bar = $('#topbar'), KEY = 'mdw_topbar_closed';
+  const hide = () => { document.documentElement.style.setProperty('--tb-h', '0px'); };
+  // ร้านปิดแถบประกาศในหลังบ้าน → server ไม่ส่งแถบมาเลย
+  if (!bar){ hide(); return; }
+  const VER = bar.dataset.ver || 'v1', host = $('#tbMsgs');
+  // ลูกค้าปิดข้อความนี้ไปแล้ว — เห็นใหม่เมื่อร้านเปลี่ยนข้อความ
+  if (LS.get(KEY) === VER){ bar.remove(); hide(); return; }
   let i = 0, paused = false;
   bar.addEventListener('pointerenter', () => paused = true);
   bar.addEventListener('pointerleave', () => paused = false);
   bar.addEventListener('focusin', () => paused = true);
   bar.addEventListener('focusout', () => paused = false);
-  const timer = setInterval(() => {
+  const els = $$('.tb-msg', host);
+  const timer = els.length > 1 ? setInterval(() => {
     if (paused || document.hidden) return;
-    const els = $$('.tb-msg', host);
     els[i].classList.remove('on'); els[i].setAttribute('aria-hidden', 'true');
     i = (i + 1) % els.length;
     els[i].classList.add('on'); els[i].removeAttribute('aria-hidden');
-  }, 5000);
-  $('#tbClose').addEventListener('click', () => { clearInterval(timer); LS.set(KEY, VER); bar.remove(); document.documentElement.style.setProperty('--tb-h','0px'); window.mdwLayoutSync && window.mdwLayoutSync(); $('#logoLink').focus(); });
+  }, 5000) : 0;
+  $('#tbClose').addEventListener('click', () => { clearInterval(timer); LS.set(KEY, VER); bar.remove(); hide(); window.mdwLayoutSync && window.mdwLayoutSync(); $('#logoLink').focus(); });
 })();
 
 /* =========================================================
@@ -618,6 +703,7 @@ addEventListener('keydown', e => {
   function save(analytics, marketing){
     LS.set(KEY, JSON.stringify({ v: 1, necessary: true, analytics, marketing, at: new Date().toISOString() }));
     el.hidden = true; sync(); ro && ro.unobserve(el);
+    document.dispatchEvent(new Event('mdw:consent')); // analytics.js โหลด/หยุดสคริปต์ตามที่เลือก
     toast('บันทึกการตั้งค่าคุกกี้แล้ว');
   }
   if (!saved || saved.v !== 1) openBanner(false);
@@ -631,6 +717,16 @@ addEventListener('keydown', e => {
 addEventListener('storage', e => {
   if (e.key === null || e.key === CART_KEY){ cart = loadCart(); renderCart(); }
 });
+/* ตรวจตะกร้ากับ server ตั้งแต่เปิดหน้า (ป้ายจำนวน/ยอดถูกต้องเสมอ) */
+if (Object.keys(cartAtLoad || {}).length) setTimeout(() => validateCart(true), 400);
+/* หน้าสินค้า → event view_item (ส่งจริงเมื่อยินยอมคุกกี้วิเคราะห์/การตลาดเท่านั้น) */
+(() => {
+  const m = /^\/product\/([^/?#]+)/.exec(location.pathname);
+  if (!m) return;
+  let slug = m[1]; try { slug = decodeURIComponent(slug); } catch (e) {}
+  const p = byId(slug);
+  if (p) window.mdwTrack('view_item', { value: p.price, items: [{ id: p.id, name: p.name, price: p.price, qty: 1 }] });
+})();
 
 
 /* ---------- Reveal on scroll (เรียกซ้ำได้หลังสร้าง element ใหม่) ---------- */

@@ -3,7 +3,10 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { bankLabel, getSettings, parseBankAccounts, parseShippingTiers, shippingFee, shippingOptions } from "@/lib/settings";
+import { isValidThaiTaxId, phoneDigits } from "@/lib/format";
+import { mediaUrl } from "@/lib/media";
+import { bankLabel, freeShipFrom, getSettings, parseBankAccounts, parseShippingTiers, shippingFee, shippingOptions } from "@/lib/settings";
+import { PROVINCE_ZIP, isThaiPhone, normalizeProvince, zipMatchesProvince } from "@/lib/thai-address";
 import { sniffImage, storage } from "@/lib/storage";
 
 export const SLIP_MAX_BYTES = 5 * 1024 * 1024;
@@ -21,6 +24,72 @@ export async function getCheckoutConfig() {
     expressExtraSatang: s.expressEnabled ? s.expressExtraSatang : 0,
     checkWithin: s.slipCheckWithin,
     line: s.lineOaUrl && /^https?:\/\/\S+$/i.test(s.lineOaUrl) ? s.lineOaUrl : null,
+    provinces: PROVINCE_ZIP,
+  };
+}
+
+// ---------- ตรวจตะกร้ากับฐานข้อมูล (POST /api/cart/validate) ----------
+
+export type CartLine = {
+  id: string; // slug
+  name: string;
+  price: number; // บาท (ราคาปัจจุบัน)
+  qty: number; // จำนวนหลังปรับ (0 = ต้องนำออก)
+  wanted: number; // จำนวนที่ลูกค้าใส่มา
+  maxQty: number | null; // นับสต็อก = จำนวนคงเหลือ
+  img?: string;
+  color: string;
+  acc?: boolean;
+  kit?: boolean;
+  /** ok | price (ราคาเปลี่ยน) | qty (สต็อกไม่พอ ลดจำนวนให้) | out (ของหมด) | ask (ต้องสอบถามราคา) | gone (ปิดขาย/ไม่พบ) */
+  status: "ok" | "price" | "qty" | "out" | "ask" | "gone";
+  oldPrice?: number;
+};
+
+const SLUG_RE = /^[\w\u0E00-\u0E7F%.-]{1,120}$/;
+
+/** ราคา/สต็อกปัจจุบันของสินค้าในตะกร้า + ค่าส่งโดยประมาณตามขั้นค่าส่งจริง (ส่งธรรมดา) */
+export async function validateCart(items: unknown, seenPrices: unknown) {
+  const raw = items && typeof items === "object" && !Array.isArray(items) ? (items as Record<string, unknown>) : {};
+  const seen = seenPrices && typeof seenPrices === "object" && !Array.isArray(seenPrices) ? (seenPrices as Record<string, unknown>) : {};
+  const wanted = Object.entries(raw)
+    .map(([slug, q]) => [slug, Math.min(Math.max(0, Math.floor(Number(q) || 0)), MAX_QTY)] as const)
+    .filter(([slug, q]) => SLUG_RE.test(slug) && q > 0)
+    .slice(0, 50);
+  const products = wanted.length
+    ? await prisma.product.findMany({
+        where: { slug: { in: wanted.map(([s]) => s) } },
+        include: { category: { select: { isActive: true } } },
+      })
+    : [];
+  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  const lines: CartLine[] = wanted.map(([slug, qty]) => {
+    const p = bySlug.get(slug);
+    if (!p || !p.isActive || p.isService || !p.category.isActive)
+      return { id: slug, name: p?.name ?? "", price: 0, qty: 0, wanted: qty, maxQty: 0, color: "any", status: "gone" };
+    const price = p.priceSatang / 100;
+    const img = mediaUrl(p.images[0], "sm") ?? undefined;
+    const base = {
+      id: slug, name: p.name, price, wanted: qty, maxQty: p.trackStock ? Math.max(0, p.stock) : null, color: p.lightColor.toLowerCase(),
+      ...(img ? { img } : {}), ...(p.isAccessory ? { acc: true } : {}), ...(p.includesPsu ? { kit: true } : {}),
+    };
+    if (p.priceSatang <= 0) return { ...base, qty: 0, status: "ask" };
+    if (p.trackStock ? p.stock <= 0 : !p.inStock) return { ...base, qty: 0, status: "out" };
+    if (p.trackStock && p.stock < qty) return { ...base, qty: p.stock, status: "qty" };
+    const old = Number(seen[slug]);
+    if (Number.isFinite(old) && old > 0 && Math.round(old * 100) !== p.priceSatang) return { ...base, qty, status: "price", oldPrice: old };
+    return { ...base, qty, status: "ok" };
+  });
+  const s = await getSettings();
+  const subtotalSatang = lines.reduce((sum, l) => sum + Math.round(l.price * 100) * l.qty, 0);
+  const tiers = parseShippingTiers(s.shippingTiers);
+  const free = freeShipFrom(tiers);
+  return {
+    lines,
+    subtotal: subtotalSatang / 100,
+    shipping: subtotalSatang > 0 ? shippingFee(s, "std", subtotalSatang) / 100 : 0,
+    freeShipFrom: free != null ? free / 100 : null,
+    tiers: tiers.map((t) => ({ min: t.minSatang / 100, fee: t.feeSatang / 100 })),
   };
 }
 
@@ -30,30 +99,89 @@ export type AddressInput = {
   name: string; phone: string; email: string; addr: string; sub: string; dist: string; prov: string; zip: string; note: string;
 };
 
-const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
-export { formatPhone, phoneDigits } from "@/lib/format";
-import { phoneDigits } from "@/lib/format";
+/** ขอใบกำกับภาษี/ใบเสร็จในนามบริษัทหรือบุคคล — เก็บใน Order.taxInvoice */
+export type TaxInvoiceRequest = { kind: "COMPANY" | "PERSON"; name: string; taxId: string; branch: string; address: string };
 
-/** กฎเดียวกับฟอร์มในต้นแบบ — คืนชื่อช่องที่ไม่ผ่าน */
-export function validateAddress(raw: Record<string, unknown>): { ok: true; value: AddressInput } | { ok: false; fields: string[] } {
+const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().replace(/\s+/g, " ").slice(0, max) : "");
+export { formatPhone, phoneDigits } from "@/lib/format";
+
+/** ข้อความผิดของแต่ละช่อง (ภาษาไทย) — หน้าชำระเงินแสดงใต้ช่องนั้น */
+export const FIELD_MESSAGES: Record<string, string> = {
+  name: "กรุณากรอกชื่อ-นามสกุลผู้รับ",
+  phone: "เบอร์โทรไม่ถูกต้อง — มือถือ 10 หลัก (เช่น 081-234-5678) หรือเบอร์บ้าน 9 หลัก (เช่น 02-123-4567)",
+  email: "รูปแบบอีเมลไม่ถูกต้อง",
+  addr: "กรุณากรอกบ้านเลขที่ และถนน/ซอย",
+  sub: "กรุณากรอกแขวง/ตำบล",
+  dist: "กรุณากรอกเขต/อำเภอ",
+  prov: "กรุณาเลือกจังหวัดจากรายการ",
+  zip: "รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก",
+  zipProv: "รหัสไปรษณีย์ไม่ตรงกับจังหวัดที่เลือก",
+  tiName: "กรุณากรอกชื่อบริษัท หรือชื่อ-นามสกุลสำหรับออกใบกำกับภาษี",
+  tiTaxId: "เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง (13 หลัก)",
+  tiBranch: "กรุณาระบุสาขา เช่น สำนักงานใหญ่ หรือรหัสสาขา 5 หลัก",
+  tiAddr: "กรุณากรอกที่อยู่สำหรับออกใบกำกับภาษี",
+};
+
+type Invalid = { ok: false; fields: string[]; messages: Record<string, string> };
+
+/** ตรวจที่อยู่จัดส่ง — คืนชื่อช่องที่ไม่ผ่าน พร้อมข้อความภาษาไทย */
+export function validateAddress(raw: Record<string, unknown>): { ok: true; value: AddressInput } | Invalid {
   const v: AddressInput = {
     name: text(raw.name, 120), phone: text(raw.phone, 20), email: text(raw.email, 160), addr: text(raw.addr, 300),
-    sub: text(raw.sub, 120), dist: text(raw.dist, 120), prov: text(raw.prov, 120), zip: text(raw.zip, 5), note: text(raw.note, 500),
+    sub: text(raw.sub, 120), dist: text(raw.dist, 120), prov: text(raw.prov, 120), zip: text(raw.zip, 5),
+    note: typeof raw.note === "string" ? raw.note.trim().slice(0, 500) : "",
   };
-  const bad: string[] = [];
-  if (v.name.length < 2) bad.push("name");
-  if (!/^0\d{9}$/.test(phoneDigits(v.phone))) bad.push("phone");
-  if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) bad.push("email");
-  if (v.addr.length < 3) bad.push("addr");
-  if (v.sub.length < 2) bad.push("sub");
-  if (v.dist.length < 2) bad.push("dist");
-  if (v.prov.length < 2) bad.push("prov");
-  if (!/^\d{5}$/.test(v.zip)) bad.push("zip");
-  return bad.length ? { ok: false, fields: bad } : { ok: true, value: v };
+  const messages: Record<string, string> = {};
+  const bad = (f: string, key = f) => (messages[f] = FIELD_MESSAGES[key]);
+  if (v.name.length < 2) bad("name");
+  if (!isThaiPhone(phoneDigits(v.phone))) bad("phone");
+  if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) bad("email");
+  if (v.addr.length < 3) bad("addr");
+  if (v.sub.length < 2) bad("sub");
+  if (v.dist.length < 2) bad("dist");
+  const prov = normalizeProvince(v.prov);
+  if (!prov) bad("prov");
+  else v.prov = prov;
+  if (!/^\d{5}$/.test(v.zip)) bad("zip");
+  else if (prov && !zipMatchesProvince(v.zip, prov)) bad("zip", "zipProv");
+  const fields = Object.keys(messages);
+  return fields.length ? { ok: false, fields, messages } : { ok: true, value: v };
+}
+
+/** ตรวจคำขอใบกำกับภาษี — null = ไม่ขอ */
+export function validateTaxInvoice(raw: unknown): { ok: true; value: TaxInvoiceRequest | null } | Invalid {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: true, value: null };
+  const r = raw as Record<string, unknown>;
+  const kind = r.kind === "PERSON" ? "PERSON" : "COMPANY";
+  const branchRaw = text(r.branch, 60);
+  const v: TaxInvoiceRequest = {
+    kind,
+    name: text(r.name, 160),
+    taxId: phoneDigits(text(r.taxId, 20)),
+    // บุคคลธรรมดาไม่มีสาขา · บริษัท: "สำนักงานใหญ่" หรือ "สาขาที่ 00001"
+    branch: kind === "PERSON" ? "" : /^\d{1,5}$/.test(branchRaw) ? `สาขาที่ ${branchRaw.padStart(5, "0")}` : branchRaw || "สำนักงานใหญ่",
+    address: typeof r.address === "string" ? r.address.trim().replace(/\s+/g, " ").slice(0, 400) : "",
+  };
+  const messages: Record<string, string> = {};
+  if (v.name.length < 2) messages.tiName = FIELD_MESSAGES.tiName;
+  if (!isValidThaiTaxId(v.taxId)) messages.tiTaxId = FIELD_MESSAGES.tiTaxId;
+  if (kind === "COMPANY" && v.branch.length < 3) messages.tiBranch = FIELD_MESSAGES.tiBranch;
+  if (v.address.length < 10) messages.tiAddr = FIELD_MESSAGES.tiAddr;
+  const fields = Object.keys(messages);
+  return fields.length ? { ok: false, fields, messages } : { ok: true, value: v };
+}
+
+/** อ่าน Order.taxInvoice กลับเป็นข้อมูลที่ใช้ได้ (หลังบ้าน/ออกใบเสร็จ) — null = ลูกค้าไม่ได้ขอ */
+export function parseTaxInvoice(v: unknown): TaxInvoiceRequest | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const r = v as Record<string, unknown>;
+  const s = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : "");
+  if (!s("name") || !s("taxId")) return null;
+  return { kind: r.kind === "PERSON" ? "PERSON" : "COMPANY", name: s("name"), taxId: s("taxId"), branch: s("branch"), address: s("address") };
 }
 
 export class OrderError extends Error {
-  constructor(message: string, readonly status = 400, readonly fields?: string[]) {
+  constructor(message: string, readonly status = 400, readonly fields?: string[], readonly messages?: Record<string, string>) {
     super(message);
   }
 }
@@ -81,10 +209,16 @@ export async function saveCheckoutOrder(input: {
   items: unknown;
   shipping: unknown;
   address: Record<string, unknown>;
+  taxInvoice?: unknown;
   orderNo?: unknown;
 }): Promise<OrderSummary> {
   const addr = validateAddress(input.address);
-  if (!addr.ok) throw new OrderError("กรุณากรอกข้อมูลให้ครบถ้วน", 400, addr.fields);
+  const ti = validateTaxInvoice(input.taxInvoice);
+  if (!addr.ok || !ti.ok) {
+    const fields = [...(addr.ok ? [] : addr.fields), ...(ti.ok ? [] : ti.fields)];
+    const messages = { ...(addr.ok ? {} : addr.messages), ...(ti.ok ? {} : ti.messages) };
+    throw new OrderError(messages[fields[0]] ?? "กรุณากรอกข้อมูลให้ครบถ้วน", 400, fields, messages);
+  }
 
   // ตะกร้า: { slug: qty } → ดึงราคาปัจจุบันจากฐานข้อมูล
   const raw = input.items && typeof input.items === "object" && !Array.isArray(input.items) ? (input.items as Record<string, unknown>) : {};
@@ -123,6 +257,7 @@ export async function saveCheckoutOrder(input: {
     customerName: a.name, phone: phoneDigits(a.phone), email: a.email || null, addressLine: a.addr, subdistrict: a.sub,
     district: a.dist, province: a.prov, postalCode: a.zip, note: a.note || null,
     subtotalSatang, shippingMethod: ship.id, shippingName: ship.name, shippingSatang, totalSatang,
+    taxInvoice: ti.value ?? Prisma.DbNull,
   };
   const summary = (orderNo: string): OrderSummary => ({ orderNo, subtotalSatang, shippingSatang, totalSatang, shippingName: ship.name });
 
