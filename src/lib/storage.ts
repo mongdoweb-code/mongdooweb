@@ -1,6 +1,8 @@
 // ที่เก็บไฟล์ (สลิป รูปสไลด์ รูปสินค้า โลโก้) — เลือกด้วย STORAGE_DRIVER=local|s3
-// ตอนนี้ใช้ local: เก็บในโฟลเดอร์ UPLOAD_DIR บนเซิร์ฟเวอร์ (ค่าเริ่มต้น ./uploads)
+// local: โฟลเดอร์ UPLOAD_DIR บนเซิร์ฟเวอร์ (ค่าเริ่มต้น ./uploads — บน Railway ให้ชี้ไปที่ volume)
+// s3: S3 หรือบริการที่เข้ากันได้ (Railway Bucket, Cloudflare R2, AWS S3) — bucket ต้องเป็นแบบ private
 // ไฟล์ไม่ได้อยู่ใน public/ — สลิปเปิดได้ผ่าน route ที่ตรวจสิทธิ์แอดมินเท่านั้น
+import { GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 
@@ -37,13 +39,52 @@ function localDriver(root: string): StorageDriver {
   };
 }
 
+const checkKey = (key: string) => {
+  if (!SAFE_KEY.test(key) || key.includes("..")) throw new Error(`storage key ไม่ถูกต้อง: ${key}`);
+  return key;
+};
+
+/** S3 / R2 / Railway Bucket — ค่าจาก env: S3_BUCKET, S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY */
+function s3Driver(): StorageDriver {
+  const env = (k: string) => process.env[k]?.trim() ?? "";
+  const bucket = env("S3_BUCKET");
+  if (!bucket || !env("S3_ACCESS_KEY_ID") || !env("S3_SECRET_ACCESS_KEY")) throw new Error("STORAGE_DRIVER=s3 ต้องตั้ง S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY");
+  const prefix = env("S3_PREFIX").replace(/^\/+|\/+$/g, "");
+  const client = new S3Client({
+    region: env("S3_REGION") || "auto",
+    endpoint: env("S3_ENDPOINT") || undefined,
+    // บริการที่ไม่ใช่ AWS ส่วนใหญ่ใช้ URL แบบ path (https://endpoint/bucket/key)
+    forcePathStyle: env("S3_FORCE_PATH_STYLE") ? env("S3_FORCE_PATH_STYLE") === "true" : !!env("S3_ENDPOINT"),
+    credentials: { accessKeyId: env("S3_ACCESS_KEY_ID"), secretAccessKey: env("S3_SECRET_ACCESS_KEY") },
+  });
+  const full = (key: string) => (prefix ? `${prefix}/${checkKey(key)}` : checkKey(key));
+  return {
+    async put(key, data) {
+      // ชื่อไฟล์มีเวลา/ค่าสุ่มอยู่แล้ว จึงไม่ชนกัน
+      await client.send(new PutObjectCommand({ Bucket: bucket, Key: full(key), Body: data, ContentType: mimeOf(key) }));
+    },
+    async get(key) {
+      try {
+        const r = await client.send(new GetObjectCommand({ Bucket: bucket, Key: full(key) }));
+        return r.Body ? Buffer.from(await r.Body.transformToByteArray()) : null;
+      } catch (e) {
+        if (e instanceof NoSuchKey || (e as { name?: string }).name === "NoSuchKey" || (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404) return null;
+        throw e;
+      }
+    },
+  };
+}
+
+const MIME: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", json: "application/json" };
+const mimeOf = (key: string) => MIME[key.split(".").pop()!.toLowerCase()] ?? "application/octet-stream";
+
 let driver: StorageDriver | undefined;
 
 export function storage(): StorageDriver {
   if (driver) return driver;
   const kind = process.env.STORAGE_DRIVER ?? "local";
   if (kind === "local") return (driver = localDriver(process.env.UPLOAD_DIR ?? "uploads"));
-  // TODO: STORAGE_DRIVER=s3 (S3 / Cloudflare R2) เมื่อย้ายไปเก็บบนคลาวด์
+  if (kind === "s3") return (driver = s3Driver());
   throw new Error(`ยังไม่รองรับ STORAGE_DRIVER=${kind}`);
 }
 

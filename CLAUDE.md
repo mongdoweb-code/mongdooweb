@@ -15,7 +15,7 @@ Live site today: WordPress/WooCommerce at mongdoweb.com (มองดูเว�
   `.env` is NOT auto-loaded (`import "dotenv/config"`). Example `src/lib/prisma.ts` is in the comment at the end of `prisma.config.ts`.
 - Admin at `/admin/login`, credentials auth (hashed passwords, httpOnly session cookie, server-side login throttling).
 - **No payment gateway**: customers transfer money / scan PromptPay QR and upload a slip; admin verifies.
-- Storage abstraction `STORAGE_DRIVER=local|s3` for slips, slide images, product images, logo.
+- Storage abstraction `STORAGE_DRIVER=local|s3` for slips, slide images, product images, logo (both implemented).
 - Notifications via LINE Messaging API (LINE Notify is discontinued).
 
 ## What's in this folder
@@ -66,6 +66,7 @@ Rules that must move to the server (the prototype only simulates them):
 - Step 4 + 5 done: shop info from the owner (phone 080-884-9597, LINE @mongdoweb, KBANK 4982105000 / SCB 0852358798) in `ShopSetting` (bank accounts + shipping tiers by order value are JSON; `src/lib/settings.ts`); `npm run import:woo` imports 179 real products + images from `data/woocommerce/*.csv` (variations become separate products, non-LED categories hidden from the home menu); old Thai URLs 301 via `src/proxy.ts` → `/api/legacy-product` and `/product-category/[...path]`. Admin: products, categories (+rollback), slides (+upload, focal point, schedule, rollback), settings, activity log (`/admin/log`).
 - Sales documents (spec `docs/SPEC_SALES_DOCS.md`): `/admin/docs/{QUOTATION|INVOICE|RECEIPT}` list/view/`[id]/edit` (`new/edit` creates), `/admin/customers`, actions in `docs/actions.ts`. Pure calc/render in `src/lib/doc-calc.ts` + `doc-render.ts` (shared by server and the live editor preview; client pagination in `_components/DocSheets.tsx`); DB logic in `src/lib/docs.ts` (`allocDocNo` = atomic `INSERT … ON CONFLICT DO UPDATE next+1` on `DocSequence`). Payment on an IV creates `DocPayment` + an issued RC in one transaction (full = copy lines, partial = one "งวดที่ n" line, inclusive VAT); voiding an RC sets `DocPayment.voided` and lowers the IV's paid amount. Print pages `/admin/print/doc/:id` (`?both=1&auto=1`) and `/admin/print/labels` (`?orders=…|status=PAID|doc=…&size=A6|A4&boxes&cod&marks&items`). Web order drawer: issue RC / draft IV + labels. `npm run test:unit` = bahtText 23 cases + VAT/taxId/PromptPay.
 - Step 6 (part) LINE: shop-only notifications via Messaging API (`src/lib/line.ts`, env `LINE_CHANNEL_ACCESS_TOKEN` / `LINE_CHANNEL_SECRET`, never in DB). Slip upload → `after()` pushes a text to every enabled `LineRecipient` (order no., amount vs slip, duplicate/diff warnings, queue size, admin link). Webhook `/api/line/webhook` (HMAC signature check) registers a group when the OA joins it, or a user who types "ลงทะเบียนแจ้งเตือน" — always disabled until an OWNER enables it at `/admin/line` (status, quota, test message, setup guide). `LINE_API_BASE` exists only for tests against a mock server. Customer-facing LINE messages: not built (owner chose shop-only).
+- Deploy-ready (Railway, guide `docs/DEPLOY.md`): `railway.json` (build `scripts/railway-build.sh` = migrate deploy with `DATABASE_PUBLIC_URL` → `scripts/seed-if-empty.ts` → next build; start `npm start`; health check `/api/health`). Storage: `STORAGE_DRIVER=local` on a volume (`UPLOAD_DIR=/data/uploads`) or `s3` (`S3_*` env, S3/R2/Railway Bucket, implemented in `src/lib/storage.ts`). `prisma`, `tsx`, `csv-parse` are runtime dependencies (build + one-off `npm run import:woo` in the container). Run 1 replica (in-memory rate limits).
 - Owner still to confirm: PromptPay ID (empty → no QR), bank account holder names (empty), shipping tier thresholds (placeholder: <1,000 ฿60 · <3,000 ฿100 · <5,000 ฿150 · <10,000 ฿250 · <20,000 ฿360 · ≥20,000 free), seller tax ID, a strong admin password.
 - Next.js 16 differs from older versions — read `node_modules/next/dist/docs/` before using an API (see `AGENTS.md`).
 - Checks: `npm run typecheck && npm run lint && npm run test:unit && npm run build`.
@@ -80,7 +81,7 @@ Rules that must move to the server (the prototype only simulates them):
 
 ## Still placeholders (owner must supply)
 PromptPay ID, bank account holder names, shipping tier thresholds (owner gave only the fees 60/100/150/250/360),
-seller tax ID, privacy policy / warranty text (drafts), domain & hosting choice, enabling Messaging API on LINE OA @mongdoweb (token + secret into `.env`).
+seller tax ID, privacy policy / warranty text (drafts), go-ahead to deploy on Railway (recommended; account mongdoweb-code already has a "Mongdoweb.com" project) + DNS switch, enabling Messaging API on LINE OA @mongdoweb (token + secret into `.env`).
 
 ## Running the prototype tests
 ```bash
