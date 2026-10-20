@@ -1,12 +1,14 @@
 // หน้ารายละเอียดสินค้า — รูป, ราคา/ราคาก่อนลด, สต็อก, สเปก, คำอธิบาย, สินค้าที่เกี่ยวข้อง
-// URL เดิมของเว็บ WooCommerce (/product/ชื่อภาษาไทย) redirect 301 มาหน้าใหม่
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { htmlToText } from "@/lib/html";
-import { findByLegacyPath, getProductDetail, getShopData, jsonForScript } from "@/lib/storefront";
+import { getProductDetail, getShopData, jsonForScript } from "@/lib/storefront";
 import { PageHead } from "../../_components/PageHead";
 import { ProductGrid, formatBaht } from "../../_components/ProductCard";
 import { BuyBox, Gallery } from "./ProductBuy";
+
+// สินค้า/หมวดที่เพิ่มใหม่หลัง build (ไม่อยู่ใน generateStaticParams) ให้ render ตอนเปิดหน้าได้
+export const instant = false;
 
 export async function generateStaticParams() {
   const { catalog } = await getShopData();
@@ -36,11 +38,8 @@ export async function generateMetadata({ params }: PageProps<"/product/[slug]">)
 export default async function ProductPage({ params }: PageProps<"/product/[slug]">) {
   const slug = decode((await params).slug);
   const p = await getProductDetail(slug);
-  if (!p) {
-    const moved = await findByLegacyPath(`/product/${slug}`);
-    if (moved) permanentRedirect(`/product/${encodeURIComponent(moved)}`);
-    notFound();
-  }
+  // URL เดิมของเว็บ WooCommerce ถูก redirect ที่ src/proxy.ts ก่อนถึงหน้านี้แล้ว
+  if (!p) notFound();
   const { catalog } = await getShopData();
   // สินค้าในหมวดเดียวกัน (ไม่รวมตัวเอง) สูงสุด 4 ชิ้น
   const related = catalog.filter((x) => x.id !== p.slug && x.catId === p.category.slug).slice(0, 4);

@@ -10,3 +10,11 @@ export const formatPhone = (s: string) => {
 /** สตางค์ → "฿1,234" / "฿1,234.50" */
 export const bahtText = (satang: number) =>
   "฿" + (satang / 100).toLocaleString("th-TH", { minimumFractionDigits: satang % 100 ? 2 : 0, maximumFractionDigits: 2 });
+
+/** ตรวจเลขประจำตัวผู้เสียภาษี/บัตรประชาชน 13 หลัก (checksum หลักสุดท้าย) */
+export function isValidThaiTaxId(id: string) {
+  const d = id.replace(/\D/g, "");
+  if (d.length !== 13) return false;
+  const sum = [...d.slice(0, 12)].reduce((s, c, i) => s + Number(c) * (13 - i), 0);
+  return (11 - (sum % 11)) % 10 === Number(d[12]);
+}

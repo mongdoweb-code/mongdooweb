@@ -6,6 +6,9 @@ import { getCategory, getShopData } from "@/lib/storefront";
 import { PageHead } from "../../_components/PageHead";
 import { ListingFallback, ProductListing } from "../../_components/ProductListing";
 
+// สินค้า/หมวดที่เพิ่มใหม่หลัง build (ไม่อยู่ใน generateStaticParams) ให้ render ตอนเปิดหน้าได้
+export const instant = false;
+
 export async function generateStaticParams() {
   const { categories } = await getShopData();
   return categories.map((c) => ({ slug: c.slug }));

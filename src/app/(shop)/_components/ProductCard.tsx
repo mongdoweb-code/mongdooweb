@@ -1,7 +1,7 @@
 // การ์ดสินค้า — markup เดียวกับ "สินค้าขายดี" ในหน้าแรก (ปุ่ม data-add ทำงานผ่าน shell.js)
 import type { CatalogItem } from "@/lib/storefront";
 
-export const formatBaht = (n: number) => "฿" + n.toLocaleString("th-TH");
+export const formatBaht = (n: number) => "฿" + n.toLocaleString("th-TH", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 
 export function phClass(p: Pick<CatalogItem, "acc" | "color">) {
   return "ph" + (p.acc ? " acc" : p.color === "rgb" ? " rgb" : "");

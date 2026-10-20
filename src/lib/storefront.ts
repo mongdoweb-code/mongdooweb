@@ -205,12 +205,6 @@ export async function getProductDetail(slug: string) {
   };
 }
 
-/** หา slug ใหม่จาก URL เดิมของเว็บ WooCommerce (/product/...) */
-export async function findByLegacyPath(path: string) {
-  const p = await prisma.product.findUnique({ where: { legacyPath: path }, select: { slug: true, isActive: true } });
-  return p?.isActive ? p.slug : null;
-}
-
 // ---------- ค้นหา/กรองสินค้า (catalog ร้านเล็ก กรองในหน่วยความจำได้) ----------
 
 export const COLOR_FILTERS = { white: "แสงขาว", rgb: "RGB เปลี่ยนสี" } as const;

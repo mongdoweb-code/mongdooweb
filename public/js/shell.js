@@ -53,16 +53,16 @@ function safeHref(h){
   if (/^#[^\s]*$/.test(s) || /^\/(?!\/)/.test(s) || /^https?:\/\/[^\s]+$/i.test(s) || /^(tel|mailto):[^\s]+$/i.test(s)) return s;
   return '#';
 }
-// รูปจากหลังบ้าน: อนุญาตเฉพาะ https:// หรือ data:image/...
+// รูปจากหลังบ้าน: อนุญาตเฉพาะ https://, รูปที่อัปโหลด (/media/...) หรือ data:image/...
 function safeImg(u){
   const s = typeof u === 'string' ? u.trim() : '';
-  if (/^https:\/\/[^\s"'<>]+$/i.test(s) || /^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+$/i.test(s)) return s;
+  if (/^https:\/\/[^\s"'<>]+$/i.test(s) || /^\/media\/[\w/.-]+$/.test(s) || /^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=\s]+$/i.test(s)) return s;
   return '';
 }
 const RM = matchMedia('(prefers-reduced-motion: reduce)');
 const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.deco}</svg>`;
 const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-const baht = n => '฿' + Number(n).toLocaleString('th-TH');
+const baht = n => '฿' + Number(n).toLocaleString('th-TH', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 const phClass = p => 'ph' + (p.acc ? ' acc' : p.color === 'rgb' ? ' rgb' : '');
 /* รูปสินค้า (ถ้ามี) หรือภาพแทนแบบต้นแบบ */
 const thumb = (p, tag = 'div') => p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" decoding="async">` : `<${tag} class="${phClass(p)}"></${tag}>`;

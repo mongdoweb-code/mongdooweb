@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutAction } from "../actions";
 import { IdleGuard, SideToggle } from "../_components/AdminClient";
+import { AdminNav } from "../_components/AdminNav";
 
 const ICON = {
   orders: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" />,
@@ -22,17 +23,12 @@ const Ico = ({ k }: { k: keyof typeof ICON }) => (
     {ICON[k]}
   </svg>
 );
-// เมนูที่ยังไม่เปิดใช้ (ทำในขั้นที่ 4)
-const Soon = ({ k, label }: { k: keyof typeof ICON; label: string }) => (
-  <button className="nav-i soon" type="button" disabled>
-    <Ico k={k} />
-    {label} <span className="tag">เร็วๆ นี้</span>
-  </button>
-);
-
 export default async function AdminAppLayout({ children }: LayoutProps<"/admin">) {
   const admin = await requireAdmin();
-  const pending = await prisma.order.count({ where: { status: "PENDING_VERIFICATION" } });
+  const [pending, unpaid] = await Promise.all([
+    prisma.order.count({ where: { status: "PENDING_VERIFICATION" } }),
+    prisma.salesDocument.count({ where: { type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } } }),
+  ]);
   return (
     <div className="shell">
       <aside className="side" id="side" aria-label="เมนูหลังร้าน">
@@ -44,27 +40,21 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             มองดูเว็บ<small>ระบบหลังร้าน</small>
           </div>
         </div>
-        <nav>
-          <a className="nav-i on" href="/admin" aria-current="page">
-            <Ico k="orders" />
-            คำสั่งซื้อ {pending > 0 && <span className="badge">{pending}</span>}
-          </a>
-          <Soon k="slides" label="สไลด์หน้าแรก" />
-          <Soon k="products" label="สินค้า" />
-          <Soon k="cats" label="หมวดหมู่สินค้า" />
-          <div className="nav-grp">เอกสารขาย</div>
-          <Soon k="qt" label="ใบเสนอราคา" />
-          <Soon k="iv" label="ใบแจ้งหนี้" />
-          <Soon k="rc" label="ใบเสร็จรับเงิน" />
-          <Soon k="cust" label="ลูกค้า" />
-          <div className="nav-sep" role="separator" />
-          <Soon k="log" label="บันทึกการใช้งาน" />
-          <Soon k="settings" label="ตั้งค่าร้าน" />
-          <a className="nav-i" href="/" target="_blank" rel="noopener">
-            <Ico k="shop" />
-            ดูหน้าร้าน
-          </a>
-        </nav>
+        <AdminNav
+          items={[
+            { href: "/admin", label: "คำสั่งซื้อ", icon: <Ico k="orders" />, badge: pending },
+            { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" /> },
+            { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" /> },
+            { href: "/admin/slides", label: "สไลด์หน้าแรก", icon: <Ico k="slides" /> },
+            { href: "/admin/docs/QUOTATION", label: "ใบเสนอราคา", icon: <Ico k="qt" />, group: "เอกสารขาย" },
+            { href: "/admin/docs/INVOICE", label: "ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: unpaid, group: "เอกสารขาย" },
+            { href: "/admin/docs/RECEIPT", label: "ใบเสร็จรับเงิน", icon: <Ico k="rc" />, group: "เอกสารขาย" },
+            { href: "/admin/customers", label: "ลูกค้า", icon: <Ico k="cust" />, group: "เอกสารขาย" },
+            { href: "/admin/log", label: "บันทึกการใช้งาน", icon: <Ico k="log" />, group: "—" },
+            { href: "/admin/settings", label: "ตั้งค่าร้าน", icon: <Ico k="settings" />, group: "—" },
+            { href: "/", label: "ดูหน้าร้าน", icon: <Ico k="shop" />, group: "—", external: true },
+          ]}
+        />
         <div className="side-foot">
           <b>{admin.displayName}</b>
           <form action={logoutAction}>
@@ -83,7 +73,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             </div>
             หลังร้าน
           </div>
-          <span className="tb-page">คำสั่งซื้อ</span>
+          <span className="tb-page">{admin.displayName}</span>
         </div>
         {children}
       </div>

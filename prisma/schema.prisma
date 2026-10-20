@@ -329,6 +329,8 @@ model ShopSetting {
   invoiceDueDays     Int      @default(7)
   termsQuote         String?  @db.Text
   termsInvoice       String?  @db.Text
+  termsReceipt       String?  @db.Text
+  showSignature      Boolean  @default(true)  // แสดงช่องลงชื่อท้ายเอกสาร
 
   updatedAt          DateTime @updatedAt
 }

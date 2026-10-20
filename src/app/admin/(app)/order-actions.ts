@@ -2,6 +2,7 @@
 // การดำเนินการกับคำสั่งซื้อในหลังบ้าน — ทุก action ตรวจ session และตรวจสถานะปัจจุบันก่อนเปลี่ยน
 // (updateMany + where status = สถานะที่คาดไว้ กันแอดมินสองคนกดพร้อมกัน)
 import { redirect } from "next/navigation";
+import { refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin } from "@/lib/auth";
 import { CARRIERS, REJECT_REASONS, nextPending } from "@/lib/admin-orders";
 import { prisma } from "@/lib/prisma";
@@ -41,6 +42,13 @@ export async function approveOrder(f: FormData) {
       ...(slip ? [prisma.paymentSlip.update({ where: { id: slip.id }, data: { status: "ACCEPTED" } })] : []),
       prisma.orderEvent.create({ data: { orderId: id, type: "APPROVED", note: "ยืนยันการชำระเงิน", adminId: admin.id } }),
     ]);
+    // ตัดสต็อกสินค้าที่นับสต็อก (ไม่ให้ติดลบ)
+    const items = await prisma.orderItem.findMany({ where: { orderId: id, productId: { not: null } }, select: { productId: true, qty: true } });
+    if (items.length) {
+      await prisma.$transaction(items.map((i) => prisma.product.updateMany({ where: { id: i.productId!, trackStock: true }, data: { stock: { decrement: i.qty } } })));
+      await prisma.product.updateMany({ where: { id: { in: items.map((i) => i.productId!) }, stock: { lt: 0 } }, data: { stock: 0 } });
+      refreshStorefront();
+    }
   }
   // ไปคำสั่งซื้อที่รอตรวจถัดไปอัตโนมัติ (ลดคลิกตอนเคลียร์คิว)
   const next = await nextPending(orderNo);
