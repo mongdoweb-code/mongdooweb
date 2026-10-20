@@ -1,9 +1,9 @@
 "use server";
-// บันทึกตั้งค่าร้าน / โลโก้ / ผู้ใช้หลังบ้าน / เปลี่ยนรหัสผ่าน
-import bcrypt from "bcryptjs";
+// บันทึกตั้งค่าร้าน / โลโก้ / แถบประกาศ / รหัสวิเคราะห์ / งานอัตโนมัติ — เจ้าของร้านเท่านั้น
+// (รหัสผ่านย้ายไป /admin/account, ผู้ใช้ย้ายไป /admin/users)
 import { refresh } from "next/cache";
 import { refreshStorefront, logAdmin } from "@/lib/admin-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { isValidThaiTaxId } from "@/lib/format";
 import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
@@ -20,8 +20,7 @@ const baht = (v: string) => {
 const httpUrl = (v: string | null) => (v && !/^https?:\/\/\S+$/i.test(v) ? "bad" : v);
 
 export async function saveSettings(_prev: FormState, f: FormData): Promise<FormState> {
-  const admin = await requireAdmin();
-  if (admin.role !== "OWNER") return { error: "เฉพาะเจ้าของร้าน (OWNER) เท่านั้นที่แก้ตั้งค่าร้านได้" };
+  const admin = await requireOwner();
   const bad: string[] = [];
 
   let banks: { bank: string; account: string; holder: string }[] = [];
@@ -51,8 +50,40 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
   if (new Set(Object.values(prefixes)).size < 3) bad.push("prefixReceipt");
   const days = { quoteValidDays: Math.floor(Number(str(f, "quoteValidDays", 4))), invoiceDueDays: Math.floor(Number(str(f, "invoiceDueDays", 4))) };
   for (const [k, v] of Object.entries(days)) if (!(v >= 0 && v <= 365)) bad.push(k);
+  // แถบประกาศ + รหัสวิเคราะห์ + งานอัตโนมัติ
+  const announcementEnabled = f.get("announcementEnabled") === "on";
+  const announcementText = str(f, "announcementText", 120);
+  if (announcementEnabled && !announcementText) bad.push("announcementText");
+  const announcementHref = opt(f, "announcementHref", 300);
+  if (announcementHref && !/^(\/(?!\/)|#|https:\/\/|tel:|mailto:)\S*$/i.test(announcementHref)) bad.push("announcementHref");
+  const ga4Id = str(f, "ga4Id", 20).toUpperCase();
+  if (ga4Id && !/^G-[A-Z0-9]{6,12}$/.test(ga4Id)) bad.push("ga4Id");
+  const metaPixelId = str(f, "metaPixelId", 20).replace(/\s/g, "");
+  if (metaPixelId && !/^\d{15,16}$/.test(metaPixelId)) bad.push("metaPixelId");
+  const intIn = (k: string, min: number, max: number) => {
+    const raw = str(f, k, 6) || "0";
+    const n = Number(raw);
+    if (!/^\d+$/.test(raw) || n < min || n > max) bad.push(k);
+    return n;
+  };
+  const autoCancelDays = intIn("autoCancelDays", 0, 60);
+  const lowStockThreshold = intIn("lowStockThreshold", 0, 9999);
+
   for (const k of ["legalName", "phone", "addressText", "promptpayName", "slipCheckWithin"]) if (!str(f, k)) bad.push(k);
-  if (bad.length) return { error: "กรุณาตรวจช่องที่มีกรอบสีแดง", fields: bad };
+  if (bad.length) {
+    const why: Record<string, string> = {
+      ga4Id: "รหัส GA4 ต้องเป็นรูปแบบ G-XXXXXXXXXX",
+      metaPixelId: "Meta Pixel ID ต้องเป็นตัวเลข 15–16 หลัก",
+      announcementHref: "ลิงก์แถบประกาศต้องขึ้นต้นด้วย /, https://, tel: หรือ mailto:",
+      announcementText: "กรอกข้อความแถบประกาศ",
+      autoCancelDays: "วันยกเลิกอัตโนมัติต้องเป็น 0–60",
+      lowStockThreshold: "เกณฑ์สินค้าใกล้หมดต้องเป็น 0–9999",
+      promptpayId: "เลขพร้อมเพย์ต้องเป็น 10, 13 หรือ 15 หลัก",
+      taxId: "เลขผู้เสียภาษีไม่ถูกต้อง",
+    };
+    const detail = bad.map((b) => why[b]).filter(Boolean);
+    return { error: `กรุณาตรวจช่องที่มีกรอบสีแดง${detail.length ? ` — ${detail.join(" · ")}` : ""}`, fields: bad };
+  }
 
   // โลโก้ (ไม่บังคับ)
   let logoKey: string | undefined;
@@ -94,6 +125,15 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
       termsInvoice: opt(f, "termsInvoice", 600),
       termsReceipt: opt(f, "termsReceipt", 600),
       showSignature: f.get("showSignature") === "on",
+      announcementEnabled,
+      announcementText: announcementText || undefined,
+      announcementHref,
+      ga4Id: ga4Id || null,
+      metaPixelId: metaPixelId || null,
+      autoCancelDays,
+      lowStockThreshold,
+      lineLowStock: f.get("lineLowStock") === "on",
+      lineDailySummary: f.get("lineDailySummary") === "on",
       ...(logoKey ? { logoKey } : {}),
       ...(f.get("removeLogo") === "on" && !logoKey ? { logoKey: null } : {}),
     },
@@ -102,51 +142,4 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
   refreshStorefront();
   refresh();
   return { ok: "บันทึกการตั้งค่าแล้ว — หน้าร้านและหน้าชำระเงินใช้ค่าใหม่ทันที" };
-}
-
-export async function changePassword(_prev: FormState, f: FormData): Promise<FormState> {
-  const admin = await requireAdmin();
-  const current = String(f.get("current") ?? "");
-  const next = String(f.get("next") ?? "");
-  if (next.length < 8) return { error: "รหัสผ่านใหม่ต้องยาวอย่างน้อย 8 ตัวอักษร", fields: ["next"] };
-  if (next !== String(f.get("confirm") ?? "")) return { error: "ยืนยันรหัสผ่านไม่ตรงกัน", fields: ["confirm"] };
-  const row = await prisma.admin.findUniqueOrThrow({ where: { id: admin.id } });
-  if (!(await bcrypt.compare(current, row.passwordHash))) return { error: "รหัสผ่านปัจจุบันไม่ถูกต้อง", fields: ["current"] };
-  await prisma.admin.update({ where: { id: admin.id }, data: { passwordHash: await bcrypt.hash(next, 12) } });
-  await logAdmin(admin.id, "PASSWORD", "เปลี่ยนรหัสผ่านของตัวเอง");
-  return { ok: "เปลี่ยนรหัสผ่านแล้ว" };
-}
-
-/** เพิ่มผู้ใช้/รีเซ็ตรหัสผ่าน/เปิด-ปิดบัญชี — เฉพาะ OWNER */
-export async function saveAdminUser(_prev: FormState, f: FormData): Promise<FormState> {
-  const admin = await requireAdmin();
-  if (admin.role !== "OWNER") return { error: "เฉพาะเจ้าของร้านเท่านั้น" };
-  const id = str(f, "id", 40);
-  const username = str(f, "username", 40).toLowerCase();
-  const displayName = str(f, "displayName", 80);
-  const role = f.get("role") === "OWNER" ? "OWNER" : "STAFF";
-  const password = String(f.get("password") ?? "");
-  const isActive = f.get("isActive") !== "off";
-  if (!id) {
-    if (!/^[a-z0-9._-]{3,40}$/.test(username)) return { error: "ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 . _ - อย่างน้อย 3 ตัว", fields: ["username"] };
-    if (password.length < 8) return { error: "รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร", fields: ["password"] };
-    if (await prisma.admin.findUnique({ where: { username } })) return { error: "มีชื่อผู้ใช้นี้แล้ว", fields: ["username"] };
-    await prisma.admin.create({ data: { username, displayName: displayName || username, role, passwordHash: await bcrypt.hash(password, 12) } });
-    await logAdmin(admin.id, "ADMIN_USER", `เพิ่มผู้ใช้ ${username} (${role})`);
-    refresh();
-    return { ok: `เพิ่มผู้ใช้ ${username} แล้ว` };
-  }
-  if (id === admin.id && (!isActive || role !== "OWNER")) return { error: "ปิดบัญชีหรือลดสิทธิ์ของตัวเองไม่ได้" };
-  const target = await prisma.admin.findUnique({ where: { id } });
-  if (!target) return { error: "ไม่พบผู้ใช้" };
-  if (password && password.length < 8) return { error: "รหัสผ่านต้องยาวอย่างน้อย 8 ตัวอักษร" };
-  await prisma.admin.update({
-    where: { id },
-    data: { displayName: displayName || target.displayName, role, isActive, ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}) },
-  });
-  // ปิดบัญชีหรือรีเซ็ตรหัส → ตัด session เดิมทั้งหมด
-  if (!isActive || password) await prisma.adminSession.deleteMany({ where: { adminId: id } });
-  await logAdmin(admin.id, "ADMIN_USER", `แก้ไขผู้ใช้ ${target.username}${password ? " (รีเซ็ตรหัสผ่าน)" : ""}${!isActive ? " (ปิดบัญชี)" : ""}`);
-  refresh();
-  return { ok: `บันทึกผู้ใช้ ${target.username} แล้ว` };
 }

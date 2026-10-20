@@ -1,17 +1,16 @@
-// /admin/settings — ตั้งค่าร้าน (เจ้าของร้าน), เปลี่ยนรหัสผ่าน, ผู้ใช้หลังบ้าน
-import { requireAdmin } from "@/lib/auth";
+// /admin/settings — ตั้งค่าร้าน (เจ้าของร้านเท่านั้น): ข้อมูลร้าน, การชำระเงิน + ตัวอย่าง QR พร้อมเพย์, ค่าส่ง, แถบประกาศ,
+// รหัส GA4/Meta Pixel, งานอัตโนมัติ, เอกสารขาย — รหัสผ่านอยู่ที่ /admin/account, ผู้ใช้อยู่ที่ /admin/users
+import Link from "next/link";
+import { requireOwner } from "@/lib/auth";
 import { mediaUrl } from "@/lib/media";
-import { prisma } from "@/lib/prisma";
 import { BANKS, getSettings, parseBankAccounts, parseShippingTiers } from "@/lib/settings";
-import { PasswordForm, UsersForm } from "./AccountForms";
 import { SettingsForm } from "./SettingsForm";
 
 const baht = (satang: number) => String(satang / 100);
 
 export default async function SettingsPage() {
-  const admin = await requireAdmin();
+  await requireOwner();
   const s = await getSettings();
-  const users = admin.role === "OWNER" ? await prisma.admin.findMany({ orderBy: { createdAt: "asc" } }) : [];
   return (
     <main className="main">
       <div className="page-head">
@@ -19,9 +18,12 @@ export default async function SettingsPage() {
           <h1>ตั้งค่าร้าน</h1>
           <p>ค่าที่บันทึกใช้กับหน้าร้าน หน้าชำระเงิน ใบปะหน้า และเอกสารขายทันที</p>
         </div>
+        <div className="head-actions">
+          <Link className="btn btn-outline" href="/admin/users">ผู้ใช้หลังบ้าน</Link>
+          <Link className="btn btn-outline" href="/admin/system">สถานะระบบ / สำรองข้อมูล</Link>
+        </div>
       </div>
-      {admin.role === "OWNER" ? (
-        <SettingsForm
+      <SettingsForm
           banks={BANKS}
           v={{
             legalName: s.legalName, phone: s.phone, email: s.email ?? "", lineId: s.lineId ?? "", lineOaUrl: s.lineOaUrl ?? "",
@@ -36,23 +38,11 @@ export default async function SettingsPage() {
             quoteValidDays: s.quoteValidDays, invoiceDueDays: s.invoiceDueDays,
             termsQuote: s.termsQuote ?? "", termsInvoice: s.termsInvoice ?? "", termsReceipt: s.termsReceipt ?? "", showSignature: s.showSignature,
             logoUrl: mediaUrl(s.logoKey),
+            announcementEnabled: s.announcementEnabled, announcementText: s.announcementText, announcementHref: s.announcementHref ?? "",
+            ga4Id: s.ga4Id ?? "", metaPixelId: s.metaPixelId ?? "",
+            autoCancelDays: s.autoCancelDays, lowStockThreshold: s.lowStockThreshold, lineLowStock: s.lineLowStock, lineDailySummary: s.lineDailySummary,
           }}
         />
-      ) : (
-        <div className="warn-box">เฉพาะเจ้าของร้านเท่านั้นที่แก้ตั้งค่าร้านได้ — คุณเปลี่ยนรหัสผ่านของตัวเองได้ด้านล่าง</div>
-      )}
-      <div className="set-grid" style={{ marginTop: 24 }}>
-        <PasswordForm />
-        {admin.role === "OWNER" && (
-          <UsersForm
-            me={admin.id}
-            users={users.map((u) => ({
-              id: u.id, username: u.username, displayName: u.displayName, role: u.role, isActive: u.isActive,
-              lastLoginAt: u.lastLoginAt?.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }) ?? null,
-            }))}
-          />
-        )}
-      </div>
     </main>
   );
 }

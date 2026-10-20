@@ -1,5 +1,5 @@
 // /admin/line — แจ้งเตือน LINE: สถานะการเชื่อมต่อ, โควตาข้อความ, ผู้รับ (กลุ่ม/บุคคล), ข้อความทดสอบ, ขั้นตอนตั้งค่า
-import { requireAdmin } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { botStatus, lineConfigured, siteUrl } from "@/lib/line";
 import { prisma } from "@/lib/prisma";
 import { ConfirmSubmit, CopyButton } from "../../_components/AdminClient";
@@ -9,7 +9,7 @@ const fmt = (d: Date | null) => (d ? d.toLocaleString("th-TH", { dateStyle: "med
 const KIND = { USER: "บุคคล", GROUP: "กลุ่ม", ROOM: "ห้องแชต" } as const;
 
 export default async function LinePage({ searchParams }: PageProps<"/admin/line">) {
-  const admin = await requireAdmin();
+  const admin = await requireOwner();
   const sp = await searchParams;
   const cfg = lineConfigured();
   let bot: Awaited<ReturnType<typeof botStatus>> | null = null;

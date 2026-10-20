@@ -32,7 +32,8 @@ const Ico = ({ k }: { k: keyof typeof ICON }) => (
   </svg>
 );
 export default async function AdminAppLayout({ children }: LayoutProps<"/admin">) {
-  const admin = await requireAdmin();
+  // หน้า "บัญชีของฉัน" ต้องเปิดได้แม้ยังต้องเปลี่ยนรหัสผ่าน — หน้าอื่นตรวจซ้ำด้วย requireAdmin() ของตัวเองและพามาที่นี่
+  const admin = await requireAdmin({ allowPasswordChange: true });
   const [pending, unpaid, inquiries] = await Promise.all([
     prisma.order.count({ where: { status: "PENDING_VERIFICATION" } }),
     prisma.salesDocument.count({ where: { type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } } }),
@@ -51,6 +52,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
           </div>
         </div>
         <AdminNav
+          locked={admin.mustChangePassword}
           items={[
             { href: "/admin/dashboard", label: "ภาพรวม", icon: <Ico k="dash" /> },
             { href: "/admin", label: "คำสั่งซื้อ", icon: <Ico k="orders" />, badge: pending },
