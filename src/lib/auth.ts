@@ -135,6 +135,13 @@ export async function requireAdmin(): Promise<CurrentAdmin> {
   return admin;
 }
 
+/** งานเฉพาะเจ้าของร้าน (ตั้งค่า, ผู้ใช้, LINE, นำเข้า/ส่งออกทั้งหมด, ลบข้อมูล) — STAFF ถูกพาไปหน้าแรกหลังบ้าน */
+export async function requireOwner(): Promise<CurrentAdmin> {
+  const admin = await requireAdmin();
+  if (admin.role !== "OWNER") redirect("/admin?denied=1");
+  return admin;
+}
+
 export async function logout(reason: "manual" | "idle" = "manual") {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
