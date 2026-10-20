@@ -1,6 +1,7 @@
 // หน้าแรก — เนื้อหาย้ายมาจาก prototype/mongdoweb-home.html, สไลด์มาจากฐานข้อมูล
 import type { Metadata } from "next";
 import Script from "next/script";
+import { getPublicShopInfo } from "@/lib/settings";
 import { getHomeSlides, jsonForScript } from "@/lib/storefront";
 import { HOME_MAIN } from "./_markup/home";
 
@@ -29,46 +30,53 @@ export const metadata: Metadata = {
   },
 };
 
-// TODO: logo และเบอร์โทรใน contactPoint ใส่ค่าจริงก่อนขึ้นระบบ
-const ORG_LD = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "@id": "/#org",
-      name: "มองดูเว็บ",
-      alternateName: "MongdoWeb",
-      url: "/",
-      contactPoint: {
-        "@type": "ContactPoint",
-        contactType: "customer service",
-        areaServed: "TH",
-        availableLanguage: ["th"],
-        email: "contact@mongdoweb.com",
+/** ข้อมูลร้านสำหรับ Google (Organization + ช่องค้นหาในผลการค้นหา) — URL ต้องเป็นแบบเต็ม */
+function orgLd(info: Awaited<ReturnType<typeof getPublicShopInfo>>) {
+  const base = (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+  const tel = info.phone.replace(/\D/g, "");
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${base}/#org`,
+        name: info.name,
+        alternateName: "MongdoWeb",
+        url: `${base}/`,
+        logo: `${base}/img/doc-logo.png`,
+        sameAs: [info.lineUrl, info.facebookUrl, info.youtubeUrl, info.tiktokUrl].filter(Boolean),
+        contactPoint: {
+          "@type": "ContactPoint",
+          contactType: "customer service",
+          areaServed: "TH",
+          availableLanguage: ["th"],
+          ...(tel ? { telephone: `+66-${tel.replace(/^0/, "")}` } : {}),
+          ...(info.email ? { email: info.email } : {}),
+        },
       },
-    },
-    {
-      "@type": "WebSite",
-      "@id": "/#website",
-      url: "/",
-      name: "มองดูเว็บ",
-      inLanguage: "th-TH",
-      publisher: { "@id": "/#org" },
-      potentialAction: {
-        "@type": "SearchAction",
-        target: { "@type": "EntryPoint", urlTemplate: "/search?q={search_term_string}" },
-        "query-input": "required name=search_term_string",
+      {
+        "@type": "WebSite",
+        "@id": `${base}/#website`,
+        url: `${base}/`,
+        name: info.name,
+        inLanguage: "th-TH",
+        publisher: { "@id": `${base}/#org` },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: { "@type": "EntryPoint", urlTemplate: `${base}/search?q={search_term_string}` },
+          "query-input": "required name=search_term_string",
+        },
       },
-    },
-  ],
-};
+    ],
+  };
+}
 
 export default async function Home() {
-  const slides = await getHomeSlides();
+  const [slides, info] = await Promise.all([getHomeSlides(), getPublicShopInfo()]);
   return (
     <>
       <main id="main" tabIndex={-1} dangerouslySetInnerHTML={{ __html: HOME_MAIN }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonForScript(ORG_LD) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonForScript(orgLd(info)) }} />
       <script id="mdw-slides" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(slides) }} />
       <Script src="/js/home.js" strategy="afterInteractive" />
     </>

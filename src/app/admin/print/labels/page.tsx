@@ -1,5 +1,6 @@
 // /admin/print/labels — ใบปะหน้าส่งของจากคำสั่งซื้อ (?orders=MDW-…,MDW-… หรือ ?status=PAID = ทุกออเดอร์ที่รอจัดส่ง) หรือจากเอกสาร (?doc=id)
 // ตัวเลือก: size=A6|A4, boxes=จำนวนกล่อง, cod=บาท, marks=fragile,noThrow,upright, items=1
+import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { addrText } from "@/lib/doc-calc";
 import { MARKS, labelSetHtml, type LabelData, type LabelOpts, type MarkKey } from "@/lib/doc-render";
@@ -10,6 +11,12 @@ import { getSettings } from "@/lib/settings";
 import { PrintLabels } from "../PrintClient";
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+
+export async function generateMetadata({ searchParams }: PageProps<"/admin/print/labels">): Promise<Metadata> {
+  const sp = await searchParams;
+  const nos = one(sp.orders).split(",").filter(Boolean);
+  return { title: { absolute: `ใบปะหน้า-${nos.length === 1 ? nos[0] : one(sp.doc) ? "เอกสาร" : "รอจัดส่ง"}` } };
+}
 
 export default async function PrintLabelsPage({ searchParams }: PageProps<"/admin/print/labels">) {
   await requireAdmin();

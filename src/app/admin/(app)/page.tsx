@@ -487,7 +487,7 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
                     ปฏิเสธสลิป
                   </a>
                 </form>
-                <p className="notify" style={{ marginTop: 12 }}>แจ้งลูกค้าทาง LINE อัตโนมัติจะเปิดใช้ในขั้นถัดไป — ตอนนี้ลูกค้าดูสถานะได้ที่หน้าติดตามคำสั่งซื้อ</p>
+                <p className="notify" style={{ marginTop: 12 }}>ลูกค้าดูสถานะได้ที่หน้าติดตามคำสั่งซื้อ (เลขที่คำสั่งซื้อ + เบอร์โทร) — หลังอนุมัติ ออกใบเสร็จและพิมพ์ใบปะหน้าได้ด้านล่าง</p>
               </div>
             )}
             {o.status === "PENDING_VERIFICATION" && mode === "reject" && (

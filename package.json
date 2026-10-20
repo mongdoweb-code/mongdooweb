@@ -13,7 +13,8 @@
     "db:seed": "prisma db seed",
     "import:woo": "tsx scripts/import-woocommerce.ts",
     "test:unit": "tsx tests/unit/doc-calc.test.ts",
-    "db:seed-if-empty": "tsx scripts/seed-if-empty.ts"
+    "db:seed-if-empty": "tsx scripts/seed-if-empty.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1153.0",
@@ -41,6 +42,7 @@
     "typescript": "^5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.2"
   },

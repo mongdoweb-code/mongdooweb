@@ -1,0 +1,58 @@
+# ตรวจโค้ดทุกครั้งที่ push / เปิด PR: typecheck, lint, unit test, build และ e2e บนฐานข้อมูลใหม่
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mdw
+          POSTGRES_PASSWORD: mdw
+          POSTGRES_DB: mongdoweb
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mdw" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://mdw:mdw@localhost:5432/mongdoweb?schema=public
+      SEED_ADMIN_USERNAME: admin
+      SEED_ADMIN_PASSWORD: ci-admin-Pass-123
+      E2E_ADMIN_PASSWORD: ci-admin-Pass-123
+      SITE_URL: http://localhost:3123
+      UPLOAD_DIR: uploads
+      STORAGE_DRIVER: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: ฐานข้อมูล (migrate + ข้อมูลเริ่มต้น)
+        run: npx prisma migrate deploy && npx prisma db seed
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run build
+      - name: ติดตั้ง Chromium สำหรับ e2e
+        run: npx playwright install --with-deps chromium
+      - name: e2e
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
