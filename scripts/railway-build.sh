@@ -5,6 +5,9 @@
 set -e
 if [ -n "$DATABASE_PUBLIC_URL" ]; then
   export DATABASE_URL="$DATABASE_PUBLIC_URL"
+elif [ -n "$RAILWAY_ENVIRONMENT" ]; then
+  echo "ไม่มี DATABASE_PUBLIC_URL — เปิด TCP Proxy ของ Postgres (Settings › Networking) แล้วตั้ง DATABASE_PUBLIC_URL=\${{Postgres.DATABASE_PUBLIC_URL}}" >&2
+  exit 1
 fi
 npx prisma migrate deploy
 npx tsx scripts/seed-if-empty.ts

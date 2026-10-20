@@ -15,7 +15,7 @@
 | ตัวแปร | ค่า |
 |---|---|
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (ใช้ตอนรันจริง ผ่าน private network) |
-| `DATABASE_PUBLIC_URL` | `${{Postgres.DATABASE_PUBLIC_URL}}` (ใช้ตอน build เท่านั้น) |
+| `DATABASE_PUBLIC_URL` | `${{Postgres.DATABASE_PUBLIC_URL}}` (ใช้ตอน build เท่านั้น — ต้องเปิด **TCP Proxy** ของ Postgres ที่ Settings › Networking ก่อน ไม่งั้นค่านี้ว่าง) |
 | `SITE_URL` | `https://www.mongdooweb.com` (หรือโดเมนชั่วคราว `*.up.railway.app` ช่วงทดสอบ) |
 | `UPLOAD_DIR` | `/data/uploads` (เมื่อใช้ Volume) |
 | `SEED_ADMIN_USERNAME` / `SEED_ADMIN_PASSWORD` | แอดมินคนแรก — **ตั้งรหัสที่เดายาก** (ใช้ครั้งแรกครั้งเดียว) |
