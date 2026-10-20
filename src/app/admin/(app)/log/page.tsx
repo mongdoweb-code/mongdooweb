@@ -12,6 +12,7 @@ const TABS = {
   content: { label: "สินค้าและเนื้อหา", types: ["PRODUCT", "CATEGORY", "SLIDES", "CONTENT_ROLLBACK"] },
   docs: { label: "เอกสารขาย", types: ["DOC", "CUSTOMER", "LABEL"] },
   settings: { label: "ตั้งค่า/ส่งออก", types: ["SETTINGS", "ORDERS_EXPORT"] },
+  line: { label: "แจ้งเตือน LINE", types: ["LINE"] },
 } as const;
 type Tab = keyof typeof TABS;
 const EVENT: Record<string, string> = { CREATED: "สร้างคำสั่งซื้อ", SLIP_UPLOADED: "แนบสลิป", APPROVED: "อนุมัติการชำระเงิน", REJECTED: "ปฏิเสธสลิป", REOPENED: "เปิดตรวจใหม่", SHIPPED: "จัดส่ง", CANCELLED: "ยกเลิก", NOTE: "โน้ตภายใน" };

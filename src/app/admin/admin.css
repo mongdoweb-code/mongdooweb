@@ -1223,3 +1223,12 @@ button.kpi:hover{border-top-color:var(--c-line)}
   .de-line .row-acts{justify-content:flex-end}
 }
 @media (max-width:640px){.doc-filter .search{min-width:100%!important}.doc-filter input[type=date]{flex:1;min-width:0}}
+
+/* แจ้งเตือน LINE */
+.line-guide{padding:18px 22px;margin-top:16px;display:grid;gap:10px}
+.line-guide h2{font-size:16px;font-weight:700}
+.line-guide ol{padding-left:22px;display:grid;gap:10px;font-size:14px}
+.line-guide ul{padding-left:18px;margin-top:4px;display:grid;gap:4px}
+.line-guide code{background:var(--c-cream);padding:1px 6px;font-size:13px;overflow-wrap:anywhere}
+.line-guide pre{background:var(--c-cream);padding:8px 12px;font-size:13px;margin-top:6px;overflow-x:auto}
+.line-url{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}

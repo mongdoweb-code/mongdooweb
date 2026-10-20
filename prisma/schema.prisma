@@ -580,3 +580,24 @@ model SalesDocumentEvent {
 
   @@index([documentId, createdAt])
 }
+
+// ---------- แจ้งเตือน LINE (Messaging API) ----------
+
+enum LineTargetKind {
+  USER  // แชต 1:1 กับ LINE OA (เพิ่มเพื่อน)
+  GROUP // กลุ่ม LINE ของร้านที่เชิญ OA เข้าไป
+  ROOM
+}
+
+/// ผู้รับแจ้งเตือนของร้าน — ได้มาจาก webhook (เชิญเข้ากลุ่ม / พิมพ์ "ลงทะเบียน") แล้วแอดมินต้องกดเปิดใช้เองเท่านั้น
+model LineRecipient {
+  id        String         @id @default(cuid())
+  kind      LineTargetKind
+  lineId    String         @unique        // userId / groupId / roomId จาก LINE
+  name      String                        // ชื่อโปรไฟล์ / ชื่อกลุ่ม (ถ้าดึงได้)
+  enabled   Boolean        @default(false)
+  lastSentAt DateTime?
+  lastError String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
