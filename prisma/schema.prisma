@@ -38,10 +38,15 @@ model Admin {
   role         AdminRole  @default(STAFF)
   isActive     Boolean    @default(true)
   lastLoginAt  DateTime?
+  mustChangePassword Boolean @default(false) // บังคับเปลี่ยนรหัสครั้งแรก/หลังรีเซ็ต
+  totpSecret   String?                       // ยืนยันตัวตน 2 ขั้น (base32) — null = ยังไม่ตั้ง
+  totpEnabled  Boolean    @default(false)
+  backupCodes  Json       @default("[]")     // sha256 ของรหัสสำรอง 2FA ที่ยังไม่ใช้
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   events       OrderEvent[]
+  stockMoves   StockMovement[]
   logs         AdminLog[]
   docEvents    SalesDocumentEvent[]
   sessions     AdminSession[]
@@ -150,6 +155,7 @@ model Product {
   category      Category     @relation(fields: [categoryId], references: [id])
   orderItems    OrderItem[]
   docItems      SalesDocumentItem[]
+  stockMoves    StockMovement[]
 
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
@@ -199,6 +205,10 @@ model Order {
 
   rejectReason    String?
   paidAt          DateTime?                   // เวลาที่แอดมินอนุมัติ
+  cancelReason    String?                     // เหตุผลยกเลิก/คืนเงิน
+  channel         String       @default("WEB") // WEB = ลูกค้าสั่งเอง · ADMIN = แอดมินสร้างให้ (โทร/LINE)
+  /// ขอใบกำกับภาษีตอนสั่งซื้อ { kind: "COMPANY"|"PERSON", name, taxId, branch, address } — null = ไม่ขอ
+  taxInvoice      Json?
 
   items           OrderItem[]
   slips           PaymentSlip[]
@@ -269,6 +279,8 @@ enum OrderEventType {
   SHIPPED
   CANCELLED
   NOTE
+  EDITED    // แก้ที่อยู่/เบอร์/หมายเหตุ
+  REFUNDED  // คืนเงินหลังชำระแล้ว
 }
 
 model OrderEvent {
@@ -332,6 +344,21 @@ model ShopSetting {
   termsReceipt       String?  @db.Text
   showSignature      Boolean  @default(true)  // แสดงช่องลงชื่อท้ายเอกสาร
 
+  // หน้าร้าน: แถบประกาศ + วิเคราะห์การใช้งาน (โหลดเมื่อลูกค้ายินยอมคุกกี้เท่านั้น)
+  announcementEnabled Boolean @default(true)
+  announcementText   String   @default("สั่งวันนี้ รับสินค้าภายใน 2–3 วัน · ชำระเงินด้วยการโอนและแนบสลิป")
+  announcementHref   String?
+  ga4Id              String?                  // "G-XXXXXXX"
+  metaPixelId        String?                  // ตัวเลข 15–16 หลัก
+  /// คำถามที่พบบ่อย [{ q, a }]
+  faq                Json     @default("[]")
+
+  // งานอัตโนมัติ (/api/cron/daily)
+  autoCancelDays     Int      @default(0)     // ยกเลิกคำสั่งซื้อที่ไม่แนบสลิปเกิน N วัน — 0 = ปิด
+  lowStockThreshold  Int      @default(5)
+  lineLowStock       Boolean  @default(true)  // แจ้ง LINE เมื่อสต็อกต่ำกว่าเกณฑ์
+  lineDailySummary   Boolean  @default(false) // สรุปประจำวันทาง LINE
+
   updatedAt          DateTime @updatedAt
 }
 
@@ -383,6 +410,7 @@ model HeroSlide {
 enum ContentKind {
   SLIDES
   CATEGORIES
+  PAGES // เนื้อหาหน้า (Page) + คำถามที่พบบ่อย
 }
 
 model ContentVersion {
@@ -500,6 +528,7 @@ model SalesDocument {
   note             String?         @db.Text  // แสดงบนเอกสาร
   internalNote     String?         @db.Text  // ภายในร้านเท่านั้น
   voidReason       String?
+  publicToken      String?         @unique   // ลิงก์ให้ลูกค้าดู/พิมพ์เอกสาร (/track/receipt/:id?t=) — สุ่ม 32 ไบต์
 
   // ความเชื่อมโยง QT → IV → RC และคำสั่งซื้อเว็บ
   sourceId         String?
@@ -600,4 +629,72 @@ model LineRecipient {
   lastError String?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
+}
+
+// ---------- สต็อก ----------
+
+/// ทุกการเปลี่ยนสต็อก (ขาย, ยกเลิก/คืน, รับเข้า, นับสต็อก) — ยอดปัจจุบันยังเก็บที่ Product.stock
+model StockMovement {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  change    Int                               // + เพิ่ม / − ลด
+  balance   Int                               // สต็อกหลังเปลี่ยน
+  reason    String                            // SALE | CANCEL | RESTOCK | COUNT | ADJUST | IMPORT
+  ref       String?                           // เลขที่คำสั่งซื้อ/เอกสาร
+  note      String?
+  adminId   String?
+  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
+}
+
+// ---------- คำขอจากลูกค้า (ขอใบเสนอราคา / ติดต่อ / เคลม) ----------
+
+enum InquiryKind {
+  QUOTE
+  CONTACT
+  CLAIM
+}
+
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+  SPAM
+}
+
+model Inquiry {
+  id          String        @id @default(cuid())
+  kind        InquiryKind
+  status      InquiryStatus @default(NEW)
+  name        String
+  phone       String                          // ตัวเลขล้วน
+  email       String?
+  company     String?
+  message     String        @db.Text
+  /// สินค้าที่สนใจ [{ slug, name, qty }]
+  items       Json          @default("[]")
+  /// รูปแนบ (storage keys) เช่น รูปพื้นที่ติดตั้ง
+  attachments Json          @default("[]")
+  note        String?       @db.Text          // โน้ตภายในร้าน
+  customerId  String?
+  quotationId String?                         // QT ที่สร้างจากคำขอนี้
+  ipHash      String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, createdAt])
+}
+
+// ---------- เนื้อหาหน้า (แก้จากหลังบ้าน) ----------
+
+/// slug: privacy | warranty | about | how-to-order — body เป็นข้อความแบบง่าย (## หัวข้อ, - รายการ, [ลิงก์](url))
+model Page {
+  slug      String   @id
+  title     String
+  body      String   @db.Text
+  updatedBy String?
+  updatedAt DateTime @updatedAt
 }

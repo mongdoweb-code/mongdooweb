@@ -18,6 +18,13 @@ const ICON = {
   log: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" /></>,
   shop: <path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" />,
+  dash: <><rect x="3" y="3" width="8" height="10" /><rect x="13" y="3" width="8" height="6" /><rect x="13" y="11" width="8" height="10" /><rect x="3" y="15" width="8" height="6" /></>,
+  inbox: <path d="M3 13h5l2 3h4l2-3h5M5 5h14l2 8v6H3v-6z" />,
+  report: <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />,
+  stock: <path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10M7 5l9 4" />,
+  pages: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4" />,
+  users: <><circle cx="9" cy="8" r="4" /><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11l2 2 4-4" /></>,
+  system: <><rect x="3" y="4" width="18" height="12" /><path d="M8 20h8M12 16v4" /></>,
 };
 const Ico = ({ k }: { k: keyof typeof ICON }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
@@ -26,10 +33,12 @@ const Ico = ({ k }: { k: keyof typeof ICON }) => (
 );
 export default async function AdminAppLayout({ children }: LayoutProps<"/admin">) {
   const admin = await requireAdmin();
-  const [pending, unpaid] = await Promise.all([
+  const [pending, unpaid, inquiries] = await Promise.all([
     prisma.order.count({ where: { status: "PENDING_VERIFICATION" } }),
     prisma.salesDocument.count({ where: { type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } } }),
+    prisma.inquiry.count({ where: { status: "NEW" } }),
   ]);
+  const owner = admin.role === "OWNER";
   return (
     <div className="shell">
       <aside className="side" id="side" aria-label="เมนูหลังร้าน">
@@ -43,18 +52,30 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
         </div>
         <AdminNav
           items={[
+            { href: "/admin/dashboard", label: "ภาพรวม", icon: <Ico k="dash" /> },
             { href: "/admin", label: "คำสั่งซื้อ", icon: <Ico k="orders" />, badge: pending },
-            { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" /> },
-            { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" /> },
-            { href: "/admin/slides", label: "สไลด์หน้าแรก", icon: <Ico k="slides" /> },
+            { href: "/admin/inquiries", label: "คำขอจากลูกค้า", icon: <Ico k="inbox" />, badge: inquiries },
+            { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/stock", label: "สต็อก", icon: <Ico k="stock" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/slides", label: "สไลด์หน้าแรก", icon: <Ico k="slides" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/pages", label: "หน้าเนื้อหา / FAQ", icon: <Ico k="pages" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/docs/QUOTATION", label: "ใบเสนอราคา", icon: <Ico k="qt" />, group: "เอกสารขาย" },
             { href: "/admin/docs/INVOICE", label: "ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: unpaid, group: "เอกสารขาย" },
             { href: "/admin/docs/RECEIPT", label: "ใบเสร็จรับเงิน", icon: <Ico k="rc" />, group: "เอกสารขาย" },
             { href: "/admin/customers", label: "ลูกค้า", icon: <Ico k="cust" />, group: "เอกสารขาย" },
-            { href: "/admin/line", label: "แจ้งเตือน LINE", icon: <Ico k="line" />, group: "—" },
-            { href: "/admin/log", label: "บันทึกการใช้งาน", icon: <Ico k="log" />, group: "—" },
-            { href: "/admin/settings", label: "ตั้งค่าร้าน", icon: <Ico k="settings" />, group: "—" },
-            { href: "/", label: "ดูหน้าร้าน", icon: <Ico k="shop" />, group: "—", external: true },
+            { href: "/admin/reports", label: "รายงานยอดขาย", icon: <Ico k="report" />, group: "รายงาน" },
+            { href: "/admin/log", label: "บันทึกการใช้งาน", icon: <Ico k="log" />, group: "รายงาน" },
+            ...(owner
+              ? [
+                  { href: "/admin/settings", label: "ตั้งค่าร้าน", icon: <Ico k="settings" />, group: "ระบบ" },
+                  { href: "/admin/users", label: "ผู้ใช้หลังบ้าน", icon: <Ico k="users" />, group: "ระบบ" },
+                  { href: "/admin/line", label: "แจ้งเตือน LINE", icon: <Ico k="line" />, group: "ระบบ" },
+                  { href: "/admin/system", label: "สถานะระบบ", icon: <Ico k="system" />, group: "ระบบ" },
+                ]
+              : []),
+            { href: "/admin/account", label: "บัญชีของฉัน", icon: <Ico k="users" />, group: "ระบบ" },
+            { href: "/", label: "ดูหน้าร้าน", icon: <Ico k="shop" />, group: "ระบบ", external: true },
           ]}
         />
         <div className="side-foot">
