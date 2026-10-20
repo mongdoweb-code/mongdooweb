@@ -1,7 +1,9 @@
 "use server";
 // ค้นหาคำสั่งซื้อด้วย "เลขที่คำสั่งซื้อ + เบอร์โทร" (ยังไม่มีระบบสมาชิก)
 // ต้องตรงทั้งสองค่าจึงแสดงผล และจำกัดจำนวนครั้งต่อ IP กันการสุ่มเดาเลขที่
+import { carrierTrackUrl } from "@/lib/carriers";
 import { prisma } from "@/lib/prisma";
+import { orderReceiptLinks } from "@/lib/public-docs";
 import { clientIp, overLimit } from "@/lib/rate-limit";
 
 export type TrackedOrder = {
@@ -14,7 +16,12 @@ export type TrackedOrder = {
   totalBaht: number;
   carrier: string | null;
   trackingNo: string | null;
+  trackUrl: string | null;
+  shippedAt: string | null;
   rejectReason: string | null;
+  cancelReason: string | null;
+  taxInvoice: boolean;
+  receipts: { docNo: string; issueDate: string | null; amountBaht: number; url: string }[];
   events: { type: string; at: string }[];
 };
 export type TrackState = { error?: string; order?: TrackedOrder; orderNo?: string; phone?: string };
@@ -57,6 +64,12 @@ export async function trackOrder(_prev: TrackState, formData: FormData): Promise
       totalBaht: order.totalSatang / 100,
       carrier: order.carrier,
       trackingNo: order.trackingNo,
+      trackUrl: carrierTrackUrl(order.carrier, order.trackingNo),
+      shippedAt: order.shippedAt?.toISOString() ?? null,
+      cancelReason: order.status === "CANCELLED" ? order.cancelReason : null,
+      taxInvoice: !!order.taxInvoice,
+      // ใบเสร็จที่ร้านออกแล้ว → ลิงก์ลับสำหรับดู/พิมพ์ (สร้างโทเคนเมื่อเปิดครั้งแรก)
+      receipts: (await orderReceiptLinks(order.id)).map((r) => ({ docNo: r.docNo, issueDate: r.issueDate, amountBaht: r.grandSatang / 100, url: r.url })),
       rejectReason: order.status === "REJECTED" ? order.rejectReason : null,
       events: order.events.filter((e) => e.type !== "NOTE").map((e) => ({ type: e.type, at: e.createdAt.toISOString() })),
     },
