@@ -6,9 +6,10 @@
 ## 1. สร้างบริการใน Railway (ภูมิภาค Singapore)
 1. โปรเจกต์ (เช่น "Mongdoweb.com") › **+ New › Database › PostgreSQL**
 2. **+ New › GitHub Repo** › เลือก repo นี้ และ branch ที่ใช้ขึ้นจริง
-3. ที่เก็บไฟล์ — เลือกอย่างใดอย่างหนึ่ง
-   - **Volume (ง่ายที่สุด)**: คลิกบริการเว็บ › **+ Volume** › mount path `/data` แล้วตั้ง `UPLOAD_DIR=/data/uploads`
-   - **Bucket (ถ้าจะรันหลายเครื่อง)**: **+ New › Bucket** แล้วตั้ง `STORAGE_DRIVER=s3` และค่า `S3_*` ตามหน้า credentials ของ bucket
+3. ที่เก็บไฟล์ — **ที่ใช้จริงตอนนี้: Railway Bucket** `mdw-files` (ภูมิภาค sin) ตั้ง `STORAGE_DRIVER=s3` และ
+   `S3_ENDPOINT=${{mdw-files.ENDPOINT}}`, `S3_BUCKET=${{mdw-files.BUCKET}}`, `S3_REGION=${{mdw-files.REGION}}`,
+   `S3_ACCESS_KEY_ID=${{mdw-files.ACCESS_KEY_ID}}`, `S3_SECRET_ACCESS_KEY=${{mdw-files.SECRET_ACCESS_KEY}}`, `S3_FORCE_PATH_STYLE=false`
+   (ข้อดี: นำเข้าสินค้าตอน build ได้, รันหลายเครื่องได้) · ทางเลือก: Volume ที่ `/data` + `UPLOAD_DIR=/data/uploads` แต่ต้องนำเข้าสินค้าเองด้วย `railway ssh`
 4. ตั้ง Region ของทั้งเว็บ ฐานข้อมูล และ volume เป็น **Southeast Asia (Singapore)**
 
 ## 2. ตัวแปร (บริการเว็บ › Variables)
@@ -26,13 +27,9 @@
 `scripts/railway-build.sh` ทำให้อัตโนมัติ: `prisma migrate deploy` → ใส่ข้อมูลเริ่มต้นถ้าฐานข้อมูลยังว่าง (หมวดหมู่ สไลด์ ตั้งค่าร้าน แอดมิน) → `next build`
 แล้ว Railway รัน `npm start` และรอ `/api/health` ตอบ 200 ก่อนสลับเวอร์ชัน
 
-**นำเข้าสินค้า 179 รายการ + รูป (ครั้งเดียว)** — ต้องรันในเครื่องของ Railway เพื่อให้รูปลง volume:
-```bash
-railway ssh            # เข้าเครื่องของบริการเว็บ
-npm run import:woo     # ดาวน์โหลดรูปจากเว็บเดิม ~1,200 รูป (หลายนาที)
-```
-จากนั้นกด **Restart** บริการเว็บหนึ่งครั้ง เพื่อให้หน้าร้านแสดงสินค้าชุดใหม่ทันที
-(ถ้าใช้ Bucket จะรัน `railway run npm run import:woo` จากเครื่องตัวเองก็ได้)
+**นำเข้าสินค้า 179 รายการ + รูป** — เมื่อใช้ Bucket ระบบนำเข้าให้เองตอน build ครั้งแรก (`scripts/import-if-empty.ts`,
+ทำเฉพาะเมื่อยังไม่มีสินค้าจาก WooCommerce · ปิดได้ด้วย `IMPORT_WOO_ON_BUILD=0`) — build ครั้งแรกจึงนานกว่าปกติหลายนาที
+ถ้าใช้ Volume ให้รัน `railway ssh` แล้ว `npm run import:woo` แล้วกด Restart
 
 ## 4. ผูกโดเมน
 บริการเว็บ › Settings › **Custom Domain** › ใส่ `www.mongdooweb.com` แล้วไปตั้ง CNAME ตามที่ Railway บอกที่ผู้ให้บริการโดเมน
@@ -40,7 +37,7 @@ npm run import:woo     # ดาวน์โหลดรูปจากเว็�
 - ตั้ง `SITE_URL` ให้ตรงโดเมนจริง แล้ว deploy ใหม่
 
 ## 5. หลังขึ้นจริง
-- **สำรองข้อมูล**: Postgres › Backups เปิดสำรองอัตโนมัติรายวัน · Volume › Backups เปิดด้วย (สลิปและรูปอยู่ที่นี่)
+- **สำรองข้อมูล**: Postgres › Backups เปิดสำรองอัตโนมัติรายวัน · สลิปและรูปอยู่ใน Bucket `mdw-files`
 - **LINE**: ใส่ Webhook URL `https://<โดเมน>/api/line/webhook` ตามคู่มือในหลังบ้าน
 - **เปลี่ยนรหัสผ่านแอดมิน** ที่ หลังบ้าน › ตั้งค่าร้าน และลบ `SEED_ADMIN_PASSWORD` ออกจาก Variables ได้
 - **ทดสอบเงินจริง**: สั่งซื้อ 1 ชิ้น โอนจริง แนบสลิป → ได้แจ้งเตือน LINE → อนุมัติ → ออกใบเสร็จ → พิมพ์ใบปะหน้า
