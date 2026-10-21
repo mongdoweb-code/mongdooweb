@@ -1,63 +1,20 @@
-// การรับประกัน เคลม และการคืน/เปลี่ยนสินค้า — เงื่อนไขมาตรฐานของร้าน (รับประกัน 1 ปี ตามที่แสดงบนหน้าแรก)
+// การรับประกัน เคลม และการคืน/เปลี่ยนสินค้า — เนื้อหาแก้ได้ในหลังบ้าน (Page "warranty")
 import type { Metadata } from "next";
-import { getPublicShopInfo } from "@/lib/settings";
-import { PageHead } from "../_components/PageHead";
+import { getPage } from "@/lib/content";
+import { ContentPage, pageDescription } from "../_lot2/ContentPage";
 
-export const metadata: Metadata = {
-  title: "การรับประกันและเคลมสินค้า — มองดูเว็บ",
-  description: "เงื่อนไขรับประกันไฟ LED 1 ปี ขั้นตอนแจ้งเคลม และการคืน/เปลี่ยนสินค้าที่เสียหายระหว่างขนส่ง",
-  alternates: { canonical: "/warranty" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [page, description] = await Promise.all([getPage("warranty"), pageDescription("warranty")]);
+  return { title: `${page.title} — มองดูเว็บ`, description, alternates: { canonical: "/warranty" } };
+}
 
-export default async function WarrantyPage() {
-  const s = await getPublicShopInfo();
+export default function WarrantyPage() {
   return (
-    <main id="main" tabIndex={-1}>
-      <PageHead crumbs={[{ label: "การรับประกันและเคลม" }]} eyebrow="ช่วยเหลือ" title="การรับประกันและเคลมสินค้า" />
-      <div className="container pg-body">
-        <article className="prose">
-          <h2>ระยะเวลารับประกัน</h2>
-          <ul>
-            <li>สินค้าไฟ LED รับประกัน <b>1 ปี</b> นับจากวันที่ได้รับสินค้า สำหรับความเสียหายที่เกิดจากการผลิต</li>
-            <li>หม้อแปลง/อุปกรณ์ไฟฟ้าที่ขายพร้อมชุด รับประกันตามระยะเวลาที่ระบุในหน้าสินค้า (ถ้าไม่ระบุ ถือเป็น 1 ปี)</li>
-            <li>ใช้ใบเสร็จรับเงิน หรือเลขที่คำสั่งซื้อจากเว็บไซต์ เป็นหลักฐานการซื้อ</li>
-          </ul>
-
-          <h2>สินค้าเสียหายระหว่างขนส่ง / ได้รับสินค้าไม่ถูกต้อง</h2>
-          <ul>
-            <li>กรุณาถ่ายวิดีโอขณะแกะพัสดุ และแจ้งร้านภายใน <b>7 วัน</b> หลังได้รับสินค้า</li>
-            <li>ร้านจะส่งสินค้าใหม่หรือคืนเงินให้ โดยร้านรับผิดชอบค่าขนส่งทั้งหมด</li>
-          </ul>
-
-          <h2>กรณีที่ไม่อยู่ในการรับประกัน</h2>
-          <ul>
-            <li>ต่อไฟบ้าน 220V เข้ากับโคมที่ใช้ไฟ DC12V โดยตรง หรือใช้หม้อแปลงผิดสเปก</li>
-            <li>รอยต่อสายไฟไม่ได้ปิดด้วยท่อหดกันน้ำหรือข้อต่อกันน้ำ ทำให้น้ำเข้า</li>
-            <li>ใช้งานเกินระดับกันน้ำที่กำหนด (เช่น โคม IP67 จุ่มน้ำลึกเกิน 1 เมตร หรือโคมที่ไม่ใช่ IP68 ใช้ใต้น้ำถาวร)</li>
-            <li>ความเสียหายจากการตก กระแทก ดัดแปลง ซ่อมเอง ฟ้าผ่า ไฟกระชาก หรือภัยธรรมชาติ</li>
-            <li>สีหรือผิวโคมเปลี่ยนตามการใช้งานปกติ เช่น คราบตะกรัน คลอรีน หรือรอยขีดข่วน</li>
-          </ul>
-
-          <h2>ขั้นตอนแจ้งเคลม</h2>
-          <ol className="steps-list">
-            <li>แจ้งเลขที่คำสั่งซื้อ/ใบเสร็จ พร้อมรูปหรือวิดีโออาการเสีย และรูปการต่อสายไฟ ทาง LINE {s.lineId ?? "@mongdoweb"} หรือโทร {s.phone}</li>
-            <li>ทีมงานตรวจสอบเบื้องต้นและแนะนำวิธีแก้ไข (หลายกรณีแก้ได้ทันทีโดยไม่ต้องส่งของ)</li>
-            <li>หากต้องส่งสินค้ากลับ ร้านจะแจ้งที่อยู่และวิธีส่ง — กรณีเสียจากการผลิต ร้านรับผิดชอบค่าส่งกลับไปหาลูกค้า</li>
-            <li>ร้านซ่อมหรือเปลี่ยนสินค้าใหม่ และแจ้งเลขพัสดุเมื่อส่งคืน</li>
-          </ol>
-
-          <h2>การคืนสินค้าและคืนเงิน</h2>
-          <ul>
-            <li>สินค้าที่ยังไม่ผ่านการติดตั้ง/ใช้งาน อยู่ในสภาพสมบูรณ์พร้อมกล่อง แจ้งคืนได้ภายใน 7 วันหลังได้รับ (ลูกค้ารับผิดชอบค่าส่งคืน)</li>
-            <li>สินค้าสั่งทำพิเศษหรือตัดความยาวตามสั่ง (เช่น ไฟเส้นตัดตามเมตร) ไม่รับคืน ยกเว้นเสียจากการผลิต</li>
-            <li>คืนเงินผ่านการโอนเข้าบัญชีที่ลูกค้าแจ้ง ภายใน 7 วันทำการหลังร้านได้รับและตรวจสอบสินค้า</li>
-          </ul>
-
-          <p>
-            <a className="btn btn-line" href="#" data-line target="_blank" rel="noopener">แจ้งเคลมทาง LINE</a>
-          </p>
-        </article>
-      </div>
-    </main>
+    <ContentPage slug="warranty" eyebrow="ช่วยเหลือ" showUpdated>
+      <p className="prose-cta">
+        <a className="btn btn-line" href="#" data-line target="_blank" rel="noopener">แจ้งเคลมทาง LINE</a>
+        <a className="btn btn-outline" href="/contact">ส่งข้อความถึงร้าน</a>
+      </p>
+    </ContentPage>
   );
 }

@@ -5,6 +5,7 @@ import Script from "next/script";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getCheckoutConfig } from "@/lib/orders";
+import { getStorefrontExtras } from "@/lib/shop-public";
 import { getShopData, jsonForScript } from "@/lib/storefront";
 import { CHECKOUT_BODY } from "./markup";
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = { title: "ชำระเงิน — มอ�
 
 async function CheckoutData() {
   await connection(); // ค่าส่ง/บัญชีธนาคารต้องเป็นค่าล่าสุดเสมอ (ไม่แคช)
-  const [cfg, { catalog }] = await Promise.all([getCheckoutConfig(), getShopData()]);
+  const [cfg, { catalog }, extras] = await Promise.all([getCheckoutConfig(), getShopData(), getStorefrontExtras()]);
   const boot = {
     shop: {
       banks: cfg.banks,
@@ -23,15 +24,18 @@ async function CheckoutData() {
       expressExtra: cfg.expressExtraSatang / 100,
       checkWithin: cfg.checkWithin,
       line: cfg.line,
+      provinces: cfg.provinces,
     },
     // ตะกร้าแสดงเฉพาะสินค้าที่สั่งได้ (มีราคา + มีของ)
     catalog: catalog
       .filter((p) => p.price > 0 && p.inStock)
-      .map((p) => ({ id: p.id, name: p.name, price: p.price, color: p.color, img: p.img, ...(p.acc ? { acc: true } : {}) })),
+      .map((p) => ({ id: p.id, name: p.name, price: p.price, color: p.color, img: p.img, ...(p.maxQty != null ? { maxQty: p.maxQty } : {}), ...(p.acc ? { acc: true } : {}) })),
   };
   return (
     <>
       <script id="mdw-checkout" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(boot) }} />
+      <script id="mdw-analytics" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript({ ga4: extras.ga4Id, pixel: extras.metaPixelId }) }} />
+      <Script src="/js/analytics.js" strategy="afterInteractive" />
       <Script src="/js/checkout.js" strategy="afterInteractive" />
     </>
   );

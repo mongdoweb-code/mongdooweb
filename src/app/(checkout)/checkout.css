@@ -217,3 +217,66 @@ input,select,textarea{font-family:inherit;font-size:16px;color:var(--c-ink)}
 .ship-rates li:last-child{border-bottom:0}
 .ship-rates b{color:var(--c-ink)}
 .tab[hidden]{display:none}
+
+/* ===== Lot 2 ===== */
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.field select{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B6862' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center/18px;padding-right:40px}
+.field select:focus{border-color:var(--c-ink)}
+.field.err select{border-color:var(--c-err)}
+.field .msg:empty{display:none!important}
+.check{display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin:6px 0 14px;font-size:15px}
+.check input{width:20px;height:20px;accent-color:var(--c-orange);margin-top:2px;flex-shrink:0}
+.check small{display:block;color:var(--c-muted);font-size:13px}
+.check b{font-weight:600}
+.remember{margin-top:24px;background:var(--c-cream);padding:14px 16px}
+.saved-addr{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#E8F5EE;color:#1E6B45;padding:10px 14px;font-size:14px;margin:-8px 0 20px}
+.tax-box{border:1.5px solid var(--c-line);padding:18px 18px 4px;margin:0 0 8px;min-width:0}
+.seg{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.seg label{display:flex;align-items:center;gap:8px;border:1.5px solid var(--c-line);padding:8px 14px;cursor:pointer;font-size:14px;min-height:44px}
+.seg label:has(input:checked){border-color:var(--c-ink);background:#FCFBF9;font-weight:600}
+.seg input{accent-color:var(--c-orange);width:18px;height:18px}
+.co-notice{background:#FFF5E0;border-left:4px solid #E0A100;padding:12px 16px;font-size:14px;margin:-8px 0 20px}
+.co-notice ul{margin:6px 0 0 18px}
+.act-right{display:flex;gap:10px;flex-wrap:wrap}
+.drop{display:block}
+.drop.busy{opacity:.7;pointer-events:none}
+.upload-progress{margin-top:8px}
+.up-label{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
+.up-bar{height:8px;background:var(--c-cream-dk)}
+.up-bar i{display:block;height:100%;width:0;background:var(--c-orange);transition:width .2s}
+.btn-ghost{color:var(--c-muted);text-decoration:underline;text-underline-offset:3px}
+/* หน้าสั่งซื้อสำเร็จ */
+.done.success{max-width:720px;text-align:center}
+.done.pending .ico{background:#FFF5E0;color:#9A6400}
+.done h1:focus{outline:none}
+.done-ids{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 20px}
+.done-ids div{background:var(--c-cream);padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.done-ids span{font-size:13px;color:var(--c-muted)}
+.done-ids b{font-size:20px;font-weight:800;word-break:break-all}
+.done-ids .copy{margin:4px 0 0}
+.done-sec{text-align:left;border-top:1px solid var(--c-line);padding:20px 0 4px}
+.done-sec h2{font-size:17px;font-weight:700;margin-bottom:8px}
+.done-sec .si{grid-template-columns:1fr auto}
+.done-sec .si .q{color:var(--c-muted);white-space:nowrap}
+.done-sec .rows{margin-bottom:12px}
+.done-addr{font-size:14px;background:var(--c-cream);padding:12px 14px;margin-bottom:12px}
+.done-addr span{display:block;color:var(--c-muted);font-size:13px;margin-top:6px}
+.done-addr span:first-child{margin-top:0}
+.done-sec .note{margin:0 0 12px}
+.done-sec .timeline{margin:8px 0 24px 8px;max-width:none}
+@media (max-width:600px){
+  .done-ids{grid-template-columns:1fr}
+  .act-right{flex-direction:column-reverse;width:100%}
+  .act-right .btn{width:100%}
+  .done .btns .btn{width:100%}
+  .bank-row{flex-wrap:wrap}
+}
+@media print{
+  @page{size:A4;margin:14mm}
+  body{background:#fff}
+  .header,.skip,.toast,.no-print,.copy,#checkoutView,#emptyView{display:none!important}
+  .done{margin:0 auto;padding:0;max-width:none;box-shadow:none}
+  .done .ico{display:none}
+  .done-ids div,.done-addr{background:#fff;border:1px solid #ccc}
+  .done-sec{break-inside:avoid}
+}

@@ -17,7 +17,7 @@ const ICON = {
   tiktok: '<path d="M16.5 3c.4 2.2 1.8 3.6 4 3.8v3.1c-1.5 0-2.8-.4-4-1.2v6.1c0 3.4-2.5 5.7-5.6 5.7S5.3 18.3 5.3 15c0-3.4 2.9-5.9 6.4-5.4v3.2c-1.6-.4-3.2.6-3.2 2.2 0 1.3 1 2.3 2.4 2.3 1.5 0 2.4-1 2.4-2.6V3z"/>',
 };
 
-export function renderFooter(s: ShopInfo) {
+export function renderFooter(s: ShopInfo, opts: { hasFaq?: boolean } = {}) {
   const tel = s.phone.replace(/[^\d+]/g, "");
   const rows = [
     s.lineId && `<li><span>LINE</span><a href="#" data-line target="_blank" rel="noopener">${esc(s.lineId)}</a></li>`,
@@ -39,5 +39,6 @@ export function renderFooter(s: ShopInfo) {
   const site = safeUrl(s.website)?.replace(/^https?:\/\//, "").replace(/\/$/, "") ?? "มองดูเว็บ.com";
   return SHELL_BOTTOM.replace("{{CONTACT}}", `<ul class="contact">${rows.join("")}</ul>`)
     .replace("{{SOCIAL}}", social ? `<div class="social">${social}</div>` : "")
-    .replace("{{SITE}}", esc(site));
+    .replace("{{SITE}}", esc(site))
+    .replace("{{FAQ_LI}}", opts.hasFaq ? '\n          <li><a href="/faq">คำถามที่พบบ่อย</a></li>' : "");
 }

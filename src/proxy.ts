@@ -1,6 +1,7 @@
 // - หลังบ้าน: ไม่มี cookie session เลย → ส่งไปหน้าเข้าสู่ระบบทันที (HTTP 307)
 //   การตรวจ session จริง (หมดอายุ/ถูกลบ) ทำใน requireAdmin() ของทุกหน้าและทุก action
 // - URL สินค้าเดิมของเว็บ WooCommerce (มีภาษาไทยใน path) → ส่งต่อให้ /api/legacy-product ตอบ 301
+// - /track/receipt/:id ไม่มีโทเคน ?t= ที่ถูกรูปแบบ → 404
 // - /category/<slug> ที่ไม่ใช่หมวดที่เปิดอยู่ (หมวดบทความ WordPress เดิม) → 301 (src/lib/legacy-category.ts)
 import { NextResponse, type NextRequest } from "next/server";
 import { categoryRedirect } from "@/lib/legacy-category";
@@ -16,6 +17,12 @@ export async function proxy(req: NextRequest) {
     } catch {}
     const to = slug ? await categoryRedirect(slug) : "/products";
     return to ? NextResponse.redirect(new URL(to, req.url), 301) : undefined;
+  }
+  // ใบเสร็จฝั่งลูกค้า: ไม่มีโทเคนหรือรูปแบบผิด → 404 จริง (ตรวจโทเคนกับฐานข้อมูลอีกครั้งในหน้าเพจ)
+  if (pathname.startsWith("/track/receipt/")) {
+    const t = req.nextUrl.searchParams.get("t") ?? "";
+    if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return new NextResponse("ไม่พบเอกสาร", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex" } });
+    return;
   }
   if (pathname.startsWith("/product/")) {
     const raw = pathname.slice("/product/".length).replace(/\/+$/, "");
@@ -38,5 +45,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/((?!login).*)", "/product/:path*", "/category/:path*"],
+  matcher: ["/admin", "/admin/((?!login).*)", "/product/:path*", "/category/:path*", "/track/receipt/:path*"],
 };
