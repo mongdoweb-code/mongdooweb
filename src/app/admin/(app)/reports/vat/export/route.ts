@@ -1,14 +1,14 @@
 // GET /admin/reports/vat/export?month=YYYY-MM — รายงานภาษีขายเป็น CSV (รูปแบบที่นักบัญชีใช้กรอก ภ.พ.30)
 import { logAdmin } from "@/lib/admin-log";
-import { getCurrentAdmin } from "@/lib/auth";
+import { routeAdmin } from "@/lib/auth";
 import { csvResponse } from "@/lib/csv";
 import { docDate, fmtTaxId, ymdBkk } from "@/lib/doc-calc";
 import { prisma } from "@/lib/prisma";
 import { vatReport } from "@/lib/sales-report";
 
 export async function GET(req: Request) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return new Response("Unauthorized", { status: 401 });
+  const admin = await routeAdmin();
+  if (admin instanceof Response) return admin;
   const m = new URL(req.url).searchParams.get("month") ?? "";
   const month = /^\d{4}-(0[1-9]|1[0-2])$/.test(m) ? m : ymdBkk(new Date()).slice(0, 7);
   const [s, r] = await Promise.all([prisma.shopSetting.findUnique({ where: { id: "shop" } }), vatReport(month)]);

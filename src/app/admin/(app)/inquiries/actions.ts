@@ -69,6 +69,9 @@ export async function quotationFromInquiry(f: FormData) {
   const today = todayYmd();
   const phone = phoneDigits(q.phone);
   const doc = await prisma.$transaction(async (tx) => {
+    // จองคำขอนี้ก่อน (กดซ้ำ/สองคนกดพร้อมกัน → คนที่สองไม่ได้สร้างใบใหม่ซ้ำ)
+    const claim = await tx.inquiry.updateMany({ where: { id: q.id, quotationId: q.quotationId }, data: { updatedAt: new Date() } });
+    if (claim.count !== 1) return null;
     let c = q.customerId ? await tx.customer.findUnique({ where: { id: q.customerId } }) : null;
     if (!c && phone) c = await tx.customer.findFirst({ where: { phone }, orderBy: { createdAt: "asc" } });
     if (!c) {
@@ -92,9 +95,14 @@ export async function quotationFromInquiry(f: FormData) {
       },
     });
     await tx.salesDocumentEvent.create({ data: { documentId: d.id, type: "CREATED", adminId: admin.id, note: `สร้างจากคำขอของ ${q.name}` } });
-    await tx.inquiry.update({ where: { id: q.id }, data: { quotationId: d.id, customerId: c.id, status: q.status === "NEW" ? "IN_PROGRESS" : q.status } });
+    const r = await tx.inquiry.updateMany({ where: { id: q.id, quotationId: q.quotationId }, data: { quotationId: d.id, customerId: c.id, status: q.status === "NEW" ? "IN_PROGRESS" : q.status } });
+    if (r.count !== 1) throw new Error("inquiry changed concurrently");
     return d;
-  });
+  }).catch(() => null);
+  if (!doc) {
+    const now = await prisma.inquiry.findUnique({ where: { id: q.id }, select: { quotationId: true } });
+    redirect(now?.quotationId ? `/admin/docs/QUOTATION/${now.quotationId}/edit` : `/admin/inquiries/${q.id}`);
+  }
   await logAdmin(admin.id, "INQUIRY", `สร้างใบเสนอราคาฉบับร่างจากคำขอของ ${q.name} (${items.length} รายการ)`);
   redirect(`/admin/docs/QUOTATION/${doc.id}/edit`);
 }

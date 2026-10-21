@@ -11,7 +11,7 @@ const fmt = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeSt
 const ERR: Record<string, string> = { last: "ต้องมีสไลด์ที่แสดงอย่างน้อย 1 สไลด์", max: "มีสไลด์ครบ 8 สไลด์แล้ว" };
 
 export default async function SlidesPage({ searchParams }: PageProps<"/admin/slides">) {
-  await requireAdmin();
+  const owner = (await requireAdmin()).role === "OWNER";
   const sp = await searchParams;
   const [slides, versions] = await Promise.all([prisma.heroSlide.findMany({ orderBy: { sortOrder: "asc" } }), listVersions("SLIDES", 8)]);
   const now = new Date();
@@ -56,7 +56,7 @@ export default async function SlidesPage({ searchParams }: PageProps<"/admin/sli
                 <form action={moveSlide}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="dir" value="down" /><button className="icon-btn sm" disabled={i === slides.length - 1} aria-label="เลื่อนลง">↓</button></form>
                 <form action={toggleSlide}><input type="hidden" name="id" value={s.id} /><button className="btn btn-ghost btn-sm">{s.isActive ? "ซ่อน" : "แสดง"}</button></form>
                 <form action={duplicateSlide}><input type="hidden" name="id" value={s.id} /><button className="btn btn-ghost btn-sm">คัดลอก</button></form>
-                <form action={deleteSlide}><input type="hidden" name="id" value={s.id} /><ConfirmSubmit className="btn btn-ghost btn-sm" title="ลบสไลด์นี้?" body={s.title} confirmLabel="ลบสไลด์">ลบ</ConfirmSubmit></form>
+                {owner && <form action={deleteSlide}><input type="hidden" name="id" value={s.id} /><ConfirmSubmit className="btn btn-ghost btn-sm" title="ลบสไลด์นี้?" body={s.title} confirmLabel="ลบสไลด์">ลบ</ConfirmSubmit></form>}
               </div>
             </article>
           );

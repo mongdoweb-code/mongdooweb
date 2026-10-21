@@ -4,7 +4,7 @@ import { DOC_META, DOC_ST } from "@/lib/doc-render";
 import { docWhere, parseDocFilter } from "@/lib/doc-list";
 import { asSnap, isDocType, statusOf, ymdOf } from "@/lib/docs";
 import { logAdmin } from "@/lib/admin-log";
-import { getCurrentAdmin } from "@/lib/auth";
+import { routeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // กัน CSV/formula injection
@@ -15,8 +15,8 @@ const q = (v: unknown) => {
 };
 
 export async function GET(req: Request) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return new Response("Unauthorized", { status: 401 });
+  const admin = await routeAdmin();
+  if (admin instanceof Response) return admin;
   const sp = Object.fromEntries(new URL(req.url).searchParams);
   const type = isDocType(sp.type ?? "") ? (sp.type as keyof typeof DOC_META) : "INVOICE";
   const f = parseDocFilter(type, sp);

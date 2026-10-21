@@ -14,7 +14,7 @@ const Ico = ({ k }: { k: string | null }) => (
 );
 
 export default async function CategoriesPage({ searchParams }: PageProps<"/admin/categories">) {
-  await requireAdmin();
+  const owner = (await requireAdmin()).role === "OWNER";
   const sp = await searchParams;
   const edit = typeof sp.edit === "string" ? sp.edit : null;
   const [cats, versions] = await Promise.all([
@@ -75,7 +75,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
         {v && (
           <div className="d-col">
             <CategoryForm key={v.id || "new"} v={v} icons={CATEGORY_ICONS} />
-            {v.id && (
+            {v.id && owner && (
               <form action={deleteCategory} className="box">
                 <input type="hidden" name="id" value={v.id} />
                 <h3>ลบหมวด</h3>

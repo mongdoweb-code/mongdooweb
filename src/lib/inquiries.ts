@@ -1,6 +1,6 @@
 // คำขอจากลูกค้า (ขอใบเสนอราคา / ติดต่อร้าน) — ตรวจข้อมูล, เก็บรูปแนบแบบส่วนตัว, บันทึก Inquiry, ข้อความแจ้ง LINE ร้าน
 // รูปแนบเก็บที่ prefix "inquiries/" ซึ่ง "ไม่อยู่" ใน MEDIA_PREFIXES → เปิดผ่าน /media ไม่ได้
-// แอดมินเปิดดูได้ที่ GET /api/inquiries/:id/attachments/:n (ต้องเข้าสู่ระบบ)
+// แอดมินเปิดดูได้ที่ GET /admin/inquiries/:id/file/:n (ต้องเข้าสู่ระบบ — เส้นทางเดียวของรูปแนบ)
 import "server-only";
 import type { InquiryKind, InquiryStatus } from "../../generated/prisma/client";
 import { createHash, randomBytes } from "node:crypto";
