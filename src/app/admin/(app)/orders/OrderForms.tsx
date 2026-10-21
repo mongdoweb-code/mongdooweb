@@ -3,6 +3,7 @@
 // ทุกยอดเงินที่แสดงเป็นแค่ตัวอย่าง — server คำนวณใหม่ทั้งหมดตอนบันทึก
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PROVINCES } from "@/lib/thai-address";
 import { useFormAction } from "../../_components/useFormAction";
 import {
   applyShipCsv, createManualOrder, editOrder, findCustomers, previewShipCsv, type ManualPayload, type OrderFormState, type ShipCsvState,
@@ -45,9 +46,10 @@ function AddrFields({ a, set, bad, optional }: { a: Addr; set: (a: Addr) => void
         {f("dist", "อำเภอ/เขต", { required: !optional, maxLength: 120 })}
       </div>
       <div className="two">
-        {f("prov", "จังหวัด", { required: !optional, maxLength: 120 })}
+        {f("prov", "จังหวัด", { required: !optional, maxLength: 120, list: "provList", autoComplete: "off" })}
         {f("zip", "รหัสไปรษณีย์", { required: !optional, inputMode: "numeric", maxLength: 5, pattern: "\\d{5}" })}
       </div>
+      <datalist id="provList">{PROVINCES.map((p) => <option key={p} value={p} />)}</datalist>
       {f("email", "อีเมล (ไม่บังคับ)", { type: "email", maxLength: 160 })}
       <div className="field">
         <label htmlFor="a-note">หมายเหตุ</label>
@@ -80,7 +82,7 @@ function TaxFields({ t, set, bad }: { t: Tax; set: (t: Tax) => void; bad: (k: st
             </div>
             <div className="field">
               <label htmlFor="t-br">สาขา</label>
-              <input id="t-br" value={t.branch} maxLength={60} placeholder={t.kind === "COMPANY" ? "สำนักงานใหญ่ หรือ 00001" : "—"} onChange={(e) => set({ ...t, branch: e.target.value })} />
+              <input id="t-br" value={t.branch} maxLength={60} className={bad("tax.branch")} placeholder={t.kind === "COMPANY" ? "สำนักงานใหญ่ หรือ 00001" : "—"} onChange={(e) => set({ ...t, branch: e.target.value })} />
             </div>
           </div>
           <div className="field">
@@ -94,7 +96,7 @@ function TaxFields({ t, set, bad }: { t: Tax; set: (t: Tax) => void; bad: (k: st
 }
 
 /* ---------- แก้ไขคำสั่งซื้อก่อนจัดส่ง ---------- */
-export function EditOrderForm({ orderNo, ret, init, tax, cancelHref }: { orderNo: string; ret: string; init: Addr; tax: Tax | null; cancelHref: string }) {
+export function EditOrderForm({ orderNo, ret, init, tax, cancelHref, pickup }: { orderNo: string; ret: string; init: Addr; tax: Tax | null; cancelHref: string; pickup?: boolean }) {
   const [state, onSubmit, pending] = useFormAction<OrderFormState>(editOrder, {});
   const [a, setA] = useState(init);
   const [t, setT] = useState<Tax>(tax ?? EMPTY_TAX);
@@ -104,7 +106,7 @@ export function EditOrderForm({ orderNo, ret, init, tax, cancelHref }: { orderNo
       <input type="hidden" name="orderNo" value={orderNo} />
       <input type="hidden" name="ret" value={ret} />
       <input type="hidden" name="data" value={JSON.stringify({ ...a, tax: t })} />
-      <AddrFields a={a} set={setA} bad={bad} />
+      <AddrFields a={a} set={setA} bad={bad} optional={pickup} />
       <TaxFields t={t} set={setT} bad={bad} />
       {state.error && <div className="login-err" role="alert">{state.error}</div>}
       <p className="l3-note">ทุกการแก้ไขถูกบันทึกในประวัติของคำสั่งซื้อ (ค่าเดิม → ค่าใหม่) · แก้ได้จนกว่าจะจัดส่ง</p>

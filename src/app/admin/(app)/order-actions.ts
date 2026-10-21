@@ -12,8 +12,8 @@ import {
 } from "@/lib/admin-orders";
 import { parseCsv } from "@/lib/csv";
 import { customerFromOrder } from "@/lib/docs";
-import { bahtText, isValidThaiTaxId, phoneDigits } from "@/lib/format";
-import { validateAddress } from "@/lib/orders";
+import { bahtText, phoneDigits } from "@/lib/format";
+import { validateAddress, validateTaxInvoice } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 import { getSettings, shippingFee } from "@/lib/settings";
 import { alertLowStock, moveStock, type StockResult } from "@/lib/stock";
@@ -263,19 +263,51 @@ export async function refundOrder(f: FormData) {
 export type OrderFormState = { error?: string; fields?: string[] };
 
 type TaxIn = { want?: boolean; kind?: string; name?: string; taxId?: string; branch?: string; address?: string };
-/** ตรวจข้อมูลใบกำกับภาษี — คืน null = ไม่ขอ, string[] = ช่องที่ผิด */
-function checkTax(t: TaxIn | undefined): { value: Prisma.InputJsonValue | null; bad: string[] } {
-  if (!t?.want) return { value: null, bad: [] };
-  const name = String(t.name ?? "").trim().slice(0, 200);
-  const taxId = phoneDigits(String(t.taxId ?? ""));
-  const branch = String(t.branch ?? "").trim().slice(0, 60);
-  const address = String(t.address ?? "").trim().slice(0, 500);
-  const bad: string[] = [];
-  if (name.length < 2) bad.push("tax.name");
-  if (!isValidThaiTaxId(taxId)) bad.push("tax.taxId");
-  if (address.length < 5) bad.push("tax.address");
-  return { value: { kind: t.kind === "COMPANY" ? "COMPANY" : "PERSON", name, taxId, branch: branch || (t.kind === "COMPANY" ? "สำนักงานใหญ่" : ""), address }, bad };
+const TAX_FIELD: Record<string, string> = { tiName: "tax.name", tiTaxId: "tax.taxId", tiBranch: "tax.branch", tiAddr: "tax.address" };
+/** ตรวจข้อมูลใบกำกับภาษีด้วยกติกาเดียวกับหน้าชำระเงิน (validateTaxInvoice) — null = ไม่ขอ */
+function checkTax(t: TaxIn | undefined): { value: Prisma.InputJsonValue | null; bad: string[]; messages: string[] } {
+  if (!t?.want) return { value: null, bad: [], messages: [] };
+  const v = validateTaxInvoice({ ...t, kind: t.kind === "PERSON" ? "PERSON" : "COMPANY" });
+  if (!v.ok) return { value: null, bad: v.fields.map((k) => TAX_FIELD[k] ?? k), messages: Object.values(v.messages) };
+  return { value: v.value as Prisma.InputJsonValue | null, bad: [], messages: [] };
 }
+
+const PICKUP_ADDR = "รับสินค้าที่ร้าน";
+/**
+ * ตรวจผู้รับด้วยกติกาเดียวกับหน้าชำระเงิน (validateAddress: เบอร์ไทย, 77 จังหวัด, รหัสไปรษณีย์ตรงจังหวัด)
+ * รับที่ร้าน: บังคับเฉพาะชื่อ/เบอร์/อีเมล — ที่อยู่ไม่บังคับ แต่ถ้ากรอกจังหวัด/รหัสไปรษณีย์มาต้องถูกต้อง
+ */
+function checkRecipient(raw: Record<string, unknown>, pickup: boolean) {
+  const s = (k: string) => (typeof raw[k] === "string" ? (raw[k] as string).trim() : "");
+  const filled = { ...raw };
+  if (pickup) {
+    if (!s("addr")) filled.addr = PICKUP_ADDR;
+    if (!s("sub")) filled.sub = "--";
+    if (!s("dist")) filled.dist = "--";
+  }
+  const v = validateAddress(filled);
+  if (v.ok) {
+    const value = pickup ? { ...v.value, sub: s("sub") ? v.value.sub : "", dist: s("dist") ? v.value.dist : "" } : v.value;
+    return { ok: true as const, value, fields: [] as string[], messages: [] as string[] };
+  }
+  const skip = pickup ? new Set([...(s("prov") ? [] : ["prov"]), ...(s("zip") ? [] : ["zip"])]) : new Set<string>();
+  const fields = v.fields.filter((k) => !skip.has(k));
+  if (fields.length) return { ok: false as const, fields, messages: fields.map((k) => v.messages[k]) };
+  // รับที่ร้านโดยไม่กรอกจังหวัด/รหัสไปรษณีย์: ใช้ค่าที่ผ่านการตรวจช่องอื่นแล้ว
+  const text = (k: string, max: number) => s(k).replace(/\s+/g, " ").slice(0, max);
+  return {
+    ok: true as const,
+    fields: [] as string[],
+    messages: [] as string[],
+    value: {
+      name: text("name", 120), phone: text("phone", 20), email: text("email", 160), addr: text("addr", 300) || PICKUP_ADDR,
+      sub: text("sub", 120), dist: text("dist", 120), prov: text("prov", 120), zip: text("zip", 5), note: s("note").slice(0, 500),
+    },
+  };
+}
+
+/** ข้อความผิดภาษาไทยของทุกช่อง (ไม่ซ้ำ) */
+const errorText = (msgs: string[]) => (msgs.length ? `กรุณาแก้ไข: ${[...new Set(msgs)].join(" · ")}` : "กรุณาตรวจช่องที่มีกรอบสีแดง");
 
 const FIELD_TH: Record<string, string> = {
   customerName: "ชื่อผู้รับ", phone: "เบอร์โทร", email: "อีเมล", addressLine: "ที่อยู่", subdistrict: "ตำบล/แขวง", district: "อำเภอ/เขต",
@@ -291,10 +323,11 @@ export async function editOrder(_prev: OrderFormState, f: FormData): Promise<Ord
   } catch {
     return { error: "ข้อมูลไม่ถูกต้อง" };
   }
-  const v = validateAddress(payload);
+  const cur = await prisma.order.findUnique({ where: { orderNo }, select: { shippingMethod: true } });
+  const v = checkRecipient(payload, cur?.shippingMethod === "pickup");
   const tax = checkTax(payload.tax);
-  const bad = [...(v.ok ? [] : v.fields), ...tax.bad];
-  if (!v.ok || bad.length) return { error: tax.bad.length && v.ok ? "ตรวจข้อมูลใบกำกับภาษี (เลขผู้เสียภาษีต้องถูกต้อง 13 หลัก)" : "กรุณาตรวจช่องที่มีกรอบสีแดง", fields: bad };
+  const bad = [...v.fields, ...tax.bad];
+  if (!v.ok || bad.length) return { error: errorText([...v.messages, ...tax.messages]), fields: bad };
   const a = v.value;
   const data = {
     customerName: a.name, phone: phoneDigits(a.phone), email: a.email || null, addressLine: a.addr, subdistrict: a.sub, district: a.dist,
@@ -360,11 +393,8 @@ export async function createManualOrder(_prev: OrderFormState, f: FormData): Pro
   }
   const pickup = p.shipping === "pickup";
   // รับที่ร้าน: ไม่บังคับที่อยู่
-  const addrIn = pickup
-    ? { ...p, addr: p.addr || "รับสินค้าที่ร้าน", sub: p.sub || "-", dist: p.dist || "-", prov: p.prov || "-", zip: p.zip || "00000" }
-    : p;
-  const v = validateAddress(addrIn as unknown as Record<string, unknown>);
-  const bad: string[] = v.ok ? [] : [...v.fields];
+  const v = checkRecipient(p as unknown as Record<string, unknown>, pickup);
+  const bad: string[] = [...v.fields];
   const tax = checkTax(p.tax);
   bad.push(...tax.bad);
 
@@ -392,7 +422,7 @@ export async function createManualOrder(_prev: OrderFormState, f: FormData): Pro
       return { error: `"${prod.name}" สต็อกไม่พอ (เหลือ ${prod.stock} ชิ้น) — รับของเข้าที่หน้าสต็อกก่อน หรือแก้จำนวน`, fields: bad };
     items.push({ productId: id, nameSnapshot: prod.name, priceSatang: m.price, qty: m.qty });
   }
-  if (bad.length || !v.ok) return { error: tax.bad.length ? "ตรวจข้อมูลใบกำกับภาษี (เลขผู้เสียภาษีต้องถูกต้อง 13 หลัก)" : "กรุณาตรวจช่องที่มีกรอบสีแดง", fields: bad };
+  if (bad.length || !v.ok) return { error: errorText([...v.messages, ...tax.messages]), fields: bad };
 
   const s = await getSettings();
   const subtotalSatang = items.reduce((a, i) => a + i.priceSatang * i.qty, 0);
@@ -413,7 +443,7 @@ export async function createManualOrder(_prev: OrderFormState, f: FormData): Pro
   const a = v.value;
   const data = {
     customerName: a.name, phone: phoneDigits(a.phone), email: a.email || null, addressLine: a.addr, subdistrict: a.sub, district: a.dist,
-    province: a.prov, postalCode: pickup && !p.zip ? "" : a.zip, note: a.note || null,
+    province: a.prov, postalCode: a.zip, note: a.note || null,
     subtotalSatang, shippingMethod, shippingName, shippingSatang, totalSatang: subtotalSatang + shippingSatang,
     channel: "ADMIN", taxInvoice: tax.value ?? Prisma.DbNull,
   };

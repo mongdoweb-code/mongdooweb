@@ -842,6 +842,7 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                   cancelHref={here()}
                   init={{ name: o.customerName, phone: o.phone, email: o.email ?? "", addr: o.addressLine, sub: o.subdistrict, dist: o.district, prov: o.province, zip: o.postalCode, note: o.note ?? "" }}
                   tax={tax ? { want: true, ...tax } : null}
+                  pickup={o.shippingMethod === "pickup"}
                 />
               </div>
             ) : (
