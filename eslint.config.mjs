@@ -21,6 +21,10 @@ const eslintConfig = defineConfig([
     // ต้นแบบ HTML, ชุดทดสอบ Python และ Prisma client ที่ generate อัตโนมัติ
     "prototype/**",
     "tests/**",
+    // สำเนาโค้ดชั่วคราวของ agent (git worktree)
+    ".claude/**",
+    "playwright-report/**",
+    "test-results/**",
     "docs/**",
     "public/**",
     "generated/**",

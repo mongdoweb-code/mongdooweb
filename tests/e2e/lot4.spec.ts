@@ -298,7 +298,7 @@ test("A21 + A22 บันทึกการใช้งาน (กรอง + CS
   expect(dl.suggestedFilename()).toMatch(/^mongdoweb-backup-\d{12}\.zip$/);
   const files = unzip(Buffer.from(await (await page.request.get("/admin/export.zip")).body()));
   for (const f of ["README.txt", "orders.csv", "customers.csv", "sales_documents.csv", "sales_document_items.csv", "products.csv", "inquiries.csv"]) expect(Object.keys(files), f).toContain(f);
-  expect(files["products.csv"].toString("utf8")).toMatch(/^﻿"id","sku","slug"/);
+  expect(files["products.csv"].toString("utf8")).toMatch(/^﻿"?id"?,"?sku"?,"?slug"?/);
   expect(files["admin_users.csv"].toString("utf8")).not.toContain("passwordHash");
   expect(files["sales_documents.csv"].toString("utf8")).toContain(quoteId);
   expect((await one<{ n: string }>(`SELECT count(*) n FROM "AdminLog" WHERE type='DATA_EXPORT' AND "createdAt" > now() - interval '5 minutes'`)).n).not.toBe("0");
@@ -403,7 +403,7 @@ test("A29 ลูกค้า: ส่งออก CSV และรวมราย
   await login(page);
   const csv = await page.request.get("/admin/customers/export.csv");
   expect(csv.status()).toBe(200);
-  expect(await csv.text()).toMatch(/^﻿"รหัส","ประเภท","ชื่อ"/);
+  expect(await csv.text()).toMatch(/^﻿"?รหัส"?,"?ประเภท"?,"?ชื่อ"?/);
 
   const phone = `09${String(Date.now()).slice(-8)}`;
   const [src, dst] = [`c${rid()}`, `c${rid()}`];

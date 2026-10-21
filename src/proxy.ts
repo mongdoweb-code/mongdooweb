@@ -6,6 +6,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { categoryRedirect } from "@/lib/legacy-category";
 
+// หน้า 404 แบบเรียบง่าย (ตอบจาก proxy ได้ทันที ไม่ต้อง render แอป) — ไม่บอกว่าเอกสารมีอยู่จริงหรือไม่
+const RECEIPT_404 = `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>ไม่พบเอกสาร — มองดูเว็บ</title></head>
+<body style="margin:0;background:#f7f5f1;font-family:system-ui,'Noto Sans Thai',sans-serif;color:#161616"><main style="display:grid;place-items:center;min-height:100vh;padding:16px">
+<div data-testid="receipt-404" style="background:#fff;padding:36px 28px;max-width:520px;text-align:center"><p style="font-size:13px;color:#77726a;letter-spacing:1px">404</p>
+<h1 style="font-size:22px;margin:6px 0 10px">ไม่พบเอกสาร หรือลิงก์ไม่ถูกต้อง</h1><p style="color:#77726a;margin-bottom:20px">เปิดใบเสร็จได้จากหน้าติดตามคำสั่งซื้อ โดยกรอกเลขที่คำสั่งซื้อและเบอร์โทรที่ใช้สั่งซื้อ</p>
+<a href="/track" style="display:inline-block;background:#F26B38;color:#fff;padding:12px 22px;text-decoration:none;font-weight:600">ไปหน้าติดตามคำสั่งซื้อ</a></div></main></body></html>`;
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   // หมวด/บทความเดิมของ WordPress (/category/...) ที่ไม่ใช่หมวดที่เปิดอยู่ → 301 ไปหมวดใหม่หรือสินค้าทั้งหมด
@@ -21,7 +28,7 @@ export async function proxy(req: NextRequest) {
   // ใบเสร็จฝั่งลูกค้า: ไม่มีโทเคนหรือรูปแบบผิด → 404 จริง (ตรวจโทเคนกับฐานข้อมูลอีกครั้งในหน้าเพจ)
   if (pathname.startsWith("/track/receipt/")) {
     const t = req.nextUrl.searchParams.get("t") ?? "";
-    if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return new NextResponse("ไม่พบเอกสาร", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex" } });
+    if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return new NextResponse(RECEIPT_404, { status: 404, headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" } });
     return;
   }
   if (pathname.startsWith("/product/")) {
