@@ -376,6 +376,7 @@ $('#step3').addEventListener('submit', async e => {
   [['paidAt', v => !!v, 'กรุณาระบุวันที่โอน'], ['paidTime', v => !!v, 'กรุณาระบุเวลาที่โอน'], ['paidAmt', v => Number(v.replace(/[,\s฿]/g, '')) > 0, 'กรุณากรอกยอดที่โอน']].forEach(([id, fn, m]) => {
     const good = fn(document.getElementById(id).value); setErr(id, good ? '' : m); if (!good) ok = false;
   });
+  if (ok && new Date(`${$('#paidAt').value}T${$('#paidTime').value}`).getTime() > Date.now() + 5 * 60e3){ setErr('paidTime', 'เวลาที่โอนต้องไม่เกินเวลาปัจจุบัน'); ok = false; }
   if (!ok){ toast('กรุณาแนบสลิปและกรอกรายละเอียดให้ครบ'); return; }
 
   const btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'กำลังส่งคำสั่งซื้อ...';
@@ -535,6 +536,7 @@ const today = new Date();
 const ymd = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 $('#paidAt').value = ymd;
 $('#paidAt').max = ymd;
+$('#paidTime').value = String(today.getHours()).padStart(2, '0') + ':' + String(today.getMinutes()).padStart(2, '0'); // ค่าเริ่มต้น = ตอนนี้ (แก้ได้)
 loadSaved();
 syncTax();
 

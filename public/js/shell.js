@@ -323,7 +323,8 @@ function validateCart(force){
       });
       cartAtLoad = null;
       const changed = notes.length > 0 || JSON.stringify(next) !== JSON.stringify(cart);
-      cart = next; cartFlags = flags; cartNotes = notes;
+      // ข้อความเดิมยังแสดงอยู่จนกว่าลูกค้าจะแก้ตะกร้า/ปิดตะกร้า (การตรวจซ้ำที่ไม่พบอะไรใหม่ไม่ลบข้อความ)
+      cart = next; if (notes.length){ cartFlags = flags; cartNotes = notes; }
       LS.set(CART_KEY, JSON.stringify(cart)); LS.set(SEEN_KEY, JSON.stringify(seen));
       renderCart();
       if (notes.length && !cartEl.classList.contains('open')) toast(notes.length === 1 ? notes[0] : `ตะกร้ามีการเปลี่ยนแปลง ${notes.length} รายการ — เปิดตะกร้าเพื่อดูรายละเอียด`);
@@ -360,7 +361,7 @@ function setQty(id, q){
   const p = byId(id);
   if (p && q > maxQty(p)) toast(`"${p.name}" มีสินค้าเหลือ ${maxQty(p)} ชิ้น`);
   if (q <= 0 || !p) delete cart[id]; else cart[id] = Math.min(q, maxQty(p));
-  delete cartFlags[id];
+  delete cartFlags[id]; cartNotes = [];
   saveCart(); renderCart();
 }
 function renderBadges(){
@@ -445,6 +446,7 @@ function openCart(from){
 }
 function closeCart(){
   if (!cartEl.classList.contains('open')) return;
+  cartNotes = [];
   cartEl.classList.remove('open'); cartEl.setAttribute('aria-hidden','true'); document.body.classList.remove('locked');
   if (cartReturn && document.contains(cartReturn)) cartReturn.focus({ preventScroll: true });
 }
@@ -719,7 +721,7 @@ addEventListener('storage', e => {
   if (e.key === null || e.key === CART_KEY){ cart = loadCart(); renderCart(); }
 });
 /* ตรวจตะกร้ากับ server ตั้งแต่เปิดหน้า (ป้ายจำนวน/ยอดถูกต้องเสมอ) */
-if (Object.keys(cartAtLoad || {}).length) setTimeout(() => validateCart(true), 400);
+if (Object.keys(cartAtLoad || {}).length) setTimeout(() => { if (!validatedAt) validateCart(true); }, 400);
 /* หน้าสินค้า → event view_item (ส่งจริงเมื่อยินยอมคุกกี้วิเคราะห์/การตลาดเท่านั้น) */
 (() => {
   const m = /^\/product\/([^/?#]+)/.exec(location.pathname);

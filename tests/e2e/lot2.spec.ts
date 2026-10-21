@@ -55,7 +55,7 @@ async function createPaidOrderApi(request: APIRequestContext, slug: string, phon
   const o = await r.json();
   const s = await request.post(`/api/orders/${o.orderNo}/slip`, {
     headers: { "x-forwarded-for": ip },
-    multipart: { phone, paidAt: `${todayBkk()}T09:00`, amount: String(o.totalSatang / 100), slip: { name: "slip.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/slip.png") } },
+    multipart: { phone, paidAt: `${todayBkk()}T00:00`, amount: String(o.totalSatang / 100), slip: { name: "slip.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/slip.png") } },
   });
   expect(s.status()).toBe(201);
   return o as { orderNo: string; totalSatang: number; shippingSatang: number };
@@ -230,7 +230,7 @@ test("U21–U22 สลิปใหญ่ถูกย่อก่อนอัป�
   expect(big.length).toBeGreaterThan(8 * 1024 * 1024);
   await page.setInputFiles("#slip", { name: "IMG_0001.jpg", mimeType: "image/jpeg", buffer: big });
   await expect(page.locator("#previewSize")).toContainText("ย่อจาก", { timeout: 30_000 });
-  await page.fill("#paidTime", "10:30");
+  await page.fill("#paidTime", "00:00");
   await page.click("#submitBtn");
   await expect(page.locator("#doneView")).toBeVisible({ timeout: 30_000 });
   const [slip] = await q<{ sizeBytes: number }>(`SELECT s."sizeBytes" FROM "PaymentSlip" s JOIN "Order" o ON o.id = s."orderId" WHERE o."orderNo" = $1`, [orderNo]);
@@ -459,7 +459,9 @@ test("U27 + U29 + U30 FAQ, Analytics ตามความยินยอม แ
   await page.goto("/faq");
   await expect(page.locator(".faq-list details")).toHaveCount(2);
   await expect(page.locator(".faq-list .faq-a li").first()).toContainText("วัตต์");
-  const ld = JSON.parse((await page.locator("script[type='application/ld+json']").filter({ hasText: "FAQPage" }).first().textContent())!);
+  const ld = await page.evaluate(() =>
+    [...document.querySelectorAll("script[type='application/ld+json']")].map((s) => JSON.parse(s.textContent || "{}")).find((j) => j["@type"] === "FAQPage"),
+  );
   expect(ld["@type"]).toBe("FAQPage");
   expect(ld.mainEntity[0].acceptedAnswer.text).toContain("DC12V");
   await expect(page.locator("footer a[href='/faq']")).toBeAttached();
@@ -478,7 +480,7 @@ test("U27 + U29 + U30 FAQ, Analytics ตามความยินยอม แ
   await expect(page.locator("script[src*='googletagmanager.com/gtag/js?id=G-TEST12345']")).toHaveCount(1);
   await expect(page.locator("script[src*='fbevents']")).toHaveCount(0);
   // event ใส่ตะกร้าไปที่ GA4 (dataLayer) เมื่อยินยอมแล้ว
-  await page.locator("[data-add]").first().click();
+  await page.locator("[data-add]").filter({ visible: true }).first().click();
   const events = await page.evaluate(() => ((window as unknown as { dataLayer?: ArrayLike<unknown>[] }).dataLayer ?? []).map((a) => Array.from(a)[1]));
   expect(events).toContain("add_to_cart");
   // ยอมรับทั้งหมด → Meta Pixel ด้วย
