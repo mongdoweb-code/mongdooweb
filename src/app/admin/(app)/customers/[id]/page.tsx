@@ -9,13 +9,14 @@ import { docPath, statusOf } from "@/lib/docs";
 import { formatPhone } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
-import { deleteCustomer } from "../actions";
+import { deleteCustomer, mergeCustomer } from "../actions";
 import { CustomerForm, type CustomerValues } from "../CustomerForm";
 
 export const instant = false;
 
 export default async function CustomerPage({ params, searchParams }: PageProps<"/admin/customers/[id]">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  const owner = admin.role === "OWNER";
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const c = id === "new" ? null : await prisma.customer.findUnique({ where: { id }, include: { documents: { orderBy: { createdAt: "desc" }, take: 100 }, orders: { orderBy: { createdAt: "desc" }, take: 20, select: { orderNo: true, totalSatang: true, status: true, createdAt: true } } } });
   if (id !== "new" && !c) notFound();
@@ -29,6 +30,17 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
     shipDist: ship.address?.dist ?? "", shipProv: ship.address?.prov ?? "", shipZip: ship.address?.zip ?? "",
   };
   const docs = c?.documents ?? [];
+  // คำสั่งซื้อเว็บที่เบอร์ตรงกันแต่ยังไม่ผูกกับลูกค้ารายนี้ + รายชื่อที่น่าจะซ้ำ (เบอร์/เลขผู้เสียภาษี/ชื่อเดียวกัน)
+  const [phoneOrders, dupes] = c
+    ? await Promise.all([
+        c.phone ? prisma.order.findMany({ where: { phone: c.phone, OR: [{ customerId: null }, { customerId: { not: c.id } }] }, orderBy: { createdAt: "desc" }, take: 20, select: { orderNo: true, totalSatang: true, status: true, createdAt: true } }) : [],
+        prisma.customer.findMany({
+          where: { id: { not: c.id }, OR: [...(c.phone ? [{ phone: c.phone }] : []), ...(c.taxId ? [{ taxId: c.taxId }] : []), { name: { equals: c.name, mode: "insensitive" as const } }] },
+          take: 10, select: { id: true, code: true, name: true, phone: true, taxId: true },
+        }),
+      ])
+    : [[], []];
+  const merged = typeof sp.merged === "string" ? sp.merged.split("|") : null;
   const owe = docs.filter((d) => d.type === "INVOICE" && ["ISSUED", "PARTIAL"].includes(d.status)).reduce((s, d) => s + d.grandSatang - d.paidSatang, 0);
   const paidTotal = docs.filter((d) => d.type === "RECEIPT" && d.status === "ISSUED").reduce((s, d) => s + d.grandSatang, 0);
   return (
@@ -47,11 +59,34 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
           </div>
         )}
       </div>
+      {merged && <div className="ok-box" role="status" style={{ marginBottom: 12 }}>รวมลูกค้า {merged[0]} เข้ารายนี้แล้ว — ย้ายเอกสาร {merged[1]} ฉบับ และคำสั่งซื้อ {merged[2]} รายการ</div>}
+      {sp.merge === "notfound" && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>ไม่พบรหัสลูกค้าปลายทาง</div>}
+      {sp.merge === "self" && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>เลือกลูกค้ารายอื่น (รวมกับตัวเองไม่ได้)</div>}
       {sp.err === "inuse" && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>ลบไม่ได้ — ลูกค้ารายนี้มีเอกสารหรือคำสั่งซื้ออยู่ (เอกสารต้องเก็บไว้ตามกฎหมาย)</div>}
       <div className="pform-grid">
         <div className="d-col">
           <div className="box"><h3>ข้อมูลลูกค้า</h3><CustomerForm v={v} saved={sp.saved === "1"} /></div>
-          {c && docs.length === 0 && c.orders.length === 0 && (
+          {c && owner && (
+            <form action={mergeCustomer} className="box cu-merge" id="mergeBox">
+              <h3>รวมรายการซ้ำ</h3>
+              <p className="sub">ย้ายเอกสาร คำสั่งซื้อ และคำขอทั้งหมดของ {c.code} ไปไว้ที่ลูกค้ารายหลัก แล้วลบ {c.code} — ช่องที่รายหลักยังว่างจะเติมจากรายนี้ (เอกสารที่ออกแล้วไม่เปลี่ยน)</p>
+              <input type="hidden" name="id" value={c.id} />
+              {dupes.length > 0 && (
+                <ul className="cu-dupes">
+                  {dupes.map((d) => (
+                    <li key={d.id}><Link className="link" href={`/admin/customers/${d.id}`}>{d.code} · {d.name}</Link><span className="sub">{d.phone ? formatPhone(d.phone) : ""}{d.taxId ? ` · ${d.taxId}` : ""}</span></li>
+                  ))}
+                </ul>
+              )}
+              <div className="field">
+                <label htmlFor="mergeTarget">รหัสลูกค้ารายหลัก (เก็บไว้)</label>
+                <input id="mergeTarget" name="target" maxLength={20} required placeholder={dupes[0]?.code ?? "เช่น 0012"} list="dupeCodes" />
+                <datalist id="dupeCodes">{dupes.map((d) => <option key={d.id} value={d.code}>{d.name}</option>)}</datalist>
+              </div>
+              <ConfirmSubmit className="btn btn-outline" title={`รวม ${c.code} เข้ากับรายหลัก?`} body={`ลูกค้า ${c.code} ${c.name} จะถูกลบหลังย้ายข้อมูลทั้งหมด — ย้อนกลับไม่ได้`} confirmLabel="รวมลูกค้า">รวมเข้ากับรายหลัก</ConfirmSubmit>
+            </form>
+          )}
+          {c && owner && docs.length === 0 && c.orders.length === 0 && (
             <form action={deleteCustomer} className="box">
               <input type="hidden" name="id" value={c.id} />
               <ConfirmSubmit className="btn btn-danger" title="ลบลูกค้ารายนี้?" body="ลบได้เพราะยังไม่มีเอกสารหรือคำสั่งซื้อ — ย้อนกลับไม่ได้" confirmLabel="ลบลูกค้า">ลบลูกค้า</ConfirmSubmit>
@@ -88,6 +123,16 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
                 <h3>คำสั่งซื้อหน้าเว็บ</h3>
                 <ul>
                   {c.orders.map((o) => (
+                    <li key={o.orderNo}><Link className="link" href={`/admin?tab=ALL&open=${o.orderNo}`}>{o.orderNo}</Link><span className="sub">{docDate(ymdBkk(o.createdAt), "AD")}</span><b className="num">{money(o.totalSatang)}</b><span className="sub">{STATUS_LABEL[o.status]}</span></li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {phoneOrders.length > 0 && (
+              <section className="cu-hist">
+                <h3>คำสั่งซื้อเว็บที่ใช้เบอร์เดียวกัน</h3>
+                <ul>
+                  {phoneOrders.map((o) => (
                     <li key={o.orderNo}><Link className="link" href={`/admin?tab=ALL&open=${o.orderNo}`}>{o.orderNo}</Link><span className="sub">{docDate(ymdBkk(o.createdAt), "AD")}</span><b className="num">{money(o.totalSatang)}</b><span className="sub">{STATUS_LABEL[o.status]}</span></li>
                   ))}
                 </ul>
