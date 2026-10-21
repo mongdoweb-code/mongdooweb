@@ -21,6 +21,11 @@ const PAGES: [string, string][] = [
   ["/admin/line", "แจ้งเตือน LINE"],
   ["/admin/log", "บันทึกการใช้งาน"],
   ["/admin/settings", "ตั้งค่า"],
+  ["/admin/inquiries", "คำขอจากลูกค้า"],
+  ["/admin/pages", "หน้าเนื้อหา"],
+  ["/admin/users", "ผู้ใช้หลังบ้าน"],
+  ["/admin/system", "สถานะระบบ"],
+  ["/admin/account", "บัญชีของฉัน"],
 ];
 
 test("ทุกเมนูหลังบ้านเปิดได้", async ({ page }) => {
