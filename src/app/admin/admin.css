@@ -1377,7 +1377,7 @@ button.kpi:hover{border-top-color:var(--c-line)}
   .ses-tbl td.ses-user,.ses-tbl td.ses-dev{grid-column:1}
   .ses-tbl td.ses-ip{grid-column:2;grid-row:1;text-align:right}
   .ses-tbl td.ses-in,.ses-tbl td.ses-seen{grid-column:1/-1}
-  .ses-tbl .m-lbl{display:inline}
+  .ses-tbl .m-lbl{display:inline!important;color:var(--c-muted)}
   .ses-tbl td.ses-act{grid-column:1/-1}
   .log-tbl td.lg-at{grid-column:1;grid-row:1}
   .log-tbl td.lg-type{grid-column:2;grid-row:1;text-align:right}
@@ -1428,3 +1428,5 @@ button.kpi:hover{border-top-color:var(--c-line)}
 }
 .ses-t{font-size:13px;color:var(--c-muted);white-space:nowrap}
 @media (min-width:861px){.tbl td.sub{display:table-cell}}
+.acc-form .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:480px){.acc-form .two{grid-template-columns:1fr}}

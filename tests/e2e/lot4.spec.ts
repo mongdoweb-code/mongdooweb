@@ -164,6 +164,7 @@ test("A17 สิทธิ์ STAFF: เปิดหน้าของเจ้�
   await login(page);
   await page.goto("/admin/settings");
   const mark = `OWNER-${rid()}`;
+  const origHours = (await one<{ b: string | null }>(`SELECT "businessHours" b FROM "ShopSetting" WHERE id='shop'`)).b;
   await page.fill("#businessHours" + V, mark);
   const reqP = page.waitForRequest((r) => r.method() === "POST" && !!r.headers()["next-action"]);
   await page.click(`.set-foot button[type=submit]${V}`);
@@ -192,6 +193,7 @@ test("A17 สิทธิ์ STAFF: เปิดหน้าของเจ้�
   });
   expect((await one<{ b: string }>(`SELECT "businessHours" b FROM "ShopSetting" WHERE id='shop'`)).b).toBe(mark);
   expect((await one<{ n: string }>(`SELECT count(*) n FROM "AdminLog" WHERE type='DENIED' AND "adminId"=$1`, [staff.id])).n).not.toBe("0");
+  await db.query(`UPDATE "ShopSetting" SET "businessHours"=$1 WHERE id='shop'`, [origHours]);
   await ctx.close();
 });
 
