@@ -1,10 +1,11 @@
 // GET /admin/slips/:id — ภาพสลิป เปิดได้เฉพาะแอดมินที่ล็อกอินอยู่
-import { getCurrentAdmin } from "@/lib/auth";
+import { routeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { storage } from "@/lib/storage";
 
 export async function GET(_req: Request, ctx: RouteContext<"/admin/slips/[id]">) {
-  if (!(await getCurrentAdmin())) return new Response("Unauthorized", { status: 401 });
+  const admin = await routeAdmin();
+  if (admin instanceof Response) return admin;
   const { id } = await ctx.params;
   const slip = await prisma.paymentSlip.findUnique({ where: { id: id.slice(0, 40) } });
   const data = slip && (await storage().get(slip.storageKey));

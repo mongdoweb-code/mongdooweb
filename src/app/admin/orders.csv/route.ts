@@ -1,6 +1,6 @@
 // GET /admin/orders.csv — ส่งออกคำสั่งซื้อตามตัวกรองปัจจุบัน (มี BOM ให้ Excel อ่านภาษาไทยได้)
 import { STATUS_LABEL, listOrders, parseFilter } from "@/lib/admin-orders";
-import { getCurrentAdmin } from "@/lib/auth";
+import { routeAdmin } from "@/lib/auth";
 import { formatPhone } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 
@@ -12,8 +12,8 @@ const q = (v: unknown) => {
 };
 
 export async function GET(req: Request) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return new Response("Unauthorized", { status: 401 });
+  const admin = await routeAdmin();
+  if (admin instanceof Response) return admin;
   const sp = Object.fromEntries(new URL(req.url).searchParams);
   const f = { ...parseFilter(sp), page: 1, size: 10_000 };
   const { rows } = await listOrders(f);

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { logAdmin, refreshStorefront } from "@/lib/admin-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireOwner } from "@/lib/auth";
 import { baseline, snapshot } from "@/lib/content-version";
 import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
@@ -132,7 +132,7 @@ export async function duplicateSlide(f: FormData) {
 }
 
 export async function deleteSlide(f: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireOwner();
   await baseline("SLIDES", admin.displayName);
   const s = await prisma.heroSlide.findUnique({ where: { id: str(f, "id", 40) } });
   if (!s) redirect("/admin/slides");

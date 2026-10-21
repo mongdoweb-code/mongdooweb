@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import type { CategoryGroup } from "../../../../../generated/prisma/client";
 import { logAdmin, refreshStorefront } from "@/lib/admin-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireOwner } from "@/lib/auth";
 import { baseline, snapshot } from "@/lib/content-version";
 import { ICON_KEYS } from "@/lib/icons";
 import { prisma } from "@/lib/prisma";
@@ -71,7 +71,7 @@ export async function moveCategory(f: FormData) {
 }
 
 export async function deleteCategory(f: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireOwner();
   await baseline("CATEGORIES", admin.displayName);
   const id = str(f, "id", 40);
   const c = await prisma.category.findUnique({ where: { id }, include: { _count: { select: { products: true } } } });
