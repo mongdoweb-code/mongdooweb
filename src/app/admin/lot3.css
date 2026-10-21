@@ -70,7 +70,7 @@
 .l3-form{display:grid;gap:12px}
 .l3-form .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .l3-form .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.l3-form .bad,.l3-form input.bad,.l3-form select.bad,.l3-form textarea.bad{border-color:var(--c-err)!important}
+#manualOrderForm input.bad,#manualOrderForm textarea.bad,.l3-form .bad,.l3-form input.bad,.l3-form select.bad,.l3-form textarea.bad{border-color:var(--c-err)!important}
 .l3-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .l3-note{font-size:13px;color:var(--c-muted)}
 .l3-code{font-family:ui-monospace,monospace;font-size:12.5px;background:var(--c-cream);padding:1px 6px}

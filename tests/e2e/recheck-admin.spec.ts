@@ -250,6 +250,7 @@ test("A4/A5 คำสั่งซื้อจากหลังร้านใ�
   await expect(page.locator(".login-err" + V)).toContainText("รหัสไปรษณีย์ไม่ตรงกับจังหวัด");
   await expect(page.locator(".login-err" + V)).toContainText("เบอร์โทรไม่ถูกต้อง");
   await expect(page.locator("#a-zip" + V)).toHaveClass(/bad/);
+  expect(await page.locator("#a-zip" + V).evaluate((el) => getComputedStyle(el).borderTopColor)).toBe("rgb(192, 57, 43)");
   // จังหวัดที่ไม่มีจริง
   await page.fill("#a-phone" + V, uniqPhone());
   await page.fill("#a-prov" + V, "เมืองสมมติ");
@@ -361,4 +362,17 @@ test("เจ้าของร้านลบคำขอได้ (ปุ่ม
   await confirmClick(page, '.box button:has-text("ลบคำขอ")', "ลบคำขอ");
   await page.waitForURL(/deleted=1/);
   expect(await one(`SELECT id FROM "Inquiry" WHERE id=$1`, [id])).toBeUndefined();
+});
+
+test("A1/A2 ใบเสร็จแบ่งงวด (งวดที่ n) ไม่ขึ้นเป็น 'สินค้าขายดี' แต่ยอดรายงานตามสินค้ายังครบ", async ({ page }) => {
+  await login(page);
+  await page.goto("/admin/dashboard");
+  await expect(page.locator("h1" + V)).toContainText("ภาพรวม");
+  await expect(page.locator("main" + V)).not.toContainText("(งวดที่");
+  const hasInstallment = Number((await one<{ n: string }>(`SELECT count(*) n FROM "SalesDocumentItem" i JOIN "SalesDocument" d ON d.id=i."documentId"
+    WHERE d.type='RECEIPT' AND d.status NOT IN ('VOID','DRAFT') AND i.unit='งวด' AND i."productId" IS NULL AND d."orderId" IS NULL AND d."issueDate" > now() - interval '25 days'`)).n);
+  if (hasInstallment) {
+    await page.goto("/admin/reports?preset=d30&view=product");
+    await expect(page.locator(".l3-tbl" + V)).toContainText("รับชำระงวดตามใบแจ้งหนี้");
+  }
 });

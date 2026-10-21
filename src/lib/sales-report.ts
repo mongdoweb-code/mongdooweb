@@ -14,7 +14,10 @@ export const CHANNEL_LABEL: Record<Channel, string> = {
 };
 export const channelOf = (c: string | null | undefined): Channel => (c === "ADMIN" ? "ADMIN" : "WEB");
 
-export type SaleLine = { productId: string | null; sku: string; name: string; categoryId: string | null; categoryName: string; qty: number; amountSatang: number };
+export type SaleLine = { productId: string | null; sku: string; name: string; categoryId: string | null; categoryName: string; qty: number; amountSatang: number; installment?: boolean };
+/** บรรทัด "รับชำระตามใบแจ้งหนี้ … (งวดที่ n)" ของใบเสร็จแบ่งงวด — เป็นเงินรับ ไม่ใช่สินค้า: รวมเป็นกลุ่มเดียว และไม่ขึ้นอันดับสินค้าขายดี */
+export const INSTALLMENT_KEY = "installment";
+const INSTALLMENT_LABEL = "รับชำระงวดตามใบแจ้งหนี้ (ไม่แยกสินค้า)";
 export type Sale = { at: Date; day: string; month: string; channel: Channel; ref: string; totalSatang: number; shippingSatang: number; lines: SaleLine[] };
 
 const NO_CAT = "ไม่ระบุหมวด";
@@ -33,7 +36,7 @@ export async function salesBetween(from: Date, to: Date): Promise<Sale[]> {
       where: { type: "RECEIPT", status: { notIn: ["VOID", "DRAFT"] }, docNo: { not: null }, orderId: null, issueDate: { gte: from, lt: to } },
       select: {
         docNo: true, issueDate: true, grandSatang: true,
-        items: { select: { productId: true, sku: true, name: true, qtyMilli: true, priceSatang: true, discountSatang: true, product: { select: { sku: true, isService: true, categoryId: true, category: { select: { nameTh: true } } } } } },
+        items: { select: { productId: true, sku: true, name: true, unit: true, qtyMilli: true, priceSatang: true, discountSatang: true, product: { select: { sku: true, isService: true, categoryId: true, category: { select: { nameTh: true } } } } } },
       },
     }),
   ]);
@@ -56,6 +59,10 @@ export async function salesBetween(from: Date, to: Date): Promise<Sale[]> {
       const amt = Math.round((i.qtyMilli * i.priceSatang) / 1000) - i.discountSatang;
       if (/^shipping$/i.test(i.sku ?? "")) {
         ship += amt;
+        continue;
+      }
+      if (!i.productId && i.unit === "งวด") {
+        lines.push({ productId: null, sku: "", name: INSTALLMENT_LABEL, categoryId: INSTALLMENT_KEY, categoryName: INSTALLMENT_LABEL, qty: i.qtyMilli / 1000, amountSatang: amt, installment: true });
         continue;
       }
       lines.push({
@@ -101,7 +108,7 @@ export function byProduct(list: Sale[]): Bucket[] {
   const map = new Map<string, Bucket>();
   for (const s of list)
     for (const l of s.lines) {
-      const key = l.productId ?? `name:${l.name}`;
+      const key = l.installment ? INSTALLMENT_KEY : l.productId ?? `name:${l.name}`;
       const b = map.get(key) ?? { key, label: l.name, sku: l.sku, count: 0, satang: 0, qty: 0 };
       b.count++;
       b.qty = (b.qty ?? 0) + l.qty;

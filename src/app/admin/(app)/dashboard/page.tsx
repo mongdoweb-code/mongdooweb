@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { addDaysYmd, fromYmd } from "@/lib/doc-calc";
 import { statusWhere } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
-import { CHANNEL_LABEL, byChannel, byPeriod, byProduct, monthStart, mondayOf, prevMonthSameSpan, salesBetween, sumSales, todayYmd } from "@/lib/sales-report";
+import { CHANNEL_LABEL, INSTALLMENT_KEY, byChannel, byPeriod, byProduct, monthStart, mondayOf, prevMonthSameSpan, salesBetween, sumSales, todayYmd } from "@/lib/sales-report";
 import { BarChart, Delta, RankTable, baht, shortDate } from "../reports/_ui";
 import "../../lot3.css";
 
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
   const d14 = addDaysYmd(today, -13);
   const days = byPeriod(sales.filter((x) => x.day >= d14), d14, today, "day");
   const last30 = sales.filter((x) => x.day >= addDaysYmd(today, -29));
-  const top = byProduct(last30).slice(0, 10);
+  const top = byProduct(last30).filter((b) => b.key !== INSTALLMENT_KEY).slice(0, 10);
   const channels = byChannel(sales.filter((x) => x.day >= monthStart(today)));
   const monthTotal = channels.reduce((a, c) => a + c.satang, 0);
 
