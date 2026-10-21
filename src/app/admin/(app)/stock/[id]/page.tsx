@@ -8,9 +8,10 @@ import { MoveTable } from "../MoveTable";
 import { AdjustForm, StartTrackingForm } from "../StockForms";
 import "../../../lot3.css";
 
-export default async function StockProductPage({ params }: PageProps<"/admin/stock/[id]">) {
+export default async function StockProductPage({ params, searchParams }: PageProps<"/admin/stock/[id]">) {
   await requireAdmin();
   const { id } = await params;
+  const started = (await searchParams).started;
   const p = await prisma.product.findUnique({ where: { id }, select: { id: true, sku: true, name: true, stock: true, trackStock: true, isActive: true, inStock: true, category: { select: { nameTh: true } } } });
   if (!p) notFound();
   const [moves, check, s] = await Promise.all([
@@ -44,6 +45,9 @@ export default async function StockProductPage({ params }: PageProps<"/admin/sto
                   {p.stock <= 0 ? <span className="chip bad">หมด</span> : p.stock <= T ? <span className="chip warn">ใกล้หมด (≤ {T})</span> : `เกณฑ์ใกล้หมด ≤ ${T}`}
                 </small>
               </div>
+              {typeof started === "string" && /^\d+$/.test(started) && (
+                <div className="login-info" role="status" style={{ marginBottom: 12 }}>เริ่มนับสต็อกแล้ว คงเหลือ {started}</div>
+              )}
               <h2 style={{ marginBottom: 10 }}>ปรับสต็อก</h2>
               <AdjustForm productId={p.id} stock={p.stock} />
             </>

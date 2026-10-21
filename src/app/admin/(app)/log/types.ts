@@ -33,7 +33,7 @@ export const LOG_TABS = {
 } as const;
 export type LogTab = keyof typeof LOG_TABS;
 
-export const ORDER_EVENT: Record<string, string> = { CREATED: "สร้างคำสั่งซื้อ", SLIP_UPLOADED: "แนบสลิป", APPROVED: "อนุมัติการชำระเงิน", REJECTED: "ปฏิเสธสลิป", REOPENED: "เปิดตรวจใหม่", SHIPPED: "จัดส่ง", CANCELLED: "ยกเลิก", NOTE: "โน้ตภายใน" };
+export const ORDER_EVENT: Record<string, string> = { CREATED: "สร้างคำสั่งซื้อ", SLIP_UPLOADED: "แนบสลิป", APPROVED: "อนุมัติการชำระเงิน", REJECTED: "ปฏิเสธสลิป", REOPENED: "เปิดตรวจใหม่", SHIPPED: "จัดส่ง", CANCELLED: "ยกเลิก", NOTE: "โน้ตภายใน", EDITED: "แก้ไขข้อมูลผู้รับ", REFUNDED: "ยกเลิกและคืนเงิน" };
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const ymd = /^\d{4}-\d{2}-\d{2}$/;

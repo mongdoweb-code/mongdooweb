@@ -29,7 +29,7 @@ export async function adjustStock(_prev: StockState, f: FormData): Promise<Stock
   const meta = { reason: kind as "RESTOCK" | "COUNT" | "ADJUST", adminId: admin.id, note: note || null, ref: ref || null };
   const r = await prisma.$transaction((tx) => (kind === "COUNT" ? setStock(tx, id, n, meta) : moveStock(tx, [{ productId: id, delta: n }], meta).then((x) => x[0] ?? null)));
   if (!r) return { ok: "สต็อกเท่าเดิม ไม่มีการเปลี่ยนแปลง" };
-  await logAdmin(admin.id, "PRODUCT", `${STOCK_REASONS[meta.reason]} ${p.sku}: ${r.before} → ${r.after}${note ? ` (${note})` : ""}`);
+  await logAdmin(admin.id, "STOCK", `${STOCK_REASONS[meta.reason]} ${p.sku}: ${r.before} → ${r.after}${note ? ` (${note})` : ""}`);
   refreshStorefront();
   refresh();
   return { ok: `บันทึกแล้ว — คงเหลือ ${r.before} → ${r.after}` };
@@ -50,10 +50,10 @@ export async function startTracking(_prev: StockState, f: FormData): Promise<Sto
   });
   if (!done) return { error: "สินค้านี้นับสต็อกอยู่แล้ว" };
   const p = await prisma.product.findUnique({ where: { id }, select: { sku: true } });
-  await logAdmin(admin.id, "PRODUCT", `เริ่มนับสต็อก ${p?.sku} ยอดเริ่มต้น ${n}`);
+  await logAdmin(admin.id, "STOCK", `เริ่มนับสต็อก ${p?.sku} ยอดเริ่มต้น ${n}`);
   refreshStorefront();
-  refresh();
-  return { ok: `เริ่มนับสต็อกแล้ว คงเหลือ ${n}` };
+  // ฟอร์มนี้หายไปหลังเริ่มนับ (หน้าเปลี่ยนเป็นฟอร์มปรับสต็อก) → แจ้งผลบนหน้าแทน
+  redirect(`/admin/stock/${id}?started=${n}`);
 }
 
 /** เกณฑ์สินค้าใกล้หมด + แจ้งเตือน LINE (เจ้าของร้าน) */

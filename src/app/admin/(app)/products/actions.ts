@@ -229,6 +229,7 @@ export async function confirmImport(_prev: ImportState, f: FormData): Promise<Im
   const text = String(f.get("csv") ?? "").slice(0, 3_000_000);
   const parsed = parseCsv(text);
   if (parsed.error || !parsed.rows.length) return { error: parsed.error ?? "ไม่พบข้อมูล" };
+  if (parsed.rows.length > 2000 || !("sku" in parsed.rows[0])) return { error: "ไฟล์ไม่ถูกต้อง — ตรวจไฟล์ใหม่อีกครั้ง" };
   const { rows, updates } = await checkImport(parsed.rows);
   if (!updates.length) return { rows, csv: text, error: "ไม่มีรายการที่ต้องเปลี่ยน" };
   const n = await applyImport(updates, admin.id);
