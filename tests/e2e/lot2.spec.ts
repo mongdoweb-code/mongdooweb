@@ -89,7 +89,7 @@ test("U16 ตะกร้าตรวจกับเซิร์ฟเวอร�
   const p = await buyableProduct(page);
   const [stocked] = await q<{ slug: string; stock: number; name: string }>(
     `SELECT p.slug, p.stock, p.name FROM "Product" p JOIN "Category" c ON c.id = p."categoryId"
-     WHERE p."trackStock" AND p.stock BETWEEN 1 AND 50 AND p."isActive" AND NOT p."isService" AND c."isActive" AND p."priceSatang" > 0 AND p.slug <> $1 LIMIT 1`,
+     WHERE p."trackStock" AND p.stock BETWEEN 1 AND 50 AND p."isActive" AND NOT p."isService" AND c."isActive" AND p."priceSatang" > 0 AND p.slug <> $1 AND p.sku NOT LIKE 'E2E-%' LIMIT 1`,
     [p.id],
   );
   const cart: Record<string, number> = { [p.id]: 1, "ไม่มีสินค้านี้-xyz": 2 };

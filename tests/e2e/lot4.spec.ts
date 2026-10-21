@@ -88,7 +88,7 @@ test.afterAll(async () => {
 
 test("A16 คำขอจากลูกค้า: badge, สถานะ, โน้ต, สร้างใบเสนอราคา", async ({ page }) => {
   const errors = trackErrors(page);
-  const prod = await one<{ slug: string; name: string; priceSatang: number; sku: string }>(`SELECT slug, name, "priceSatang", sku FROM "Product" WHERE "priceSatang" > 0 AND "isActive" ORDER BY sku LIMIT 1`);
+  const prod = await one<{ slug: string; name: string; priceSatang: number; sku: string }>(`SELECT slug, name, "priceSatang", sku FROM "Product" WHERE "priceSatang" > 0 AND "isActive" AND sku NOT LIKE 'E2E-%' ORDER BY sku LIMIT 1`);
   const phone = `08${String(Date.now()).slice(-8)}`;
   const id = `inq${rid()}`;
   await db.query(

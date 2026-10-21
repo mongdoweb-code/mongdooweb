@@ -64,7 +64,7 @@ async function manualOrder(page: Page, opts: { qty: number; paid: boolean; tax?:
 test("เตรียมสินค้า + ปรับสต็อกเอง (A7): ยอดคงเหลือ = ผลรวมการเคลื่อนไหว", async ({ page }) => {
   const errors = trackErrors(page);
   P = await one(`SELECT p.id, p.sku, p.name, p."priceSatang" AS price, p."compareAtSatang" AS cmp FROM "Product" p JOIN "Category" c ON c.id=p."categoryId"
-    WHERE p."isActive" AND NOT p."isService" AND c."isActive" AND p."priceSatang" > 0 ORDER BY p."trackStock" DESC, p.sku LIMIT 1`);
+    WHERE p."isActive" AND NOT p."isService" AND c."isActive" AND p."priceSatang" > 0 AND p.sku NOT LIKE 'E2E-%' ORDER BY p."trackStock" DESC, p.sku LIMIT 1`);
   expect(P?.id).toBeTruthy();
   await login(page);
   await page.goto(`/admin/stock/${P.id}`);
@@ -279,7 +279,7 @@ test("ตัวดูสลิป: ขยาย ซูม หมุน เที
   expect(r.status()).toBe(201);
   const o = await r.json();
   const slip = await request.post(`/api/orders/${o.orderNo}/slip`, {
-    multipart: { phone, paidAt: `${todayBkk()}T09:00`, amount: String(o.totalSatang / 100 - 1), slip: { name: "slip.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/slip.png") } },
+    multipart: { phone, paidAt: `${todayBkk()}T00:00`, amount: String(o.totalSatang / 100 - 1), slip: { name: "slip.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/slip.png") } },
   });
   expect(slip.status()).toBe(201);
   await login(page);
