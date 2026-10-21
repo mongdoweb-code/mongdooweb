@@ -32,6 +32,10 @@ jobs:
       SITE_URL: http://localhost:3123
       UPLOAD_DIR: uploads
       STORAGE_DRIVER: local
+      # งานตั้งเวลา /api/cron/daily (lot3.spec ใช้ค่าเดียวกัน)
+      CRON_SECRET: test-cron-secret
+      # LINE จำลอง: playwright.config.ts เปิด tests/e2e/line-mock.mjs และชี้แอปไปที่นั่น (ไม่ส่งถึง LINE จริง)
+      LINE_MOCK_LOG: /tmp/mdw-line-mock.jsonl
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

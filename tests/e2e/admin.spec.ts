@@ -26,6 +26,13 @@ const PAGES: [string, string][] = [
   ["/admin/users", "ผู้ใช้หลังบ้าน"],
   ["/admin/system", "สถานะระบบ"],
   ["/admin/account", "บัญชีของฉัน"],
+  ["/admin/dashboard", "ภาพรวม"],
+  ["/admin/stock", "สต็อก"],
+  ["/admin/reports", "รายงานยอดขาย"],
+  ["/admin/reports/vat", "รายงานภาษีขาย"],
+  ["/admin/orders/new", "คำสั่งซื้อ"],
+  ["/admin/orders/shipping", "เลขพัสดุ"],
+  ["/admin/products/import", "นำเข้า"],
 ];
 
 test("ทุกเมนูหลังบ้านเปิดได้", async ({ page }) => {
@@ -35,6 +42,14 @@ test("ทุกเมนูหลังบ้านเปิดได้", async
     const res = await page.goto(path);
     expect(res?.status(), path).toBe(200);
     await expect(page.locator("h1" + V).first(), path).toContainText(title);
+  }
+  // ทุกลิงก์ในเมนูด้านข้าง (รวมเมนูที่เพิ่มภายหลัง) เปิดได้ ไม่ใช่ 404/500
+  const links = await page.locator("#side .nav-i:not([target])").evaluateAll((els) => els.map((e) => e.getAttribute("href")!));
+  expect(links.length).toBeGreaterThan(15);
+  for (const href of links) {
+    const res = await page.goto(href);
+    expect(res?.status(), href).toBe(200);
+    await expect(page, href).not.toHaveURL(/denied=1|\/login/);
   }
   expect(errors).toEqual([]);
 });

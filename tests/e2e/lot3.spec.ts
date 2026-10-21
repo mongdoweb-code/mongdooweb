@@ -76,8 +76,8 @@ test("เตรียมสินค้า + ปรับสต็อกเอ�
     await page.fill("#adjQty" + V, "50");
     await page.click('#adjustForm button[type=submit]' + V);
   }
-  await expect(page.locator(".login-info" + V)).toBeVisible();
-  await page.reload();
+  await expect(page.locator(".login-info" + V)).toContainText("50");
+  await page.goto(`/admin/stock/${P.id}`);
   await expect(page.locator("#stockNow" + V)).toHaveText("50");
   // รับของเข้า +5
   await page.fill("#adjQty" + V, "5");
