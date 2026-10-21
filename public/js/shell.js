@@ -293,7 +293,8 @@ let validating = null, validatedAt = 0;
 
 /* U16: ตรวจตะกร้ากับ server — ราคาเปลี่ยน/ปิดขาย/ของหมด/สต็อกไม่พอ → ปรับให้และแจ้งลูกค้า */
 function validateCart(force){
-  const items = Object.assign({}, cartAtLoad || {}, cart);
+  // ครั้งแรกส่งจำนวนดิบจากเครื่อง (ยังไม่ถูกตัดตามข้อมูลที่แคชไว้) ให้ server เป็นผู้ตัดสิน
+  const items = Object.assign({}, cart, cartAtLoad || {});
   if (!Object.keys(items).length){ cartAtLoad = null; return Promise.resolve(false); }
   if (validating) return validating;
   if (!force && Date.now() - validatedAt < 3000) return Promise.resolve(false);
@@ -312,8 +313,8 @@ function validateCart(force){
           if (l.maxQty != null) p.maxQty = l.maxQty; else delete p.maxQty;
           if (l.img) p.img = l.img;
         }
-        const nm = l.name || (p && p.name) || 'สินค้า';
-        if (l.status === 'gone') notes.push(`นำ "${nm || 'สินค้าที่ปิดการขาย'}" ออกจากตะกร้า เพราะปิดการขายแล้ว`);
+        const nm = l.name || (p && p.name) || '';
+        if (l.status === 'gone') notes.push(nm ? `นำ "${nm}" ออกจากตะกร้า เพราะปิดการขายแล้ว` : 'นำสินค้าที่ปิดการขายแล้วออกจากตะกร้า');
         else if (l.status === 'out') notes.push(`นำ "${nm}" ออกจากตะกร้า เพราะสินค้าหมด`);
         else if (l.status === 'ask') notes.push(`นำ "${nm}" ออกจากตะกร้า — สินค้านี้ต้องสอบถามราคาทาง LINE`);
         else if (l.status === 'qty'){ notes.push(`"${nm}" เหลือ ${l.qty} ชิ้น ปรับจำนวนในตะกร้าให้แล้ว`); flags[l.id] = `ปรับเป็น ${l.qty} ชิ้นตามสต็อก`; }

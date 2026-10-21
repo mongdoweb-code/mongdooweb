@@ -514,7 +514,7 @@ function validateCart(){
           next[l.id] = l.qty; seen[l.id] = l.price;
         } else delete seen[l.id];
         const nm = l.name || 'สินค้า';
-        if (l.status === 'gone') notes.push(`นำ "${l.name || 'สินค้าที่ปิดการขาย'}" ออกจากตะกร้า เพราะปิดการขายแล้ว`);
+        if (l.status === 'gone') notes.push(l.name ? `นำ "${l.name}" ออกจากตะกร้า เพราะปิดการขายแล้ว` : 'นำสินค้าที่ปิดการขายแล้วออกจากตะกร้า');
         else if (l.status === 'out') notes.push(`นำ "${nm}" ออกจากตะกร้า เพราะสินค้าหมด`);
         else if (l.status === 'ask') notes.push(`นำ "${nm}" ออกจากตะกร้า — สินค้านี้ต้องสอบถามราคาทาง LINE`);
         else if (l.status === 'qty') notes.push(`"${nm}" เหลือ ${l.qty} ชิ้น ปรับจำนวนให้แล้ว`);
