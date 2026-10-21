@@ -9,6 +9,7 @@ import { phoneDigits } from "@/lib/format";
 import { INQ_KIND, INQ_STATUS, isInqStatus, parseInqItems } from "@/lib/inquiries";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { storage } from "@/lib/storage";
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").trim().slice(0, max);
 const back = (id: string, q: string) => redirect(`/admin/inquiries/${id}?${q}`);
@@ -112,6 +113,9 @@ export async function deleteInquiry(f: FormData) {
   const q = await prisma.inquiry.findUnique({ where: { id: str(f, "id", 40) } });
   if (q) {
     await prisma.inquiry.delete({ where: { id: q.id } });
+    // ลบรูปแนบออกจากที่เก็บไฟล์ด้วย (PDPA) — ลบไม่สำเร็จก็ไม่ขวางการลบคำขอ
+    const files = Array.isArray(q.attachments) ? q.attachments.filter((k): k is string => typeof k === "string" && k.startsWith("inquiries/")) : [];
+    await Promise.all(files.map((k) => storage().delete(k).catch((e) => console.error("ลบรูปแนบไม่สำเร็จ", k, e))));
     await logAdmin(admin.id, "INQUIRY", `ลบคำขอ (${INQ_KIND[q.kind]}) จาก ${q.name}`);
   }
   redirect("/admin/inquiries?deleted=1");

@@ -2,13 +2,15 @@
 // local: โฟลเดอร์ UPLOAD_DIR บนเซิร์ฟเวอร์ (ค่าเริ่มต้น ./uploads — บน Railway ให้ชี้ไปที่ volume)
 // s3: S3 หรือบริการที่เข้ากันได้ (Railway Bucket, Cloudflare R2, AWS S3) — bucket ต้องเป็นแบบ private
 // ไฟล์ไม่ได้อยู่ใน public/ — สลิปเปิดได้ผ่าน route ที่ตรวจสิทธิ์แอดมินเท่านั้น
-import { GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { DeleteObjectCommand, GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 
 export interface StorageDriver {
   put(key: string, data: Buffer): Promise<void>;
   get(key: string): Promise<Buffer | null>;
+  /** ลบไฟล์ — ไม่มีไฟล์อยู่แล้วก็ไม่ error */
+  delete(key: string): Promise<void>;
 }
 
 // key ต้องเป็น path ย่อยปลอดภัย เช่น "slips/2026/10/abc.jpg" — กัน ../ หลุดออกนอกโฟลเดอร์
@@ -35,6 +37,9 @@ function localDriver(root: string): StorageDriver {
         if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
         throw e;
       }
+    },
+    async delete(key) {
+      await rm(pathOf(key), { force: true });
     },
   };
 }
@@ -71,6 +76,9 @@ function s3Driver(): StorageDriver {
         if (e instanceof NoSuchKey || (e as { name?: string }).name === "NoSuchKey" || (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404) return null;
         throw e;
       }
+    },
+    async delete(key) {
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: full(key) }));
     },
   };
 }
