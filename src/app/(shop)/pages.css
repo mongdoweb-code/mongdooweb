@@ -173,6 +173,11 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 }
 
 /* --- แกลเลอรีรูปสินค้า: ปัดได้ (scroll-snap), ปุ่มก่อน/ถัดไป, กดขยาย --- */
+/* .pg-body{padding:… 0 …} เคยลบระยะขอบซ้าย-ขวาของ .container → เนื้อหาชิดขอบจอมือถือ และไม่ตรงแนว breadcrumb */
+.container.pg-body{padding-left:var(--gutter);padding-right:var(--gutter)}
+/* หัวเพจที่มีแต่ breadcrumb (หน้าสินค้า — ชื่ออยู่ข้างรูป) ไม่ต้องสูง */
+.pg-head:not(:has(h1)){padding:18px 0}
+.pg-head:not(:has(h1)) .crumbs ol{margin-bottom:0}
 .pdp>*{min-width:0} /* กันแกลเลอรี/รูปย่อดันคอลัมน์กว้างเกินจอมือถือ */
 .pdp-main.gal{display:block}
 .gal-track{display:flex;width:100%;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
@@ -231,7 +236,7 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 .pdp-bar-txt{flex:1;min-width:0;display:grid;line-height:1.35}
 .pdp-bar-txt .nm{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pdp-bar-txt b{font-size:16px}
-.pdp-bar .btn{flex:0 0 auto;padding:0 16px}
+.pdp-bar .btn{flex:0 0 auto;width:auto;padding:0 16px}
 @media (min-width:769px){.pdp-bar{display:none}}
 @media (max-width:768px){
   body.pdp-bar-on{padding-bottom:72px}

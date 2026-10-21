@@ -215,6 +215,9 @@ test.describe("U3–U9 หน้าสินค้า", () => {
     const barBox = (await bar.boundingBox())!;
     const line = (await page.locator(".float-line").boundingBox())!;
     expect(line.y + line.height, "ปุ่ม LINE ต้องอยู่เหนือแถบ").toBeLessThanOrEqual(barBox.y + 1);
+    // ชื่อ/ราคาในแถบอ่านได้ (ปุ่มไม่กินพื้นที่ทั้งแถบ) และเนื้อหามีระยะขอบจากขอบจอ
+    expect((await page.locator(".pdp-bar-txt").boundingBox())!.width).toBeGreaterThan(120);
+    expect((await page.locator(".pdp h1").boundingBox())!.x).toBeGreaterThanOrEqual(12);
     await shot(page, "pdp-mobile-bar");
     await noHScroll(page);
     // เลื่อนกลับขึ้น → แถบหาย
