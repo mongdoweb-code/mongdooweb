@@ -153,7 +153,21 @@ export function InquiryForm({ kind }: { kind: Kind }) {
   }
 
   return (
-    <form ref={formRef} className="l2-form" onSubmit={onSubmit} noValidate aria-label={isQuote ? "แบบฟอร์มขอใบเสนอราคา" : "แบบฟอร์มติดต่อร้าน"}>
+    <form
+      ref={formRef}
+      className="l2-form"
+      onSubmit={onSubmit}
+      onInput={(e) => {
+        // แก้ช่องไหน ล้างข้อความผิดของช่องนั้น
+        const n = (e.target as HTMLInputElement).name;
+        if (n && errors[n])
+          setErrors((prev) => {
+            const next = { ...prev };
+            delete next[n];
+            return next;
+          });
+      }}
+      noValidate aria-label={isQuote ? "แบบฟอร์มขอใบเสนอราคา" : "แบบฟอร์มติดต่อร้าน"}>
       <div ref={summaryRef} tabIndex={-1} aria-live="assertive">
         {summary && <p className="l2-err" role="alert">{summary}</p>}
       </div>

@@ -67,6 +67,8 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async ({ browser }) => {
+  // คำสั่งซื้อทดสอบที่ค้างในคิวตรวจสลิป → ยกเลิก (ไม่ให้ไปปนคิวของเทสต์อื่น)
+  await q(`UPDATE "Order" SET status = 'CANCELLED', "cancelReason" = 'e2e lot2' WHERE "customerName" = $1 AND status IN ('AWAITING_SLIP', 'PENDING_VERIFICATION')`, [ADDR.name]);
   if (saved) {
     await setShop({ ...saved, faq: JSON.stringify(saved.faq ?? []) });
     const page = await browser.newPage();
