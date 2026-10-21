@@ -109,7 +109,7 @@ export function PageEditor({ slug, title, body, isDefault, vars }: { slug: strin
 
 type Faq = { q: string; a: string; k: number };
 
-export function FaqEditor({ items }: { items: { q: string; a: string }[] }) {
+export function FaqEditor({ items, samples = [] }: { items: { q: string; a: string }[]; samples?: { q: string; a: string }[] }) {
   const [state, onSubmit, pending] = useFormAction<PageState>(saveFaq, {});
   const seq = useRef(items.length);
   const [list, setList] = useState<Faq[]>(() => items.map((x, i) => ({ ...x, k: i })));
@@ -147,7 +147,18 @@ export function FaqEditor({ items }: { items: { q: string; a: string }[] }) {
           </li>
         ))}
       </ol>
-      {!list.length && <div className="empty"><b>ยังไม่มีคำถาม</b>กด &quot;เพิ่มคำถาม&quot; เพื่อเริ่ม</div>}
+      {!list.length && (
+        <div className="empty">
+          <b>ยังไม่มีคำถาม</b>กด &quot;เพิ่มคำถาม&quot; เพื่อเริ่ม หรือใช้คำถามตัวอย่างของร้านไฟ LED แล้วแก้ให้ตรงกับร้าน (หน้า /faq จะแสดงหลังกดบันทึก)
+          {samples.length > 0 && (
+            <div className="mini-acts">
+              <button type="button" className="btn btn-outline" id="faqSamples" onClick={() => setList(samples.map((x) => ({ ...x, k: ++seq.current })))}>
+                ใช้คำถามตัวอย่าง {samples.length} ข้อ
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       <div className="mini-acts">
         <button type="button" className="btn btn-outline" id="faqAdd" onClick={() => setList([...list, { q: "", a: "", k: ++seq.current }])}>+ เพิ่มคำถาม</button>
       </div>

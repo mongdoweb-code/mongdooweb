@@ -2,7 +2,7 @@
 // ?p=<slug>|faq · แสดงเนื้อหาที่เผยแพร่อยู่ (getPage — ตัวเดียวกับหน้าร้าน) + ประวัติเวอร์ชันพร้อมย้อนกลับ
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { PAGE_SLUGS, PAGE_TITLES, getPage, isPageSlug, renderBody, type PageSlug } from "@/lib/content";
+import { DEFAULT_FAQ, PAGE_SLUGS, PAGE_TITLES, getPage, isPageSlug, renderBody, type PageSlug } from "@/lib/content";
 import { asPagesSnapshot, listVersions, parseFaq } from "@/lib/content-version";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -62,7 +62,7 @@ export default async function PagesAdmin({ searchParams }: PageProps<"/admin/pag
           {page ? (
             <PageEditor key={`${page.slug}-${versions[0]?.id ?? "v0"}`} slug={page.slug} title={page.title} body={page.body} isDefault={page.isDefault} vars={PAGE_VARS} />
           ) : (
-            <FaqEditor key={`${versions[0]?.id ?? "v0"}-${faq.length}`} items={faq} />
+            <FaqEditor key={`${versions[0]?.id ?? "v0"}-${faq.length}`} items={faq} samples={DEFAULT_FAQ} />
           )}
         </div>
       </section>
