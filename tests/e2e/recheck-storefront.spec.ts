@@ -9,6 +9,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import pg from "pg";
 import { V, buyableProduct, confirmClick, login, todayBkk, trackErrors } from "./helpers";
+import { ensureStorefrontFixtures, type Fixtures } from "./storefront-fixtures";
 
 test.describe.configure({ mode: "serial" });
 
@@ -30,10 +31,15 @@ async function catalog(page: Page) {
   return page.evaluate(() => JSON.parse(document.getElementById("mdw-data")!.textContent!).catalog as Item[]);
 }
 
-test.beforeAll(async () => {
+let fx: Fixtures | null = null;
+test.beforeAll(async ({ browser }) => {
+  test.setTimeout(60_000);
   await db.connect();
+  fx = await ensureStorefrontFixtures(browser); // ฐานข้อมูลใหม่ไม่มีสินค้าที่มีรูป/ราคา 0
 });
-test.afterAll(async () => {
+test.afterAll(async ({ browser }) => {
+  test.setTimeout(60_000);
+  await fx?.cleanup(browser);
   await q(`UPDATE "Order" SET status = 'CANCELLED', "cancelReason" = 'e2e recheck' WHERE "customerName" = $1 AND status IN ('AWAITING_SLIP', 'PENDING_VERIFICATION')`, [ADDR.name]);
   await db.end();
 });

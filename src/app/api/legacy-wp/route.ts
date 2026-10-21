@@ -5,6 +5,7 @@
 //   /?s=<คำค้น>                                        → /search?q=
 //   /?post_type=product /?cat= /?tag= /?product_tag=    → สินค้าทั้งหมด / ค้นหา
 // ไม่มีอะไรตรงเลย → หน้าแรก (ไม่ใช่ 404)
+import { legacySlugWhere } from "@/lib/legacy-category";
 import { prisma } from "@/lib/prisma";
 
 const clean = (v: string | null) => (v ?? "").normalize("NFC").trim().slice(0, 300);
@@ -25,7 +26,7 @@ async function resolve(q: URLSearchParams): Promise<string> {
   const productCat = clean(q.get("product_cat"));
   if (productCat) {
     const c = await prisma.category.findFirst({
-      where: { OR: [{ legacySlug: productCat }, { slug: productCat }], isActive: true },
+      where: { OR: [legacySlugWhere(productCat), { slug: productCat }], isActive: true },
       select: { slug: true },
     });
     return c ? `/category/${encodeURIComponent(c.slug)}` : "/products";

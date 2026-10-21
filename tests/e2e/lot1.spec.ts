@@ -4,6 +4,18 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { V, trackErrors } from "./helpers";
+import { ensureStorefrontFixtures, type Fixtures } from "./storefront-fixtures";
+
+// ฐานข้อมูลใหม่ (CI: migrate + seed) ไม่มีสินค้าหลายรูป/นับสต็อก/ราคา 0/URL เดิม → สร้างให้ก่อน แล้วลบเมื่อจบ
+let fx: Fixtures | null = null;
+test.beforeAll(async ({ browser }) => {
+  test.setTimeout(60_000);
+  fx = await ensureStorefrontFixtures(browser);
+});
+test.afterAll(async ({ browser }) => {
+  test.setTimeout(60_000);
+  await fx?.cleanup(browser);
+});
 
 type Item = { id: string; name: string; price: number; inStock: boolean; maxQty?: number; catId: string; acc?: boolean; kit?: boolean; sku?: string; img?: string };
 
@@ -153,10 +165,18 @@ test.describe("U3–U9 หน้าสินค้า", () => {
     await expect(page.locator(".gal-slide img").nth(1)).toHaveAttribute("loading", "lazy");
     // รายการสินค้า: แถวแรกโหลดทันที ที่เหลือ lazy
     await page.goto("/products");
-    const loads = await page.locator(".prod-img img").evaluateAll((els) => els.map((e) => [e.getAttribute("loading"), e.getAttribute("width"), e.getAttribute("height")]));
-    expect(loads[0][0]).toBe("eager");
-    expect(loads.at(-1)![0]).toBe("lazy");
-    for (const l of loads) expect(l[1] && l[2]).toBeTruthy();
+    // [ลำดับการ์ด, loading, width, height] ของการ์ดที่มีรูป (การ์ดที่ไม่มีรูปแสดงภาพแทน)
+    const loads = await page.locator(".prod-card").evaluateAll((cards) =>
+      cards.flatMap((c, i) => {
+        const im = c.querySelector(".prod-img img");
+        return im ? [[i, im.getAttribute("loading"), im.getAttribute("width"), im.getAttribute("height")] as const] : [];
+      }),
+    );
+    expect(loads.length).toBeGreaterThan(0);
+    for (const [i, loading, w, h] of loads) {
+      expect(loading, `การ์ดที่ ${i + 1}`).toBe(i < 4 ? "eager" : "lazy");
+      expect(w && h).toBeTruthy();
+    }
     // ไม่มี layout shift จากรูป (CLS ≈ 0)
     const cls = await page.evaluate(
       () =>
@@ -545,8 +565,8 @@ test.describe("U15 การเข้าถึง (axe)", () => {
     await page.keyboard.press("Tab");
     const skip = page.locator("a.skip");
     await expect(skip).toBeFocused();
-    const top = await skip.evaluate((el) => el.getBoundingClientRect().top);
-    expect(top).toBeGreaterThanOrEqual(0);
+    // ลิงก์เลื่อนลงมาด้วย transition — รอจนเข้าที่ (ไม่วัดระหว่างเคลื่อนไหว)
+    await expect.poll(() => skip.evaluate((el) => el.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
     await page.keyboard.press("Enter");
     await expect(page.locator("main#main")).toBeFocused();
     // ชิปตัวกรองมีกรอบโฟกัส

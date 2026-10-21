@@ -367,7 +367,10 @@ test("U25 ขอใบเสนอราคา: สินค้าจากต�
   expect(inq.ipHash).toMatch(/^[a-f0-9]{32}$/);
   // รูปลูกค้าไม่เปิดผ่าน /media และ route แอดมินต้องเข้าสู่ระบบ
   expect((await request.get(`/media/${inq.attachments[0]}`)).status()).toBe(404);
-  expect((await request.get(`/api/inquiries/${inq.id}/attachments/0`)).status()).toBe(401);
+  const file = await request.get(`/admin/inquiries/${inq.id}/file/0`, { maxRedirects: 0 });
+  expect(file.status(), "ไม่ได้เข้าสู่ระบบ → ส่งไปหน้าเข้าสู่ระบบ").toBe(307);
+  expect(file.headers()["location"]).toMatch(/\/admin\/login$/);
+  expect((await request.get(`/api/inquiries/${inq.id}/attachments/0`)).status()).toBe(404); // route เดิมถูกลบแล้ว
   // honeypot: ตอบเหมือนสำเร็จ แต่ไม่บันทึก
   const botPhone = uniqPhone().replace(/^08/, "09");
   const bot = await request.post("/api/inquiries", {

@@ -14,13 +14,24 @@ async function activeSlugs(force = false) {
   return cache.slugs;
 }
 
+/**
+ * เงื่อนไขค้น Category.legacySlug จาก slug เดิม (ถอดรหัสแล้ว) — ข้อมูลเก็บได้ทั้งแบบถอดรหัส (นำเข้า WooCommerce)
+ * และแบบ %e0%b8... ตัวเล็ก/ใหญ่ (seed) บางหมวดเก็บทั้ง path เช่น "ไฟแอลอีดี/สปอร์ตไลท์-flood-light"
+ */
+export function legacySlugWhere(slug: string) {
+  const s = slug.normalize("NFC");
+  const enc = encodeURIComponent(s);
+  const forms = [...new Set([s, enc, enc.toLowerCase()])];
+  return { OR: [{ legacySlug: { in: forms } }, ...forms.map((f) => ({ legacySlug: { endsWith: `/${f}` } }))] };
+}
+
 /** null = เป็นหมวดที่เปิดอยู่ (ให้หน้าเพจทำงานตามปกติ) · string = path ปลายทางของ redirect 301 */
 export async function categoryRedirect(slug: string): Promise<string | null> {
   try {
     if ((await activeSlugs()).has(slug)) return null;
     if ((await activeSlugs(true)).has(slug)) return null;
     const legacy = await prisma.category.findFirst({
-      where: { legacySlug: slug.normalize("NFC"), isActive: true },
+      where: { ...legacySlugWhere(slug), isActive: true },
       select: { slug: true },
     });
     return legacy ? `/category/${encodeURIComponent(legacy.slug)}` : "/products";

@@ -1,5 +1,6 @@
 // URL หมวดของเว็บเดิม (/product-category/...) → redirect 301 ไปหน้าหมวดใหม่ (ไม่เสียอันดับ Google)
 // เทียบจากส่วนท้ายของ path กับ Category.legacySlug
+import { legacySlugWhere } from "@/lib/legacy-category";
 import { prisma } from "@/lib/prisma";
 
 // หมวดเดิมที่ไม่มีหน้าตรงตัว
@@ -20,7 +21,7 @@ export async function GET(req: Request, ctx: RouteContext<"/product-category/[..
   const last = segs.at(-1) ?? "";
   let to = EXTRA[last] ?? null;
   if (!to && last) {
-    const c = await prisma.category.findFirst({ where: { legacySlug: last, isActive: true }, select: { slug: true } });
+    const c = await prisma.category.findFirst({ where: { ...legacySlugWhere(last), isActive: true }, select: { slug: true } });
     if (c) to = `/category/${encodeURIComponent(c.slug)}`;
   }
   return Response.redirect(new URL(to ?? "/products", req.url), 301);
