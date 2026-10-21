@@ -630,3 +630,20 @@ body.locked{overflow:hidden}
   .reveal{opacity:1;transform:none}
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+/* ===== คอนทราสต์ตาม WCAG AA ทั้งหน้าร้าน (รวมส่วนหัว ตะกร้า ท้ายเว็บ ปุ่มลอย แบนเนอร์คุกกี้) =====
+   ส้มหลัก #F26B38 กับตัวอักษรขาวได้แค่ 3:1 → ใช้ได้เฉพาะตัวอักษรใหญ่หนา (ปุ่มหลักใน <main> = 19px bold)
+   ปุ่ม/ลิงก์ตัวเล็ก → ส้มเข้ม #B5461C (5.2:1) · เขียว LINE #06C755 กับตัวขาวได้ 2.3:1 → เขียวเข้ม #00843D (4.8:1) */
+:root{--c-orange-ink:#B5461C;--c-orange-ink-dk:#9E3C17;--c-line-green:#00843D;--c-line-green-dk:#006E33}
+.btn-primary{background:var(--c-orange-ink)}
+.btn-primary:hover{background:var(--c-orange-ink-dk)}
+main .btn-primary:not(.btn-sm){background:var(--c-orange)}
+main .btn-primary:not(.btn-sm):hover{background:var(--c-orange-dk)}
+main .pdp-bar .btn-primary{background:var(--c-orange-ink)}
+main .pdp-bar .btn-primary:hover{background:var(--c-orange-ink-dk)}
+.btn-line,.float-line,.line-cta .lc-ico{background:var(--c-line-green)}
+.btn-line:hover,.float-line:hover{background:var(--c-line-green-dk)}
+/* body นำหน้า = ชนะกฎเดิมใน pages.css/lot2.css ที่โหลดทีหลัง */
+body .prose a,body .prose-desc a,body .faq-list .faq-a a,body .trk-docs a,body .sg-empty a{color:var(--c-orange-ink)}
+body a.btn-line{color:#fff}
+

@@ -73,12 +73,13 @@ input,select,textarea{font-family:inherit;font-size:16px;color:var(--c-ink)}
 .radio .p.free{color:var(--c-ok)}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 28px;font-size:16px;font-weight:600;transition:background .2s,color .2s}
-.btn-primary{background:var(--c-orange);color:#fff}
+/* WCAG AA: ตัวอักษรขาวบนส้มหลักได้ 3:1 → ใช้ตัวใหญ่หนา (≥ 18.7px bold นับเป็นตัวอักษรใหญ่) */
+.btn-primary{background:var(--c-orange);color:#fff;font-size:19px;font-weight:700}
 .btn-primary:hover{background:var(--c-orange-dk)}
 .btn-primary:disabled{background:#d8d2c6;cursor:not-allowed}
 .btn-outline{border:1.5px solid var(--c-black)}
 .btn-outline:hover{background:var(--c-black);color:#fff}
-.btn-line{background:#06C755;color:#fff}
+.btn-line{background:#00843D;color:#fff} /* เขียว LINE เข้มขึ้น ให้ตัวอักษรขาวอ่านได้ (4.8:1) */
 .actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:28px;flex-wrap:wrap}
 .link{color:var(--c-muted);font-size:14px;text-decoration:underline;text-underline-offset:3px}
 .link:hover{color:var(--c-ink)}

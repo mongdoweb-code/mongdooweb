@@ -12,4 +12,6 @@ fi
 npx prisma migrate deploy
 npx tsx scripts/seed-if-empty.ts
 npx tsx scripts/import-if-empty.ts
+# รูป/ลิงก์ในคำอธิบายสินค้าที่ยังชี้ไปเว็บเดิม → ย้ายมาเก็บเอง (ทำครั้งเดียว ครั้งต่อไปไม่มีอะไรต้องทำ) · ห้ามทำให้ build ล้ม
+npx tsx scripts/migrate-description-images.ts --build || echo "ข้ามการย้ายรูปคำอธิบายสินค้า (ดู log ด้านบน)"
 npx next build

@@ -40,7 +40,7 @@ const knownCart = () => Object.entries(cart).filter(([id]) => byId(id));
 function renderHdrCart(){
   const n = Object.values(cart).reduce((a, b) => a + b, 0), c = $('#hdrCount');
   c.textContent = n > 99 ? '99+' : n; c.hidden = n === 0;
-  $('#hdrCart').setAttribute('aria-label', n ? `ตะกร้าสินค้า ${n} ชิ้น` : 'ตะกร้าสินค้า ว่าง');
+  $('#hdrCart').setAttribute('aria-label', n ? `ตะกร้า ${n} ชิ้น` : 'ตะกร้า ว่าง');
 }
 let shipId = 'std', step = 1, slipFile = null, slipOrig = null;
 let orderNo = null;   // ได้จาก server หลังกรอกข้อมูลจัดส่ง

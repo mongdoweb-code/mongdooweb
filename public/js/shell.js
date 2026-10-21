@@ -341,7 +341,7 @@ const saveCart = () => { LS.set(CART_KEY, JSON.stringify(cart)); saveSeen(); };
 const cartQty = () => Object.values(cart).reduce((a,b) => a + b, 0);
 const cartSum = () => Object.entries(cart).reduce((s,[id,q]) => s + byId(id).price * q, 0);
 const capCount = n => n > 99 ? '99+' : String(n);
-const cartAria = n => n ? `ตะกร้าสินค้า ${n} ชิ้น` : 'ตะกร้าสินค้า ว่าง';
+const cartAria = n => n ? `ตะกร้า ${n} ชิ้น` : 'ตะกร้า ว่าง';
 
 function addToCart(id, qty = 1, mode = 'open'){ // mode: open | toast | silent
   const p = byId(id);
@@ -397,7 +397,7 @@ function renderCart(){
   const body = document.getElementById('cartBody');
   if (!n){
     body.innerHTML = `<div class="cart-empty"><b>ยังไม่มีสินค้าในตะกร้า</b>ลองใช้ตัวช่วยเลือกไฟ เพื่อหารุ่นที่เหมาะกับพื้นที่ของคุณ
-      <br><a href="/#finder" class="btn btn-primary" data-cart-close>ช่วยเลือกไฟ</a></div>`;
+      <br><a href="/#finder" class="btn btn-primary" data-cart-close>ช่วยเลือกไฟ</a></div>` + recentHtml();
     return;
   }
   const items = Object.entries(cart).map(([id,q]) => { const p = byId(id); return `
@@ -426,6 +426,19 @@ function renderCart(){
       <div class="up-item"><div><b>${esc(p.name)}</b><small>${baht(p.price)}</small></div>
       <button data-up="${esc(p.id)}" aria-label="เพิ่ม ${esc(p.name)}">+ เพิ่ม</button></div>`).join('')}
     </div>` : '');
+}
+
+/* U9: สินค้าที่ดูล่าสุด (localStorage "mdw_recent" = [{ id, t }] ≤ 8 รายการ, ไม่ใช้คุกกี้) ใต้ตะกร้าว่าง
+   ชื่อ/ราคา/รูปอ่านจาก CATALOG ปัจจุบัน → สินค้าที่ปิดขายแล้วไม่แสดง ราคาเป็นปัจจุบันเสมอ */
+function recentHtml(){
+  const raw = LS.json('mdw_recent');
+  if (!Array.isArray(raw)) return '';
+  const items = raw.filter(e => e && typeof e.id === 'string').map(e => byId(e.id.slice(0, 200))).filter(Boolean).slice(0, 4);
+  if (!items.length) return '';
+  return `<div class="cart-recent"><h3>สินค้าที่คุณดูล่าสุด</h3><ul>${items.map(p => {
+    const img = safeImg(p.img);
+    return `<li><a href="/product/${encodeURIComponent(p.id)}">${img ? `<img src="${esc(img)}" alt="" width="56" height="56" loading="lazy" decoding="async">` : '<span class="ph"></span>'}<span class="nm">${esc(p.name)}</span><b>${priceTxt(p)}</b></a></li>`;
+  }).join('')}</ul></div>`;
 }
 
 /* โฟกัสในหน้าต่าง (drawer/cart) — จำปุ่มที่เปิด, วนโฟกัสด้วย Tab, คืนโฟกัสตอนปิด */
@@ -556,7 +569,7 @@ function toast(msg){
   // คำพ้อง ไทย ↔ อังกฤษ ที่ลูกค้าใช้บ่อย
   const SYN = { pool:'สระ', 'สระ':'pool', fountain:'น้ำพุ', 'น้ำพุ':'fountain', garden:'สวน', 'สวน':'garden', underwater:'ใต้น้ำ', 'ใต้น้ำ':'underwater',
     rgb:'เปลี่ยนสี', 'เปลี่ยนสี':'rgb', 'สีขาว':'แสงขาว', white:'แสงขาว', 'ขาว':'white', 'หม้อแปลง':'adapter', 'อะแดปเตอร์':'หม้อแปลง' };
-  const INDEX = CATALOG.map(p => ({ p, name: norm(p.name), hay: norm([p.name, p.cat, (p.specs || []).join(' '), p.kw || ''].join(' ')) }));
+  const INDEX = CATALOG.map(p => ({ p, name: norm(p.name), sku: norm(p.sku || ''), hay: norm([p.name, p.sku || '', p.cat, (p.specs || []).join(' '), p.kw || ''].join(' ')) }));
   let results = [], sel = -1;
 
   function search(q){
@@ -566,7 +579,7 @@ function toast(msg){
       let ok = true, score = 0;
       toks.forEach(t => {
         const alt = SYN[t] ? norm(SYN[t]) : null;
-        if (x.hay.includes(t) || (alt && x.hay.includes(alt))){ score += x.name.startsWith(t) ? 3 : x.name.includes(t) ? 2 : 1; }
+        if (x.hay.includes(t) || (alt && x.hay.includes(alt))){ score += x.sku && x.sku === t ? 6 : x.sku && x.sku.startsWith(t) ? 4 : x.name.startsWith(t) ? 3 : x.name.includes(t) ? 2 : 1; }
         else ok = false;
       });
       return ok ? { p: x.p, score: score + (x.p.best ? .5 : 0) } : null;
@@ -591,7 +604,7 @@ function toast(msg){
     } else {
       list.innerHTML = results.map((p, i) => `<a class="sg-opt" role="option" id="sg-${i}" aria-selected="false" href="${esc(linkFor(p))}" tabindex="-1">
         <span class="thumb">${thumb(p, 'span')}</span>
-        <span><b>${highlight(p.name, q)}</b><small>${esc(p.cat)}</small></span>
+        <span><b>${highlight(p.name, q)}</b><small>${esc(p.cat)}${p.sku ? ' · ' + esc(p.sku) : ''}</small></span>
         <span class="pr">${priceTxt(p)}</span></a>`).join('');
       $('#sgFoot').hidden = false;
       status.textContent = `พบ ${results.length} รายการ`;

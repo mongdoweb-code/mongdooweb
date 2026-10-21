@@ -6,7 +6,7 @@ import { getPublicShopInfo } from "@/lib/settings";
 import { absUrl, getProductDetail, getShopData, jsonForScript, lineMessageUrl, pairedProducts } from "@/lib/storefront";
 import { PageHead } from "../../_components/PageHead";
 import { ProductCard, ProductGrid, formatBaht } from "../../_components/ProductCard";
-import { CartRecentHook, RecentlyViewed } from "../../_components/RecentlyViewed";
+import { RecentlyViewed } from "../../_components/RecentlyViewed";
 import { BuyBox, Gallery } from "./ProductBuy";
 
 // สินค้า/หมวดที่เพิ่มใหม่หลัง build (ไม่อยู่ใน generateStaticParams) ให้ render ตอนเปิดหน้าได้
@@ -242,7 +242,6 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
           </section>
         )}
         <RecentlyViewed currentId={p.slug} />
-        <CartRecentHook />
       </div>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonForScript(productLd(p)) }} />
     </main>

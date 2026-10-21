@@ -7,7 +7,6 @@ import { getShopData, lineMessageUrl, searchProducts } from "@/lib/storefront";
 import { PageHead } from "../_components/PageHead";
 import { ProductGrid } from "../_components/ProductCard";
 import { ListingFallback } from "../_components/ProductListing";
-import { CartRecentHook } from "../_components/RecentlyViewed";
 
 export const metadata: Metadata = {
   title: "ค้นหาสินค้า — มองดูเว็บ",
@@ -93,7 +92,6 @@ async function Results({ searchParams }: { searchParams: PageProps<"/search">["s
           </div>
         </div>
       )}
-      <CartRecentHook />
     </>
   );
 }

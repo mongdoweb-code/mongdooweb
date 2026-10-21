@@ -245,7 +245,7 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 }
 @media (prefers-reduced-motion:reduce){.pdp-bar{animation:none}}
 
-/* สินค้าที่ดูล่าสุดในตะกร้าว่าง (เติมโดย CartRecentHook) */
+/* สินค้าที่ดูล่าสุดในตะกร้าว่าง (shell.js recentHtml) */
 .cart-recent{margin-top:24px;text-align:left}
 .cart-recent h3{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--c-ink)}
 .cart-recent ul{display:grid;gap:8px}
