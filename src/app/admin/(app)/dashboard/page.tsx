@@ -79,7 +79,7 @@ export default async function DashboardPage() {
             <b className="num" data-satang={p.now.satang}>{baht(p.now.satang)}</b>
             <small>
               <Delta now={p.now.satang} prev={p.prev.satang} />
-              {p.now.count} รายการ · เทียบ{p.cmp} {baht(p.prev.satang)}
+              {p.now.count} รายการ · เทียบ {p.cmp} {baht(p.prev.satang)}
             </small>
           </div>
         ))}

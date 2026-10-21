@@ -296,6 +296,12 @@ test("ตัวดูสลิป: ขยาย ซูม หมุน เที
   await expect(page.locator("#slipViewer")).toHaveCount(0);
   // Esc ปิดตัวดูสลิปเท่านั้น ลิ้นชักยังเปิดอยู่
   await expect(page.locator(".drawer-panel" + V)).toContainText(o.orderNo);
+  // ยกเลิกพร้อมเหตุผล (ไม่ทิ้งคิวรอตรวจไว้ให้เทสต์อื่น)
+  await page.goto(`/admin?tab=ALL&open=${o.orderNo}&mode=cancel`);
+  await page.selectOption("#cReason" + V, "ลูกค้าขอยกเลิก");
+  await page.click('#cancelForm button:has-text("ยืนยันยกเลิก")' + V);
+  await page.click('.dlg button:has-text("ยกเลิกคำสั่งซื้อ")' + V);
+  await expect(page.locator("#cancelledBox" + V)).toContainText("ลูกค้าขอยกเลิก");
   expect(errors).toEqual([]);
 });
 
@@ -346,6 +352,35 @@ test("ใบกำกับภาษีจากคำสั่งซื้อ (
   const snap = await one<{ s: { taxId: string; branch: string } }>(`SELECT "customerSnapshot" AS s FROM "SalesDocument" d JOIN "Order" o ON o.id=d."orderId" WHERE o."orderNo"=$1 AND d.type='RECEIPT'`, [orderNo]);
   expect(snap.s.taxId).toBe(tid);
   expect(snap.s.branch).toBe("สำนักงานใหญ่");
+});
+
+// ต้องรันเซิร์ฟเวอร์ด้วย LINE_API_BASE=<mock> LINE_CHANNEL_ACCESS_TOKEN=test และตั้ง LINE_MOCK_LOG = ไฟล์ที่ mock บันทึก body ของทุก POST
+test("แจ้ง LINE สินค้าใกล้หมดครั้งเดียวเมื่อสต็อกลดถึงเกณฑ์หลังขาย (A8) + สรุปประจำวัน (A14)", async ({ page, request }) => {
+  const log = process.env.LINE_MOCK_LOG;
+  test.skip(!log, "ต้องมี LINE mock (LINE_MOCK_LOG)");
+  const { writeFileSync, existsSync } = await import("node:fs");
+  const texts = () => (existsSync(log!) ? readFileSync(log!, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l).messages[0].text as string) : []);
+  await db.query(`INSERT INTO "LineRecipient"(id,kind,"lineId",name,enabled,"updatedAt") VALUES ('e2e-mock','GROUP','Ce2e','e2e',true,now()) ON CONFLICT ("lineId") DO UPDATE SET enabled=true`);
+  await db.query(`UPDATE "ShopSetting" SET "lineLowStock"=true, "lowStockThreshold"=5, "lineDailySummary"=true WHERE id='shop'`);
+  writeFileSync(log!, "");
+  await login(page);
+  await page.goto(`/admin/stock/${P.id}`);
+  await page.locator('.mo-radio label:has-text("นับสต็อก") input' + V).check();
+  await page.fill("#adjQty" + V, "7");
+  await page.click('#adjustForm button[type=submit]' + V);
+  await expect(page.locator(".login-info" + V)).toContainText("→ 7");
+  await manualOrder(page, { qty: 1, paid: true }); // 7 → 6 ยังเกินเกณฑ์
+  await manualOrder(page, { qty: 2, paid: true }); // 6 → 4 ข้ามเกณฑ์ → แจ้ง
+  await manualOrder(page, { qty: 1, paid: true }); // 4 → 3 ต่ำอยู่แล้ว → ไม่แจ้งซ้ำ
+  await expect.poll(() => texts().filter((t) => t.includes("สินค้าใกล้หมด")).length).toBe(1);
+  expect(texts()[0]).toContain(P.sku);
+  // สรุปประจำวัน (ล้างเครื่องหมายของวันนี้ก่อน)
+  await db.query(`DELETE FROM "AdminLog" WHERE type='CRON_DAILY'`);
+  const r = await (await request.get(`/api/cron/daily?key=${CRON}`)).json();
+  expect(r.summary).toBe("sent");
+  expect(texts().some((t) => t.startsWith("📊 สรุปประจำวัน") && t.includes(P.sku))).toBe(true);
+  await db.query(`UPDATE "ShopSetting" SET "lineDailySummary"=false WHERE id='shop'`);
+  await db.query(`DELETE FROM "LineRecipient" WHERE id='e2e-mock'`);
 });
 
 test("หน้าใหม่ของล็อต 3 ใช้งานบนมือถือ 390px ได้ (ไม่มีเลื่อนแนวนอน)", async ({ page }) => {
