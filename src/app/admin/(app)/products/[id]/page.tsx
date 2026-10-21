@@ -2,15 +2,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
+import { htmlToText } from "@/lib/html";
 import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
+import "../../../lot3.css";
 import { ProductForm, type ProductValues } from "../ProductForm";
 
 const baht = (s: number | null) => (s ? String(s / 100) : "");
 
 export default async function ProductEditPage({ params, searchParams }: PageProps<"/admin/products/[id]">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
+  const sp = await searchParams;
   const categories = (await prisma.category.findMany({ orderBy: { sortOrder: "asc" } })).map((c) => ({ id: c.id, name: c.nameTh }));
   let v: ProductValues;
   if (id === "new") {
@@ -43,7 +46,11 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
           <h1>{v.id ? v.name : "เพิ่มสินค้าใหม่"}</h1>
         </div>
       </div>
-      <ProductForm key={v.id || "new"} v={v} categories={categories} saved={(await searchParams).saved === "1"} />
+      <ProductForm
+        key={v.id || "new"} v={v} categories={categories} saved={sp.saved === "1"} copied={sp.copied === "1"} owner={admin.role === "OWNER"}
+        siteHost={(process.env.SITE_URL ?? "https://www.mongdooweb.com").replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
+        shortText={htmlToText(v.shortDescription || v.description).slice(0, 160)}
+      />
     </main>
   );
 }

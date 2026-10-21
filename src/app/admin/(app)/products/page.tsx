@@ -6,6 +6,7 @@ import { bahtText } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { toggleProduct } from "./actions";
+import "../../lot3.css";
 
 const STATUS = { all: "ทั้งหมด", active: "เปิดขาย", inactive: "ปิดขาย", out: "สินค้าหมด", inquire: "สอบถามราคา", low: "สต็อกใกล้หมด" } as const;
 type Status = keyof typeof STATUS;
@@ -13,8 +14,9 @@ const PER = 30;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export default async function ProductsAdminPage({ searchParams }: PageProps<"/admin/products">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const sp = await searchParams;
+  const T = (await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { lowStockThreshold: true } }))?.lowStockThreshold ?? 5;
   const q = one(sp.q).trim().slice(0, 80);
   const cat = one(sp.cat);
   const status: Status = one(sp.status) in STATUS ? (one(sp.status) as Status) : "all";
@@ -24,7 +26,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
     inactive: { isActive: false },
     out: { OR: [{ trackStock: true, stock: { lte: 0 } }, { trackStock: false, inStock: false }] },
     inquire: { priceSatang: 0 },
-    low: { trackStock: true, stock: { gt: 0, lte: 5 } },
+    low: { trackStock: true, stock: { lte: T } },
   };
   const where: Prisma.ProductWhereInput = {
     isService: false,
@@ -63,6 +65,8 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           <p>เปิดขาย {activeCount} รายการ · ทั้งหมด {counts.reduce((a, c) => a + c._count._all, 0)} รายการ</p>
         </div>
         <div className="head-actions">
+          <a className="btn btn-outline" href="/admin/products/export" download>ส่งออก CSV</a>
+          {admin.role === "OWNER" && <Link className="btn btn-outline" href="/admin/products/import">นำเข้า CSV</Link>}
           <Link className="btn btn-primary" href="/admin/products/new">+ เพิ่มสินค้า</Link>
         </div>
       </div>
@@ -116,7 +120,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
                     {p.priceSatang ? bahtText(p.priceSatang) : <span className="chip warn">สอบถามราคา</span>}
                     {p.compareAtSatang ? <span className="sub"><s>{bahtText(p.compareAtSatang)}</s></span> : null}
                   </td>
-                  <td className="r num">{p.trackStock ? <span className={p.stock <= 5 ? "chip warn" : ""}>{p.stock}</span> : <span className="sub">ไม่นับ</span>}</td>
+                  <td className="r num">{p.trackStock ? <Link href={`/admin/stock/${p.id}`} className={p.stock <= T ? "chip warn" : "link"} title="ประวัติ/ปรับสต็อก">{p.stock}</Link> : <span className="sub">ไม่นับ</span>}</td>
                   <td>
                     {p.isActive ? <span className="st st-SHIPPED">เปิดขาย</span> : <span className="st st-CANCELLED">ปิดขาย</span>}
                     {out && <span className="chip bad" style={{ marginLeft: 4 }}>หมด</span>}

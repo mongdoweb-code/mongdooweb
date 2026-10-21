@@ -4,10 +4,13 @@ import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import type { LightColor, UseArea } from "../../../../../generated/prisma/client";
 import { logAdmin, refreshStorefront } from "@/lib/admin-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireOwner } from "@/lib/auth";
 import { sanitizeDescription } from "@/lib/html";
 import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
+import { setStock } from "@/lib/stock";
+import { parseCsv } from "@/lib/csv";
+import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
 
 export type ProductFormState = { error?: string; fields?: string[]; ok?: string };
 
@@ -106,12 +109,30 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     isAccessory: f.get("isAccessory") === "on",
   };
 
+  // สต็อกเปลี่ยนผ่าน src/lib/stock.ts เท่านั้น (มีประวัติ) — แก้เฉพาะเมื่อผู้ใช้เปลี่ยนตัวเลขจริง กันทับยอดที่ขายไประหว่างเปิดฟอร์ม
+  const stock0 = Math.floor(Number(str(f, "stock0", 10) || "0"));
+  const { stock: _stock, inStock, ...rest } = data;
+  void _stock;
   let saved;
   if (id) {
-    saved = await prisma.product.update({ where: { id }, data });
+    const old = await prisma.product.findUnique({ where: { id }, select: { trackStock: true, stock: true } });
+    if (!old) return { error: "ไม่พบสินค้า" };
+    saved = await prisma.$transaction(async (tx) => {
+      // เลิกนับสต็อก: บันทึกการล้างยอดก่อน
+      if (old.trackStock && !trackStock && old.stock !== 0) await setStock(tx, id, 0, { reason: "EDIT", adminId: admin.id, note: "เลิกนับสต็อก" });
+      const u = await tx.product.update({ where: { id }, data: { ...rest, ...(trackStock ? {} : { inStock, stock: 0 }) } });
+      if (trackStock && !old.trackStock) await setStock(tx, id, stock, { reason: "COUNT", adminId: admin.id, note: "เริ่มนับสต็อก" });
+      else if (trackStock && stock !== stock0) await setStock(tx, id, stock, { reason: "EDIT", adminId: admin.id, note: "แก้จำนวนในหน้าแก้ไขสินค้า" });
+      if (trackStock) await tx.product.update({ where: { id }, data: { inStock: (await tx.product.findUniqueOrThrow({ where: { id }, select: { stock: true } })).stock > 0 } });
+      return u;
+    });
     await logAdmin(admin.id, "PRODUCT", `แก้ไขสินค้า ${sku} — ${name}`);
   } else {
-    saved = await prisma.product.create({ data });
+    saved = await prisma.$transaction(async (tx) => {
+      const c = await tx.product.create({ data: { ...rest, stock: 0, inStock: trackStock ? false : inStock } });
+      if (trackStock && stock > 0) await setStock(tx, c.id, stock, { reason: "COUNT", adminId: admin.id, note: "สต็อกเริ่มต้นตอนเพิ่มสินค้า" });
+      return c;
+    });
     await logAdmin(admin.id, "PRODUCT", `เพิ่มสินค้า ${sku} — ${name}`);
   }
   refreshStorefront();
@@ -122,7 +143,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
 
 /** ลบสินค้า: ถ้าเคยอยู่ในคำสั่งซื้อ/เอกสาร จะปิดขายแทน (เก็บประวัติไว้) */
 export async function deleteProduct(f: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireOwner();
   const id = str(f, "id", 40);
   const p = await prisma.product.findUnique({ where: { id }, include: { _count: { select: { orderItems: true, docItems: true } } } });
   if (!p) redirect("/admin/products");
@@ -148,4 +169,71 @@ export async function toggleProduct(f: FormData) {
     refreshStorefront();
   }
   refresh();
+}
+
+// ---------------------------------------------------------------------------
+// ทำสำเนาสินค้า / นำเข้า CSV
+// ---------------------------------------------------------------------------
+
+/** ทำสำเนาสินค้า (ปิดขายไว้ก่อน สต็อก 0) แล้วเปิดหน้าแก้ไขของสำเนา */
+export async function duplicateProduct(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const p = await prisma.product.findUnique({ where: { id } });
+  if (!p) redirect("/admin/products");
+  let n = 1;
+  let sku = `${p.sku}-copy`.slice(0, 60);
+  let slug = `${p.slug}-copy`.slice(0, 100);
+  while (await prisma.product.findFirst({ where: { OR: [{ sku: { equals: sku, mode: "insensitive" } }, { slug }] }, select: { id: true } })) {
+    n++;
+    sku = `${p.sku}-copy${n}`.slice(0, 60);
+    slug = `${p.slug}-copy${n}`.slice(0, 100);
+  }
+  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, specs, ...rest } = p;
+  void [_id, _c, _u, _w, _l, _v, _s];
+  const copy = await prisma.product.create({
+    data: { ...rest, specs: specs ?? undefined, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
+  });
+  await logAdmin(admin.id, "PRODUCT", `ทำสำเนาสินค้า ${p.sku} → ${sku}`);
+  redirect(`/admin/products/${copy.id}?copied=1`);
+}
+
+export type ImportState = { error?: string; rows?: ImportRow[]; csv?: string; ok?: string; count?: number };
+
+async function csvFrom(f: FormData): Promise<{ text?: string; error?: string }> {
+  const file = f.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > 2 * 1024 * 1024) return { error: "ไฟล์ใหญ่เกิน 2 MB" };
+    return { text: await file.text() };
+  }
+  return { text: String(f.get("csv") ?? "").slice(0, 3_000_000) };
+}
+
+/** ขั้นที่ 1: ตรวจไฟล์ แสดงรายการที่จะเปลี่ยน + แถวที่ผิด (ยังไม่บันทึก) */
+export async function previewImport(_prev: ImportState, f: FormData): Promise<ImportState> {
+  await requireOwner();
+  const { text, error } = await csvFrom(f);
+  if (error || !text) return { error: error ?? "กรุณาเลือกไฟล์ CSV" };
+  const parsed = parseCsv(text);
+  if (parsed.error) return { error: parsed.error };
+  if (!parsed.rows.length) return { error: "ไม่พบข้อมูลในไฟล์" };
+  if (!("sku" in parsed.rows[0])) return { error: "ไม่พบคอลัมน์ sku — ใช้ไฟล์ที่ส่งออกจากระบบเป็นแม่แบบ" };
+  if (parsed.rows.length > 2000) return { error: "นำเข้าได้ครั้งละไม่เกิน 2,000 แถว" };
+  const { rows } = await checkImport(parsed.rows);
+  return { rows, csv: text };
+}
+
+/** ขั้นที่ 2: ยืนยัน — ตรวจซ้ำกับข้อมูลล่าสุด แล้วบันทึกเฉพาะแถวที่ถูกต้อง */
+export async function confirmImport(_prev: ImportState, f: FormData): Promise<ImportState> {
+  const admin = await requireOwner();
+  const text = String(f.get("csv") ?? "").slice(0, 3_000_000);
+  const parsed = parseCsv(text);
+  if (parsed.error || !parsed.rows.length) return { error: parsed.error ?? "ไม่พบข้อมูล" };
+  const { rows, updates } = await checkImport(parsed.rows);
+  if (!updates.length) return { rows, csv: text, error: "ไม่มีรายการที่ต้องเปลี่ยน" };
+  const n = await applyImport(updates, admin.id);
+  const skipped = rows.filter((r) => r.error).length;
+  await logAdmin(admin.id, "PRODUCT", `นำเข้า CSV แก้สินค้า ${n} รายการ${skipped ? ` (ข้าม ${skipped} แถวที่ผิด)` : ""}`);
+  refreshStorefront();
+  return { ok: `บันทึกแล้ว ${n} รายการ${skipped ? ` · ข้าม ${skipped} แถวที่ไม่ผ่านการตรวจ` : ""} — หน้าร้านแสดงข้อมูลใหม่ทันที`, count: n };
 }

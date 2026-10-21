@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ConfirmSubmit } from "../../_components/AdminClient";
 import { useFormAction } from "../../_components/useFormAction";
-import { deleteProduct, saveProduct, type ProductFormState } from "./actions";
+import { deleteProduct, duplicateProduct, saveProduct, type ProductFormState } from "./actions";
 
 export type ProductValues = {
   id: string; name: string; slug: string; sku: string; categoryId: string; unit: string;
@@ -19,8 +19,15 @@ export type ProductValues = {
 const slugify = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 const USE = [["POOL", "สระว่ายน้ำ"], ["POND", "บ่อปลา/บ่อน้ำ"], ["FOUNTAIN", "น้ำพุ"], ["GARDEN", "สวน"]];
 
-export function ProductForm({ v, categories, saved }: { v: ProductValues; categories: { id: string; name: string }[]; saved: boolean }) {
-  const [state, onSubmit, pending] = useFormAction<ProductFormState>(saveProduct, saved ? { ok: "เพิ่มสินค้าแล้ว" } : {});
+export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText }: {
+  v: ProductValues; categories: { id: string; name: string }[]; saved: boolean; copied?: boolean; owner?: boolean; siteHost?: string; shortText?: string;
+}) {
+  const [state, onSubmit, pending] = useFormAction<ProductFormState>(saveProduct, saved ? { ok: "เพิ่มสินค้าแล้ว" } : copied ? { ok: "ทำสำเนาแล้ว — สำเนานี้ปิดขายอยู่ แก้ไขแล้วเปิดขายได้" } : {});
+  const [name, setName] = useState(v.name);
+  const [seoTitle, setSeoTitle] = useState(v.seoTitle);
+  const [seoDesc, setSeoDesc] = useState(v.seoDescription);
+  const [dragI, setDragI] = useState<number | null>(null);
+  const [overI, setOverI] = useState<number | null>(null);
   const [images, setImages] = useState(v.images);
   const [newFiles, setNewFiles] = useState<{ name: string; url: string }[]>([]);
   const [specs, setSpecs] = useState(v.specs.length ? v.specs : [{ label: "", value: "" }]);
@@ -36,11 +43,21 @@ export function ProductForm({ v, categories, saved }: { v: ProductValues; catego
     next.splice(Math.max(0, Math.min(next.length, i + d)), 0, x);
     setImages(next);
   };
+  const moveTo = (from: number, to: number) => {
+    if (from === to) return;
+    const next = [...images];
+    const [x] = next.splice(from, 1);
+    next.splice(to, 0, x);
+    setImages(next);
+  };
+  const serpTitle = `${seoTitle || name || "ชื่อสินค้า"} — มองดูเว็บ`;
+  const serpDesc = seoDesc || shortText || `${name} ราคาพิเศษ สั่งออนไลน์ได้ที่มองดูเว็บ`;
 
   return (
     <>
       <form onSubmit={onSubmit} className="pform">
         <input type="hidden" name="id" value={v.id} />
+        <input type="hidden" name="stock0" value={v.stock} />
         <input type="hidden" name="images" value={JSON.stringify(images.map((i) => i.key))} />
         <input type="hidden" name="specs" value={JSON.stringify(specs)} />
         {state.error && <div className="login-err" role="alert">{state.error}</div>}
@@ -51,7 +68,7 @@ export function ProductForm({ v, categories, saved }: { v: ProductValues; catego
             <div className="box set-grid-inner">
               <h3>ข้อมูลสินค้า</h3>
               <div className="field"><label htmlFor="name">ชื่อสินค้า</label>
-                <input id="name" name="name" defaultValue={v.name} required maxLength={250} {...bad("name")} onChange={(e) => { if (!slugTouched) setSlug(slugify(e.target.value)); }} /></div>
+                <input id="name" name="name" value={name} required maxLength={250} {...bad("name")} onChange={(e) => { setName(e.target.value); if (!slugTouched) setSlug(slugify(e.target.value)); }} /></div>
               <div className="two">
                 <div className="field"><label htmlFor="sku">รหัสสินค้า (SKU)</label><input id="sku" name="sku" defaultValue={v.sku} required maxLength={60} {...bad("sku")} /></div>
                 <div className="field"><label htmlFor="slug">ลิงก์สินค้า /product/…</label>
@@ -68,15 +85,28 @@ export function ProductForm({ v, categories, saved }: { v: ProductValues; catego
             </div>
 
             <div className="box">
-              <h3>รูปสินค้า <span className="sub">รูปแรก = รูปหลัก</span></h3>
+              <h3>รูปสินค้า <span className="sub">รูปแรก = รูปหลัก · ลากเพื่อจัดลำดับ หรือใช้ปุ่มลูกศร</span></h3>
               <div className="img-grid" {...bad("newImages")}>
                 {images.map((im, i) => (
-                  <figure key={im.key}>
+                  <figure
+                    key={im.key}
+                    draggable
+                    data-key={im.key}
+                    style={{ position: "relative" }}
+                    className={`${dragI === i ? "dragging" : ""} ${overI === i && dragI !== i ? "drag-over" : ""}`}
+                    onDragStart={(e) => { setDragI(i); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(i)); }}
+                    onDragOver={(e) => { e.preventDefault(); if (overI !== i) setOverI(i); }}
+                    onDragLeave={() => setOverI(null)}
+                    onDrop={(e) => { e.preventDefault(); const from = dragI ?? Number(e.dataTransfer.getData("text/plain")); moveTo(from, i); setDragI(null); setOverI(null); }}
+                    onDragEnd={() => { setDragI(null); setOverI(null); }}
+                  >
+                    {i === 0 && <span className="main-tag">รูปหลัก</span>}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={im.url} alt={`รูปที่ ${i + 1}`} />
+                    <img src={im.url} alt={`รูปที่ ${i + 1}`} draggable={false} />
                     <figcaption>
-                      <button type="button" className="icon-btn sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="เลื่อนขึ้น">←</button>
-                      <button type="button" className="icon-btn sm" onClick={() => move(i, 1)} disabled={i === images.length - 1} aria-label="เลื่อนลง">→</button>
+                      <button type="button" className="icon-btn sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`เลื่อนรูปที่ ${i + 1} ไปก่อน`}>←</button>
+                      <button type="button" className="icon-btn sm" onClick={() => move(i, 1)} disabled={i === images.length - 1} aria-label={`เลื่อนรูปที่ ${i + 1} ไปหลัง`}>→</button>
+                      {i > 0 && <button type="button" className="icon-btn sm" onClick={() => moveTo(i, 0)} aria-label={`ตั้งรูปที่ ${i + 1} เป็นรูปหลัก`} title="ตั้งเป็นรูปหลัก">★</button>}
                       <button type="button" className="icon-btn sm del" onClick={() => setImages(images.filter((_, k) => k !== i))} aria-label="ลบรูป">✕</button>
                     </figcaption>
                   </figure>
@@ -132,7 +162,7 @@ export function ProductForm({ v, categories, saved }: { v: ProductValues; catego
               </div>
               <label className="chk-row"><input type="checkbox" name="trackStock" checked={track} onChange={(e) => setTrack(e.target.checked)} /> นับสต็อก (ขายได้ไม่เกินจำนวนคงเหลือ)</label>
               {track ? (
-                <div className="field"><label htmlFor="stock">คงเหลือ</label><input id="stock" name="stock" defaultValue={v.stock} inputMode="numeric" {...bad("stock")} /><small>ระบบตัดสต็อกให้อัตโนมัติเมื่ออนุมัติการชำระเงิน</small></div>
+                <div className="field"><label htmlFor="stock">คงเหลือ</label><input id="stock" name="stock" defaultValue={v.stock} inputMode="numeric" {...bad("stock")} /><small>ระบบตัดสต็อกให้อัตโนมัติเมื่ออนุมัติการชำระเงิน · แก้ตัวเลขที่นี่ = บันทึกในประวัติสต็อก{v.id ? <> · <a className="link" href={`/admin/stock/${v.id}`}>รับของเข้า/ดูประวัติ</a></> : null}</small></div>
               ) : (
                 <label className="chk-row"><input type="checkbox" name="inStock" defaultChecked={v.inStock} /> มีสินค้าพร้อมขาย</label>
               )}
@@ -159,8 +189,17 @@ export function ProductForm({ v, categories, saved }: { v: ProductValues; catego
 
             <div className="box">
               <h3>SEO และการค้นหา</h3>
-              <div className="field"><label htmlFor="seoTitle">หัวข้อบน Google <span className="sub">≤ 60 ตัวอักษร</span></label><input id="seoTitle" name="seoTitle" defaultValue={v.seoTitle} maxLength={120} /></div>
-              <div className="field"><label htmlFor="seoDescription">คำอธิบายบน Google <span className="sub">≤ 160 ตัวอักษร</span></label><textarea id="seoDescription" name="seoDescription" defaultValue={v.seoDescription} maxLength={300} rows={3} /></div>
+              <div className="field"><label htmlFor="seoTitle">หัวข้อบน Google <span className={`seo-meter${serpTitle.length > 60 ? " warn" : ""}`}>{serpTitle.length}/60</span></label><input id="seoTitle" name="seoTitle" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} maxLength={120} placeholder={name} /><small>เว้นว่าง = ใช้ชื่อสินค้า</small></div>
+              <div className="field"><label htmlFor="seoDescription">คำอธิบายบน Google <span className={`seo-meter${serpDesc.length > 160 ? " warn" : ""}`}>{serpDesc.length}/160</span></label><textarea id="seoDescription" name="seoDescription" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} maxLength={300} rows={3} /><small>เว้นว่าง = ใช้คำอธิบายย่อ</small></div>
+              <div className="field">
+                <span className="lbl">ตัวอย่างผลการค้นหา Google</span>
+                <div className="seo-prev" id="seoPreview" aria-label="ตัวอย่างผลการค้นหา">
+                  <div className="u"><i aria-hidden="true" />{siteHost ?? "www.mongdooweb.com"} › product › {slug || "…"}</div>
+                  <div className="t">{serpTitle}</div>
+                  <div className="d">{serpDesc}</div>
+                </div>
+                {(serpTitle.length > 60 || serpDesc.length > 160) && <small className="seo-meter warn">ยาวเกิน — Google อาจตัดข้อความด้วย &quot;…&quot;</small>}
+              </div>
               <div className="field"><label htmlFor="keywords">คำค้นเพิ่มเติม (คั่นด้วย ,)</label><textarea id="keywords" name="keywords" defaultValue={v.keywords} rows={2} maxLength={2000} /></div>
               <div className="field"><label htmlFor="weightGram">น้ำหนัก (กรัม)</label><input id="weightGram" name="weightGram" defaultValue={v.weightGram} inputMode="numeric" {...bad("weightGram")} /></div>
             </div>
@@ -168,6 +207,14 @@ export function ProductForm({ v, categories, saved }: { v: ProductValues; catego
         </div>
       </form>
       {v.id && (
+        <form action={duplicateProduct} className="box" style={{ marginTop: 16, maxWidth: 520 }}>
+          <input type="hidden" name="id" value={v.id} />
+          <h3>ทำสำเนาสินค้า</h3>
+          <p className="sub">สร้างสินค้าใหม่จากข้อมูลนี้ (ชื่อ ราคา รูป สเปก คำอธิบาย) — สำเนาจะปิดขายไว้ก่อนและสต็อกเป็น 0</p>
+          <div><button className="btn btn-outline" type="submit" id="dupBtn">ทำสำเนา</button></div>
+        </form>
+      )}
+      {v.id && owner && (
         <form action={deleteProduct} className="box" style={{ marginTop: 16, maxWidth: 520 }}>
           <input type="hidden" name="id" value={v.id} />
           <h3>ลบสินค้า</h3>

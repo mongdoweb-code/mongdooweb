@@ -1,7 +1,12 @@
 // หน้าคำสั่งซื้อ (หน้าแรกของหลังบ้าน) — โครงและ CSS ตามต้นแบบ, ข้อมูลจากฐานข้อมูล
 // ตัวกรองทั้งหมดอยู่ใน URL (?tab=&q=&range=&page=&open=) จึงรีเฟรช/แชร์ลิงก์ได้
 import {
+  CANCEL_REASONS,
+  CANCELLABLE,
   CARRIERS,
+  EDITABLE,
+  REFUNDABLE,
+  REFUND_REASONS,
   RANGES,
   REJECT_REASONS,
   STATUS_LABEL,
@@ -13,15 +18,24 @@ import {
   nextPending,
   orderStats,
   parseFilter,
+  branchLabel,
+  parseTaxInvoice,
   type OrderFilter,
 } from "@/lib/admin-orders";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
+import { fmtTaxId } from "@/lib/doc-calc";
+import { isValidThaiTaxId } from "@/lib/format";
 import { formatPhone } from "@/lib/orders";
-import { AutoRefresh, ConfirmSubmit, CopyButton, DrawerKeys, SlipImage } from "../_components/AdminClient";
+import { AutoRefresh, ConfirmSubmit, CopyButton, DrawerKeys, SlipViewer } from "../_components/AdminClient";
 import { LabelOptions } from "../_components/LabelOptions";
 import { docFromOrder } from "./docs/actions";
-import { addOrderNote, approveOrder, cancelOrder, rejectOrder, reopenOrder, shipOrder } from "./order-actions";
+import { addOrderNote, approveOrder, cancelOrder, markPaid, refundOrder, rejectOrder, reopenOrder, shipOrder } from "./order-actions";
+import { BulkLabels, EditOrderForm } from "./orders/OrderForms";
+import "../lot3.css";
+
+type Mode = "reject" | "edit" | "pay" | "cancel" | "refund" | null;
+const MODES = ["reject", "edit", "pay", "cancel", "refund"] as const;
 
 const baht = (satang: number) =>
   "฿" + (satang / 100).toLocaleString("th-TH", { minimumFractionDigits: satang % 100 ? 2 : 0, maximumFractionDigits: 2 });
@@ -47,11 +61,12 @@ const ICON = {
 };
 
 export default async function OrdersPage({ searchParams }: PageProps<"/admin">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const sp = await searchParams;
   const f = parseFilter(sp);
   const open = typeof sp.open === "string" ? sp.open.slice(0, 40) : null;
-  const mode = sp.mode === "reject" ? "reject" : null;
+  const mode: Mode = MODES.find((m) => m === sp.mode) ?? null;
+  const bulk = f.tab === "PAID";
   const [list, stats] = await Promise.all([listOrders(f), orderStats()]);
   const count = (s: keyof typeof STATUS_LABEL) => stats.count[s] ?? 0;
   const allCount = Object.values(stats.count).reduce((a, b) => a + (b ?? 0), 0);
@@ -69,6 +84,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
           <p>{fmt(new Date(), { dateStyle: "full" })}</p>
         </div>
         <div className="head-actions">
+          <Link className="btn btn-outline" href="/admin/orders/new">+ สร้างคำสั่งซื้อ</Link>
           <a className="btn btn-outline" href={`/admin/orders.csv${filterQuery({ ...f, page: 1 })}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 4v12M7 11l5 5 5-5" /><path d="M4 20h16" /></svg>
             ส่งออก CSV
@@ -77,6 +93,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
             <a className="btn btn-outline" href="/admin/print/labels?status=PAID&auto=1" target="_blank" rel="noopener" title="ใบปะหน้า A6 ของทุกคำสั่งซื้อที่ชำระแล้วรอจัดส่ง (ตั้งขนาด/จำนวนกล่องรายออเดอร์ได้ในรายละเอียดคำสั่งซื้อ)">
               พิมพ์ใบปะหน้ารอส่ง ({count("PAID")})
             </a>
+          )}
+          {count("PAID") > 0 && (
+            <Link className="btn btn-outline" href="/admin/orders/shipping">ใส่เลขพัสดุหลายรายการ (CSV)</Link>
           )}
           {firstPending ? (
             <a className="btn btn-primary" href={`/admin${filterQuery({ ...f, tab: "PENDING_VERIFICATION", q: "", page: 1 }, { open: firstPending })}`}>
@@ -90,6 +109,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
         </div>
       </div>
 
+      {sp.created === "1" && open && <div className="ok-box" role="status" style={{ marginBottom: 12 }} id="createdMsg">สร้างคำสั่งซื้อ {open} แล้ว</div>}
       <div className="kpis">
         <a className={`kpi ${pend ? "hot" : ""}`} href={href({ tab: "PENDING_VERIFICATION", page: 1 })}>
           <span>รอตรวจสลิป</span>
@@ -157,10 +177,21 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
           )}
           <span className="err-msg">{list.badRange ? "วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด" : ""}</span>
         </form>
+        {bulk && list.rows.length > 0 && (
+          <>
+            <form id="bulkForm" hidden />
+            <BulkLabels formId="bulkForm" />
+          </>
+        )}
 
         <table className="tbl">
           <thead>
             <tr>
+              {bulk && list.rows.length > 0 && (
+                <th className="c-sel">
+                  <input type="checkbox" className="cb" id="bulkForm-all" aria-label="เลือกทั้งหมดในหน้านี้" />
+                </th>
+              )}
               <th>เลขที่ / วันที่</th>
               <th>ลูกค้า</th>
               <th>รายการ</th>
@@ -175,6 +206,11 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
               const rowHref = `/admin?${new URLSearchParams([...new URLSearchParams(link), ["open", o.orderNo]]).toString()}`;
               return (
                 <tr key={o.orderNo} className={o.orderNo === open ? "sel" : ""}>
+                  {bulk && (
+                    <td className="c-sel">
+                      <input type="checkbox" className="cb" form="bulkForm" name="pick" value={o.orderNo} aria-label={`เลือก ${o.orderNo}`} />
+                    </td>
+                  )}
                   <td className="c-id">
                     <a className="row-link" href={rowHref}>
                       <span className="oid">{o.orderNo}</span>
@@ -209,6 +245,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
                       )}
                       {o.check?.late && <span className="chip warn">วันที่โอนเก่า</span>}
                       {o.hasNote && <span className="chip gray">มีโน้ตภายใน</span>}
+                      {o.channel === "ADMIN" && <span className="chip gray">สร้างจากหลังร้าน</span>}
                     </div>
                   </td>
                 </tr>
@@ -277,7 +314,12 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
         )}
       </section>
 
-      {open && <OrderDrawer f={f} orderNo={open} mode={mode} done={sp.done === "1"} trackErr={sp.err === "tracking"} />}
+      {open && (
+        <OrderDrawer
+          f={f} orderNo={open} mode={mode} done={sp.done === "1"} err={typeof sp.err === "string" ? sp.err : ""} owner={admin.role === "OWNER"}
+          flash={sp.refunded === "1" ? "refunded" : sp.edited === "1" ? "edited" : null}
+        />
+      )}
     </main>
   );
 }
@@ -328,7 +370,10 @@ function SalesChart({ days }: { days: { start: Date; satang: number; orders: num
 }
 
 /* ---------- รายละเอียดคำสั่งซื้อ / ตรวจสลิป ---------- */
-async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilter; orderNo: string; mode: "reject" | null; done: boolean; trackErr: boolean }) {
+async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
+  f: OrderFilter; orderNo: string; mode: Mode; done: boolean; err: string; owner: boolean; flash: "refunded" | "edited" | null;
+}) {
+  const trackErr = err === "tracking";
   const o = await getOrderDetail(orderNo);
   const close = `/admin${filterQuery(f)}`;
   if (!o) {
@@ -360,6 +405,10 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
     : null;
   const preReason = c?.dupOrderNos.length ? 1 : c?.diffSatang ? 0 : 4;
   const tel = o.phone.replace(/[^\d+]/g, "");
+  const tax = parseTaxInvoice(o.taxInvoice);
+  const here = (m?: Mode) => `/admin${filterQuery(f, { open: o.orderNo, ...(m ? { mode: m } : {}) })}`;
+  const liveDocs = o.documents.filter((d) => d.status !== "VOID" && d.docNo);
+  const editable = EDITABLE.includes(o.status);
 
   return (
     <div className="drawer open" aria-hidden="false">
@@ -376,6 +425,7 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
             </h2>
             <span className="sub">
               <span className={`st st-${o.status}`}>{STATUS_LABEL[o.status]}</span> · {fmt(o.createdAt)}
+              {o.channel === "ADMIN" && " · สร้างจากหลังร้าน"}
             </span>
           </div>
           <div className="d-nav">
@@ -403,7 +453,23 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
               </h3>
               {o.slip ? (
                 <>
-                  <SlipImage src={`/admin/slips/${o.slip.id}`} alt={`สลิปของ ${o.orderNo}`} />
+                  <div className="l3-amt" id="slipAmounts">
+                    <div><span>ยอดที่ต้องชำระ</span><b>{baht(o.totalSatang)}</b></div>
+                    <div className={o.slip.declaredAmountSatang === o.totalSatang ? "ok" : "bad"}>
+                      <span>ยอดในสลิป (ลูกค้าแจ้ง)</span>
+                      <b>{baht(o.slip.declaredAmountSatang)}</b>
+                    </div>
+                  </div>
+                  <SlipViewer src={`/admin/slips/${o.slip.id}`} alt={`สลิปของ ${o.orderNo}`} orderSatang={o.totalSatang} slipSatang={o.slip.declaredAmountSatang} />
+                  {o.slipCount > 1 && (
+                    <div className="l3-slips" aria-label="สลิปทั้งหมด">
+                      {o.slips.map((x, i) => (
+                        <a key={x.id} href={`/admin/slips/${x.id}`} target="_blank" rel="noopener" aria-current={x.id === o.slip!.id ? "true" : undefined}>
+                          สลิปครั้งที่ {i + 1} · {baht(x.declaredAmountSatang)}{x.status === "REJECTED" ? " · ไม่ผ่าน" : ""}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                   <div className="slip-meta">
                     <span>
                       ยอดที่ลูกค้าแจ้ง: <b>{baht(o.slip.declaredAmountSatang)}</b>
@@ -427,6 +493,15 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
                 <div>
                   <b>เคลียร์สลิปที่รอตรวจหมดแล้ว</b>
                 </div>
+              </div>
+            )}
+            {flash === "edited" && <div className="ok-box" role="status">บันทึกการแก้ไขแล้ว (ดูค่าเดิมได้ในประวัติ)</div>}
+            {(flash === "refunded" || o.status === "CANCELLED") && liveDocs.length > 0 && (
+              <div className="warn-box" role="alert" id="voidDocsWarn">
+                <b>คำสั่งซื้อนี้ถูกยกเลิกแล้ว แต่ยังมีเอกสารที่ไม่ได้ยกเลิก</b> — กรุณาเปิดเอกสารแล้วกด &quot;ยกเลิกเอกสาร&quot; (เลขที่เดิมจะถูกเก็บไว้):{" "}
+                {liveDocs.map((d, i) => (
+                  <span key={d.id}>{i > 0 && ", "}<Link href={`/admin/docs/${d.type}/${d.id}`}>{d.docNo}</Link></span>
+                ))}
               </div>
             )}
             {o.slip && c && (
@@ -559,27 +634,124 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
                     <input type="hidden" name="ret" value={ret} />
                     <button className="btn btn-outline" type="submit">ตรวจสลิปนี้ใหม่อีกครั้ง</button>
                   </form>
-                  <form action={cancelOrder}>
-                    <input type="hidden" name="orderNo" value={o.orderNo} />
-                    <input type="hidden" name="ret" value={ret} />
-                    <ConfirmSubmit className="btn btn-danger" title="ยกเลิกคำสั่งซื้อ?" body={`ยกเลิก ${o.orderNo} — ลูกค้าจะแนบสลิปใหม่ไม่ได้อีก`} confirmLabel="ยกเลิกคำสั่งซื้อ">
-                      ยกเลิกคำสั่งซื้อ
-                    </ConfirmSubmit>
-                  </form>
+                  <a className="btn btn-outline" href={here("pay")}>บันทึกรับชำระเอง</a>
+                  <a className="btn btn-danger" href={here("cancel")}>ยกเลิกคำสั่งซื้อ</a>
                 </div>
               </div>
             )}
             {o.status === "AWAITING_SLIP" && (
               <div className="box">
                 <h3>รอลูกค้าโอนและแนบสลิป</h3>
-                <p className="sub" style={{ margin: "6px 0 12px" }}>ลูกค้ากรอกที่อยู่แล้วแต่ยังไม่แนบสลิป</p>
-                <form action={cancelOrder}>
+                <p className="sub" style={{ margin: "6px 0 12px" }}>
+                  {o.channel === "ADMIN" ? "คำสั่งซื้อจากหลังร้าน — ลูกค้าแนบสลิปได้ที่หน้าติดตามคำสั่งซื้อ หรือบันทึกรับชำระเองเมื่อได้รับเงิน" : "ลูกค้ากรอกที่อยู่แล้วแต่ยังไม่แนบสลิป"}
+                </p>
+                <div className="act-row">
+                  <a className="btn btn-ok" href={here("pay")} id="payBtn">บันทึกรับชำระเอง</a>
+                  <a className="btn btn-danger" href={here("cancel")}>ยกเลิกคำสั่งซื้อ</a>
+                </div>
+              </div>
+            )}
+            {mode === "pay" && (o.status === "AWAITING_SLIP" || o.status === "REJECTED") && (
+              <div className="act" id="payForm">
+                <h3>บันทึกรับชำระเอง</h3>
+                <form action={markPaid} className="reject-form">
                   <input type="hidden" name="orderNo" value={o.orderNo} />
                   <input type="hidden" name="ret" value={ret} />
-                  <ConfirmSubmit className="btn btn-danger" title="ยกเลิกคำสั่งซื้อ?" body={`ยกเลิก ${o.orderNo}`} confirmLabel="ยกเลิกคำสั่งซื้อ">
-                    ยกเลิกคำสั่งซื้อ
-                  </ConfirmSubmit>
+                  <p className="l3-note">ใช้เมื่อได้รับเงินแล้วแต่ลูกค้าไม่ได้แนบสลิปผ่านเว็บ (เช่น ส่งสลิปทาง LINE / จ่ายเงินสด) — ยอด {baht(o.totalSatang)} · ระบบจะตัดสต็อกทันที</p>
+                  <div className="field">
+                    <label htmlFor="payMethod">วิธีชำระ</label>
+                    <select id="payMethod" name="method">{["โอนเงินผ่านธนาคาร", "QR PromptPay", "เงินสด", "อื่นๆ"].map((m) => <option key={m}>{m}</option>)}</select>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="payNote">หลักฐาน/หมายเหตุ (จำเป็น)</label>
+                    <input id="payNote" name="note" required maxLength={200} placeholder="เช่น ลูกค้าส่งสลิปทาง LINE โอนเข้า KBANK 14:20" style={err === "paynote" ? { borderColor: "var(--c-err)" } : undefined} />
+                  </div>
+                  <div className="act-row">
+                    <a className="btn btn-outline" href={here()}>ยกเลิก</a>
+                    <button className="btn btn-ok" type="submit">ยืนยันรับชำระ</button>
+                  </div>
                 </form>
+              </div>
+            )}
+            {o.status === "PENDING_VERIFICATION" && mode !== "cancel" && (
+              <p className="l3-note">ลูกค้าขอยกเลิก? <a className="link" href={here("cancel")}>ยกเลิกคำสั่งซื้อนี้</a></p>
+            )}
+            {mode === "cancel" && CANCELLABLE.includes(o.status) && (
+              <div className="act" id="cancelForm">
+                <h3>ยกเลิกคำสั่งซื้อ</h3>
+                <form action={cancelOrder} className="reject-form">
+                  <input type="hidden" name="orderNo" value={o.orderNo} />
+                  <input type="hidden" name="ret" value={ret} />
+                  <div className="field">
+                    <label htmlFor="cReason">เหตุผล (ลูกค้าเห็นในหน้าติดตาม)</label>
+                    <select id="cReason" name="reason">{CANCEL_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="cNote">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label>
+                    <input id="cNote" name="note" maxLength={300} />
+                  </div>
+                  <div className="act-row">
+                    <a className="btn btn-outline" href={here()}>ไม่ยกเลิก</a>
+                    <ConfirmSubmit className="btn btn-danger" title="ยืนยันยกเลิกคำสั่งซื้อ?" body={`ยกเลิก ${o.orderNo} — ลูกค้าจะแนบสลิปไม่ได้อีก`} confirmLabel="ยกเลิกคำสั่งซื้อ">
+                      ยืนยันยกเลิก
+                    </ConfirmSubmit>
+                  </div>
+                </form>
+              </div>
+            )}
+            {REFUNDABLE.includes(o.status) && mode !== "refund" && (
+              <p className="l3-note" id="refundLink">
+                ต้องการยกเลิก/คืนเงิน?{" "}
+                {owner ? <a className="link" href={here("refund")}>ยกเลิกคำสั่งซื้อและคืนเงิน</a> : "เฉพาะเจ้าของร้านเท่านั้น"}
+              </p>
+            )}
+            {mode === "refund" && owner && REFUNDABLE.includes(o.status) && (
+              <div className="act" id="refundForm">
+                <h3>ยกเลิกคำสั่งซื้อและคืนเงิน</h3>
+                <form action={refundOrder} className="reject-form">
+                  <input type="hidden" name="orderNo" value={o.orderNo} />
+                  <input type="hidden" name="ret" value={ret} />
+                  <div className="field">
+                    <label htmlFor="rfReason">เหตุผล</label>
+                    <select id="rfReason" name="reason">{REFUND_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="rfNote">รายละเอียด (ไม่บังคับ)</label>
+                    <input id="rfNote" name="note" maxLength={300} />
+                  </div>
+                  <div className="l3-form">
+                    <div className="two">
+                      <div className="field">
+                        <label htmlFor="rfAmount">ยอดที่คืน (บาท)</label>
+                        <input id="rfAmount" name="amount" inputMode="decimal" required defaultValue={(o.totalSatang / 100).toFixed(2)} style={err === "amount" ? { borderColor: "var(--c-err)" } : undefined} />
+                        <small>ไม่เกิน {baht(o.totalSatang)}</small>
+                      </div>
+                      <div className="field">
+                        <label htmlFor="rfRef">อ้างอิงการโอนคืน</label>
+                        <input id="rfRef" name="ref" maxLength={100} placeholder="เช่น เลขที่รายการ" />
+                      </div>
+                    </div>
+                  </div>
+                  <label className="chk-row">
+                    <input type="checkbox" name="restock" defaultChecked />
+                    คืนสินค้าเข้าสต็อก{o.status === "SHIPPED" ? " (ได้รับสินค้าคืนแล้ว)" : ""}
+                  </label>
+                  {liveDocs.length > 0 && (
+                    <p className="warn-box">หลังยกเลิก ต้องยกเลิกเอกสารที่เกี่ยวข้องด้วย: {liveDocs.map((d) => d.docNo).join(", ")}</p>
+                  )}
+                  <div className="act-row">
+                    <a className="btn btn-outline" href={here()}>ไม่ยกเลิก</a>
+                    <ConfirmSubmit className="btn btn-danger" title="ยืนยันยกเลิกและคืนเงิน?" body={`${o.orderNo} จะเปลี่ยนเป็น "ยกเลิก" — การกระทำนี้ย้อนกลับไม่ได้`} confirmLabel="ยืนยันคืนเงิน">
+                      ยืนยันยกเลิกและคืนเงิน
+                    </ConfirmSubmit>
+                  </div>
+                </form>
+              </div>
+            )}
+            {o.status === "CANCELLED" && (
+              <div className="box" id="cancelledBox">
+                <h3>ยกเลิกแล้ว</h3>
+                <p style={{ fontSize: 14 }}>{o.cancelReason ?? "—"}</p>
               </div>
             )}
 
@@ -640,8 +812,48 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
               </div>
             </div>
 
+            {tax && (
+              <div className="box" id="taxBox">
+                <h3>ขอใบกำกับภาษี</h3>
+                <div className="l3-tax">
+                  <b>{tax.name}</b>
+                  <span>{tax.kind === "COMPANY" ? "นิติบุคคล" : "บุคคลธรรมดา"}{branchLabel(tax.kind, tax.branch) ? ` · ${branchLabel(tax.kind, tax.branch)}` : ""}</span>
+                  <span>
+                    เลขผู้เสียภาษี <span className="tid">{fmtTaxId(tax.taxId)}</span>{" "}
+                    {isValidThaiTaxId(tax.taxId) ? <span className="chip gray">ตรวจแล้ว ✓</span> : <span className="chip bad">เลขไม่ถูกต้อง</span>}
+                  </span>
+                  <span className="sub">{tax.address}</span>
+                </div>
+                <div className="mini-acts">
+                  <CopyButton text={`${tax.name}\nเลขประจำตัวผู้เสียภาษี ${tax.taxId}${branchLabel(tax.kind, tax.branch) ? ` (${branchLabel(tax.kind, tax.branch)})` : ""}\n${tax.address}`} done="คัดลอกข้อมูลใบกำกับภาษีแล้ว">
+                    {ICON.copy} คัดลอก
+                  </CopyButton>
+                </div>
+                <p className="l3-note" style={{ marginTop: 8 }}>ใบเสร็จที่ออกจากคำสั่งซื้อนี้จะออกในนามผู้ขอ พร้อมเลขผู้เสียภาษีและสาขา</p>
+              </div>
+            )}
+
+            {mode === "edit" && editable ? (
+              <div className="act" id="editBox">
+                <h3>แก้ไขข้อมูลผู้รับ</h3>
+                <EditOrderForm
+                  orderNo={o.orderNo}
+                  ret={ret}
+                  cancelHref={here()}
+                  init={{ name: o.customerName, phone: o.phone, email: o.email ?? "", addr: o.addressLine, sub: o.subdistrict, dist: o.district, prov: o.province, zip: o.postalCode, note: o.note ?? "" }}
+                  tax={tax ? { want: true, ...tax } : null}
+                />
+              </div>
+            ) : (
             <div className="box">
-              <h3>ผู้รับ</h3>
+              <h3 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                ผู้รับ
+                {editable ? (
+                  <a className="btn btn-ghost btn-sm" href={here("edit")} id="editBtn">แก้ไข</a>
+                ) : (
+                  <span className="sub" style={{ fontWeight: 400 }} id="editLocked">{o.status === "SHIPPED" ? "จัดส่งแล้ว — แก้ไขไม่ได้" : "แก้ไขไม่ได้"}</span>
+                )}
+              </h3>
               <div className="kv">
                 <span>ชื่อ</span><b>{o.customerName}</b>
                 <span>โทร</span><a href={`tel:${tel}`} className="num" style={{ textDecoration: "underline", textUnderlineOffset: 3 }}>{formatPhone(o.phone)}</a>
@@ -658,6 +870,7 @@ async function OrderDrawer({ f, orderNo, mode, done, trackErr }: { f: OrderFilte
                 <div className="note-box"><b>หมายเหตุจากลูกค้า:</b> {o.note}</div>
               )}
             </div>
+            )}
 
             <div className="box inote">
               <h3>โน้ตภายใน <small>ลูกค้าไม่เห็น</small></h3>

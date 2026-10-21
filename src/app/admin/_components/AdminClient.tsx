@@ -233,6 +233,115 @@ export function ConfirmSubmit({ title, body, confirmLabel, className, children }
   );
 }
 
+const clampZ = (v: number) => Math.min(6, Math.max(0.5, Math.round(v * 100) / 100));
+
+/* ---------- ตัวดูสลิป: ซูม (ปุ่ม/ล้อเมาส์/สองนิ้ว) หมุน ลากเลื่อน เปิดแท็บใหม่ + เทียบยอดชัดเจน ---------- */
+export function SlipViewer({ src, alt, orderSatang, slipSatang }: { src: string; alt: string; orderSatang: number; slipSatang: number }) {
+  const [open, setOpen] = useState(false);
+  const [z, setZ] = useState(1);
+  const [rot, setRot] = useState(0);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [drag, setDrag] = useState(false);
+  const pts = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ d: number; z: number } | null>(null);
+  const last = useRef<{ x: number; y: number } | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const diff = slipSatang - orderSatang;
+  const fmt = (s: number) => "฿" + (s / 100).toLocaleString("th-TH", { minimumFractionDigits: s % 100 ? 2 : 0, maximumFractionDigits: 2 });
+  const reset = () => { setZ(1); setRot(0); setPos({ x: 0, y: 0 }); };
+  const zoom = (d: number) => setZ((v) => clampZ(v + d));
+
+  useEffect(() => {
+    if (!open) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+      else if (e.key === "+" || e.key === "=") setZ((v) => clampZ(v + 0.25));
+      else if (e.key === "-") setZ((v) => clampZ(v - 0.25));
+      else if (e.key.toLowerCase() === "r") setRot((r) => (r + 90) % 360);
+      else if (e.key === "0") { setZ(1); setRot(0); setPos({ x: 0, y: 0 }); }
+      else return;
+      e.stopPropagation();
+    };
+    addEventListener("keydown", onKey, true);
+    return () => removeEventListener("keydown", onKey, true);
+  }, [open]);
+
+  const amounts = (
+    <div className="sv-amt">
+      <span>ยอดสั่งซื้อ<b>{fmt(orderSatang)}</b></span>
+      <span className={diff ? "bad" : "ok"}>ยอดในสลิป (ลูกค้าแจ้ง)<b>{fmt(slipSatang)}</b></span>
+      <span className={diff ? "bad" : "ok"}>ผลต่าง<b>{diff ? `${diff > 0 ? "เกิน" : "ขาด"} ${fmt(Math.abs(diff))}` : "ตรงกัน ✓"}</b></span>
+    </div>
+  );
+
+  return (
+    <>
+      <button type="button" className="slip-open" onClick={() => setOpen(true)} aria-label="ขยายดูสลิป" style={{ display: "block", width: "100%", padding: 0, background: "none", border: 0, cursor: "zoom-in" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- สลิปส่งผ่าน route ที่ตรวจสิทธิ์ ไม่ใช้ image optimizer */}
+        <img className="slip-img" src={src} alt={alt} />
+      </button>
+      <div className="slip-tools">
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => setOpen(true)} id="slipZoom">ขยาย / หมุน</button>
+        <a className="btn btn-outline btn-sm" href={src} target="_blank" rel="noopener">เปิดในแท็บใหม่</a>
+      </div>
+      {open && (
+        <div className="sv" role="dialog" aria-modal="true" aria-label="ตรวจสลิป" id="slipViewer">
+          <div className="sv-top">
+            {amounts}
+            <button type="button" ref={closeRef} onClick={() => setOpen(false)} aria-label="ปิด (Esc)">✕</button>
+          </div>
+          <div
+            className={`sv-stage${drag ? " drag" : ""}`}
+            onWheel={(e) => zoom(e.deltaY < 0 ? 0.2 : -0.2)}
+            onDoubleClick={() => (z === 1 ? setZ(2) : reset())}
+            onPointerDown={(e) => {
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+              if (pts.current.size === 2) {
+                const [a, b] = [...pts.current.values()];
+                pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y), z };
+              } else {
+                last.current = { x: e.clientX, y: e.clientY };
+                setDrag(true);
+              }
+            }}
+            onPointerMove={(e) => {
+              if (!pts.current.has(e.pointerId)) return;
+              pts.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+              if (pts.current.size === 2 && pinch.current) {
+                const [a, b] = [...pts.current.values()];
+                setZ(clampZ((pinch.current.z * Math.hypot(a.x - b.x, a.y - b.y)) / pinch.current.d));
+              } else if (last.current) {
+                const dx = e.clientX - last.current.x, dy = e.clientY - last.current.y;
+                last.current = { x: e.clientX, y: e.clientY };
+                setPos((p) => ({ x: p.x + dx, y: p.y + dy }));
+              }
+            }}
+            onPointerUp={(e) => {
+              pts.current.delete(e.pointerId);
+              if (pts.current.size < 2) pinch.current = null;
+              if (!pts.current.size) { last.current = null; setDrag(false); }
+            }}
+            onPointerCancel={(e) => { pts.current.delete(e.pointerId); last.current = null; setDrag(false); }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt={alt} draggable={false} style={{ transform: `translate(${pos.x}px, ${pos.y}px) rotate(${rot}deg) scale(${z})` }} />
+          </div>
+          <div className="sv-bar">
+            <button type="button" onClick={() => zoom(-0.25)} aria-label="ซูมออก">−</button>
+            <button type="button" className="zoom" onClick={reset} aria-label="รีเซ็ตขนาด" id="svZoomLabel">{Math.round(z * 100)}%</button>
+            <button type="button" onClick={() => zoom(0.25)} aria-label="ซูมเข้า" id="svZoomIn">+</button>
+            <button type="button" onClick={() => setRot((r) => (r + 270) % 360)} aria-label="หมุนซ้าย">⟲</button>
+            <button type="button" onClick={() => setRot((r) => (r + 90) % 360)} aria-label="หมุนขวา" id="svRotate">⟳ หมุน</button>
+            <a href={src} target="_blank" rel="noopener">เปิดแท็บใหม่</a>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ---------- ดูภาพสลิปเต็มจอ ---------- */
 export function SlipImage({ src, alt }: { src: string; alt: string }) {
   const [zoom, setZoom] = useState(false);
