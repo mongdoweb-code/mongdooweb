@@ -341,7 +341,7 @@ const saveCart = () => { LS.set(CART_KEY, JSON.stringify(cart)); saveSeen(); };
 const cartQty = () => Object.values(cart).reduce((a,b) => a + b, 0);
 const cartSum = () => Object.entries(cart).reduce((s,[id,q]) => s + byId(id).price * q, 0);
 const capCount = n => n > 99 ? '99+' : String(n);
-const cartAria = n => n ? `ตะกร้าสินค้า ${n} ชิ้น` : 'ตะกร้าสินค้า ว่าง';
+const cartAria = n => n ? `ตะกร้า ${n} ชิ้น` : 'ตะกร้า ว่าง';
 
 function addToCart(id, qty = 1, mode = 'open'){ // mode: open | toast | silent
   const p = byId(id);

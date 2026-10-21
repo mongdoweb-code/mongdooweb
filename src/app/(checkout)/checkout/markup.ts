@@ -15,7 +15,7 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
 
 <header class="header">
   <div class="container">
-    <a href="/" class="logo" aria-label="มองดูเว็บ หน้าแรก"><div class="logo-mark"><span></span></div><div>มองดูเว็บ<small>MONGDOWEB LED</small></div></a>
+    <a href="/" class="logo"><div class="logo-mark"><span></span></div><div>มองดูเว็บ<small>MONGDOWEB LED</small></div><span class="sr-only"> หน้าแรก</span></a>
     <div class="h-right">
       <div class="secure">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="10"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
@@ -24,7 +24,7 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
       <a href="/" class="back-shop" aria-label="กลับไปช้อปต่อ">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span>กลับไปช้อปต่อ</span>
       </a>
-      <a href="/#cart" class="cart-btn" id="hdrCart" aria-label="ตะกร้าสินค้า ว่าง">${ICON_CART}
+      <a href="/#cart" class="cart-btn" id="hdrCart" aria-label="ตะกร้า ว่าง">${ICON_CART}
         <span class="cart-label" aria-hidden="true">ตะกร้า</span>
         <span class="cart-count" id="hdrCount" aria-hidden="true" hidden>0</span>
       </a>
