@@ -56,13 +56,13 @@ export async function startTotp() {
   const admin = await requireAdmin();
   if (admin.totpEnabled) redirect("/admin/account");
   await prisma.admin.update({ where: { id: admin.id }, data: { totpSecret: newTotpSecret(), totpEnabled: false } });
-  redirect("/admin/account#twofa");
+  redirect("/admin/account?setup=1#twofa");
 }
 
 export async function cancelTotp() {
   const admin = await requireAdmin();
   await prisma.admin.updateMany({ where: { id: admin.id, totpEnabled: false }, data: { totpSecret: null } });
-  redirect("/admin/account#twofa");
+  redirect("/admin/account?setup=0#twofa");
 }
 
 export async function enableTotp(_prev: AccountState, f: FormData): Promise<AccountState> {

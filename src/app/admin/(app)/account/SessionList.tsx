@@ -23,8 +23,8 @@ export function SessionList({ rows, showUser = false, action }: { rows: SessionR
             {showUser && <td className="ses-user"><b>{s.displayName}</b><span className="sub">{s.username}</span></td>}
             <td className="ses-dev"><b>{s.device}</b>{s.current && <span className="chip new">เครื่องนี้</span>}</td>
             <td className="ses-ip num">{s.ip}</td>
-            <td className="ses-in sub"><span className="m-lbl">เข้าเมื่อ </span>{fmt(s.createdAt)}</td>
-            <td className="ses-seen sub"><span className="m-lbl">ล่าสุด </span>{fmt(s.lastSeenAt)}</td>
+            <td className="ses-in ses-t"><span className="m-lbl">เข้าเมื่อ </span>{fmt(s.createdAt)}</td>
+            <td className="ses-seen ses-t"><span className="m-lbl">ล่าสุด </span>{fmt(s.lastSeenAt)}</td>
             <td className="r ses-act">
               {!s.current && (
                 <form action={action}>

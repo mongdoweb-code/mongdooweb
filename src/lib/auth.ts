@@ -115,7 +115,7 @@ async function createSession(adminId: string, ip: string, userAgent: string | nu
   ]);
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, cookieOpts(MAX_AGE_MS));
-  jar.delete(PENDING_COOKIE);
+  jar.delete({ name: PENDING_COOKIE, path: "/admin" });
 }
 
 // ---------- ขั้นที่ 1: ชื่อผู้ใช้ + รหัสผ่าน ----------
