@@ -32,6 +32,32 @@ const nextConfig: NextConfig = {
       { source: "/cart", destination: "/#cart", permanent: false },
       { source: "/checkout/:path+", destination: "/checkout", permanent: false },
       { source: "/my-account/:path*", destination: "/track", permanent: false },
+      // ---- URL เดิมของ WordPress ที่เหลือ → หน้าที่ใกล้ที่สุด (301 ไม่ใช่ 404) ----
+      // "/?p=", "/?product=", "/?s=", "/?product_cat=" ... → /api/legacy-wp ค้นจากฐานข้อมูลแล้วส่งต่ออีกทอด
+      ...["p", "page_id", "attachment_id", "product", "product_cat", "product_tag", "tag", "cat", "s", "post_type", "add-to-cart"].map(
+        (key) => ({ source: "/", has: [{ type: "query" as const, key }], destination: "/api/legacy-wp", statusCode: 301 as const }),
+      ),
+      // แท็กบทความ/สินค้า → ค้นหาด้วยชื่อแท็ก
+      { source: "/tag/:tag/:rest*", destination: "/search?q=:tag", statusCode: 301 },
+      { source: "/product-tag/:tag/:rest*", destination: "/search?q=:tag", statusCode: 301 },
+      // หน้าแบ่งหน้าของบล็อก/หน้าแรก, ผู้เขียน, คลังรายเดือน
+      { source: "/page/:n*", destination: "/", statusCode: 301 },
+      { source: "/author/:path*", destination: "/", statusCode: 301 },
+      { source: "/:year(\\d{4})/:path*", destination: "/", statusCode: 301 },
+      // หมวดบทความแบบซ้อน/แบ่งหน้า → หน้าหมวด (หน้าหมวดส่งต่อหมวดเดิมที่ไม่มีแล้วเอง)
+      { source: "/category/:slug/:rest+", destination: "/category/:slug", statusCode: 301 },
+      // RSS feed
+      { source: "/feed/:path*", destination: "/", statusCode: 301 },
+      { source: "/comments/feed/:path*", destination: "/", statusCode: 301 },
+      { source: "/product/:slug/feed/:path*", destination: "/product/:slug", statusCode: 301 },
+      { source: "/category/:slug/feed/:path*", destination: "/category/:slug", statusCode: 301 },
+      // ไฟล์/ระบบของ WordPress
+      { source: "/wp-admin/:path*", destination: "/admin/login", statusCode: 301 },
+      { source: "/wp-login.php", destination: "/admin/login", statusCode: 301 },
+      { source: "/wp-sitemap:rest(.*)", destination: "/sitemap.xml", statusCode: 301 },
+      { source: "/sitemap_index.xml", destination: "/sitemap.xml", statusCode: 301 },
+      { source: "/xmlrpc.php", destination: "/", statusCode: 301 },
+      { source: "/:dir(wp-[^/]+)/:path*", destination: "/", statusCode: 301 },
     ];
   },
 };

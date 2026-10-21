@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 
@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   title: "มองดูเว็บ — ไฟ LED ใต้น้ำ สระว่ายน้ำ น้ำพุ และไฟสวน",
   description: "ร้านมองดูเว็บ จำหน่ายไฟ LED ใต้น้ำ ไฟสระว่ายน้ำ ไฟส่องน้ำพุ ไฟสวน และไฟส่องอาคาร",
 };
+
+// สีแถบเบราว์เซอร์บนมือถือ = สีหลักของร้าน (เหมือน theme_color ใน manifest.ts)
+export const viewport: Viewport = { themeColor: "#F26B38" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
