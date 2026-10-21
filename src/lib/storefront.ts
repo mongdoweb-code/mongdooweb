@@ -428,7 +428,20 @@ const LIGHT_CATS = new Set([
 /** หมวดที่ต่อสายใต้น้ำ/กลางแจ้ง → แนะนำท่อหดกันน้ำ */
 const WET_CATS = new Set(["underwater-light", "pool-light", "fountain-light", "uplight-led", "garden-light"]);
 
-const voltOf = (s: string) => /(?:ac|dc)?\s*(12|24)\s*v/i.exec(s)?.[1] ?? null;
+type Power = { v: "12" | "24"; ac: boolean | null };
+/** แรงดันไฟจากข้อความ เช่น "DC12V", "AC 24V", "12V" (ไม่ระบุ AC/DC → ac = null) · พบหลายค่าที่ต่างกัน = ไม่แน่ใจ (null) */
+function powerOf(text: string): Power | null {
+  const found = new Map<string, Power>();
+  for (const m of text.matchAll(/(ac|dc)?\s*(12|24)\s*v(ac|dc)?(?![a-z])/gi)) {
+    const t = (m[1] ?? m[3] ?? "").toLowerCase();
+    const pw: Power = { v: m[2] as Power["v"], ac: t ? t === "ac" : null };
+    const prev = found.get(pw.v);
+    found.set(pw.v, prev && prev.ac !== null ? prev : pw);
+  }
+  return found.size === 1 ? [...found.values()][0] : null;
+}
+const samePower = (a: Power, b: Power | null) => !!b && a.v === b.v && (a.ac === null || b.ac === null || a.ac === b.ac);
+const powerLabel = (p: Power) => `${p.ac === null ? "" : p.ac ? "AC" : "DC"}${p.v}V`;
 const isPsuName = (name: string, catId: string) => catId === "power-supply" || /หม้อแปลง|power\s*supply|transformer/i.test(name);
 const hasRemote = (name: string) => /รีโมท|remote|controller/i.test(name);
 
@@ -443,9 +456,12 @@ export function pairedProducts(
   p: { slug: string; name: string; category: { slug: string }; isAccessory: boolean; includesPsu: boolean; lightColor: string },
   catalog: CatalogItem[],
   limit = 4,
+  /** ข้อความคำอธิบายสินค้า (ใช้หาแรงดันไฟเมื่อชื่อไม่ระบุ) */
+  text = "",
 ): Pairing[] {
   const pool = catalog.filter((x) => x.id !== p.slug && x.price > 0 && x.inStock);
-  const volt = voltOf(p.name);
+  // ชื่อสินค้าก่อน แล้วค่อยดูคำอธิบาย — ไม่แน่ใจแรงดัน = ไม่แนะนำหม้อแปลง (แนะนำผิดอันตรายกว่าไม่แนะนำ)
+  const power = powerOf(p.name) ?? powerOf(text);
   const out: Pairing[] = [];
   const add = (list: CatalogItem[], reason: string, n: number) => {
     for (const x of list) {
@@ -458,10 +474,9 @@ export function pairedProducts(
   const byPrice = (a: CatalogItem, b: CatalogItem) => a.price - b.price;
 
   if (!p.isAccessory && LIGHT_CATS.has(p.category.slug)) {
-    if (!p.includesPsu) {
-      const v = volt ?? "12";
-      const psus = pool.filter((x) => isPsuName(x.name, x.catId) && voltOf(x.name) === v).sort(byPrice);
-      add(psus, `หม้อแปลง ${v}V สำหรับรุ่นนี้`, 2);
+    if (!p.includesPsu && power) {
+      const psus = pool.filter((x) => isPsuName(x.name, x.catId) && samePower(power, powerOf(x.name))).sort(byPrice);
+      add(psus, `หม้อแปลง ${powerLabel(power)} สำหรับรุ่นนี้`, 2);
     }
     if (p.lightColor === "rgb" && !hasRemote(p.name)) {
       add(pool.filter((x) => x.catId === "led-controller" && /rgb/i.test(x.name)).sort(byPrice), "รีโมทควบคุมสี RGB", 1);
@@ -469,10 +484,10 @@ export function pairedProducts(
       add(pool.filter((x) => x.catId === "led-controller" && hasRemote(x.name)).sort(byPrice), "รีโมท/คอนโทรลเลอร์ไฟเส้น", 1);
     }
     if (WET_CATS.has(p.category.slug)) add(pool.filter((x) => /ท่อหด|heat\s*shrink/i.test(x.name)), "ท่อหดกันน้ำ สำหรับต่อสาย", 1);
-  } else if (isPsuName(p.name, p.category.slug) && volt) {
+  } else if (isPsuName(p.name, p.category.slug) && power) {
     add(
-      pool.filter((x) => !x.acc && !x.kit && LIGHT_CATS.has(x.catId) && voltOf(x.name) === volt),
-      `โคมไฟ ${volt}V ที่ใช้กับหม้อแปลงนี้`,
+      pool.filter((x) => !x.acc && !x.kit && LIGHT_CATS.has(x.catId) && samePower(power, powerOf(x.name))),
+      `โคมไฟ ${powerLabel(power)} ที่ใช้กับหม้อแปลงนี้`,
       limit,
     );
   } else if (p.category.slug === "led-controller" && /rgb/i.test(p.name)) {

@@ -25,7 +25,20 @@ const decode = (s: string) => {
   }
 };
 
-type Detail = NonNullable<Awaited<ReturnType<typeof getProductDetail>>>;
+/**
+ * ปรับ HTML คำอธิบาย (ล้างแล้วตอนบันทึก) ตอนแสดง: รูปถอดรหัสแบบ async และตัดลิงก์ว่าง
+ * (ลิงก์รูปจากเว็บเดิมที่รูปถูกตัดทิ้งไป เหลือ <a> ไม่มีข้อความ — โปรแกรมอ่านหน้าจออ่านไม่ได้)
+ */
+function descriptionHtml(html: string) {
+  let out = html
+    // ลิงก์ที่ครอบรูปเดียว (ชี้ไปไฟล์รูปบนเว็บเดิมที่ไม่มีแล้ว) → เหลือแต่รูป
+    .replace(/<a\b[^>]*>\s*(<img\b[^>]*>)\s*<\/a>/gi, "$1")
+    .replace(/<img (?![^>]*decoding=)/g, '<img decoding="async" ');
+  for (let i = 0; i < 3; i++) out = out.replace(/<a\b[^>]*>(?:\s|&nbsp;|<br\s*\/?>|<span>\s*<\/span>)*<\/a>/gi, "");
+  return out;
+}
+
+type Detail =NonNullable<Awaited<ReturnType<typeof getProductDetail>>>;
 
 /** คำอธิบายสั้นสำหรับ meta / JSON-LD — ไม่มีวันว่าง */
 function describe(p: Detail) {
@@ -90,7 +103,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
   // URL เดิมของเว็บ WooCommerce ถูก redirect ที่ src/proxy.ts ก่อนถึงหน้านี้แล้ว
   if (!p) notFound();
   const [{ catalog }, info] = await Promise.all([getShopData(), getPublicShopInfo()]);
-  const pairs = pairedProducts(p, catalog);
+  const pairs = pairedProducts(p, catalog, 4, htmlToText(`${p.shortDescription ?? ""} ${p.description ?? ""}`));
   const paired = new Set(pairs.map((x) => x.item.id));
   // สินค้าในหมวดเดียวกัน (ไม่รวมตัวเองและที่อยู่ใน "ซื้อคู่กัน" แล้ว) สูงสุด 4 ชิ้น
   const related = catalog.filter((x) => x.id !== p.slug && x.catId === p.category.slug && !paired.has(x.id)).slice(0, 4);
@@ -137,7 +150,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
               ) : (
                 <div className="pdp-stock out">สินค้าหมดชั่วคราว</div>
               ))}
-            {p.shortDescription && <div className="pdp-short" dangerouslySetInnerHTML={{ __html: p.shortDescription }} />}
+            {p.shortDescription && <div className="pdp-short" dangerouslySetInnerHTML={{ __html: descriptionHtml(p.shortDescription) }} />}
             {canBuy ? (
               <>
                 <BuyBox
@@ -211,7 +224,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
               รายละเอียดสินค้า
             </h2>
             {/* คำอธิบายผ่านการล้าง HTML แล้วตอนนำเข้า/บันทึก (src/lib/html.ts) — รูปในคำอธิบายโหลดแบบ lazy + async */}
-            <div dangerouslySetInnerHTML={{ __html: p.description.replace(/<img (?![^>]*decoding=)/g, '<img decoding="async" ') }} />
+            <div dangerouslySetInnerHTML={{ __html: descriptionHtml(p.description) }} />
           </section>
         )}
 

@@ -109,6 +109,17 @@ a.add-btn{display:inline-flex;align-items:center;justify-content:center}
 .pager-shop a[aria-current="page"]{background:var(--c-black);border-color:var(--c-black);color:#fff}
 
 /* ===== Lot 1 ===== */
+/* --- คอนทราสต์ตาม WCAG AA ในหน้าย่อย (ส้มหลัก #F26B38 กับตัวอักษรเล็กได้แค่ 3:1) ---
+   ข้อความเล็กสีส้ม/พื้นส้ม → ส้มเข้ม #B5461C (≥ 4.7:1), ปุ่มหลักใช้ตัวอักษรใหญ่หนา (≥ 18.7px bold ผ่านที่ 3:1)
+   ป้ายเขียว LINE → เขียวเข้ม (ตัวอักษรขาวอ่านได้) */
+.pg-head .eyebrow,.pg-body .eyebrow{color:#B5461C}
+.pg-body .prod-badge:not(.badge-sale){background:#B5461C}
+main .btn-primary:not(.btn-sm){font-size:19px;font-weight:700}
+main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C}
+.pg-body .btn-primary:hover,main .btn-sm.btn-primary:hover,.pdp-bar .btn-primary:hover{background:#9E3C17}
+.pg-body .btn-line{background:#00843D}
+.pg-body .btn-line:hover{background:#006E33}
+.pdp-stock.ok{color:#17734A}
 /* --- รายการสินค้า: จำนวนผล + เรียงตาม + ตัวกรอง --- */
 .lst-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--c-line)}
 .lst-count{font-size:15px;color:var(--c-muted);margin-right:auto;order:1}
@@ -162,6 +173,7 @@ a.add-btn{display:inline-flex;align-items:center;justify-content:center}
 }
 
 /* --- แกลเลอรีรูปสินค้า: ปัดได้ (scroll-snap), ปุ่มก่อน/ถัดไป, กดขยาย --- */
+.pdp>*{min-width:0} /* กันแกลเลอรี/รูปย่อดันคอลัมน์กว้างเกินจอมือถือ */
 .pdp-main.gal{display:block}
 .gal-track{display:flex;width:100%;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
 .gal-track::-webkit-scrollbar{display:none}

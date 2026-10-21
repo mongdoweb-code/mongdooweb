@@ -18,12 +18,16 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
   const n = images.length;
 
   // เลื่อนไปยังรูปที่ k (ปุ่มก่อน/ถัดไป, รูปย่อ, คีย์บอร์ด) — ปัดบนมือถือใช้ scroll-snap ของเบราว์เซอร์
+  // ระหว่างเลื่อนด้วยโค้ด (ปุ่ม/คีย์บอร์ด) ไม่อ่านตำแหน่งจาก scroll — กันตัวนับกระโดดระหว่างทาง
+  const target = useRef<number | null>(null);
   const go = useCallback(
     (k: number) => {
       const el = track.current;
       const next = (k + n) % n;
       setI(next);
-      if (el) el.scrollTo({ left: next * el.clientWidth, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      if (!el) return;
+      target.current = next;
+      el.scrollTo({ left: next * el.clientWidth, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     },
     [n],
   );
@@ -32,13 +36,35 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
     const el = track.current;
     if (!el || n < 2) return;
     let raf = 0;
+    const at = () => Math.max(0, Math.min(n - 1, Math.round(el.scrollLeft / Math.max(1, el.clientWidth))));
     const onScroll = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setI(Math.max(0, Math.min(n - 1, Math.round(el.scrollLeft / Math.max(1, el.clientWidth))))));
+      raf = requestAnimationFrame(() => {
+        const t = target.current;
+        if (t !== null) {
+          if (Math.abs(el.scrollLeft - t * el.clientWidth) < 2) target.current = null;
+          return;
+        }
+        setI(at());
+      });
+    };
+    // ผู้ใช้ปัดเอง (สัมผัส/ล้อเมาส์) → ยกเลิกเป้าหมายเดิม
+    const onUser = () => {
+      target.current = null;
+    };
+    const onEnd = () => {
+      target.current = null;
+      setI(at());
     };
     el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("scrollend", onEnd);
+    el.addEventListener("touchstart", onUser, { passive: true });
+    el.addEventListener("wheel", onUser, { passive: true });
     return () => {
       el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scrollend", onEnd);
+      el.removeEventListener("touchstart", onUser);
+      el.removeEventListener("wheel", onUser);
       cancelAnimationFrame(raf);
     };
   }, [n]);
