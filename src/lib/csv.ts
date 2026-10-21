@@ -38,3 +38,23 @@ export function parseCsv(text: string): { rows: Record<string, string>[]; error?
     return { rows: [], error: `อ่านไฟล์ CSV ไม่ได้: ${e instanceof Error ? e.message.slice(0, 120) : ""}` };
   }
 }
+
+/** หัวคอลัมน์ + แถว → ข้อความ CSV (มี BOM) */
+export const toCsv = (head: string[], rows: unknown[][]) => csvText([head, ...rows]);
+
+/** วันเวลาแบบไทย อ่านง่ายใน Excel (เขตเวลา กรุงเทพฯ) */
+export const csvTime = (d: Date | null | undefined) => (d ? d.toLocaleString("sv-SE", { timeZone: "Asia/Bangkok" }) : "");
+
+export const satangToBaht = (n: number | null | undefined) => (n == null ? "" : (n / 100).toFixed(2));
+
+/** ไฟล์ดาวน์โหลดทั่วไป (CSV ที่สร้างไว้แล้ว / ZIP) */
+export function fileResponse(body: string | Uint8Array, filename: string, type = "text/csv; charset=utf-8") {
+  return new Response(typeof body === "string" ? body : new Uint8Array(body), {
+    headers: {
+      "Content-Type": type,
+      "Content-Disposition": `attachment; filename="${filename.replace(/[^\w.-]/g, "_")}"`,
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}

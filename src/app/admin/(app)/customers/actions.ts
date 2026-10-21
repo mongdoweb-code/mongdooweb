@@ -1,9 +1,10 @@
 "use server";
-// ลูกค้า (สำหรับเอกสารขาย): เพิ่ม/แก้ไข/ลบ — ตรวจ checksum เลขผู้เสียภาษี, เบอร์โทรเก็บเป็นตัวเลขล้วน
+// ลูกค้า (สำหรับเอกสารขาย): เพิ่ม/แก้ไข/ลบ/รวมรายการซ้ำ — ตรวจ checksum เลขผู้เสียภาษี, เบอร์โทรเก็บเป็นตัวเลขล้วน
+// ลบและรวมลูกค้า = เจ้าของร้านเท่านั้น
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { logAdmin } from "@/lib/admin-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireOwner } from "@/lib/auth";
 import type { CustSnap } from "@/lib/doc-render";
 import { custSnapshot, nextCustomerCode } from "@/lib/docs";
 import { isValidThaiTaxId, phoneDigits } from "@/lib/format";
@@ -66,11 +67,47 @@ export async function saveCustomer(_prev: CustomerState, f: FormData): Promise<C
 }
 
 export async function deleteCustomer(f: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireOwner();
   const c = await prisma.customer.findUnique({ where: { id: str(f, "id", 40) }, include: { _count: { select: { documents: true, orders: true } } } });
   if (!c) redirect("/admin/customers");
   if (c._count.documents || c._count.orders) redirect(`/admin/customers/${c.id}?err=inuse`);
   await prisma.customer.delete({ where: { id: c.id } });
   await logAdmin(admin.id, "CUSTOMER", `ลบลูกค้า ${c.code} ${c.name}`);
   redirect("/admin/customers?deleted=1");
+}
+
+/**
+ * รวมลูกค้าซ้ำ: ย้ายเอกสารขาย คำสั่งซื้อเว็บ และคำขอ จากรายนี้ (source) ไปยังรายหลัก (target ระบุด้วยรหัสลูกค้า)
+ * แล้วเติมช่องที่รายหลักยังว่างด้วยข้อมูลของรายนี้ และลบรายนี้ — ทั้งหมดใน transaction เดียว (ไม่มีข้อมูลหาย)
+ * เอกสารที่ออกไปแล้วยังแสดงชื่อ/ที่อยู่ ณ วันที่ออก (customerSnapshot ไม่เปลี่ยน)
+ */
+export async function mergeCustomer(f: FormData) {
+  const admin = await requireOwner();
+  const sourceId = str(f, "id", 40);
+  const code = str(f, "target", 20).replace(/\s/g, "");
+  const src = await prisma.customer.findUnique({ where: { id: sourceId } });
+  if (!src) redirect("/admin/customers");
+  const target = code ? await prisma.customer.findUnique({ where: { code } }) : null;
+  if (!target) redirect(`/admin/customers/${src.id}?merge=notfound`);
+  if (target.id === src.id) redirect(`/admin/customers/${src.id}?merge=self`);
+  const fill = <K extends keyof typeof src>(k: K) => (target[k] == null || target[k] === "" ? src[k] : undefined);
+  const moved = await prisma.$transaction(async (tx) => {
+    const docs = await tx.salesDocument.updateMany({ where: { customerId: src.id }, data: { customerId: target.id } });
+    const orders = await tx.order.updateMany({ where: { customerId: src.id }, data: { customerId: target.id } });
+    const inq = await tx.inquiry.updateMany({ where: { customerId: src.id }, data: { customerId: target.id } });
+    const shipEmpty = !target.shipTo || (typeof target.shipTo === "object" && !Array.isArray(target.shipTo) && !Object.keys(target.shipTo).length);
+    await tx.customer.update({
+      where: { id: target.id },
+      data: {
+        taxId: fill("taxId"), branch: fill("branch"), contactName: fill("contactName"), phone: fill("phone"), email: fill("email"),
+        addressLine: fill("addressLine"), subdistrict: fill("subdistrict"), district: fill("district"), province: fill("province"), postalCode: fill("postalCode"),
+        ...(shipEmpty && src.shipTo ? { shipTo: src.shipTo } : {}),
+        note: [target.note, `รวมจากลูกค้า ${src.code} ${src.name}${src.note ? ` (โน้ตเดิม: ${src.note})` : ""}`].filter(Boolean).join("\n").slice(0, 2000),
+      },
+    });
+    await tx.customer.delete({ where: { id: src.id } });
+    return { docs: docs.count, orders: orders.count, inq: inq.count };
+  });
+  await logAdmin(admin.id, "CUSTOMER_MERGE", `รวมลูกค้า ${src.code} ${src.name} → ${target.code} ${target.name} (เอกสาร ${moved.docs}, คำสั่งซื้อ ${moved.orders}, คำขอ ${moved.inq})`);
+  redirect(`/admin/customers/${target.id}?merged=${encodeURIComponent(`${src.code}|${moved.docs}|${moved.orders}`)}`);
 }

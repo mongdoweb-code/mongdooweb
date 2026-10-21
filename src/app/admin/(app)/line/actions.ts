@@ -1,8 +1,8 @@
 "use server";
-// จัดการผู้รับแจ้งเตือน LINE: เปิด/ปิด, ลบ, ส่งข้อความทดสอบ — เปิดใช้/ลบได้เฉพาะเจ้าของร้าน (OWNER)
+// จัดการผู้รับแจ้งเตือน LINE: เปิด/ปิด, ลบ, ส่งข้อความทดสอบ — เจ้าของร้าน (OWNER) เท่านั้น (ตรวจที่ server ทุก action)
 import { redirect } from "next/navigation";
 import { logAdmin } from "@/lib/admin-log";
-import { requireAdmin } from "@/lib/auth";
+import { requireOwner } from "@/lib/auth";
 import { notifyShop, slipMessage } from "@/lib/line";
 import { prisma } from "@/lib/prisma";
 
@@ -10,8 +10,7 @@ const id = (f: FormData) => String(f.get("id") ?? "").slice(0, 40);
 const back = (msg: string, bad = false) => redirect(`/admin/line?${bad ? "err" : "ok"}=${encodeURIComponent(msg)}`);
 
 export async function toggleRecipient(f: FormData) {
-  const admin = await requireAdmin();
-  if (admin.role !== "OWNER") back("เฉพาะเจ้าของร้านเท่านั้นที่เปิด/ปิดผู้รับแจ้งเตือนได้", true);
+  const admin = await requireOwner();
   const r = await prisma.lineRecipient.findUnique({ where: { id: id(f) } });
   if (!r) back("ไม่พบผู้รับ", true);
   await prisma.lineRecipient.update({ where: { id: r!.id }, data: { enabled: !r!.enabled, lastError: null } });
@@ -20,8 +19,7 @@ export async function toggleRecipient(f: FormData) {
 }
 
 export async function deleteRecipient(f: FormData) {
-  const admin = await requireAdmin();
-  if (admin.role !== "OWNER") back("เฉพาะเจ้าของร้านเท่านั้น", true);
+  const admin = await requireOwner();
   const r = await prisma.lineRecipient.findUnique({ where: { id: id(f) } });
   if (r) {
     await prisma.lineRecipient.delete({ where: { id: r.id } });
@@ -32,7 +30,7 @@ export async function deleteRecipient(f: FormData) {
 
 /** ส่งข้อความทดสอบ (ถึงคนเดียว หรือทุกคนที่เปิดใช้) — ใช้ตัวอย่างจากสลิปล่าสุดถ้ามี */
 export async function sendTest(f: FormData) {
-  const admin = await requireAdmin();
+  const admin = await requireOwner();
   const one = id(f) || undefined;
   const last = await prisma.paymentSlip.findFirst({ orderBy: { uploadedAt: "desc" }, select: { order: { select: { orderNo: true } } } });
   const sample = last ? await slipMessage(last.order.orderNo) : null;

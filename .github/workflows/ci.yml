@@ -28,6 +28,7 @@ jobs:
       SEED_ADMIN_USERNAME: admin
       SEED_ADMIN_PASSWORD: ci-admin-Pass-123
       E2E_ADMIN_PASSWORD: ci-admin-Pass-123
+      SEED_ADMIN_FORCE_CHANGE: "0"
       SITE_URL: http://localhost:3123
       UPLOAD_DIR: uploads
       STORAGE_DRIVER: local

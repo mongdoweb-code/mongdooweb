@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormAction } from "../../_components/useFormAction";
 import { saveSettings, type FormState } from "./actions";
+import { PromptPayPreview } from "./PromptPayPreview";
 
 export type SettingsValues = {
   legalName: string; phone: string; email: string; lineId: string; lineOaUrl: string; website: string; addressText: string;
@@ -15,6 +16,9 @@ export type SettingsValues = {
   prefixQuote: string; prefixInvoice: string; prefixReceipt: string; dateEra: string;
   quoteValidDays: number; invoiceDueDays: number; termsQuote: string; termsInvoice: string; termsReceipt: string; showSignature: boolean;
   logoUrl: string | null;
+  announcementEnabled: boolean; announcementText: string; announcementHref: string;
+  ga4Id: string; metaPixelId: string;
+  autoCancelDays: number; lowStockThreshold: number; lineLowStock: boolean; lineDailySummary: boolean;
 };
 
 const bahtNum = (v: string) => Number(String(v).replace(/[,\s]/g, ""));
@@ -27,6 +31,9 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
   const [express, setExpress] = useState(v.expressEnabled);
   const [vat, setVat] = useState(v.vatEnabled);
   const [logoPreview, setLogoPreview] = useState<string | null>(v.logoUrl);
+  const [pp, setPp] = useState(v.promptpayId);
+  const [annOn, setAnnOn] = useState(v.announcementEnabled);
+  const [annText, setAnnText] = useState(v.announcementText);
   const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
   const sortedTiers = [...tiers].sort((a, b) => bahtNum(a.min) - bahtNum(b.min));
 
@@ -91,10 +98,11 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
           <h3>PromptPay</h3>
           <div className="field">
             <label htmlFor="promptpayId">เบอร์มือถือ / เลขผู้เสียภาษีที่ผูก PromptPay</label>
-            <input id="promptpayId" name="promptpayId" defaultValue={v.promptpayId} inputMode="numeric" placeholder="เว้นว่าง = ไม่แสดง QR" {...bad("promptpayId")} />
+            <input id="promptpayId" name="promptpayId" value={pp} onChange={(e) => setPp(e.target.value)} inputMode="numeric" placeholder="เว้นว่าง = ไม่แสดง QR" {...bad("promptpayId")} />
             <small>ใส่เลขที่ผูก PromptPay จริงเท่านั้น ระบบสร้าง QR พร้อมยอดเงินให้อัตโนมัติ (เบอร์ 10 หลัก หรือเลข 13 หลัก)</small>
           </div>
           <div className="field"><label htmlFor="promptpayName">ชื่อที่ลูกค้าเห็นตอนสแกน</label><input id="promptpayName" name="promptpayName" defaultValue={v.promptpayName} required {...bad("promptpayName")} /></div>
+          <PromptPayPreview id={pp} />
         </div>
 
         <div className="box">
@@ -129,6 +137,54 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
           <h3>การตรวจสลิปและแจ้งเตือน</h3>
           <div className="field"><label htmlFor="slipCheckWithin">ระยะเวลาตรวจสลิป (แสดงหลังลูกค้าสั่งซื้อ)</label><input id="slipCheckWithin" name="slipCheckWithin" defaultValue={v.slipCheckWithin} required {...bad("slipCheckWithin")} /></div>
           <label className="chk-row"><input type="checkbox" name="newOrderSound" defaultChecked={v.newOrderSound} /> เล่นเสียงเตือนเมื่อมีสลิปใหม่ (ต้องเปิดหน้าคำสั่งซื้อค้างไว้)</label>
+        </div>
+
+        <div className="box" id="announcement">
+          <h3>แถบประกาศบนหน้าร้าน</h3>
+          <label className="chk-row"><input type="checkbox" name="announcementEnabled" checked={annOn} onChange={(e) => setAnnOn(e.target.checked)} /> แสดงแถบประกาศด้านบนทุกหน้า</label>
+          <div className="field">
+            <div className="lbl-row"><label htmlFor="announcementText">ข้อความ</label><span className={`cnt${annText.length > 110 ? " red" : ""}`}>{annText.length}/120</span></div>
+            <input id="announcementText" name="announcementText" value={annText} onChange={(e) => setAnnText(e.target.value)} maxLength={120} required={annOn} {...bad("announcementText")} />
+          </div>
+          <div className="field">
+            <label htmlFor="announcementHref">ลิงก์เมื่อกดแถบ (ไม่บังคับ)</label>
+            <input id="announcementHref" name="announcementHref" defaultValue={v.announcementHref} placeholder="/products หรือ https://..." maxLength={300} {...bad("announcementHref")} />
+            <small>ขึ้นต้นด้วย / (หน้าในเว็บ), https://, tel: หรือ mailto: เท่านั้น</small>
+          </div>
+          {annOn && annText && <div className="ann-preview" aria-label="ตัวอย่างแถบประกาศ">{annText}</div>}
+        </div>
+
+        <div className="box" id="analytics">
+          <h3>วิเคราะห์การใช้งาน (โหลดเมื่อลูกค้ายินยอมคุกกี้เท่านั้น)</h3>
+          <div className="field">
+            <label htmlFor="ga4Id">Google Analytics 4 — Measurement ID</label>
+            <input id="ga4Id" name="ga4Id" defaultValue={v.ga4Id} placeholder="G-XXXXXXXXXX" maxLength={20} autoCapitalize="characters" {...bad("ga4Id")} />
+            <small>รูปแบบ G- ตามด้วยตัวอักษร/ตัวเลข 6–12 ตัว · เว้นว่าง = ปิด</small>
+          </div>
+          <div className="field">
+            <label htmlFor="metaPixelId">Meta (Facebook) Pixel ID</label>
+            <input id="metaPixelId" name="metaPixelId" defaultValue={v.metaPixelId} placeholder="ตัวเลข 15–16 หลัก" inputMode="numeric" maxLength={20} {...bad("metaPixelId")} />
+            <small>เว้นว่าง = ปิด</small>
+          </div>
+        </div>
+
+        <div className="box set-auto" id="automation">
+          <h3>งานอัตโนมัติ</h3>
+          <div className="two">
+            <div className="field">
+              <label htmlFor="autoCancelDays">ยกเลิกคำสั่งซื้อที่ไม่แนบสลิปเกิน (วัน)</label>
+              <input id="autoCancelDays" name="autoCancelDays" defaultValue={v.autoCancelDays} inputMode="numeric" {...bad("autoCancelDays")} />
+              <small>0 = ปิด · สูงสุด 60 วัน</small>
+            </div>
+            <div className="field">
+              <label htmlFor="lowStockThreshold">เกณฑ์สินค้าใกล้หมด (ชิ้น)</label>
+              <input id="lowStockThreshold" name="lowStockThreshold" defaultValue={v.lowStockThreshold} inputMode="numeric" {...bad("lowStockThreshold")} />
+              <small>เตือนเมื่อสต็อกเหลือไม่เกินจำนวนนี้ (สินค้าที่นับสต็อก)</small>
+            </div>
+          </div>
+          <label className="chk-row"><input type="checkbox" name="lineLowStock" defaultChecked={v.lineLowStock} /> แจ้ง LINE เมื่อสินค้าใกล้หมด</label>
+          <label className="chk-row"><input type="checkbox" name="lineDailySummary" defaultChecked={v.lineDailySummary} /> ส่งสรุปยอดขายประจำวันทาง LINE</label>
+          <small className="sub">งานเหล่านี้ทำงานวันละครั้งผ่าน /api/cron/daily · ข้อความ LINE ส่งถึงผู้รับที่เปิดใช้ในหน้า &quot;แจ้งเตือน LINE&quot;</small>
         </div>
 
         <div className="box set-docs">

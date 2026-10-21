@@ -35,7 +35,10 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
     <main className="main">
       <div className="page-head">
         <div><h1>ลูกค้า</h1><p>ข้อมูลลูกค้าสำหรับใบเสนอราคา ใบแจ้งหนี้ และใบเสร็จ · ทั้งหมด {total} ราย</p></div>
-        <div className="head-actions"><Link className="btn btn-primary" href="/admin/customers/new">+ เพิ่มลูกค้า</Link></div>
+        <div className="head-actions">
+          <a className="btn btn-outline" href={`/admin/customers/export.csv${qs({}).replace("/admin/customers", "")}`} download>ส่งออก CSV</a>
+          <Link className="btn btn-primary" href="/admin/customers/new">+ เพิ่มลูกค้า</Link>
+        </div>
       </div>
       {sp.deleted === "1" && <div className="login-info" role="status" style={{ marginBottom: 12 }}>ลบลูกค้าแล้ว</div>}
       <section className="panel">

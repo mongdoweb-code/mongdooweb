@@ -199,6 +199,8 @@ async function main() {
         passwordHash: await bcrypt.hash(password, 12),
         displayName: "เจ้าของร้าน",
         role: "OWNER",
+        // รหัสจาก .env เป็นรหัสเริ่มต้น — ต้องตั้งรหัสใหม่ตอนเข้าสู่ระบบครั้งแรก (CI/เทสต์ตั้ง SEED_ADMIN_FORCE_CHANGE=0)
+        mustChangePassword: process.env.SEED_ADMIN_FORCE_CHANGE !== "0",
       },
     });
   }
