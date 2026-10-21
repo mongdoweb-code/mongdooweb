@@ -19,12 +19,12 @@ test("ลูกค้าสร้างคำสั่งซื้อและ�
   expect(orderNo).toMatch(/^MDW-\d{6}-\d{4}$/);
   expect(o.subtotalSatang).toBe(Math.round(p.price * 100) * 2);
   const slip = await request.post(`/api/orders/${orderNo}/slip`, {
-    multipart: { phone, paidAt: `${todayBkk()}T09:00`, amount: String(o.totalSatang / 100), slip: { name: "slip.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/slip.png") } },
+    multipart: { phone, paidAt: `${todayBkk()}T00:00`, amount: String(o.totalSatang / 100), slip: { name: "slip.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/slip.png") } },
   });
   expect(slip.status()).toBe(201);
   // เบอร์ไม่ตรงต้องแนบไม่ได้
   const bad = await request.post(`/api/orders/${orderNo}/slip`, {
-    multipart: { phone: "0899999999", paidAt: `${todayBkk()}T09:00`, amount: "1", slip: { name: "s.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/slip.png") } },
+    multipart: { phone: "0899999999", paidAt: `${todayBkk()}T00:00`, amount: "1", slip: { name: "s.png", mimeType: "image/png", buffer: readFileSync("tests/fixtures/slip.png") } },
   });
   expect(bad.status()).toBeGreaterThanOrEqual(400);
 });

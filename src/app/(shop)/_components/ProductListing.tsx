@@ -13,7 +13,6 @@ import {
 } from "@/lib/storefront";
 import { ProductGrid } from "./ProductCard";
 import { FilterPanel, SortSelect } from "./ListingControls";
-import { CartRecentHook } from "./RecentlyViewed";
 
 type Params = Record<string, string | string[] | undefined>;
 const PER_PAGE = 24;
@@ -178,7 +177,6 @@ export async function ProductListing({
           )}
         </nav>
       )}
-      <CartRecentHook />
     </>
   );
 }

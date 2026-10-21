@@ -3,8 +3,21 @@
 // - URL สินค้าเดิมของเว็บ WooCommerce (มีภาษาไทยใน path) → ส่งต่อให้ /api/legacy-product ตอบ 301
 // - /track/receipt/:id ไม่มีโทเคน ?t= ที่ถูกรูปแบบ → 404
 // - /category/<slug> ที่ไม่ใช่หมวดที่เปิดอยู่ (หมวดบทความ WordPress เดิม) → 301 (src/lib/legacy-category.ts)
+// - /product/<slug> ที่ไม่มี/ปิดขาย, /faq ที่ไม่มีเนื้อหา → 404 จริง (หน้า "ไม่พบหน้า" ของหน้าร้าน) แทน soft 404
+//   และ /track/receipt/:id ที่โทเคนไม่ตรง → 404 (src/lib/route-checks.ts)
 import { NextResponse, type NextRequest } from "next/server";
 import { categoryRedirect } from "@/lib/legacy-category";
+import { checkProduct, faqEmpty, receiptTokenOk } from "@/lib/route-checks";
+
+// path ที่ไม่มีหน้าอยู่จริง → catch-all (shop)/[...missing] ตอบหน้า "ไม่พบหน้า" พร้อมโครงหน้าร้านและสถานะ 404
+const SHOP_404_PATH = "/_mdw/not-found";
+function shop404(req: NextRequest) {
+  const url = req.nextUrl.clone();
+  url.pathname = SHOP_404_PATH;
+  url.search = "";
+  return NextResponse.rewrite(url, { headers: { "X-Robots-Tag": "noindex" } });
+}
+const receipt404 = () => new NextResponse(RECEIPT_404, { status: 404, headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" } });
 
 // หน้า 404 แบบเรียบง่าย (ตอบจาก proxy ได้ทันที ไม่ต้อง render แอป) — ไม่บอกว่าเอกสารมีอยู่จริงหรือไม่
 const RECEIPT_404 = `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>ไม่พบเอกสาร — มองดูเว็บ</title></head>
@@ -28,8 +41,15 @@ export async function proxy(req: NextRequest) {
   // ใบเสร็จฝั่งลูกค้า: ไม่มีโทเคนหรือรูปแบบผิด → 404 จริง (ตรวจโทเคนกับฐานข้อมูลอีกครั้งในหน้าเพจ)
   if (pathname.startsWith("/track/receipt/")) {
     const t = req.nextUrl.searchParams.get("t") ?? "";
-    if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return new NextResponse(RECEIPT_404, { status: 404, headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" } });
-    return;
+    if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return receipt404();
+    let id = pathname.slice("/track/receipt/".length).replace(/\/+$/, "");
+    try {
+      id = decodeURIComponent(id);
+    } catch {}
+    return (await receiptTokenOk(id, t)) ? undefined : receipt404();
+  }
+  if (pathname === "/faq" || pathname === "/faq/") {
+    return (await faqEmpty()) ? shop404(req) : undefined;
   }
   if (pathname.startsWith("/product/")) {
     const raw = pathname.slice("/product/".length).replace(/\/+$/, "");
@@ -46,11 +66,14 @@ export async function proxy(req: NextRequest) {
       headers.set("x-legacy-path", encodeURIComponent(`/product/${slug}`));
       return NextResponse.rewrite(url, { request: { headers } });
     }
+    const r = await checkProduct(slug);
+    if (r.kind === "missing") return shop404(req);
+    if (r.kind === "redirect") return NextResponse.redirect(new URL(r.to, req.url), 301);
     return;
   }
   if (!req.cookies.has("mdw_admin")) return NextResponse.redirect(new URL("/admin/login", req.url));
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/((?!login).*)", "/product/:path*", "/category/:path*", "/track/receipt/:path*"],
+  matcher: ["/admin", "/admin/((?!login).*)", "/product/:path*", "/category/:path*", "/track/receipt/:path*", "/faq"],
 };

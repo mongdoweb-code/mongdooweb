@@ -4,7 +4,7 @@
 // จึงไม่แสดงสินค้าที่ปิดขายไปแล้ว และราคาเป็นปัจจุบันเสมอ
 import { useEffect, useState } from "react";
 import type { CatalogItem } from "@/lib/storefront";
-import { ProductCard, formatBaht } from "./ProductCard";
+import { ProductCard } from "./ProductCard";
 
 export const RECENT_KEY = "mdw_recent";
 export const RECENT_MAX = 8;
@@ -91,39 +91,4 @@ export function RecentlyViewed({ currentId }: { currentId?: string }) {
   );
 }
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-
-/**
- * เติม "สินค้าที่ดูล่าสุด" ใต้ข้อความตะกร้าว่างใน mini-cart (ตะกร้าเป็นของ shell.js — วาดใหม่ด้วย innerHTML
- * จึงเฝ้าด้วย MutationObserver แล้วเติมกลับทุกครั้งที่เห็น .cart-empty)
- */
-export function CartRecentHook() {
-  useEffect(() => {
-    const body = document.getElementById("cartBody");
-    if (!body) return;
-    const fill = () => {
-      const empty = body.querySelector(".cart-empty");
-      if (!empty || body.querySelector(".cart-recent")) return;
-      const items = readRecent().slice(0, 4);
-      if (!items.length) return;
-      const box = document.createElement("div");
-      box.className = "cart-recent";
-      box.innerHTML =
-        `<h3>สินค้าที่คุณดูล่าสุด</h3><ul>` +
-        items
-          .map((p) => {
-            const href = `/product/${encodeURIComponent(p.id)}`;
-            const img = p.img && /^\/media\/[\w/.-]+$|^https:\/\//.test(p.img) ? `<img src="${esc(p.img)}" alt="" width="56" height="56" loading="lazy" decoding="async">` : `<span class="ph"></span>`;
-            return `<li><a href="${esc(href)}">${img}<span class="nm">${esc(p.name)}</span><b>${p.price > 0 ? formatBaht(p.price) : "สอบถามราคา"}</b></a></li>`;
-          })
-          .join("") +
-        `</ul>`;
-      empty.after(box);
-    };
-    fill();
-    const mo = new MutationObserver(fill);
-    mo.observe(body, { childList: true });
-    return () => mo.disconnect();
-  }, []);
-  return null;
-}
+// ตะกร้าว่างใน mini-cart แสดงรายการเดียวกันนี้จาก public/js/shell.js (recentHtml) ทุกหน้า
