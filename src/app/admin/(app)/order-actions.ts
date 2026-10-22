@@ -4,7 +4,7 @@
 // ทุกการเปลี่ยนแปลงบันทึก OrderEvent (ลูกค้า/ประวัติ) + AdminLog (บันทึกการใช้งาน) · สต็อกเปลี่ยนผ่าน src/lib/stock.ts เท่านั้น
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { logAdmin, refreshStorefront } from "@/lib/admin-log";
+import { diffOf, logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin, requireOwner } from "@/lib/auth";
 import {
   ADMIN_SOURCES, CANCEL_REASONS, CANCELLABLE, CARRIERS, EDITABLE, REFUND_REASONS, REFUNDABLE, REJECT_REASONS, TRACKING_RE,
@@ -350,10 +350,10 @@ export async function editOrder(_prev: OrderFormState, f: FormData): Promise<Ord
     if (r.count !== 1) return { error: "คำสั่งซื้อนี้จัดส่งหรือยกเลิกแล้ว แก้ไขไม่ได้" };
     const note = `แก้ไขข้อมูล — ${diff.join(" · ")}`.slice(0, 1000);
     await tx.orderEvent.create({ data: { orderId: old.id, type: "EDITED", note, adminId: admin.id } });
-    return { note };
+    return { note, diff: diffOf(old, { ...data, taxInvoice: tax.value }) };
   });
   if ("error" in res) return { error: res.error };
-  if ("note" in res && res.note) await logAdmin(admin.id, "ORDER", `${orderNo}: ${res.note}`);
+  if ("note" in res && res.note) await logAdmin(admin.id, "ORDER", `${orderNo}: ${res.note}`, { entity: `Order:${orderNo}`, diff: res.diff });
   redirect(backTo(f, { open: orderNo, edited: "note" in res ? "1" : null }));
 }
 

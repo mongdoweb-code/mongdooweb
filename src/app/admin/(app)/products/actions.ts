@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { Prisma, type LightColor, type UseArea } from "../../../../../generated/prisma/client";
-import { logAdmin, refreshStorefront } from "@/lib/admin-log";
+import { diffOf, logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin, requireOwner } from "@/lib/auth";
 import { sanitizeDescription } from "@/lib/html";
 import { MediaError, saveImage } from "@/lib/media";
@@ -115,7 +115,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
   void _stock;
   let saved;
   if (id) {
-    const old = await prisma.product.findUnique({ where: { id }, select: { trackStock: true, stock: true } });
+    const old = await prisma.product.findUnique({ where: { id } });
     if (!old) return { error: "ไม่พบสินค้า" };
     saved = await prisma.$transaction(async (tx) => {
       // เลิกนับสต็อก: บันทึกการล้างยอดก่อน
@@ -126,14 +126,16 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
       if (trackStock) await tx.product.update({ where: { id }, data: { inStock: (await tx.product.findUniqueOrThrow({ where: { id }, select: { stock: true } })).stock > 0 } });
       return u;
     });
-    await logAdmin(admin.id, "PRODUCT", `แก้ไขสินค้า ${sku} — ${name}`);
+    // A29: เก็บค่าก่อน/หลังของฟิลด์ที่เปลี่ยน (ดูได้ที่ /admin/log?entity=Product:<id>)
+    const diff = diffOf(old, { ...saved, stock: (await prisma.product.findUnique({ where: { id }, select: { stock: true } }))?.stock ?? saved.stock });
+    await logAdmin(admin.id, "PRODUCT", `แก้ไขสินค้า ${sku} — ${name}`, { entity: `Product:${id}`, diff });
   } else {
     saved = await prisma.$transaction(async (tx) => {
       const c = await tx.product.create({ data: { ...rest, stock: 0, inStock: trackStock ? false : inStock } });
       if (trackStock && stock > 0) await setStock(tx, c.id, stock, { reason: "COUNT", adminId: admin.id, note: "สต็อกเริ่มต้นตอนเพิ่มสินค้า" });
       return c;
     });
-    await logAdmin(admin.id, "PRODUCT", `เพิ่มสินค้า ${sku} — ${name}`);
+    await logAdmin(admin.id, "PRODUCT", `เพิ่มสินค้า ${sku} — ${name}`, { entity: `Product:${saved.id}` });
   }
   refreshStorefront();
   if (!id) redirect(`/admin/products/${saved.id}?saved=1`);
@@ -165,7 +167,7 @@ export async function toggleProduct(f: FormData) {
   const p = await prisma.product.findUnique({ where: { id } });
   if (p) {
     await prisma.product.update({ where: { id }, data: { isActive: !p.isActive } });
-    await logAdmin(admin.id, "PRODUCT", `${p.isActive ? "ปิด" : "เปิด"}ขายสินค้า ${p.sku}`);
+    await logAdmin(admin.id, "PRODUCT", `${p.isActive ? "ปิด" : "เปิด"}ขายสินค้า ${p.sku}`, { entity: `Product:${p.id}`, diff: { isActive: [p.isActive, !p.isActive] } });
     refreshStorefront();
   }
   refresh();

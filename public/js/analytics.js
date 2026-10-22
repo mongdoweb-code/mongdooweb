@@ -36,8 +36,18 @@
     window.fbq('init', cfg.pixel);
     window.fbq('track', 'PageView');
   }
+  // ถอนความยินยอม → ลบคุกกี้ของบริการนั้นที่เคยตั้งไว้ (ทั้งโดเมนนี้และโดเมนแม่)
+  function dropCookies(re){
+    const host = location.hostname.split('.');
+    const domains = ['', ...host.map((_, i) => '.' + host.slice(i).join('.')).filter(d => d.split('.').length > 2)];
+    document.cookie.split(';').map(c => c.split('=')[0].trim()).filter(n => re.test(n)).forEach(n => {
+      domains.forEach(d => { document.cookie = n + '=; Max-Age=0; path=/' + (d ? '; domain=' + d : ''); });
+    });
+  }
   function apply(){
     const c = consent();
+    if (!c.analytics) dropCookies(/^(_ga|_gid|_gat)/);
+    if (!c.marketing) dropCookies(/^(_fbp|_fbc)$/);
     if (c.analytics) { loadGa(); if (ga) window.gtag('consent', 'update', { analytics_storage: 'granted' }); }
     else if (ga) window.gtag('consent', 'update', { analytics_storage: 'denied' });
     if (c.marketing) { loadFb(); if (fb) window.fbq('consent', 'grant'); }

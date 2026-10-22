@@ -1,6 +1,6 @@
 // ตัวเขียนไฟล์ ZIP ขนาดเล็ก (ไม่พึ่งไลบรารีภายนอก) — บีบอัดแบบ deflate ด้วย node:zlib, ชื่อไฟล์ UTF-8
 // รองรับไฟล์รวมไม่เกิน 4 GB (ZIP แบบปกติ ไม่ใช่ ZIP64) — พอสำหรับสำรองข้อมูลร้านเป็น CSV
-import { crc32, deflateRawSync } from "node:zlib";
+import { crc32, deflateRawSync, inflateRawSync } from "node:zlib";
 
 export type ZipEntry = { name: string; data: Buffer | string; date?: Date };
 
@@ -64,4 +64,32 @@ export function createZip(entries: ZipEntry[]) {
   end.writeUInt32LE(cd.length, 12);
   end.writeUInt32LE(offset, 16);
   return Buffer.concat([...local, cd, end]);
+}
+
+/** อ่านไฟล์ ZIP ที่สร้างด้วย createZip (store/deflate, ไม่ใช่ ZIP64) — ใช้ตอนกู้คืนสำรองข้อมูล (scripts/restore-backup.ts) */
+export function readZip(buf: Buffer): Map<string, Buffer> {
+  const out = new Map<string, Buffer>();
+  let end = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 22 - 65535); i--)
+    if (buf.readUInt32LE(i) === 0x06054b50) { end = i; break; }
+  if (end < 0) throw new Error("ไม่ใช่ไฟล์ ZIP");
+  const count = buf.readUInt16LE(end + 10);
+  let p = buf.readUInt32LE(end + 16);
+  for (let n = 0; n < count; n++) {
+    if (buf.readUInt32LE(p) !== 0x02014b50) throw new Error("ZIP เสีย (central directory)");
+    const method = buf.readUInt16LE(p + 10);
+    const crc = buf.readUInt32LE(p + 16);
+    const csize = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28), extraLen = buf.readUInt16LE(p + 30), commentLen = buf.readUInt16LE(p + 32);
+    const local = buf.readUInt32LE(p + 42);
+    const name = buf.subarray(p + 46, p + 46 + nameLen).toString("utf8");
+    const dataAt = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
+    const body = buf.subarray(dataAt, dataAt + csize);
+    const raw = method === 8 ? inflateRawSync(body) : method === 0 ? Buffer.from(body) : null;
+    if (!raw) throw new Error(`ZIP: ไม่รองรับวิธีบีบอัด ${method} (${name})`);
+    if ((crc32(raw) >>> 0) !== crc) throw new Error(`ZIP เสีย: ${name} (CRC ไม่ตรง)`);
+    out.set(name, raw);
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
 }

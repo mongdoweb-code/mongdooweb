@@ -78,10 +78,14 @@ function getSlides(){
     .sort((a, b) => (a.order - b.order) || (a._i - b._i));
   return list.length ? list : SLIDES.slice(0, 1).map(s => normSlide({ ...s, active: true }, 0)).filter(Boolean);
 }
+/* รูปสไลด์หลายขนาด (U14): Unsplash ใช้พารามิเตอร์ w= · รูปที่อัปโหลด (/media/<key>.webp) ใช้รูปย่อ -w640…-w1280 + ไฟล์เต็ม
+   ต้องตรงกับ slideSrcSet() ใน src/app/(shop)/page.tsx (preload รูปแรก) */
 function unsplash(u){
+  const m = /^\/media\/(.+)\.webp$/.exec(u);
+  if (m) return { src: u, srcset: [640, 960, 1280].map(w => `/media/${m[1]}-w${w}.webp ${w}w`).concat(`${u} 1600w`).join(', ') };
   if (!u.startsWith('https://images.unsplash.com/')) return null;
   const b = u.split('?')[0], q = w => `${b}?auto=format&fit=crop&w=${w}&q=75`;
-  return { src: q(1920), srcset: [828, 1280, 1920].map(w => `${q(w)} ${w}w`).join(', ') };
+  return { src: q(1920), srcset: [640, 828, 1280, 1920].map(w => `${q(w)} ${w}w`).join(', ') };
 }
 const Slider = (() => {
   const DUR = 6000;

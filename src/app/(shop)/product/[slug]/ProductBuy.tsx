@@ -2,6 +2,7 @@
 // หน้าสินค้า (ฝั่งเบราว์เซอร์): แกลเลอรีรูป + ขยายเต็มจอ, เลือกจำนวนแล้วใส่ตะกร้า, แถบใส่ตะกร้าติดล่างจอบนมือถือ
 // ตะกร้าใช้ของกลางใน public/js/shell.js (window.addToCart / openCart, localStorage "mdw_cart")
 import { useCallback, useEffect, useRef, useState } from "react";
+import { srcSetOf } from "@/lib/img-srcset";
 
 type ShellWindow = Window & { addToCart?: (id: string, qty: number, mode: string) => boolean; openCart?: (from?: Element) => void };
 type Img = { full: string; sm: string };
@@ -107,7 +108,7 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
               {/* eslint-disable-next-line @next/next/no-img-element -- รูป WebP จาก /media ย่อขนาดแล้ว */}
               <img
                 src={im.full}
-                srcSet={`${im.sm} 480w, ${im.full} ${FULL}w`}
+                srcSet={srcSetOf(im.full) ?? `${im.sm} 480w, ${im.full} ${FULL}w`}
                 sizes="(max-width: 768px) 100vw, 50vw"
                 alt={k === 0 ? alt : `${alt} รูปที่ ${k + 1}`}
                 width={FULL}

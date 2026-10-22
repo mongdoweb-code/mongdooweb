@@ -1,0 +1,130 @@
+/* รอบ 3 ล็อต 12: ค้นหาทั้งระบบ, กระดิ่งแจ้งเตือน, ใบสั่งซื้อ, กลุ่มลูกค้า, งาน/โน้ต, ประวัติก่อน/หลัง, สำรองข้อมูล, PDPA, ตรวจรูป */
+
+/* ---------- แถบเครื่องมือด้านบน: ค้นหา Ctrl+K + กระดิ่ง ---------- */
+.gtools{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:12px 32px 0}
+.gs-btn{display:flex;align-items:center;gap:8px;height:38px;min-width:260px;padding:0 10px 0 12px;background:#fff;border:1.5px solid var(--c-line);color:var(--c-muted);font-size:14px}
+.gs-btn:hover{border-color:var(--c-ink);color:var(--c-ink)}
+.gs-btn span{flex:1;text-align:left}
+.gs-btn kbd,.gs-in kbd{font:600 11px/1 var(--font);background:var(--c-cream);border:1px solid var(--c-line);padding:4px 6px;color:var(--c-muted)}
+.gs-wrap{position:fixed;inset:0;z-index:200;background:rgba(20,20,20,.45);display:flex;justify-content:center;align-items:flex-start;padding:10vh 16px 16px}
+.gs-dlg{width:min(640px,100%);background:#fff;box-shadow:0 24px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;max-height:76vh}
+.gs-in{display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1.5px solid var(--c-line)}
+.gs-in input{flex:1;height:54px;border:0;outline:none;font-size:16px;min-width:0;background:transparent}
+.gs-res{overflow-y:auto;padding:6px 0}
+.gs-grp{font-size:11.5px;font-weight:700;color:var(--c-muted);letter-spacing:.4px;padding:10px 16px 4px}
+.gs-res a{display:flex;flex-direction:column;padding:8px 16px;border-left:3px solid transparent}
+.gs-res a b{font-size:14.5px;font-weight:600}
+.gs-res a small{font-size:12.5px;color:var(--c-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gs-res a.on{background:#FFF4EE;border-left-color:var(--c-orange)}
+.gs-empty{padding:14px 16px;color:var(--c-muted);font-size:13.5px}
+.bell{position:relative}
+.bell-btn{position:relative;width:40px;height:38px;display:grid;place-items:center;background:#fff;border:1.5px solid var(--c-line)}
+.bell-btn:hover{border-color:var(--c-ink)}
+.bell-n{position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--c-err);color:#fff;font:700 11px/20px var(--font);text-align:center}
+.bell-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:150;width:min(380px,calc(100vw - 24px));background:#fff;border:1.5px solid var(--c-ink);box-shadow:0 14px 40px rgba(0,0,0,.18)}
+.bell-h{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--c-line)}
+.bell-pop ul{list-style:none;max-height:360px;overflow-y:auto}
+.bell-pop li a{display:flex;flex-direction:column;padding:9px 14px;border-bottom:1px solid var(--c-line);font-size:13.5px}
+.bell-pop li a small{color:var(--c-muted);font-size:12px}
+.bell-pop li.unread a{background:#FFF4EE;border-left:3px solid var(--c-orange)}
+.bell-pop li a:hover{background:var(--c-cream)}
+.bell-all{display:block;text-align:center;padding:10px;font-weight:600;font-size:13.5px}
+@media (max-width:900px){
+  .gtools{padding:10px 16px 0}
+  .gs-btn{min-width:0;flex:1}
+}
+@media (max-width:480px){.gs-btn kbd{display:none}}
+
+/* ---------- ศูนย์แจ้งเตือน ---------- */
+.notif-list{list-style:none}
+.notif-list li{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--c-line)}
+.notif-list li.unread{background:#FFF8F3;box-shadow:inset 3px 0 0 var(--c-orange)}
+.notif-list .row-link{display:flex;flex-direction:column}
+.notif-kind{font-size:11.5px;font-weight:700;padding:3px 8px;background:var(--c-cream);color:var(--c-muted);justify-self:start}
+.notif-kind.k-SLIP,.notif-kind.k-DOC_SLIP,.notif-kind.k-ORDER{background:var(--st-pending-bg);color:var(--st-pending)}
+.notif-kind.k-LOW_STOCK,.notif-kind.k-CLAIM,.notif-kind.k-PDPA{background:var(--st-rej-bg);color:var(--st-rej)}
+@media (max-width:700px){.notif-list li{grid-template-columns:1fr}}
+
+/* ---------- ประวัติก่อน/หลัง (A29) ---------- */
+.lg-diff{margin-top:6px;font-size:13px}
+.lg-diff summary{cursor:pointer;color:#1C5F96;font-weight:600;width:max-content}
+.lg-diff table{margin-top:6px;border-collapse:collapse;width:100%;max-width:720px;background:#fff}
+.lg-diff th,.lg-diff td{border:1px solid var(--c-line);padding:4px 8px;text-align:left;vertical-align:top;font-size:12.5px;overflow-wrap:anywhere}
+.lg-diff thead th{background:var(--c-cream)}
+.lg-before{background:#FDF1EF;text-decoration:line-through;text-decoration-color:rgba(163,50,36,.4)}
+.lg-after{background:#EEF8F2}
+
+/* ---------- ใบสั่งซื้อ ---------- */
+.po-total{display:flex;justify-content:flex-end;gap:12px;font-size:15px;padding-top:6px}
+.po-total b{font-size:20px}
+.po-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.po-free{background:var(--c-cream)!important}
+.po-rq{width:90px;height:38px;border:1.5px solid var(--c-line);padding:0 8px;text-align:right}
+.po-lines td{vertical-align:middle}
+.po-meta{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:14px;margin-bottom:10px}
+.po-meta dt{color:var(--c-muted)}
+.cost-form{display:flex;gap:6px;justify-content:flex-end}
+.cost-form input{width:110px;height:34px;border:1.5px solid var(--c-line);padding:0 8px;text-align:right}
+.pf-flag{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;background:#FFF4D6;color:var(--c-warn);padding:1px 6px}
+tr.pf-unknown td{color:var(--c-muted)}
+.po-sheet{height:auto!important;min-height:297mm;overflow:visible!important;font-size:10pt!important;gap:14px}
+.po-h{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:start;border-bottom:2px solid #161616;padding-bottom:10px}
+.po-h img{width:64px;height:64px;object-fit:contain}
+.po-shop{display:flex;flex-direction:column;font-size:9pt}
+.po-shop b{font-size:12pt}
+.po-title{text-align:right}
+.po-title h2{font-size:18pt;line-height:1.1}
+.po-title small{letter-spacing:2px;font-size:8pt;color:#555}
+.po-title dl{display:grid;grid-template-columns:auto auto;gap:2px 10px;margin-top:6px;font-size:9.5pt;justify-content:end}
+.po-to{display:flex;flex-direction:column;border:1px solid #bbb;padding:8px 10px;max-width:60%}
+.po-to span:first-child{font-size:8pt;color:#555}
+.po-tbl{width:100%;border-collapse:collapse}
+.po-tbl th,.po-tbl td{border:1px solid #999;padding:5px 7px}
+.po-tbl th{background:#EEE;font-weight:700}
+.po-tbl .r{text-align:right}.po-tbl .c{text-align:center}
+.po-note{font-size:9.5pt}
+.po-sign{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-top:40px}
+.po-sign div{display:flex;flex-direction:column;align-items:center;gap:6px}
+.po-sign span{width:70%;border-bottom:1px dotted #333;height:30px}
+
+/* ---------- กลุ่มลูกค้า ---------- */
+.seg-box{border-top:1px solid var(--c-line);border-bottom:1px solid var(--c-line);padding:10px 16px;background:#FCFBF8}
+.seg-box summary{cursor:pointer;font-weight:600;font-size:14px}
+.seg-form{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px;align-items:end}
+.seg-acts{display:flex;gap:10px;align-items:center;height:42px}
+.seg-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag-chip{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;padding:3px 9px;background:#EFEDFD;color:#4B3CB0;border:1px solid transparent}
+.tag-chip small{font-weight:500;color:var(--c-muted)}
+.tag-chip.on{border-color:#4B3CB0;background:#fff}
+.tag-chip.sm{font-size:11px;padding:1px 6px}
+.cu-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.cu-spend .sub{display:block}
+.note-ta{border:1.5px solid var(--c-line);padding:10px 12px;min-height:64px;width:100%;outline:none;resize:vertical}
+
+/* ---------- งานที่ต้องทำ ---------- */
+.task-box h3 small{font-size:11.5px;font-weight:600;color:var(--c-muted);margin-left:6px}
+.task-list{list-style:none;display:grid;gap:6px;margin-bottom:10px}
+.task-list.big{gap:0;margin:0}
+.task-list li{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 10px;background:#FAF9F6}
+.task-list.big li{padding:12px 16px;border-bottom:1px solid var(--c-line);background:#fff}
+.task-list li.overdue{box-shadow:inset 3px 0 0 var(--c-err)}
+.task-list li.done .task-txt b{text-decoration:line-through;color:var(--c-muted)}
+.task-chk{width:28px;height:28px;border:2px solid var(--c-ink);display:grid;place-items:center;font-weight:700;background:#fff}
+.task-list li.done .task-chk{background:var(--c-ok);border-color:var(--c-ok);color:#fff}
+.task-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.task-txt span{font-size:13.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.task-txt small{font-size:12px;color:var(--c-muted)}
+.task-late{font-style:normal;font-weight:700;color:var(--c-err)}
+.task-new summary{cursor:pointer;font-weight:600;font-size:14px;color:#1C5F96}
+.task-form{display:grid;gap:10px;margin-top:8px}
+.task-form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.task-form .row,.box .row{display:flex;align-items:center;gap:8px}
+.tabs .cnt.bad{color:var(--c-err);font-weight:700}
+
+/* ---------- สำรองข้อมูล / PDPA / ตรวจรูป ---------- */
+.dr-found{list-style:none;display:grid;gap:4px}
+.dr-found li{display:flex;justify-content:space-between;border-bottom:1px dashed var(--c-line);padding:4px 0;font-size:14px}
+.dr-policy{display:grid;gap:4px;padding-left:18px;margin-bottom:10px}
+.regen{display:grid;gap:10px}
+.regen-prog{display:grid;gap:6px;font-size:13.5px}
+@media (max-width:700px){.task-form .two{grid-template-columns:1fr}}

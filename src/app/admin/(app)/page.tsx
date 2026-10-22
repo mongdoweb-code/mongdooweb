@@ -33,6 +33,7 @@ import { docFromOrder } from "./docs/actions";
 import { addOrderNote, approveOrder, cancelOrder, markPaid, refundOrder, rejectOrder, reopenOrder, shipOrder } from "./order-actions";
 import { BulkLabels, EditOrderForm } from "./orders/OrderForms";
 import "../lot3.css";
+import { TaskPanel } from "./tasks/TaskPanel";
 
 type Mode = "reject" | "edit" | "pay" | "cancel" | "refund" | null;
 const MODES = ["reject", "edit", "pay", "cancel", "refund"] as const;
@@ -896,6 +897,9 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                 </div>
               </form>
             </div>
+
+            {/* A25: งานที่ต้องทำของคำสั่งซื้อนี้ + ลิงก์ประวัติการแก้ไข (A29) */}
+            <TaskPanel orderId={o.id} orderNo={o.orderNo} ret={here()} />
 
             <div className="box">
               <h3>ประวัติ</h3>

@@ -72,7 +72,15 @@ const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentC
 const baht = n => '฿' + Number(n).toLocaleString('th-TH', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 const phClass = p => 'ph' + (p.acc ? ' acc' : p.color === 'rgb' ? ' rgb' : '');
 /* รูปสินค้า (ถ้ามี) หรือภาพแทนแบบต้นแบบ */
-const thumb = (p, tag = 'div') => p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy" decoding="async">` : `<${tag} class="${phClass(p)}"></${tag}>`;
+/* รูปหลายขนาด (U14): /media/<key>-sm.webp → srcset ของรูปย่อ -w320/-w640 (ตรงกับ src/lib/img-srcset.ts) */
+const srcsetOf = u => {
+  const m = /^\/media\/(.+?)(-sm)?\.webp$/.exec(u || '');
+  return m && !/-w\d+$/.test(m[1]) ? `/media/${m[1]}-w320.webp 320w, /media/${m[1]}-w640.webp 640w` : '';
+};
+const CARD_SIZES = '(max-width: 640px) 46vw, (max-width: 1024px) 31vw, 280px';
+const thumb = (p, tag = 'div') => p.img
+  ? `<img src="${esc(p.img)}"${srcsetOf(p.img) ? ` srcset="${esc(srcsetOf(p.img))}" sizes="${CARD_SIZES}"` : ''} alt="" width="480" height="480" loading="lazy" decoding="async">`
+  : `<${tag} class="${phClass(p)}"></${tag}>`;
 /* ราคา 0 = ต้องสอบถามราคา, สินค้าหมด/ต้องสอบถาม = สั่งออนไลน์ไม่ได้ */
 const priceTxt = p => p.price > 0 ? baht(p.price) : 'สอบถามราคา';
 const canBuy = p => !!p && p.price > 0 && p.inStock !== false;
@@ -688,7 +696,8 @@ addEventListener('keydown', e => {
 })();
 
 /* =========================================================
-   PDPA CONSENT (U27)
+   PDPA CONSENT (U27/U28) — แยกประเภท: จำเป็น (เสมอ) · วิเคราะห์ (GA4) · การตลาด (Meta Pixel)
+   "ยอมรับทั้งหมด" / "เฉพาะที่จำเป็น" / ตั้งค่าเอง — เปลี่ยนได้ตลอดจาก "ตั้งค่าคุกกี้" ท้ายเว็บ
    ========================================================= */
 (() => {
   const el = $('#consent'), KEY = 'mdw_consent', prefs = $('#consentPrefs'), setBtn = $('#consentSettings');
@@ -726,7 +735,13 @@ addEventListener('keydown', e => {
   $('#consentAccept').onclick = () => save(true, true);
   setBtn.onclick = () => { const o = prefs.hidden; prefs.hidden = !o; setBtn.setAttribute('aria-expanded', o ? 'true' : 'false'); sync(); };
   $('#consentSave').onclick = () => save($('#ckAnalytics').checked, $('#ckMarketing').checked);
-  $('#openConsent').onclick = () => { openBanner(true); $('#ckAnalytics').focus(); };
+  $('#consentReject').onclick = () => save(false, false);
+  // ปุ่ม "ตั้งค่าคุกกี้" ท้ายเว็บ + ลิงก์อื่นที่มี data-open-consent (เช่น หน้าคำขอ PDPA)
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('#openConsent, [data-open-consent]');
+    if (!b) return;
+    e.preventDefault(); openBanner(true); $('#ckAnalytics').focus();
+  });
 })();
 
 /* ตะกร้าเปลี่ยนจากแท็บอื่น → อัปเดตตาม */

@@ -25,10 +25,10 @@ export const LOG_TABS = {
   all: { label: "ทั้งหมด", types: null },
   auth: { label: "เข้าสู่ระบบ/ความปลอดภัย", types: ["LOGIN", "LOGIN_FAIL", "LOCKOUT", "LOGOUT", "IDLE_LOGOUT", "PASSWORD", "ADMIN_USER", "DENIED", "SESSION_REVOKE", "TWO_FACTOR"] },
   orders: { label: "คำสั่งซื้อ", types: [] },
-  ops: { label: "งานร้าน/สต็อก/อัตโนมัติ", types: ["ORDER", "STOCK", "CRON", "CRON_DAILY", "LABEL"] },
-  content: { label: "สินค้าและเนื้อหา", types: ["PRODUCT", "CATEGORY", "SLIDES", "CONTENT_ROLLBACK", "PAGES", "FAQ"] },
+  ops: { label: "งานร้าน/สต็อก/อัตโนมัติ", types: ["ORDER", "STOCK", "CRON", "CRON_DAILY", "LABEL", "PURCHASE", "TASK", "NOTE", "BACKUP"] },
+  content: { label: "สินค้าและเนื้อหา", types: ["PRODUCT", "CATEGORY", "SLIDES", "CONTENT_ROLLBACK", "PAGES", "FAQ", "MEDIA"] },
   docs: { label: "เอกสารขาย/ลูกค้า", types: ["DOC", "CUSTOMER", "LABEL", "INQUIRY", "CUSTOMER_MERGE", "CUSTOMER_EXPORT"] },
-  settings: { label: "ตั้งค่า/ส่งออก", types: ["SETTINGS", "ORDERS_EXPORT", "DATA_EXPORT", "LOG_EXPORT", "SYSTEM"] },
+  settings: { label: "ตั้งค่า/ส่งออก", types: ["SETTINGS", "ORDERS_EXPORT", "DATA_EXPORT", "LOG_EXPORT", "SYSTEM", "BACKUP", "PDPA"] },
   line: { label: "แจ้งเตือน LINE", types: ["LINE"] },
 } as const;
 export type LogTab = keyof typeof LOG_TABS;
@@ -38,14 +38,18 @@ export const ORDER_EVENT: Record<string, string> = { CREATED: "สร้าง�
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const ymd = /^\d{4}-\d{2}-\d{2}$/;
 
-export type LogFilter = { tab: LogTab; q: string; user: string; from: string; to: string; page: number };
+export type LogFilter = { tab: LogTab; q: string; user: string; from: string; to: string; page: number; entity: string };
+
+/** entity ที่กรองได้: "Product:<id>" · "Order:<orderNo>" · "Customer:<id>" · "PurchaseOrder:<id>" · "ShopSetting" */
+const ENTITY_RE = /^(?:(?:Product|Order|Customer|PurchaseOrder|DataRequest|Task):[\w-]{1,60}|ShopSetting)$/;
 
 export function parseLogFilter(sp: Record<string, string | string[] | undefined>): LogFilter {
   const tab = one(sp.tab) in LOG_TABS ? (one(sp.tab) as LogTab) : "all";
   const from = ymd.test(one(sp.from)) ? one(sp.from) : "";
   let to = ymd.test(one(sp.to)) ? one(sp.to) : "";
   if (from && to && to < from) to = from;
-  return { tab, q: one(sp.q).trim().slice(0, 80), user: one(sp.user).slice(0, 40), from, to, page: Math.max(1, Math.floor(Number(one(sp.page))) || 1) };
+  const entity = ENTITY_RE.test(one(sp.entity)) ? one(sp.entity) : "";
+  return { tab, q: one(sp.q).trim().slice(0, 80), user: one(sp.user).slice(0, 40), from, to, page: Math.max(1, Math.floor(Number(one(sp.page))) || 1), entity };
 }
 
 /** ช่วงวันที่ตามเวลาไทย → เงื่อนไข createdAt */
@@ -60,7 +64,14 @@ export function dateWhere(f: LogFilter) {
 export function adminLogWhere(f: LogFilter): Prisma.AdminLogWhereInput {
   const types = LOG_TABS[f.tab].types;
   const at = dateWhere(f);
+  // ประวัติของรายการเดียว: บันทึกที่ผูก entity นี้ + บันทึกเก่าที่อ้างเลขคำสั่งซื้อในข้อความ
+  const ent: Prisma.AdminLogWhereInput | null = f.entity
+    ? f.entity.startsWith("Order:")
+      ? { OR: [{ entity: f.entity }, { type: "ORDER", note: { contains: f.entity.slice(6) } }] }
+      : { entity: f.entity }
+    : null;
   return {
+    ...(ent ? { AND: [ent] } : {}),
     ...(types ? { type: { in: [...types] } } : {}),
     ...(f.q ? { note: { contains: f.q, mode: "insensitive" } } : {}),
     ...(f.user === "none" ? { adminId: null } : f.user ? { adminId: f.user } : {}),
@@ -78,7 +89,7 @@ export function orderEventWhere(f: LogFilter): Prisma.OrderEventWhereInput {
 }
 
 export const logQuery = (f: LogFilter, patch: Partial<Record<keyof LogFilter, string>> = {}) => {
-  const base: Record<string, string> = { tab: f.tab === "all" ? "" : f.tab, q: f.q, user: f.user, from: f.from, to: f.to, page: f.page > 1 ? String(f.page) : "" };
+  const base: Record<string, string> = { tab: f.tab === "all" ? "" : f.tab, q: f.q, user: f.user, from: f.from, to: f.to, page: f.page > 1 ? String(f.page) : "", entity: f.entity };
   const s = new URLSearchParams(Object.entries({ ...base, ...patch }).filter(([, v]) => v)).toString();
   return s ? `?${s}` : "";
 };
