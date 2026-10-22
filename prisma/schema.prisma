@@ -26,40 +26,46 @@ datasource db {
 // ---------- Admin (ล็อกอินที่ /admin/login) ----------
 
 enum AdminRole {
-  OWNER  // จัดการทุกอย่าง รวมถึงตั้งค่าร้านและเพิ่มแอดมิน
-  STAFF  // ตรวจสลิป ใส่เลขพัสดุ
+  OWNER // จัดการทุกอย่าง รวมถึงตั้งค่าร้านและเพิ่มแอดมิน
+  STAFF // ตรวจสลิป ใส่เลขพัสดุ
 }
 
 model Admin {
-  id           String     @id @default(cuid())
-  username     String     @unique
-  passwordHash String     // bcrypt / argon2 — ห้ามเก็บรหัสผ่านตรงๆ
-  displayName  String
-  role         AdminRole  @default(STAFF)
-  isActive     Boolean    @default(true)
-  lastLoginAt  DateTime?
-  mustChangePassword Boolean @default(false) // บังคับเปลี่ยนรหัสครั้งแรก/หลังรีเซ็ต
-  totpSecret   String?                       // ยืนยันตัวตน 2 ขั้น (base32) — null = ยังไม่ตั้ง
-  totpEnabled  Boolean    @default(false)
-  backupCodes  Json       @default("[]")     // sha256 ของรหัสสำรอง 2FA ที่ยังไม่ใช้
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                 String    @id @default(cuid())
+  username           String    @unique
+  passwordHash       String // bcrypt / argon2 — ห้ามเก็บรหัสผ่านตรงๆ
+  displayName        String
+  role               AdminRole @default(STAFF)
+  isActive           Boolean   @default(true)
+  lastLoginAt        DateTime?
+  mustChangePassword Boolean   @default(false) // บังคับเปลี่ยนรหัสครั้งแรก/หลังรีเซ็ต
+  totpSecret         String? // ยืนยันตัวตน 2 ขั้น (base32) — null = ยังไม่ตั้ง
+  totpEnabled        Boolean   @default(false)
+  backupCodes        Json      @default("[]") // sha256 ของรหัสสำรอง 2FA ที่ยังไม่ใช้
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  events       OrderEvent[]
-  stockMoves   StockMovement[]
-  logs         AdminLog[]
-  docEvents    SalesDocumentEvent[]
-  sessions     AdminSession[]
+  events     OrderEvent[]
+  stockMoves StockMovement[]
+  logs       AdminLog[]
+  docEvents  SalesDocumentEvent[]
+  sessions   AdminSession[]
+
+  notifSeenAt    DateTime? // อ่านศูนย์แจ้งเตือนถึงเวลานี้ (A28)
+  notes          InternalNote[]
+  tasksCreated   AdminTask[]     @relation("TaskCreator")
+  tasksAssigned  AdminTask[]     @relation("TaskAssignee")
+  purchaseOrders PurchaseOrder[]
 }
 
 /// session หลังบ้าน — cookie เก็บ token สุ่ม, ฐานข้อมูลเก็บแค่ SHA-256 ของ token
 model AdminSession {
-  id         String   @id                    // sha256(token)
+  id         String   @id // sha256(token)
   adminId    String
   admin      Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
-  lastSeenAt DateTime @default(now())        // ไม่มีการใช้งานเกิน 30 นาที = หมดอายุ
-  expiresAt  DateTime                        // อายุสูงสุดของ session
+  lastSeenAt DateTime @default(now()) // ไม่มีการใช้งานเกิน 30 นาที = หมดอายุ
+  expiresAt  DateTime // อายุสูงสุดของ session
   ip         String?
   userAgent  String?
 
@@ -68,36 +74,37 @@ model AdminSession {
 
 /// นับการล็อกอินผิด (ต่อชื่อผู้ใช้ และต่อ IP) — ผิดครบกำหนดจะล็อกชั่วคราว
 model LoginThrottle {
-  key       String   @id                     // "user:admin" | "ip:1.2.3.4"
-  fails     Int      @default(0)
+  key       String    @id // "user:admin" | "ip:1.2.3.4"
+  fails     Int       @default(0)
   lockUntil DateTime?
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime  @updatedAt
 }
 
 // ---------- สินค้า ----------
 
 /// กลุ่มในเมนูหมวดสินค้า (mega menu หน้าแรก) — CATEGORY_GROUPS
 enum CategoryGroup {
-  WATER    // งานน้ำ
-  OUTDOOR  // สวนและภายนอก
+  WATER // งานน้ำ
+  OUTDOOR // สวนและภายนอก
   BUILDING // อาคารและภายใน
-  DECO     // อุปกรณ์และตกแต่ง
+  DECO // อุปกรณ์และตกแต่ง
 }
 
 model Category {
-  id          String        @id @default(cuid())
-  slug        String        @unique            // เช่น "underwater-light" (ทำ redirect 301 จาก URL ภาษาไทยเดิม)
-  legacySlug  String?       @unique            // slug เดิมจาก WooCommerce สำหรับ redirect
-  nameTh      String                           // "ไฟใต้น้ำ"
-  nameEn      String                           // "Underwater Light"
-  icon        String?                          // key ไอคอน เช่น "water", "pool"
-  group       CategoryGroup @default(DECO)
-  popular     String[]                         // รายการยอดนิยมใน dropdown (สูงสุด 4)
-  sortOrder   Int           @default(0)
-  isActive    Boolean       @default(true)     // เปิดขาย/เปิดหน้าหมวด
-  showOnHome  Boolean       @default(true)     // แสดงในเมนูและการ์ดหมวดของหน้าแรก (สินค้าที่ไม่ใช่ไฟ = false)
-  description String?       @db.Text
+  id          String          @id @default(cuid())
+  slug        String          @unique // เช่น "underwater-light" (ทำ redirect 301 จาก URL ภาษาไทยเดิม)
+  legacySlug  String?         @unique // slug เดิมจาก WooCommerce สำหรับ redirect
+  nameTh      String // "ไฟใต้น้ำ"
+  nameEn      String // "Underwater Light"
+  icon        String? // key ไอคอน เช่น "water", "pool"
+  group       CategoryGroup   @default(DECO)
+  popular     String[] // รายการยอดนิยมใน dropdown (สูงสุด 4)
+  sortOrder   Int             @default(0)
+  isActive    Boolean         @default(true) // เปิดขาย/เปิดหน้าหมวด
+  showOnHome  Boolean         @default(true) // แสดงในเมนูและการ์ดหมวดของหน้าแรก (สินค้าที่ไม่ใช่ไฟ = false)
+  description String?         @db.Text
   products    Product[]
+  specAttrs   SpecAttribute[]
 }
 
 /// พื้นที่ใช้งาน — ใช้ในตัวช่วยเลือกไฟ (CATALOG.use)
@@ -116,114 +123,154 @@ enum LightColor {
 }
 
 model Product {
-  id            String       @id @default(cuid())
-  sku           String       @unique        // เช่น "DL1-ww", "GDL-F24WH-1-2-1-1"
-  slug          String       @unique
-  name          String
-  description   String?      @db.Text
-  unit          String       @default("ชิ้น") // หน่วยในเอกสารขาย: อัน, ชุด, กล่อง
-  isService     Boolean      @default(false) // ค่าบริการ/ค่าส่ง ไม่ตัดสต็อก (เช่น sku "Shipping")
-  priceSatang   Int                         // ราคาขาย (สตางค์) — 0 = "สอบถามราคา" สั่งออนไลน์ไม่ได้
-  compareAtSatang Int?                      // ราคาปกติก่อนลด (แสดงขีดฆ่า)
-  trackStock    Boolean      @default(false) // นับสต็อก: true = ขายได้ไม่เกิน stock
-  inStock       Boolean      @default(true)  // ใช้เมื่อไม่นับสต็อก: false = สินค้าหมด
-  stock         Int          @default(0)
-  shortDescription String?   @db.Text
-  keywords      String?      @db.Text        // คำค้นเพิ่มเติม (จาก tag เดิมของ WooCommerce)
-  seoTitle      String?
-  seoDescription String?
-  weightGram    Int?
-  sortOrder     Int          @default(0)
-  views         Int          @default(0)     // ยอดเข้าชมจากเว็บเดิม (ใช้จัดอันดับขายดีเริ่มต้น)
-  wooId         Int?         @unique         // ID สินค้าในเว็บเดิม (นำเข้าซ้ำได้)
-  legacyPath    String?      @unique         // URL เดิม /product/... (redirect 301 มาหน้าใหม่)
-  specs         Json?                       // [{"label":"กำลังไฟ","value":"10W COB"}, ...]
-  images        String[]                    // storage keys เรียงตามลำดับแสดง
-  model3dKey    String?                     // ไฟล์ .glb สำหรับตัวหมุนดู 3D (ถ้ามี)
+  id               String   @id @default(cuid())
+  sku              String   @unique // เช่น "DL1-ww", "GDL-F24WH-1-2-1-1"
+  slug             String   @unique
+  name             String
+  description      String?  @db.Text
+  unit             String   @default("ชิ้น") // หน่วยในเอกสารขาย: อัน, ชุด, กล่อง
+  isService        Boolean  @default(false) // ค่าบริการ/ค่าส่ง ไม่ตัดสต็อก (เช่น sku "Shipping")
+  priceSatang      Int // ราคาขาย (สตางค์) — 0 = "สอบถามราคา" สั่งออนไลน์ไม่ได้
+  compareAtSatang  Int? // ราคาปกติก่อนลด (แสดงขีดฆ่า)
+  trackStock       Boolean  @default(false) // นับสต็อก: true = ขายได้ไม่เกิน stock
+  inStock          Boolean  @default(true) // ใช้เมื่อไม่นับสต็อก: false = สินค้าหมด
+  stock            Int      @default(0)
+  shortDescription String?  @db.Text
+  keywords         String?  @db.Text // คำค้นเพิ่มเติม (จาก tag เดิมของ WooCommerce)
+  seoTitle         String?
+  seoDescription   String?
+  weightGram       Int?
+  sortOrder        Int      @default(0)
+  views            Int      @default(0) // ยอดเข้าชมจากเว็บเดิม (ใช้จัดอันดับขายดีเริ่มต้น)
+  wooId            Int?     @unique // ID สินค้าในเว็บเดิม (นำเข้าซ้ำได้)
+  legacyPath       String?  @unique // URL เดิม /product/... (redirect 301 มาหน้าใหม่)
+  specs            Json? // [{"label":"กำลังไฟ","value":"10W COB"}, ...]
+  images           String[] // storage keys เรียงตามลำดับแสดง
+  model3dKey       String? // ไฟล์ .glb สำหรับตัวหมุนดู 3D (ถ้ามี)
+
+  // รอบ 3: ตัวเลือก ราคาลดตามเวลา ราคาส่ง ไฟล์ดาวน์โหลด ต้นทุน สเปกแบบมีโครงสร้าง รีวิว
+  variantGroupId  String?
+  variantGroup    VariantGroup? @relation(fields: [variantGroupId], references: [id], onDelete: SetNull)
+  /// ค่าตัวเลือกของสินค้านี้ในกลุ่ม { "สี": "แดง", "วัตต์": "10W" } — คีย์ตาม VariantGroup.optionNames
+  variantOptions  Json?
+  salePriceSatang Int? // ราคาลดช่วงเวลา (ใช้เมื่ออยู่ในช่วง saleStartsAt–saleEndsAt)
+  saleStartsAt    DateTime?
+  saleEndsAt      DateTime?
+  /// ราคาขายส่งตามจำนวน [{ minQty: 10, priceSatang: 9000 }, …] เรียง minQty น้อยไปมาก
+  tierPrices      Json?
+  /// ไฟล์ดาวน์โหลด [{ key, name, sizeBytes }] (PDF สเปกชีต/คู่มือ)
+  downloads       Json          @default("[]")
+  costSatang      Int? // ต้นทุนล่าสุด (จากใบสั่งซื้อ/แก้เอง) — ใช้ในรายงานกำไร
+  /// ค่าสเปกแบบมีโครงสร้าง { [SpecAttribute.code]: string | number } — ใช้กรองในหน้าหมวด
+  attrs           Json?
+  ratingAvg       Float? // คำนวณจากรีวิวที่อนุมัติแล้ว
+  ratingCount     Int           @default(0)
 
   // ข้อมูลสำหรับตัวช่วยเลือกไฟ
-  useAreas      UseArea[]
-  lightColor    LightColor   @default(ANY)
-  includesPsu   Boolean      @default(false) // ชุดพร้อมใช้ มีหม้อแปลงในกล่องแล้ว (CATALOG.kit)
-  isAccessory   Boolean      @default(false) // อุปกรณ์เสริม เช่น หม้อแปลง ท่อหด (CATALOG.acc)
+  useAreas    UseArea[]
+  lightColor  LightColor @default(ANY)
+  includesPsu Boolean    @default(false) // ชุดพร้อมใช้ มีหม้อแปลงในกล่องแล้ว (CATALOG.kit)
+  isAccessory Boolean    @default(false) // อุปกรณ์เสริม เช่น หม้อแปลง ท่อหด (CATALOG.acc)
 
-  badge         String?                     // "ขายดี", "แนะนำ"
-  isBestSeller  Boolean      @default(false)
-  isActive      Boolean      @default(true)
+  badge        String? // "ขายดี", "แนะนำ"
+  isBestSeller Boolean @default(false)
+  isActive     Boolean @default(true)
 
-  categoryId    String
-  category      Category     @relation(fields: [categoryId], references: [id])
-  orderItems    OrderItem[]
-  docItems      SalesDocumentItem[]
-  stockMoves    StockMovement[]
+  categoryId  String
+  category    Category            @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  docItems    SalesDocumentItem[]
+  stockMoves  StockMovement[]
+  reviews     Review[]
+  stockAlerts StockAlert[]
+  poItems     PurchaseOrderItem[]
 
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([categoryId, isActive])
+  @@index([variantGroupId])
   @@index([isBestSeller, isActive])
 }
 
 // ---------- คำสั่งซื้อ ----------
 
 enum OrderStatus {
-  AWAITING_SLIP        // กรอกที่อยู่แล้ว รอลูกค้าโอนและแนบสลิป (ยังไม่เข้าคิวตรวจ)
+  AWAITING_SLIP // กรอกที่อยู่แล้ว รอลูกค้าโอนและแนบสลิป (ยังไม่เข้าคิวตรวจ)
   PENDING_VERIFICATION // แนบสลิปแล้ว รอแอดมินตรวจ
-  PAID                 // อนุมัติแล้ว รอจัดส่ง
-  SHIPPED              // ใส่เลขพัสดุแล้ว
-  REJECTED             // สลิปไม่ผ่าน รอลูกค้าแนบใหม่
-  CANCELLED            // ยกเลิก (เช่น ไม่แนบสลิปใหม่ภายในกำหนด)
+  PAID // อนุมัติแล้ว รอจัดส่ง
+  SHIPPED // ใส่เลขพัสดุแล้ว
+  REJECTED // สลิปไม่ผ่าน รอลูกค้าแนบใหม่
+  CANCELLED // ยกเลิก (เช่น ไม่แนบสลิปใหม่ภายในกำหนด)
 }
 
 model Order {
-  id              String       @id @default(cuid())
-  orderNo         String       @unique        // "MDW-261017-8288" — ที่ลูกค้าเห็น
-  status          OrderStatus  @default(AWAITING_SLIP)
+  id      String      @id @default(cuid())
+  orderNo String      @unique // "MDW-261017-8288" — ที่ลูกค้าเห็น
+  status  OrderStatus @default(AWAITING_SLIP)
 
   // ผู้รับ (snapshot)
-  customerName    String
-  phone           String
-  email           String?
-  addressLine     String
-  subdistrict     String
-  district        String
-  province        String
-  postalCode      String       @db.VarChar(5)
-  note            String?
+  customerName String
+  phone        String
+  email        String?
+  addressLine  String
+  subdistrict  String
+  district     String
+  province     String
+  postalCode   String  @db.VarChar(5)
+  note         String?
 
   // ยอดเงิน (สตางค์)
-  subtotalSatang  Int
-  shippingMethod  String                      // "std" | "express"
-  shippingName    String                      // "ส่งธรรมดา"
-  shippingSatang  Int
-  totalSatang     Int
+  subtotalSatang Int
+  shippingMethod String // "std" | "express"
+  shippingName   String // "ส่งธรรมดา"
+  shippingSatang Int
+  totalSatang    Int
 
   // จัดส่ง
-  carrier         String?
-  trackingNo      String?
-  shippedAt       DateTime?
+  carrier    String?
+  trackingNo String?
+  shippedAt  DateTime?
 
   rejectReason    String?
-  paidAt          DateTime?                   // เวลาที่แอดมินอนุมัติ
-  cancelReason    String?                     // เหตุผลยกเลิก/คืนเงิน
-  channel         String       @default("WEB") // WEB = ลูกค้าสั่งเอง · ADMIN = แอดมินสร้างให้ (โทร/LINE)
+  paidAt          DateTime? // เวลาที่แอดมินอนุมัติ
+  cancelReason    String? // เหตุผลยกเลิก/คืนเงิน
+  channel         String        @default("WEB") // WEB = ลูกค้าสั่งเอง · ADMIN = แอดมินสร้างให้ (โทร/LINE)
   /// ขอใบกำกับภาษีตอนสั่งซื้อ { kind: "COMPANY"|"PERSON", name, taxId, branch, address } — null = ไม่ขอ
   taxInvoice      Json?
+  // รอบ 3: คูปอง · วิธีชำระ (โอน/เก็บปลายทาง) · ค่าส่งพื้นที่ห่างไกล
+  couponCode      String?
+  discountSatang  Int           @default(0) // ส่วนลดคูปอง (หักก่อนรวมค่าส่ง)
+  paymentMethod   PaymentMethod @default(TRANSFER)
+  codFeeSatang    Int           @default(0)
+  remoteFeeSatang Int           @default(0) // รวมอยู่ใน shippingSatang แล้ว — เก็บแยกไว้แสดง
+  codSettledAt    DateTime? // ขนส่งโอนเงิน COD คืนร้านแล้ว
+  /// โทเคนลับสำหรับเปิด/พิมพ์ใบสั่งซื้อโดยไม่ต้องกรอกเบอร์ (43 ตัวอักษร base64url)
+  publicToken     String?       @unique
 
-  items           OrderItem[]
-  slips           PaymentSlip[]
-  events          OrderEvent[]
-  documents       SalesDocument[]             // ใบแจ้งหนี้/ใบเสร็จที่ออกจากคำสั่งซื้อนี้
+  items     OrderItem[]
+  coupon    CouponRedemption?
+  claims    Claim[]
+  notes     InternalNote[]
+  tasks     AdminTask[]
+  slips     PaymentSlip[]
+  events    OrderEvent[]
+  documents SalesDocument[] // ใบแจ้งหนี้/ใบเสร็จที่ออกจากคำสั่งซื้อนี้
 
-  customerId      String?
-  customer        Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([status, createdAt])                // คิว "รอตรวจสลิป" เรียงเก่าสุดก่อน
-  @@index([phone])                            // ค้นหา + หน้าติดตามคำสั่งซื้อ (เลขที่ + เบอร์โทร)
+  @@index([status, createdAt]) // คิว "รอตรวจสลิป" เรียงเก่าสุดก่อน
+  @@index([phone]) // ค้นหา + หน้าติดตามคำสั่งซื้อ (เลขที่ + เบอร์โทร)
   @@index([trackingNo])
+}
+
+enum PaymentMethod {
+  TRANSFER // โอน/พร้อมเพย์ + แนบสลิป
+  COD // เก็บเงินปลายทาง — ไม่ต้องแนบสลิป แอดมินยืนยันออเดอร์
 }
 
 model OrderItem {
@@ -232,8 +279,8 @@ model OrderItem {
   order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId    String?
   product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  nameSnapshot String                         // ชื่อ ณ ตอนสั่ง
-  priceSatang  Int                            // ราคาต่อชิ้น ณ ตอนสั่ง
+  nameSnapshot String // ชื่อ ณ ตอนสั่ง
+  priceSatang  Int // ราคาต่อชิ้น ณ ตอนสั่ง
   qty          Int
 
   @@index([orderId])
@@ -248,20 +295,20 @@ enum SlipStatus {
 }
 
 model PaymentSlip {
-  id            String      @id @default(cuid())
-  orderId       String
-  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  storageKey    String                        // path ใน local หรือ key ใน S3
-  mimeType      String
-  sizeBytes     Int
-  sha256        String                        // คำนวณฝั่ง server เท่านั้น ใช้จับสลิปซ้ำ
+  storageKey String // path ใน local หรือ key ใน S3
+  mimeType   String
+  sizeBytes  Int
+  sha256     String // คำนวณฝั่ง server เท่านั้น ใช้จับสลิปซ้ำ
 
-  declaredAmountSatang Int                    // ยอดที่ลูกค้ากรอก
-  transferredAt DateTime                      // วัน-เวลาโอนที่ลูกค้ากรอก
-  status        SlipStatus  @default(PENDING)
+  declaredAmountSatang Int // ยอดที่ลูกค้ากรอก
+  transferredAt        DateTime // วัน-เวลาโอนที่ลูกค้ากรอก
+  status               SlipStatus @default(PENDING)
 
-  uploadedAt    DateTime    @default(now())
+  uploadedAt DateTime @default(now())
 
   // ไม่ใส่ @unique ที่ sha256: ให้ระบบ "ติดธง" สลิปซ้ำให้แอดมินตัดสิน แทนการบล็อกเงียบๆ
   @@index([sha256])
@@ -279,20 +326,24 @@ enum OrderEventType {
   SHIPPED
   CANCELLED
   NOTE
-  EDITED    // แก้ที่อยู่/เบอร์/หมายเหตุ
-  REFUNDED  // คืนเงินหลังชำระแล้ว
+  EDITED // แก้ที่อยู่/เบอร์/หมายเหตุ
+  REFUNDED // คืนเงินหลังชำระแล้ว
+  CUSTOMER_CANCELLED // ลูกค้ายกเลิกเองก่อนชำระ
+  EMAILED // ส่งอีเมลแจ้งลูกค้า (note = แม่แบบ)
+  COD_CONFIRMED // แอดมินยืนยันออเดอร์เก็บเงินปลายทาง
+  COD_SETTLED // ขนส่งโอนเงิน COD คืนแล้ว
 }
 
 model OrderEvent {
-  id        String          @id @default(cuid())
+  id        String         @id @default(cuid())
   orderId   String
-  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   type      OrderEventType
   note      String?
-  adminId   String?                           // null = ลูกค้า/ระบบเป็นผู้ทำ
-  admin     Admin?          @relation(fields: [adminId], references: [id], onDelete: SetNull)
-  notified  Boolean         @default(false)   // แจ้งลูกค้าแล้วหรือไม่ (LINE Messaging API / SMS)
-  createdAt DateTime        @default(now())
+  adminId   String? // null = ลูกค้า/ระบบเป็นผู้ทำ
+  admin     Admin?         @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  notified  Boolean        @default(false) // แจ้งลูกค้าแล้วหรือไม่ (LINE Messaging API / SMS)
+  createdAt DateTime       @default(now())
 
   @@index([orderId, createdAt])
 }
@@ -301,69 +352,91 @@ model OrderEvent {
 
 /// แถวเดียว id = "shop" — แก้จากหน้า "ตั้งค่าร้าน" ในแอดมิน
 model ShopSetting {
-  id                 String   @id @default("shop")
+  id                 String  @id @default("shop")
   /// บัญชีรับโอน [{ bank: "KBANK", account: "4982105000", holder: "..." }]
-  bankAccounts       Json     @default("[]")
-  promptpayId        String?                  // เบอร์ 10 หลัก หรือเลข 13/15 หลัก — null = ไม่แสดง QR
+  bankAccounts       Json    @default("[]")
+  promptpayId        String? // เบอร์ 10 หลัก หรือเลข 13/15 หลัก — null = ไม่แสดง QR
   promptpayName      String
   /// ค่าส่งตามยอดสั่งซื้อ [{ minSatang: 0, feeSatang: 6000 }, …] — fee 0 = ส่งฟรี
-  shippingTiers      Json     @default("[]")
-  expressEnabled     Boolean  @default(false)
-  expressExtraSatang Int      @default(4000)  // ส่งด่วน = ค่าส่งตามยอด + ส่วนนี้
-  slipCheckWithin    String                   // "ภายใน 2 ชั่วโมง ในเวลาทำการ"
+  shippingTiers      Json    @default("[]")
+  expressEnabled     Boolean @default(false)
+  expressExtraSatang Int     @default(4000) // ส่งด่วน = ค่าส่งตามยอด + ส่วนนี้
+  slipCheckWithin    String // "ภายใน 2 ชั่วโมง ในเวลาทำการ"
   lineOaUrl          String?
   website            String?
   facebookUrl        String?
   youtubeUrl         String?
   tiktokUrl          String?
   businessHours      String?
-  newOrderSound      Boolean  @default(true)
+  newOrderSound      Boolean @default(true)
 
   // ผู้ส่ง / หัวเอกสาร (ใบปะหน้า + เอกสารขาย)
-  legalName          String   @default("ร้านมองดูเว็บ")
-  addressText        String                   // "88/2 หมู่ที่ 8 ตำบลบางกรวย อำเภอบางกรวย จังหวัดนนทบุรี 11130"
-  phone              String
-  lineId             String?                  // "@mongdoweb"
-  email              String?
-  taxId              String?  @db.VarChar(13)
-  branch             String?                  // "สำนักงานใหญ่" | "สาขาที่ 00001"
-  logoKey            String?                  // storage key ของโลโก้
+  legalName   String  @default("ร้านมองดูเว็บ")
+  addressText String // "88/2 หมู่ที่ 8 ตำบลบางกรวย อำเภอบางกรวย จังหวัดนนทบุรี 11130"
+  phone       String
+  lineId      String? // "@mongdoweb"
+  email       String?
+  taxId       String? @db.VarChar(13)
+  branch      String? // "สำนักงานใหญ่" | "สาขาที่ 00001"
+  logoKey     String? // storage key ของโลโก้
 
   // ภาษีและเลขเอกสาร
-  vatEnabled         Boolean  @default(false)
-  vatMode            VatMode  @default(EXCLUSIVE)
-  vatRateBp          Int      @default(700)   // 7.00% เก็บเป็น basis point
-  prefixQuote        String   @default("QT")
-  prefixInvoice      String   @default("IV")
-  prefixReceipt      String   @default("RC")
-  dateEra            DateEra  @default(AD)
-  quoteValidDays     Int      @default(30)
-  invoiceDueDays     Int      @default(7)
-  termsQuote         String?  @db.Text
-  termsInvoice       String?  @db.Text
-  termsReceipt       String?  @db.Text
-  showSignature      Boolean  @default(true)  // แสดงช่องลงชื่อท้ายเอกสาร
+  vatEnabled     Boolean @default(false)
+  vatMode        VatMode @default(EXCLUSIVE)
+  vatRateBp      Int     @default(700) // 7.00% เก็บเป็น basis point
+  prefixQuote    String  @default("QT")
+  prefixInvoice  String  @default("IV")
+  prefixReceipt  String  @default("RC")
+  dateEra        DateEra @default(AD)
+  quoteValidDays Int     @default(30)
+  invoiceDueDays Int     @default(7)
+  termsQuote     String? @db.Text
+  termsInvoice   String? @db.Text
+  termsReceipt   String? @db.Text
+  showSignature  Boolean @default(true) // แสดงช่องลงชื่อท้ายเอกสาร
 
   // หน้าร้าน: แถบประกาศ + วิเคราะห์การใช้งาน (โหลดเมื่อลูกค้ายินยอมคุกกี้เท่านั้น)
   announcementEnabled Boolean @default(true)
-  announcementText   String   @default("สั่งวันนี้ รับสินค้าภายใน 2–3 วัน · ชำระเงินด้วยการโอนและแนบสลิป")
-  announcementHref   String?
-  ga4Id              String?                  // "G-XXXXXXX"
-  metaPixelId        String?                  // ตัวเลข 15–16 หลัก
+  announcementText    String  @default("สั่งวันนี้ รับสินค้าภายใน 2–3 วัน · ชำระเงินด้วยการโอนและแนบสลิป")
+  announcementHref    String?
+  ga4Id               String? // "G-XXXXXXX"
+  metaPixelId         String? // ตัวเลข 15–16 หลัก
   /// คำถามที่พบบ่อย [{ q, a }]
-  faq                Json     @default("[]")
+  faq                 Json    @default("[]")
 
   // งานอัตโนมัติ (/api/cron/daily)
-  autoCancelDays     Int      @default(0)     // ยกเลิกคำสั่งซื้อที่ไม่แนบสลิปเกิน N วัน — 0 = ปิด
-  lowStockThreshold  Int      @default(5)
-  lineLowStock       Boolean  @default(true)  // แจ้ง LINE เมื่อสต็อกต่ำกว่าเกณฑ์
-  lineDailySummary   Boolean  @default(false) // สรุปประจำวันทาง LINE
+  autoCancelDays    Int     @default(0) // ยกเลิกคำสั่งซื้อที่ไม่แนบสลิปเกิน N วัน — 0 = ปิด
+  lowStockThreshold Int     @default(5)
+  lineLowStock      Boolean @default(true) // แจ้ง LINE เมื่อสต็อกต่ำกว่าเกณฑ์
+  lineDailySummary  Boolean @default(false) // สรุปประจำวันทาง LINE
 
-  updatedAt          DateTime @updatedAt
+  // รอบ 3: เก็บเงินปลายทาง · พื้นที่ห่างไกล · รับที่ร้าน · อีเมล · ความน่าเชื่อถือหน้าแรก · สำรองข้อมูล
+  codEnabled          Boolean  @default(false)
+  codFeeSatang        Int      @default(0)
+  codMaxSatang        Int      @default(0) // 0 = ไม่จำกัด
+  /// รหัสไปรษณีย์พื้นที่ห่างไกล (ตัวเลข 5 หลัก หรือขึ้นต้น เช่น "95" = ทั้งจังหวัดที่ขึ้นต้น 95)
+  remoteZips          String[] @default([])
+  remoteFeeSatang     Int      @default(0)
+  /// ค่าส่งตามน้ำหนัก [{ maxGram: 5000, extraSatang: 0 }, …] — ว่าง = ไม่ใช้
+  weightTiers         Json     @default("[]")
+  pickupEnabled       Boolean  @default(false)
+  pickupNote          String? // จุดรับ/เวลารับ เช่น "จ.–ส. 9:00–17:00 โทรนัดก่อน"
+  /// เวลาทำการแบบมีโครงสร้าง [{ day: 0–6, open: "09:00", close: "17:00" }] — ใช้กับสถานะ "ร้านเปิดอยู่"
+  openingHours        Json     @default("[]")
+  emailEnabled        Boolean  @default(false) // ส่งอีเมลลูกค้า (SMTP ตั้งใน env: SMTP_HOST/PORT/USER/PASSWORD/FROM)
+  /// แม่แบบอีเมล { ORDER_RECEIVED: { subject, body }, PAID: …, SHIPPED: … }
+  emailTemplates      Json     @default("{}")
+  /// ส่วนความน่าเชื่อถือหน้าแรก { logos: [{ name, key }], stats: [{ label, value }], showRating: true }
+  trust               Json     @default("{}")
+  /// ลำดับส่วนของหน้าแรก ["slides","categories","finder","bestsellers","trust","projects","posts"]
+  homeSections        Json     @default("[]")
+  backupRetentionDays Int      @default(14)
+
+  updatedAt DateTime @updatedAt
 }
 
 enum VatMode {
-  NONE      // ไม่คิด VAT
+  NONE // ไม่คิด VAT
   EXCLUSIVE // ราคาไม่รวม VAT → บวกเพิ่ม 7%
   INCLUSIVE // ราคารวม VAT แล้ว → ถอดภาษีออกมาแสดง
 }
@@ -381,27 +454,27 @@ enum SlideAlign {
 }
 
 model HeroSlide {
-  id          String     @id @default(cuid())
-  sortOrder   Int
-  isActive    Boolean    @default(false)    // ไม่ระบุ = ไม่แสดง (ตรงกับหน้าแรก)
-  imageKey    String?                       // รูปที่อัปโหลด (storage) …
-  imageUrl    String?                       // … หรือ URL https (เช่น Unsplash)
-  focalX      Int        @default(50)       // 0–100 (%)
-  focalY      Int        @default(50)
-  alt         String
-  eyebrow     String     @default("")
-  title       String
-  subtitle    String     @default("")
-  cta1Label   String
-  cta1Href    String
-  cta2Label   String?
-  cta2Href    String?
-  align       SlideAlign @default(LEFT)
-  overlay     Int        @default(55)       // 30–90 (หน้าแรกบังคับขั้นต่ำ 30)
-  startAt     DateTime?
-  endAt       DateTime?
-  credit      String     @default("")
-  updatedAt   DateTime   @updatedAt
+  id        String     @id @default(cuid())
+  sortOrder Int
+  isActive  Boolean    @default(false) // ไม่ระบุ = ไม่แสดง (ตรงกับหน้าแรก)
+  imageKey  String? // รูปที่อัปโหลด (storage) …
+  imageUrl  String? // … หรือ URL https (เช่น Unsplash)
+  focalX    Int        @default(50) // 0–100 (%)
+  focalY    Int        @default(50)
+  alt       String
+  eyebrow   String     @default("")
+  title     String
+  subtitle  String     @default("")
+  cta1Label String
+  cta1Href  String
+  cta2Label String?
+  cta2Href  String?
+  align     SlideAlign @default(LEFT)
+  overlay   Int        @default(55) // 30–90 (หน้าแรกบังคับขั้นต่ำ 30)
+  startAt   DateTime?
+  endAt     DateTime?
+  credit    String     @default("")
+  updatedAt DateTime   @updatedAt
 
   @@index([isActive, sortOrder])
 }
@@ -416,7 +489,7 @@ enum ContentKind {
 model ContentVersion {
   id          String      @id @default(cuid())
   kind        ContentKind
-  snapshot    Json                           // รายการทั้งชุด ณ ตอนเผยแพร่
+  snapshot    Json // รายการทั้งชุด ณ ตอนเผยแพร่
   publishedAt DateTime    @default(now())
   publishedBy String?
 
@@ -427,13 +500,17 @@ model ContentVersion {
 
 model AdminLog {
   id        String   @id @default(cuid())
-  type      String                           // LOGIN, SLIDES_PUBLISH, DOC_ISSUE, PAYMENT, …
+  type      String // LOGIN, SLIDES_PUBLISH, DOC_ISSUE, PAYMENT, …
   note      String?
+  entity    String? // "Product:<id>" | "Order:<orderNo>" | "ShopSetting" — ใช้กรองประวัติรายการ
+  /// การเปลี่ยนแปลง { field: [before, after] } — ไม่เก็บรหัสผ่าน/ความลับ
+  diff      Json?
   adminId   String?
   admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([entity, createdAt])
 }
 
 // =============================================================
@@ -446,28 +523,31 @@ enum CustomerKind {
 }
 
 model Customer {
-  id           String          @id @default(cuid())
-  code         String          @unique       // "0495" (รหัสลูกค้า 4 หลัก ตามเอกสารเดิม)
-  kind         CustomerKind    @default(PERSON)
-  name         String
-  taxId        String?         @db.VarChar(13) // ตรวจ checksum 13 หลัก
-  branch       String?                       // "สำนักงานใหญ่" | "สาขาที่ 00001"
-  contactName  String?
-  phone        String?
-  email        String?
-  addressLine  String?
-  subdistrict  String?
-  district     String?
-  province     String?
-  postalCode   String?         @db.VarChar(5)
-  shipTo       Json?                         // ที่อยู่จัดส่งแยก {name, phone, address}
-  note         String?
+  id          String         @id @default(cuid())
+  code        String         @unique // "0495" (รหัสลูกค้า 4 หลัก ตามเอกสารเดิม)
+  kind        CustomerKind   @default(PERSON)
+  name        String
+  taxId       String?        @db.VarChar(13) // ตรวจ checksum 13 หลัก
+  branch      String? // "สำนักงานใหญ่" | "สาขาที่ 00001"
+  contactName String?
+  phone       String?
+  email       String?
+  addressLine String?
+  subdistrict String?
+  district    String?
+  province    String?
+  postalCode  String?        @db.VarChar(5)
+  shipTo      Json? // ที่อยู่จัดส่งแยก {name, phone, address}
+  note        String?
+  tags        String[]       @default([]) // กลุ่มลูกค้า เช่น "ผู้รับเหมา", "VIP"
+  notes       InternalNote[]
+  tasks       AdminTask[]
 
-  documents    SalesDocument[]
-  orders       Order[]
+  documents SalesDocument[]
+  orders    Order[]
 
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([phone])
   @@index([taxId])
@@ -476,74 +556,77 @@ model Customer {
 
 enum DocType {
   QUOTATION // ใบเสนอราคา  (QT)
-  INVOICE   // ใบแจ้งหนี้/ใบวางบิล (IV)
-  RECEIPT   // ใบเสร็จรับเงิน (/ใบกำกับภาษี เมื่อเปิด VAT) (RC)
+  INVOICE // ใบแจ้งหนี้/ใบวางบิล (IV)
+  RECEIPT // ใบเสร็จรับเงิน (/ใบกำกับภาษี เมื่อเปิด VAT) (RC)
 }
 
 enum DocStatus {
-  DRAFT     // ยังไม่ออกเลขที่
-  ISSUED    // ออกแล้ว (QT รอตอบรับ / IV ค้างชำระ / RC ออกแล้ว)
-  ACCEPTED  // QT: ลูกค้าตอบรับ
-  REJECTED  // QT: ไม่ตอบรับ
-  PARTIAL   // IV: ชำระบางส่วน
-  PAID      // IV: ชำระครบ
-  VOID      // ยกเลิก — เก็บเลขที่ไว้ ห้ามลบ
+  DRAFT // ยังไม่ออกเลขที่
+  ISSUED // ออกแล้ว (QT รอตอบรับ / IV ค้างชำระ / RC ออกแล้ว)
+  ACCEPTED // QT: ลูกค้าตอบรับ
+  REJECTED // QT: ไม่ตอบรับ
+  PARTIAL // IV: ชำระบางส่วน
+  PAID // IV: ชำระครบ
+  VOID // ยกเลิก — เก็บเลขที่ไว้ ห้ามลบ
 }
 
 /// เลขที่เอกสาร: PREFIX + YYMM + "-" + เลขรัน 5 หลัก (QT2610-00001) รีเซ็ตทุกเดือน
 /// จองเลขใน transaction เดียวกับการออกเอกสาร (UPDATE … SET next = next + 1) — ห้ามนับจาก MAX(no)
 model DocSequence {
-  type    DocType
-  period  String   @db.VarChar(4)            // "2610"
-  next    Int      @default(1)
+  type   DocType
+  period String  @db.VarChar(4) // "2610"
+  next   Int     @default(1)
 
   @@id([type, period])
 }
 
 model SalesDocument {
-  id               String          @id @default(cuid())
-  type             DocType
-  docNo            String?         @unique   // null ระหว่างเป็นฉบับร่าง
-  status           DocStatus       @default(DRAFT)
-  issueDate        DateTime?
-  validUntil       DateTime?                 // QT: ยืนราคาถึง
-  dueDate          DateTime?                 // IV: ครบกำหนดชำระ
+  id         String    @id @default(cuid())
+  type       DocType
+  docNo      String?   @unique // null ระหว่างเป็นฉบับร่าง
+  status     DocStatus @default(DRAFT)
+  issueDate  DateTime?
+  validUntil DateTime? // QT: ยืนราคาถึง
+  dueDate    DateTime? // IV: ครบกำหนดชำระ
 
   customerId       String?
-  customer         Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  customerSnapshot Json                      // ชื่อ ที่อยู่ เลขผู้เสียภาษี สาขา ณ วันที่ออก (เอกสารต้องไม่เปลี่ยนตามข้อมูลลูกค้าใหม่)
+  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerSnapshot Json // ชื่อ ที่อยู่ เลขผู้เสียภาษี สาขา ณ วันที่ออก (เอกสารต้องไม่เปลี่ยนตามข้อมูลลูกค้าใหม่)
 
   // ยอดเงิน (สตางค์) — คำนวณฝั่ง server จากรายการเสมอ
-  subtotalSatang   Int             @default(0)
-  discountSatang   Int             @default(0)
-  vatMode          VatMode         @default(NONE)
-  vatRateBp        Int             @default(0)
-  vatSatang        Int             @default(0)
-  grandSatang      Int             @default(0)
-  paidSatang       Int             @default(0) // IV: รวมที่รับชำระแล้ว
+  subtotalSatang Int     @default(0)
+  discountSatang Int     @default(0)
+  vatMode        VatMode @default(NONE)
+  vatRateBp      Int     @default(0)
+  vatSatang      Int     @default(0)
+  grandSatang    Int     @default(0)
+  paidSatang     Int     @default(0) // IV: รวมที่รับชำระแล้ว
 
-  paymentMethod    String?                   // เงินสด, โอนเงินผ่านธนาคาร, QR PromptPay
-  paymentTerms     String?
-  carrier          String?                   // EMS, Kerry …
-  note             String?         @db.Text  // แสดงบนเอกสาร
-  internalNote     String?         @db.Text  // ภายในร้านเท่านั้น
-  voidReason       String?
-  publicToken      String?         @unique   // ลิงก์ให้ลูกค้าดู/พิมพ์เอกสาร (/track/receipt/:id?t=) — สุ่ม 32 ไบต์
+  paymentMethod String? // เงินสด, โอนเงินผ่านธนาคาร, QR PromptPay
+  paymentTerms  String?
+  carrier       String? // EMS, Kerry …
+  note          String?   @db.Text // แสดงบนเอกสาร
+  internalNote  String?   @db.Text // ภายในร้านเท่านั้น
+  voidReason    String?
+  publicToken   String?   @unique // ลิงก์ให้ลูกค้าดู/พิมพ์เอกสาร (/track/receipt/:id?t=) — สุ่ม 32 ไบต์
+  acceptedAt    DateTime? // QT: ลูกค้ากดยืนยันออนไลน์ (U25)
+  acceptedBy    String? // ชื่อผู้ยืนยันที่ลูกค้ากรอก
 
   // ความเชื่อมโยง QT → IV → RC และคำสั่งซื้อเว็บ
-  sourceId         String?
-  source           SalesDocument?  @relation("DocChain", fields: [sourceId], references: [id], onDelete: SetNull)
-  derived          SalesDocument[] @relation("DocChain")
-  orderId          String?
-  order            Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  sourceId String?
+  source   SalesDocument?  @relation("DocChain", fields: [sourceId], references: [id], onDelete: SetNull)
+  derived  SalesDocument[] @relation("DocChain")
+  orderId  String?
+  order    Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
-  items            SalesDocumentItem[]
-  payments         DocPayment[]    @relation("InvoicePayments")
-  receiptFor       DocPayment?     @relation("PaymentReceipt")
-  events           SalesDocumentEvent[]
+  items      SalesDocumentItem[]
+  payments   DocPayment[]         @relation("InvoicePayments")
+  receiptFor DocPayment?          @relation("PaymentReceipt")
+  events     SalesDocumentEvent[]
+  slips      DocSlip[]
 
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type, status, issueDate])
   @@index([customerId])
@@ -557,11 +640,11 @@ model SalesDocumentItem {
   sortOrder      Int
   productId      String?
   product        Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
-  sku            String?                       // snapshot: "DL1-ww", "Shipping"
-  name           String                        // snapshot
+  sku            String? // snapshot: "DL1-ww", "Shipping"
+  name           String // snapshot
   detail         String?
-  unit           String                        // อัน, ชุด, กล่อง
-  qtyMilli       Int                           // จำนวน ×1000 (รองรับ 2.5 เมตร)
+  unit           String // อัน, ชุด, กล่อง
+  qtyMilli       Int // จำนวน ×1000 (รองรับ 2.5 เมตร)
   priceSatang    Int
   discountSatang Int           @default(0)
 
@@ -570,17 +653,17 @@ model SalesDocumentItem {
 
 /// การรับชำระของใบแจ้งหนี้ — 1 ครั้ง = ใบเสร็จ 1 ใบ (รองรับชำระบางส่วน)
 model DocPayment {
-  id          String         @id @default(cuid())
-  invoiceId   String
-  invoice     SalesDocument  @relation("InvoicePayments", fields: [invoiceId], references: [id], onDelete: Cascade)
-  receiptId   String?        @unique
-  receipt     SalesDocument? @relation("PaymentReceipt", fields: [receiptId], references: [id], onDelete: SetNull)
-  paidAt      DateTime
+  id           String         @id @default(cuid())
+  invoiceId    String
+  invoice      SalesDocument  @relation("InvoicePayments", fields: [invoiceId], references: [id], onDelete: Cascade)
+  receiptId    String?        @unique
+  receipt      SalesDocument? @relation("PaymentReceipt", fields: [receiptId], references: [id], onDelete: SetNull)
+  paidAt       DateTime
   amountSatang Int
-  method      String
-  reference   String?                         // เลขอ้างอิงการโอน / เลขเช็ค
-  voided      Boolean        @default(false)  // ยกเลิกใบเสร็จของงวดนี้ → ไม่นับเป็นยอดชำระ
-  createdAt   DateTime       @default(now())
+  method       String
+  reference    String? // เลขอ้างอิงการโอน / เลขเช็ค
+  voided       Boolean        @default(false) // ยกเลิกใบเสร็จของงวดนี้ → ไม่นับเป็นยอดชำระ
+  createdAt    DateTime       @default(now())
 
   @@index([invoiceId])
 }
@@ -595,6 +678,8 @@ enum DocEventType {
   PRINTED
   VOIDED
   NOTE
+  CUSTOMER_ACCEPTED // ลูกค้ายืนยันใบเสนอราคาผ่านลิงก์
+  SLIP_UPLOADED // ลูกค้าแนบสลิปผ่านลิงก์ใบแจ้งหนี้
 }
 
 model SalesDocumentEvent {
@@ -613,22 +698,22 @@ model SalesDocumentEvent {
 // ---------- แจ้งเตือน LINE (Messaging API) ----------
 
 enum LineTargetKind {
-  USER  // แชต 1:1 กับ LINE OA (เพิ่มเพื่อน)
+  USER // แชต 1:1 กับ LINE OA (เพิ่มเพื่อน)
   GROUP // กลุ่ม LINE ของร้านที่เชิญ OA เข้าไป
   ROOM
 }
 
 /// ผู้รับแจ้งเตือนของร้าน — ได้มาจาก webhook (เชิญเข้ากลุ่ม / พิมพ์ "ลงทะเบียน") แล้วแอดมินต้องกดเปิดใช้เองเท่านั้น
 model LineRecipient {
-  id        String         @id @default(cuid())
-  kind      LineTargetKind
-  lineId    String         @unique        // userId / groupId / roomId จาก LINE
-  name      String                        // ชื่อโปรไฟล์ / ชื่อกลุ่ม (ถ้าดึงได้)
-  enabled   Boolean        @default(false)
+  id         String         @id @default(cuid())
+  kind       LineTargetKind
+  lineId     String         @unique // userId / groupId / roomId จาก LINE
+  name       String // ชื่อโปรไฟล์ / ชื่อกลุ่ม (ถ้าดึงได้)
+  enabled    Boolean        @default(false)
   lastSentAt DateTime?
-  lastError String?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  lastError  String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 }
 
 // ---------- สต็อก ----------
@@ -638,10 +723,10 @@ model StockMovement {
   id        String   @id @default(cuid())
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  change    Int                               // + เพิ่ม / − ลด
-  balance   Int                               // สต็อกหลังเปลี่ยน
-  reason    String                            // SALE | CANCEL | RESTOCK | COUNT | ADJUST | IMPORT
-  ref       String?                           // เลขที่คำสั่งซื้อ/เอกสาร
+  change    Int // + เพิ่ม / − ลด
+  balance   Int // สต็อกหลังเปลี่ยน
+  reason    String // SALE | CANCEL | RESTOCK | COUNT | ADJUST | IMPORT
+  ref       String? // เลขที่คำสั่งซื้อ/เอกสาร
   note      String?
   adminId   String?
   admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
@@ -670,7 +755,7 @@ model Inquiry {
   kind        InquiryKind
   status      InquiryStatus @default(NEW)
   name        String
-  phone       String                          // ตัวเลขล้วน
+  phone       String // ตัวเลขล้วน
   email       String?
   company     String?
   message     String        @db.Text
@@ -678,9 +763,9 @@ model Inquiry {
   items       Json          @default("[]")
   /// รูปแนบ (storage keys) เช่น รูปพื้นที่ติดตั้ง
   attachments Json          @default("[]")
-  note        String?       @db.Text          // โน้ตภายในร้าน
+  note        String?       @db.Text // โน้ตภายในร้าน
   customerId  String?
-  quotationId String?                         // QT ที่สร้างจากคำขอนี้
+  quotationId String? // QT ที่สร้างจากคำขอนี้
   ipHash      String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -697,4 +782,432 @@ model Page {
   body      String   @db.Text
   updatedBy String?
   updatedAt DateTime @updatedAt
+}
+
+// =============================================================
+// รอบ 3
+// =============================================================
+
+/// เลขรันทั่วไป (ใบสั่งซื้อ PO, เคลม CL, …) — PREFIX + YYMM + "-" + 5 หลัก รีเซ็ตรายเดือน จองใน transaction
+model Sequence {
+  key    String // "PO" | "CL"
+  period String @db.VarChar(4) // "2610"
+  next   Int    @default(1)
+
+  @@id([key, period])
+}
+
+// ---------- สินค้า: ตัวเลือก สเปก รีวิว แจ้งเมื่อมีของ ----------
+
+/// กลุ่มสินค้าหลายตัวเลือก (U1/A1) — แต่ละตัวเลือกยังเป็น Product แยก (สต็อก/SKU ของตัวเอง)
+model VariantGroup {
+  id          String    @id @default(cuid())
+  name        String // ชื่อกลาง เช่น "ไฟใต้น้ำ PAR56"
+  optionNames String[] // ["สี", "วัตต์"] เรียงตามที่แสดง
+  /// สินค้าหลักของกลุ่ม (canonical) — null = ตัวแรกที่เปิดขาย
+  primaryId   String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum AttrType {
+  TEXT
+  NUMBER
+  ENUM
+}
+
+/// สเปกที่กำหนดต่อหมวด (A5) — categoryId null = ใช้ทุกหมวด
+model SpecAttribute {
+  id         String    @id @default(cuid())
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  code       String // "ip", "voltage", "watt", "cct", "beam", "material"
+  label      String // "ระดับกันน้ำ"
+  unit       String? // "W", "V", "K", "°"
+  type       AttrType  @default(TEXT)
+  options    String[]  @default([]) // ค่าที่เลือกได้ (ENUM)
+  filterable Boolean   @default(true)
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@unique([categoryId, code])
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  HIDDEN
+}
+
+/// รีวิวจากผู้ซื้อจริง (U4/A4) — ยืนยันด้วยเลขคำสั่งซื้อ + เบอร์ ต่อสินค้าได้ครั้งเดียว
+model Review {
+  id        String       @id @default(cuid())
+  productId String
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderId   String?
+  name      String // ชื่อที่แสดง (ย่อ)
+  phone     String // ตัวเลขล้วน — ไม่แสดงหน้าร้าน
+  rating    Int // 1–5
+  body      String       @db.Text
+  images    String[]     @default([]) // storage keys (prefix "reviews/")
+  status    ReviewStatus @default(PENDING)
+  reply     String?      @db.Text
+  repliedAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([orderId, productId])
+  @@index([productId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+/// แจ้งเมื่อมีของ (U9/A7)
+model StockAlert {
+  id         String    @id @default(cuid())
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String?
+  phone      String? // ตัวเลขล้วน
+  lineId     String?
+  email      String?
+  notifiedAt DateTime? // ร้านแจ้งลูกค้าแล้ว
+  createdAt  DateTime  @default(now())
+
+  @@index([productId, notifiedAt])
+}
+
+// ---------- โปรโมชัน ----------
+
+enum CouponKind {
+  PERCENT // value = basis point (1000 = 10%)
+  FIXED // value = สตางค์
+}
+
+/// คูปอง (U2/A2) — ตรวจและคิดส่วนลดที่เซิร์ฟเวอร์เท่านั้น
+model Coupon {
+  id                String             @id @default(cuid())
+  code              String             @unique // ตัวพิมพ์ใหญ่ A–Z 0–9 -
+  kind              CouponKind
+  value             Int
+  minOrderSatang    Int                @default(0)
+  maxDiscountSatang Int? // เพดานส่วนลด (สำหรับ %)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  usageLimit        Int? // ทั้งหมด — null = ไม่จำกัด
+  perPhoneLimit     Int? // ต่อเบอร์
+  usedCount         Int                @default(0)
+  categoryIds       String[]           @default([]) // ว่าง = ทุกหมวด
+  isActive          Boolean            @default(true)
+  note              String?
+  redemptions       CouponRedemption[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model CouponRedemption {
+  id             String   @id @default(cuid())
+  couponId       String
+  coupon         Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  orderId        String   @unique
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  phone          String
+  discountSatang Int
+  createdAt      DateTime @default(now())
+
+  @@index([couponId, phone])
+}
+
+// ---------- เนื้อหา: ผลงาน บทความ ----------
+
+/// ผลงานติดตั้ง (U12/A9)
+model Project {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  summary     String?
+  body        String    @db.Text // รูปแบบเดียวกับ Page.body
+  kind        String? // "สระว่ายน้ำ", "น้ำพุ", "อาคาร"
+  location    String?
+  images      String[]  @default([])
+  productIds  String[]  @default([])
+  isPublished Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isPublished, sortOrder])
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED // แสดงเมื่อ publishAt <= ตอนนี้ (ตั้งเวลาได้)
+}
+
+/// บทความ (U13/A10)
+model Post {
+  id             String     @id @default(cuid())
+  slug           String     @unique
+  title          String
+  excerpt        String?
+  body           String     @db.Text
+  coverKey       String?
+  seoTitle       String?
+  seoDescription String?
+  status         PostStatus @default(DRAFT)
+  publishAt      DateTime?
+  productIds     String[]   @default([])
+  tags           String[]   @default([])
+  wpId           Int?       @unique // ID บทความในเว็บเดิม (?p=)
+  legacyPath     String?    @unique // URL เดิม — redirect 301
+  authorName     String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([status, publishAt])
+}
+
+// ---------- ค้นหา / SEO ----------
+
+/// กลุ่มคำพ้อง (A11) เช่น ["ไฟใต้น้ำ","underwater","ไฟสระ"]
+model SearchSynonym {
+  id        String   @id @default(cuid())
+  words     String[]
+  createdAt DateTime @default(now())
+}
+
+/// บันทึกคำค้น (U15/A11) — เก็บคำ (ตัดช่องว่าง ตัวพิมพ์เล็ก) + จำนวนผล ไม่เก็บข้อมูลผู้ใช้
+model SearchLog {
+  id        String   @id @default(cuid())
+  query     String
+  results   Int
+  createdAt DateTime @default(now())
+
+  @@index([results, createdAt])
+  @@index([query])
+}
+
+enum RedirectSource {
+  MANUAL // แอดมินสร้าง
+  SLUG // เปลี่ยน slug สินค้า/หมวด/บทความ
+  NOT_FOUND // สร้างจากบันทึก 404
+}
+
+/// redirect 301 (A13/A14) — ตรวจใน proxy ก่อน 404
+model Redirect {
+  id        String         @id @default(cuid())
+  fromPath  String         @unique // path ที่ decode แล้ว ไม่มี query เช่น "/product/old-slug"
+  toPath    String
+  source    RedirectSource @default(MANUAL)
+  hits      Int            @default(0)
+  lastHitAt DateTime?
+  createdAt DateTime       @default(now())
+}
+
+/// หน้า 404 ที่ถูกเรียก (A14)
+model NotFoundLog {
+  path    String   @id
+  hits    Int      @default(1)
+  referer String?
+  lastAt  DateTime @default(now())
+
+  @@index([hits])
+}
+
+// ---------- หลังการขาย ----------
+
+enum ClaimKind {
+  WARRANTY // เคลมประกัน 1 ปี
+  RETURN // คืน/เปลี่ยน 7 วัน (เสียหายจากขนส่ง)
+}
+
+enum ClaimStatus {
+  NEW
+  REVIEWING
+  APPROVED
+  REJECTED
+  RESOLVED
+}
+
+/// เคลม/คืนสินค้า (U16/U17/A16) — เลขที่ CL+YYMM-NNNNN จาก Sequence
+model Claim {
+  id         String      @id @default(cuid())
+  claimNo    String      @unique
+  kind       ClaimKind
+  status     ClaimStatus @default(NEW)
+  orderId    String?
+  order      Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  name       String
+  phone      String // ตัวเลขล้วน
+  /// สินค้าที่เคลม [{ productId, name, qty }]
+  items      Json        @default("[]")
+  issue      String      @db.Text
+  images     String[]    @default([]) // storage keys (prefix "claims/")
+  inWarranty Boolean? // คำนวณจากวันที่ชำระ — null = ไม่พบคำสั่งซื้อ
+  resolution String?     @db.Text // แจ้งลูกค้า
+  note       String?     @db.Text // ภายในร้าน
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([status, createdAt])
+  @@index([phone])
+}
+
+/// สลิปที่ลูกค้าแนบผ่านลิงก์ใบแจ้งหนี้ (U26/A20)
+model DocSlip {
+  id            String        @id @default(cuid())
+  documentId    String
+  document      SalesDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  storageKey    String
+  mimeType      String
+  sizeBytes     Int
+  sha256        String
+  amountSatang  Int
+  transferredAt DateTime
+  status        SlipStatus    @default(PENDING)
+  rejectReason  String?
+  paymentId     String? // DocPayment ที่สร้างตอนอนุมัติ
+  createdAt     DateTime      @default(now())
+
+  @@index([status, createdAt])
+  @@index([sha256])
+}
+
+enum DataRequestKind {
+  ACCESS // ขอดู/ขอสำเนา
+  DELETE // ขอลบ
+  CORRECT // ขอแก้ไข
+  OBJECT // คัดค้าน/ถอนความยินยอม
+}
+
+enum DataRequestStatus {
+  NEW
+  DONE
+  REJECTED
+}
+
+/// คำขอใช้สิทธิ์ตาม PDPA (U28/A24)
+model DataRequest {
+  id        String            @id @default(cuid())
+  kind      DataRequestKind
+  status    DataRequestStatus @default(NEW)
+  name      String
+  phone     String
+  email     String?
+  detail    String            @db.Text
+  result    String?           @db.Text // สิ่งที่ร้านทำ (แจ้งผู้ขอ)
+  handledBy String?
+  handledAt DateTime?
+  ipHash    String?
+  createdAt DateTime          @default(now())
+
+  @@index([status, createdAt])
+}
+
+/// อีเมลที่ส่ง (U23/A19)
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  template  String // ORDER_RECEIVED | PAID | SHIPPED | TEST
+  orderId   String?
+  status    String // SENT | FAILED | SKIPPED
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// ---------- จัดซื้อ / งานภายใน ----------
+
+enum PoStatus {
+  DRAFT
+  ORDERED
+  PARTIAL // รับของบางส่วน
+  RECEIVED
+  CANCELLED
+}
+
+/// ใบสั่งซื้อถึงผู้ขาย (A21) — PO+YYMM-NNNNN จาก Sequence
+model PurchaseOrder {
+  id              String              @id @default(cuid())
+  poNo            String?             @unique // ออกเลขเมื่อสั่งซื้อ
+  status          PoStatus            @default(DRAFT)
+  supplierName    String
+  supplierContact String?
+  note            String?             @db.Text
+  totalSatang     Int                 @default(0)
+  orderedAt       DateTime?
+  receivedAt      DateTime?
+  createdById     String?
+  createdBy       Admin?              @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  items           PurchaseOrderItem[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model PurchaseOrderItem {
+  id          String        @id @default(cuid())
+  poId        String
+  po          PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name        String
+  qty         Int
+  costSatang  Int // ต้นทุนต่อหน่วย
+  receivedQty Int           @default(0)
+
+  @@index([poId])
+}
+
+/// โน้ตภายใน (A25) ผูกกับคำสั่งซื้อหรือลูกค้า
+model InternalNote {
+  id         String    @id @default(cuid())
+  body       String    @db.Text
+  adminId    String?
+  admin      Admin?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  orderId    String?
+  order      Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([customerId, createdAt])
+}
+
+/// งานที่ต้องทำ (A25)
+model AdminTask {
+  id          String    @id @default(cuid())
+  title       String
+  body        String?   @db.Text
+  done        Boolean   @default(false)
+  dueAt       DateTime?
+  doneAt      DateTime?
+  createdById String?
+  createdBy   Admin?    @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  assigneeId  String?
+  assignee    Admin?    @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  orderId     String?
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  @@index([done, dueAt])
+  @@index([assigneeId, done])
+}
+
+/// สำรองข้อมูลอัตโนมัติ (A26)
+model BackupRun {
+  id        String   @id @default(cuid())
+  key       String? // storage key (prefix "backups/")
+  sizeBytes Int?
+  status    String // OK | FAILED
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

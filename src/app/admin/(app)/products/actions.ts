@@ -2,7 +2,7 @@
 // เพิ่ม/แก้ไข/ลบสินค้า — ราคาเป็นสตางค์, คำอธิบายล้าง HTML, รูปย่อเป็น WebP, ล้างแคชหน้าร้าน
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
-import type { LightColor, UseArea } from "../../../../../generated/prisma/client";
+import { Prisma, type LightColor, type UseArea } from "../../../../../generated/prisma/client";
 import { logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin, requireOwner } from "@/lib/auth";
 import { sanitizeDescription } from "@/lib/html";
@@ -189,10 +189,12 @@ export async function duplicateProduct(f: FormData) {
     sku = `${p.sku}-copy${n}`.slice(0, 60);
     slug = `${p.slug}-copy${n}`.slice(0, 100);
   }
-  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, specs, ...rest } = p;
-  void [_id, _c, _u, _w, _l, _v, _s];
+  // สำเนาไม่รับรีวิว/คะแนน ไม่อยู่ในกลุ่มตัวเลือกเดิม (ค่าตัวเลือกจะซ้ำกัน)
+  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, ratingAvg: _ra, ratingCount: _rc, variantGroupId: _vg, variantOptions: _vo, specs, tierPrices, attrs, downloads, ...rest } = p;
+  void [_id, _c, _u, _w, _l, _v, _s, _ra, _rc, _vg, _vo];
+  const json = (v: Prisma.JsonValue) => (v === null ? Prisma.DbNull : (v as Prisma.InputJsonValue));
   const copy = await prisma.product.create({
-    data: { ...rest, specs: specs ?? undefined, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
+    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), downloads: downloads as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
   });
   await logAdmin(admin.id, "PRODUCT", `ทำสำเนาสินค้า ${p.sku} → ${sku}`);
   redirect(`/admin/products/${copy.id}?copied=1`);

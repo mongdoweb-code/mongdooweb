@@ -5,6 +5,7 @@ import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isValidThaiTaxId, phoneDigits } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
+import { unitPriceSatang } from "@/lib/pricing";
 import { bankLabel, freeShipFrom, getSettings, parseBankAccounts, parseShippingTiers, shippingFee, shippingOptions } from "@/lib/settings";
 import { PROVINCE_ZIP, isThaiPhone, normalizeProvince, zipMatchesProvince } from "@/lib/thai-address";
 import { sniffImage, storage } from "@/lib/storage";
@@ -67,7 +68,7 @@ export async function validateCart(items: unknown, seenPrices: unknown) {
     const p = bySlug.get(slug);
     if (!p || !p.isActive || p.isService || !p.category.isActive)
       return { id: slug, name: p?.name ?? "", price: 0, qty: 0, wanted: qty, maxQty: 0, color: "any", status: "gone" };
-    const price = p.priceSatang / 100;
+    const price = unitPriceSatang(p, qty) / 100;
     const img = mediaUrl(p.images[0], "sm") ?? undefined;
     const base = {
       id: slug, name: p.name, price, wanted: qty, maxQty: p.trackStock ? Math.max(0, p.stock) : null, color: p.lightColor.toLowerCase(),
@@ -77,7 +78,7 @@ export async function validateCart(items: unknown, seenPrices: unknown) {
     if (p.trackStock ? p.stock <= 0 : !p.inStock) return { ...base, qty: 0, status: "out" };
     if (p.trackStock && p.stock < qty) return { ...base, qty: p.stock, status: "qty" };
     const old = Number(seen[slug]);
-    if (Number.isFinite(old) && old > 0 && Math.round(old * 100) !== p.priceSatang) return { ...base, qty, status: "price", oldPrice: old };
+    if (Number.isFinite(old) && old > 0 && Math.round(old * 100) !== unitPriceSatang(p, qty)) return { ...base, qty, status: "price", oldPrice: old };
     return { ...base, qty, status: "ok" };
   });
   const s = await getSettings();
@@ -241,7 +242,7 @@ export async function saveCheckoutOrder(input: {
   }
   const items = wanted.map(([slug, qty]) => {
     const p = bySlug.get(slug)!;
-    return { productId: p.id, nameSnapshot: p.name, priceSatang: p.priceSatang, qty };
+    return { productId: p.id, nameSnapshot: p.name, priceSatang: unitPriceSatang(p, qty), qty };
   });
 
   const settings = await getSettings();
