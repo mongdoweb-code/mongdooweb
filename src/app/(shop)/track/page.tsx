@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageHead } from "../_components/PageHead";
 import { TrackForm } from "./TrackForm";
+import "../_lot11/lot11.css";
 
 export const metadata: Metadata = {
   title: "ติดตามคำสั่งซื้อ — มองดูเว็บ",

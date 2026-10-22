@@ -281,3 +281,23 @@ input,select,textarea{font-family:inherit;font-size:16px;color:var(--c-ink)}
   .done-ids div,.done-addr{background:#fff;border:1px solid #ccc}
   .done-sec{break-inside:avoid}
 }
+
+/* ---------- รอบ 3: คูปอง · รับที่ร้าน · เก็บเงินปลายทาง ---------- */
+.coupon{margin:14px 0 4px;display:grid;gap:6px}
+.coupon label{font-size:14px;font-weight:500}
+.coupon-row{display:flex;gap:8px}
+.coupon-row input{flex:1;min-width:0;height:44px;border:1.5px solid var(--c-line);padding:0 12px;background:#fff;text-transform:uppercase;outline:none}
+.coupon-row input:focus{border-color:var(--c-ink)}
+.coupon-row .btn{height:44px;padding:0 14px;white-space:nowrap}
+.coupon-msg{font-size:13px;min-height:0;margin:0}
+.coupon-msg.bad{color:var(--c-err)}
+.coupon-msg.ok{color:var(--c-ok);font-weight:600}
+.rows .disc{color:var(--c-ok)}
+.rows em{font-style:normal;font-size:12px;background:var(--c-cream);padding:1px 6px;margin-left:4px;color:var(--c-ink)}
+.rows small{font-size:12px}
+.pickup-box{border:1.5px dashed var(--c-line);background:#FCFBF9;padding:14px 16px;margin:4px 0 14px;display:grid;gap:4px;font-size:14px}
+.pickup-box span{color:var(--c-muted)}
+.pay-err{color:var(--c-err);font-size:13px;margin:6px 0 0}
+.pay-err:empty{display:none}
+.cod-pane{border:1.5px solid var(--c-ink);background:#FCFBF9;padding:18px;margin-bottom:8px;display:grid;gap:8px;font-size:15px}
+.cod-pane .note{margin:0}

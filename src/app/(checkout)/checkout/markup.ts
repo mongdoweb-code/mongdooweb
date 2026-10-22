@@ -70,6 +70,7 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
           ${field("phone", "เบอร์โทรศัพท์ <i>(มือถือหรือเบอร์บ้าน)</i>", '<input inputmode="tel" autocomplete="tel" placeholder="08X-XXX-XXXX" required>', "เบอร์โทรไม่ถูกต้อง")}
         </div>
         ${field("email", "อีเมล <i>(ไม่บังคับ — สำหรับรับใบยืนยันคำสั่งซื้อ)</i>", '<input type="email" autocomplete="email">', "รูปแบบอีเมลไม่ถูกต้อง")}
+        <div id="addrBox">
         ${field("addr", "ที่อยู่ <i>(บ้านเลขที่ หมู่บ้าน ถนน ซอย)</i>", '<input autocomplete="street-address" required>', "กรุณากรอกบ้านเลขที่ และถนน/ซอย")}
         <div class="grid2">
           ${field("sub", "แขวง / ตำบล", '<input required>', "กรุณากรอกแขวง/ตำบล")}
@@ -79,6 +80,8 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
           ${field("prov", "จังหวัด", `<select autocomplete="address-level1" required>${provinceOptions}</select>`, "กรุณาเลือกจังหวัดจากรายการ")}
           ${field("zip", "รหัสไปรษณีย์", '<input inputmode="numeric" maxlength="5" autocomplete="postal-code" required>', "รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก")}
         </div>
+        </div>
+        <div class="pickup-box" id="pickupBox" hidden><b>รับสินค้าที่ร้าน — ไม่ต้องกรอกที่อยู่</b><span id="pickupNote"></span></div>
         ${field("note", "หมายเหตุถึงร้าน <i>(ไม่บังคับ)</i>", '<textarea placeholder="เช่น ฝากไว้ที่ป้อมยาม, โทรก่อนส่ง"></textarea>', "")}
 
         <label class="check" for="wantTax"><input type="checkbox" id="wantTax" aria-controls="taxBox"><span><b>ต้องการใบกำกับภาษี / ใบเสร็จในนามบริษัท</b><small>ร้านจะออกเอกสารตามข้อมูลนี้เมื่อตรวจสลิปแล้ว</small></span></label>
@@ -100,7 +103,13 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
         </fieldset>
 
         <h3>วิธีจัดส่ง</h3>
-        <div class="ship-opts" id="shipOpts"></div>
+        <div class="ship-opts" id="shipOpts" role="radiogroup" aria-label="วิธีจัดส่ง"></div>
+
+        <div id="payBox" hidden>
+          <h3>วิธีชำระเงิน</h3>
+          <div class="ship-opts" id="payOpts" role="radiogroup" aria-label="วิธีชำระเงิน"></div>
+          <p class="pay-err" id="err-payment" role="alert"></p>
+        </div>
 
         <label class="check remember" for="remember"><input type="checkbox" id="remember"><span><b>จำชื่อและที่อยู่นี้ไว้ในเครื่องนี้</b><small>สำหรับการสั่งซื้อครั้งถัดไป · เก็บเฉพาะในเบราว์เซอร์นี้ และลบได้ทุกเมื่อ</small></span></label>
 
@@ -120,7 +129,13 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
           <div class="ord"><span>เลขที่คำสั่งซื้อ</span><b id="orderNo">-</b></div>
         </div>
 
-        <div class="tabs" role="tablist">
+        <div class="cod-pane" id="codPane" hidden>
+          <b>เก็บเงินปลายทาง (COD)</b>
+          <p>ชำระเงินสดกับพนักงานขนส่งเมื่อได้รับสินค้า ยอดที่ต้องเตรียม <b id="codAmount">฿0</b> (รวมค่าธรรมเนียมเก็บเงินปลายทางแล้ว)</p>
+          <p class="note">กด "ยืนยันสั่งซื้อ" แล้วร้านจะโทรยืนยันคำสั่งซื้อก่อนจัดส่ง · ไม่ต้องแนบสลิป</p>
+        </div>
+
+        <div class="tabs" role="tablist" id="payTabs">
           <button type="button" class="tab on" data-tab="qr" role="tab" aria-selected="true">QR PromptPay</button>
           <button type="button" class="tab" data-tab="bank" role="tab" aria-selected="false">โอนเข้าบัญชีธนาคาร</button>
         </div>
@@ -144,9 +159,12 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
 
         <div class="actions">
           <button type="button" class="link" data-goto="1">← แก้ไขข้อมูลจัดส่ง</button>
-          <div class="act-right">
+          <div class="act-right" id="payActs">
             <button type="button" class="btn btn-outline" id="payLater">โอนทีหลัง</button>
             <button type="button" class="btn btn-primary" data-goto="3">โอนแล้ว ไปแนบสลิป →</button>
+          </div>
+          <div class="act-right" id="codActs" hidden>
+            <button type="button" class="btn btn-primary" id="codConfirm">ยืนยันสั่งซื้อ (เก็บเงินปลายทาง)</button>
           </div>
         </div>
       </section>
@@ -193,9 +211,19 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
         <summary><h2>สรุปคำสั่งซื้อ</h2><span class="tot-mini" id="totMini"></span></summary>
         <div class="sum-body">
           <div id="sumItems"></div>
+          <div class="coupon" id="couponBox">
+            <label for="coupon">โค้ดส่วนลด</label>
+            <div class="coupon-row">
+              <input id="coupon" name="coupon" autocomplete="off" autocapitalize="characters" maxlength="30" placeholder="กรอกโค้ด (ถ้ามี)" aria-describedby="err-coupon">
+              <button type="button" class="btn btn-outline" id="couponApply">ใช้โค้ด</button>
+            </div>
+            <p class="coupon-msg" id="err-coupon" aria-live="polite"></p>
+          </div>
           <div class="rows">
             <div><span>ค่าสินค้า</span><b id="sSub"></b></div>
-            <div><span>ค่าจัดส่ง</span><b id="sShip"></b></div>
+            <div id="sDiscRow" hidden><span>ส่วนลด <em id="sDiscCode"></em></span><b class="disc" id="sDisc"></b></div>
+            <div><span>ค่าจัดส่ง <small id="sShipNote"></small></span><b id="sShip"></b></div>
+            <div id="sCodRow" hidden><span>ค่าธรรมเนียมเก็บเงินปลายทาง</span><b id="sCod"></b></div>
             <div class="grand"><span>ยอดชำระทั้งหมด</span><b id="sTotal"></b></div>
           </div>
           <div class="nudge" id="nudge"></div>
@@ -238,6 +266,7 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
     <div class="btns no-print">
       <a href="/track" class="btn btn-primary" id="doneTrack">ติดตามคำสั่งซื้อ</a>
       <button type="button" class="btn btn-outline" id="doneUpload" hidden>แนบสลิปตอนนี้</button>
+      <a class="btn btn-outline" id="donePdf" href="#" target="_blank" rel="noopener" hidden>ใบสั่งซื้อ (PDF)</a>
       <button type="button" class="btn btn-outline" id="doneImage">บันทึกเป็นรูป</button>
       <button type="button" class="btn btn-outline" id="donePrint">พิมพ์</button>
     </div>

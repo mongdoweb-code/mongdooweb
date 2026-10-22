@@ -4,7 +4,8 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { IMAGE_TYPES, compressImage, fmtSize, uploadWithProgress } from "../_lot2/compress";
-import { trackOrder, type TrackState, type TrackedOrder } from "./actions";
+import { CUSTOMER_CANCEL_REASONS } from "@/lib/order-labels";
+import { cancelMyOrder, trackOrder, type CancelState, type TrackState, type TrackedOrder } from "./actions";
 
 const STATUS: Record<string, string> = {
   AWAITING_SLIP: "รอโอนเงินและแนบสลิป",
@@ -24,7 +25,19 @@ const EVENT: Record<string, string> = {
   CANCELLED: "ยกเลิก",
   EDITED: "แก้ไขข้อมูลจัดส่ง",
   REFUNDED: "คืนเงิน",
+  CUSTOMER_CANCELLED: "ลูกค้ายกเลิกเอง",
+  EMAILED: "ส่งอีเมลแจ้งลูกค้า",
+  COD_CONFIRMED: "ร้านยืนยันคำสั่งซื้อ (เก็บเงินปลายทาง)",
+  COD_SETTLED: "รับเงินปลายทางเรียบร้อย",
 };
+const statusText = (o: TrackedOrder) =>
+  o.paymentMethod === "COD" && o.status === "PENDING_VERIFICATION"
+    ? "รอร้านยืนยัน (เก็บเงินปลายทาง)"
+    : o.paymentMethod === "COD" && o.status === "AWAITING_SLIP"
+      ? "รอยืนยันสั่งซื้อ (เก็บเงินปลายทาง)"
+      : o.paymentMethod === "COD" && o.status === "PAID"
+        ? "ร้านยืนยันแล้ว · กำลังเตรียมจัดส่ง"
+        : STATUS[o.status] ?? o.status;
 const baht = (n: number) => "฿" + n.toLocaleString("th-TH", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 const when = (iso: string) => new Date(iso).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
 const day = (iso: string) => new Date(iso).toLocaleDateString("th-TH", { dateStyle: "medium", timeZone: "Asia/Bangkok" });
@@ -33,7 +46,8 @@ const day = (iso: string) => new Date(iso).toLocaleDateString("th-TH", { dateSty
 function steps(o: TrackedOrder) {
   const order = ["AWAITING_SLIP", "PENDING_VERIFICATION", "PAID", "SHIPPED"];
   const at = o.status === "REJECTED" ? 1 : order.indexOf(o.status) + 1; // จำนวนขั้นที่ผ่านแล้ว
-  const labels = ["สั่งซื้อ", o.status === "REJECTED" ? "แนบสลิปใหม่" : "ชำระเงิน", "ตรวจสลิป", "จัดส่ง"];
+  const cod = o.paymentMethod === "COD";
+  const labels = ["สั่งซื้อ", o.status === "REJECTED" ? "แนบสลิปใหม่" : cod ? "ยืนยันสั่งซื้อ" : "ชำระเงิน", cod ? "ร้านยืนยัน" : "ตรวจสลิป", o.pickup ? "รับสินค้า" : "จัดส่ง"];
   return labels.map((label, i) => {
     let cls = "";
     if (o.status === "CANCELLED") cls = i === 0 ? "done" : "";
@@ -91,7 +105,7 @@ export function TrackForm() {
               </div>
               <div>
                 <small>สถานะ</small>
-                <div className="st">{STATUS[o.status] ?? o.status}</div>
+                <div className="st">{statusText(o)}</div>
               </div>
             </header>
 
@@ -136,15 +150,42 @@ export function TrackForm() {
                   <span>{baht(i.lineBaht)}</span>
                 </div>
               ))}
+              {o.discountBaht > 0 && (
+                <div className="row" id="trkDiscount">
+                  <span>ส่วนลด{o.couponCode ? ` (${o.couponCode})` : ""}</span>
+                  <span>−{baht(o.discountBaht)}</span>
+                </div>
+              )}
               <div className="row">
-                <span>ค่าจัดส่ง ({o.shippingName})</span>
-                <span>{o.shippingBaht ? baht(o.shippingBaht) : "ส่งฟรี"}</span>
+                <span>
+                  {o.pickup ? "รับสินค้าที่ร้าน" : `ค่าจัดส่ง (${o.shippingName})`}
+                  {o.remoteFeeBaht > 0 ? ` · รวมค่าส่งพื้นที่ห่างไกล ${baht(o.remoteFeeBaht)}` : ""}
+                </span>
+                <span>{o.shippingBaht ? baht(o.shippingBaht) : o.pickup ? "ไม่มีค่าส่ง" : "ส่งฟรี"}</span>
               </div>
+              {o.codFeeBaht > 0 && (
+                <div className="row">
+                  <span>ค่าธรรมเนียมเก็บเงินปลายทาง</span>
+                  <span>{baht(o.codFeeBaht)}</span>
+                </div>
+              )}
               <div className="row">
-                <b>ยอดรวม</b>
+                <b>{o.paymentMethod === "COD" ? "ยอดเก็บเงินปลายทาง" : "ยอดรวม"}</b>
                 <b>{baht(o.totalBaht)}</b>
               </div>
             </div>
+            {o.printUrl && (
+              <p className="trk-links">
+                <a className="btn btn-outline btn-sm" href={o.printUrl} target="_blank" rel="noopener" id="trkPrint">
+                  ดู / พิมพ์ใบสั่งซื้อ (PDF)
+                </a>
+                {o.canClaim && (
+                  <a className="btn btn-outline btn-sm" href={`/claim?no=${encodeURIComponent(o.orderNo)}`} onClick={() => rememberPhone(o.orderNo, state.phone)} id="trkClaim">
+                    แจ้งเคลม / ขอคืนสินค้า
+                  </a>
+                )}
+              </p>
+            )}
 
             <div className="trk-docs">
               <h3>ใบเสร็จรับเงิน{o.taxInvoice ? " / ใบกำกับภาษี" : ""}</h3>
@@ -169,9 +210,48 @@ export function TrackForm() {
               )}
             </div>
 
-            {(o.status === "REJECTED" || o.status === "AWAITING_SLIP") && state.phone && (
+            {o.paymentMethod === "TRANSFER" && (o.status === "REJECTED" || o.status === "AWAITING_SLIP") && state.phone && (
               <SlipUpload orderNo={o.orderNo} phone={state.phone} totalBaht={o.totalBaht} onDone={() => formRef.current?.requestSubmit()} />
             )}
+            {o.paymentMethod === "TRANSFER" && o.status === "PENDING_VERIFICATION" && state.phone && (
+              <details className="trk-more" id="moreSlip">
+                <summary>
+                  แนบสลิปเพิ่ม (โอนหลายครั้ง / โอนเพิ่มส่วนที่ขาด) · ส่งแล้ว {o.slips.count} สลิป รวม {baht(o.slips.sumBaht)}
+                </summary>
+                <SlipUpload
+                  orderNo={o.orderNo} phone={state.phone} extra
+                  totalBaht={Math.max(0, Math.round((o.totalBaht - o.slips.sumBaht) * 100) / 100) || o.totalBaht}
+                  onDone={() => formRef.current?.requestSubmit()}
+                />
+              </details>
+            )}
+            {o.paymentMethod === "COD" && o.status === "AWAITING_SLIP" && state.phone && (
+              <CodConfirm orderNo={o.orderNo} phone={state.phone} totalBaht={o.totalBaht} onDone={() => formRef.current?.requestSubmit()} />
+            )}
+            {o.claims.length > 0 && (
+              <div className="trk-docs" id="trkClaims">
+                <h3>เรื่องเคลม / คืนสินค้า</h3>
+                <ul>
+                  {o.claims.map((c) => (
+                    <li key={c.claimNo}>
+                      <span>
+                        <b>{c.claimNo}</b> · {c.kindLabel} · <b>{c.statusLabel}</b>
+                        <br />
+                        <small>{c.items.join(", ")}</small>
+                        {c.resolution && (
+                          <>
+                            <br />
+                            <span className="trk-res">ข้อความจากร้าน: {c.resolution}</span>
+                          </>
+                        )}
+                      </span>
+                      <small>{day(c.createdAt)}</small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {o.canCancel && state.phone && <CancelOrder orderNo={o.orderNo} phone={state.phone} onDone={() => formRef.current?.requestSubmit()} />}
             {o.events.length > 0 && (
               <ol className="timeline" aria-label="ประวัติคำสั่งซื้อ">
                 {o.events.map((e, k) => (
@@ -190,7 +270,7 @@ export function TrackForm() {
 }
 
 /* แนบสลิป (ใหม่) — ใช้ API เดียวกับหน้าชำระเงิน ต้องใช้เบอร์โทรที่สั่งซื้อ · ย่อรูปใหญ่ก่อนส่ง + แถบความคืบหน้า */
-function SlipUpload({ orderNo, phone, totalBaht, onDone }: { orderNo: string; phone: string; totalBaht: number; onDone: () => void }) {
+function SlipUpload({ orderNo, phone, totalBaht, onDone, extra = false }: { orderNo: string; phone: string; totalBaht: number; onDone: () => void; extra?: boolean }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [file, setFile] = useState<{ f: File; url: string; orig: number } | null>(null);
@@ -237,7 +317,7 @@ function SlipUpload({ orderNo, phone, totalBaht, onDone }: { orderNo: string; ph
         } else setMsg({ ok: false, text: String(res.data.error ?? (res.status === 0 ? "เชื่อมต่อไม่ได้ กรุณาลองใหม่" : "ส่งสลิปไม่สำเร็จ")) });
       }}
     >
-      <h3 className="trk-sec-h">แนบสลิปการโอน (ยอด {baht(totalBaht)})</h3>
+      <h3 className="trk-sec-h">{extra ? `แนบสลิปเพิ่ม (ยอดที่ยังขาด ${baht(totalBaht)})` : `แนบสลิปการโอน (ยอด ${baht(totalBaht)})`}</h3>
       {msg?.ok ? (
         <p role="status">{msg.text}</p>
       ) : (
@@ -267,7 +347,7 @@ function SlipUpload({ orderNo, phone, totalBaht, onDone }: { orderNo: string; ph
             <input id="slipAmt" name="amount" inputMode="decimal" required defaultValue={totalBaht.toFixed(2)} />
           </div>
           <button className="btn btn-primary" type="submit" disabled={busy || prep}>
-            {busy ? "กำลังส่ง…" : "ส่งสลิป"}
+            {busy ? "กำลังส่ง…" : extra ? "ส่งสลิปเพิ่ม" : "ส่งสลิป"}
           </button>
           {progress != null && (
             <div className="up-bar full" role="progressbar" aria-label="กำลังส่งสลิป" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
@@ -282,5 +362,83 @@ function SlipUpload({ orderNo, phone, totalBaht, onDone }: { orderNo: string; ph
         </div>
       )}
     </form>
+  );
+}
+
+/** จำเบอร์ไว้ในแท็บนี้ ให้หน้าแจ้งเคลมกรอกให้อัตโนมัติ (sessionStorage เท่านั้น) */
+function rememberPhone(no: string, phone?: string) {
+  try {
+    if (phone) sessionStorage.setItem("mdw_last_order", JSON.stringify({ no, phone: phone.replace(/\D/g, "") }));
+  } catch {}
+}
+
+/* เก็บเงินปลายทาง: ยืนยันสั่งซื้อ (กรณีปิดหน้าชำระเงินก่อนกดยืนยัน) */
+function CodConfirm({ orderNo, phone, totalBaht, onDone }: { orderNo: string; phone: string; totalBaht: number; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  return (
+    <div className="trk-slip" id="codConfirm">
+      <h3 className="trk-sec-h">ยืนยันสั่งซื้อแบบเก็บเงินปลายทาง (ยอด {baht(totalBaht)})</h3>
+      <p className="sec-sub" style={{ fontSize: 14 }}>กดยืนยันแล้วร้านจะโทรยืนยันคำสั่งซื้อก่อนจัดส่ง — ชำระเงินสดกับพนักงานขนส่งเมื่อได้รับสินค้า</p>
+      <button
+        className="btn btn-primary" type="button" disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          setErr("");
+          const r = await fetch(`/api/orders/${encodeURIComponent(orderNo)}/confirm`, {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone, mode: "cod" }),
+          }).catch(() => null);
+          setBusy(false);
+          if (r?.ok) onDone();
+          else setErr(String(((await r?.json().catch(() => ({}))) as { error?: string } | undefined)?.error ?? "ยืนยันไม่สำเร็จ กรุณาลองใหม่"));
+        }}
+      >
+        {busy ? "กำลังยืนยัน…" : "ยืนยันสั่งซื้อ"}
+      </button>
+      {err && <p className="form-error" role="alert">{err}</p>}
+    </div>
+  );
+}
+
+/* ลูกค้ายกเลิกคำสั่งซื้อเอง (ก่อนชำระเงิน/ก่อนร้านยืนยัน) */
+function CancelOrder({ orderNo, phone, onDone }: { orderNo: string; phone: string; onDone: () => void }) {
+  const [state, action, pending] = useActionState<CancelState, FormData>(cancelMyOrder, {});
+  const done = useRef(false);
+  useEffect(() => {
+    if (state.ok && !done.current) {
+      done.current = true;
+      setTimeout(onDone, 600);
+    }
+  }, [state.ok, onDone]);
+  return (
+    <details className="trk-more trk-cancel" id="cancelBox">
+      <summary>ต้องการยกเลิกคำสั่งซื้อนี้?</summary>
+      {state.ok ? (
+        <p role="status" className="trk-ok">{state.ok}</p>
+      ) : (
+        <form action={action} className="track-form">
+          <input type="hidden" name="orderNo" value={orderNo} />
+          <input type="hidden" name="phone" value={phone} />
+          <div className="field">
+            <label htmlFor="cancelReason">เหตุผลที่ยกเลิก</label>
+            <select id="cancelReason" name="reason" required defaultValue="">
+              <option value="" disabled>— เลือกเหตุผล —</option>
+              {CUSTOMER_CANCEL_REASONS.map((r) => <option key={r}>{r}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="cancelNote">รายละเอียดเพิ่มเติม (ไม่บังคับ)</label>
+            <input id="cancelNote" name="note" maxLength={200} />
+          </div>
+          <label className="chk-row full">
+            <input type="checkbox" name="sure" required /> ยืนยันยกเลิกคำสั่งซื้อ {orderNo} (ยกเลิกแล้วกู้คืนไม่ได้)
+          </label>
+          <button className="btn btn-outline" type="submit" disabled={pending}>
+            {pending ? "กำลังยกเลิก…" : "ยกเลิกคำสั่งซื้อ"}
+          </button>
+          {state.error && <p className="form-error full" role="alert">{state.error}</p>}
+        </form>
+      )}
+    </details>
   );
 }

@@ -1,6 +1,7 @@
 // POST /api/orders/:orderNo/slip — แนบสลิป (multipart: phone, slip, paidAt, amount)
-// ใช้ทั้งขั้นที่ 3 ของหน้าชำระเงิน และการแนบสลิปใหม่จากหน้าติดตามคำสั่งซื้อ
+// ใช้ทั้งขั้นที่ 3 ของหน้าชำระเงิน, การแนบสลิปใหม่ และการแนบสลิปเพิ่ม (U19) จากหน้าติดตามคำสั่งซื้อ
 import { after } from "next/server";
+import { sendOrderEmail } from "@/lib/email";
 import { notifySlipUploaded } from "@/lib/line";
 import { OrderError, SLIP_MAX_BYTES, attachSlip } from "@/lib/orders";
 import { clientIp, overLimit } from "@/lib/rate-limit";
@@ -29,7 +30,11 @@ export async function POST(req: Request, ctx: RouteContext<"/api/orders/[orderNo
       amount: String(form.get("amount") ?? ""),
     });
     // แจ้งเตือนร้านทาง LINE หลังตอบลูกค้าแล้ว (ไม่ทำให้การแนบสลิปช้าหรือล้ม)
-    after(() => notifySlipUploaded(result.orderNo));
+    after(async () => {
+      await notifySlipUploaded(result.orderNo);
+      // อีเมล "ได้รับคำสั่งซื้อ" (ส่งครั้งเดียวต่อคำสั่งซื้อ)
+      await sendOrderEmail(result.orderNo, "ORDER_RECEIVED");
+    });
     return Response.json(result, { status: 201 });
   } catch (e) {
     if (e instanceof OrderError) return Response.json({ error: e.message, fields: e.fields }, { status: e.status });
