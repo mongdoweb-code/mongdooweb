@@ -382,9 +382,10 @@ test("U16/U17/A16 แจ้งคืนสินค้า (7 วัน) จา�
   await expect(page.locator("#claimRight" + V)).toContainText("อยู่ในกำหนด 7 วัน");
   const photo = await page.request.get(`/admin/claims/${c.id}/photo/0`);
   expect(photo.headers()["content-type"]).toBe("image/webp");
-  await page.click("#claimUpdate button[type=submit]" + V); // เปลี่ยนเป็นอนุมัติโดยไม่มีข้อความ → ต้องเตือน
+  // เปลี่ยนเป็นอนุมัติโดยไม่มีข้อความถึงลูกค้า → ต้องเตือน
   await page.selectOption("#clStatus" + V, "APPROVED");
   await page.click("#claimUpdate button[type=submit]" + V);
+  await page.waitForURL(/err=resolution/);
   await expect(page.locator(".login-err" + V)).toContainText("ข้อความถึงลูกค้า");
   await page.selectOption("#clStatus" + V, "APPROVED");
   await page.fill("#clResolution" + V, "อนุมัติเปลี่ยนสินค้าใหม่ จัดส่งภายใน 3 วัน (ทดสอบ)");
