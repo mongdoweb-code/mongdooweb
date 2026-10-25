@@ -32,8 +32,9 @@ export async function buildBackupZip(by: string) {
   const counts: Record<string, number> = {};
   for (const t of await tables()) {
     // ชื่อตารางมาจาก information_schema และผ่าน regex แล้ว — ใส่ใน "..." ได้ปลอดภัย
-    const rows = await prisma.$queryRawUnsafe<{ r: Record<string, unknown> }[]>(`SELECT row_to_json(x) AS r FROM "${t}" x`);
-    let data = rows.map((x) => x.r);
+    // ::text — driver adapter ของ Prisma อ่านชนิด json จาก queryRaw ไม่ได้ จึงรับเป็นข้อความแล้ว parse เอง
+    const rows = await prisma.$queryRawUnsafe<{ r: string }[]>(`SELECT row_to_json(x)::text AS r FROM "${t}" x`);
+    let data = rows.map((x) => JSON.parse(x.r) as Record<string, unknown>);
     if (t === "Admin") data = data.map((a) => ({ ...a, totpSecret: null, totpEnabled: false, backupCodes: [] }));
     counts[t] = data.length;
     entries.push({ name: `tables/${t}.json`, data: JSON.stringify(data), date: now });
@@ -69,7 +70,7 @@ export async function runBackup(by: string, opts: { onlyIfMissing?: boolean } = 
   const key = backupKeyFor();
   // จองงาน: ตรวจ + สร้างแถว RUNNING ใน transaction ที่ล็อก (advisory xact lock) กันเรียกพร้อมกัน (cron + กดปุ่ม)
   const claim = await prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(${LOCK_KEY})`;
+    await tx.$queryRaw`SELECT 1 AS ok FROM pg_advisory_xact_lock(${LOCK_KEY})`;
     const running = await tx.backupRun.findFirst({ where: { status: "RUNNING", createdAt: { gte: new Date(Date.now() - 15 * 60e3) } } });
     if (running) return { skipped: "running" as const };
     if (opts.onlyIfMissing) {

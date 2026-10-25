@@ -13,9 +13,10 @@ export default async function MediaPage({ searchParams }: PageProps<"/admin/medi
   await requireAdmin();
   const sp = await searchParams;
   const doScan = sp.scan === "1";
+  const only = typeof sp.only === "string" ? sp.only.slice(0, 80) : "";
   const [scan, keys] = await Promise.all([doScan ? scanImages() : null, localKeys()]);
   const order = ["missing", "broken", "external", "no-variants"] as const;
-  const issues = scan ? [...scan.issues].sort((a, b) => order.indexOf(a.problem) - order.indexOf(b.problem)) : [];
+  const issues = scan ? scan.issues.filter((i) => !only || i.key.includes(only) || i.label.includes(only)).sort((a, b) => order.indexOf(a.problem) - order.indexOf(b.problem)) : [];
   const missingProducts = issues.filter((i) => i.problem === "missing" && i.where === "สินค้า").length;
   return (
     <main className="main" id="page-media">
@@ -25,14 +26,20 @@ export default async function MediaPage({ searchParams }: PageProps<"/admin/medi
           <p>รูปที่อัปโหลด {keys.length} รูป · รูปย่อ {IMG_WIDTHS.join("/")} px แบบ WebP{AVIF_SUPPORTED ? " + AVIF" : ""} สำหรับหน้าร้าน (โหลดเร็วบนมือถือ)</p>
         </div>
         <div className="head-actions">
-          <Link className="btn btn-outline" href="/admin/media?scan=1" id="scanBtn" prefetch={false}>ตรวจรูปทั้งหมด</Link>
+          <Link className="btn btn-outline" href={`/admin/media?scan=1${only ? `&only=${encodeURIComponent(only)}` : ""}`} id="scanBtn" prefetch={false}>ตรวจรูป{only ? "ที่เลือก" : "ทั้งหมด"}</Link>
         </div>
       </div>
       {typeof sp.dropped === "string" && <div className="ok-box" role="status" style={{ marginBottom: 12 }}>เอารูปที่หายออกจากสินค้าแล้ว {sp.dropped} รูป</div>}
       <section className="box" style={{ marginBottom: 16 }}>
         <h3>สร้างรูปย่อใหม่</h3>
         <p className="l3-note">ใช้กับรูปที่อัปโหลดก่อนมีรูปหลายขนาด หรือหลังย้ายที่เก็บไฟล์ — รูปที่อัปโหลดใหม่สร้างรูปย่อให้อัตโนมัติ (ถ้ายังไม่สร้าง หน้าร้านจะสร้างให้ตอนเปิดครั้งแรก แต่ช้ากว่า)</p>
-        <RegenButton total={keys.length} />
+        <form className="regen-only" action="/admin/media">
+          <label htmlFor="mOnly">เฉพาะรูปที่ชื่อไฟล์มีคำว่า (ไม่บังคับ)</label>
+          {doScan && <input type="hidden" name="scan" value="1" />}
+          <input id="mOnly" name="only" defaultValue={only} placeholder="เช่น products/2026/10" maxLength={80} />
+          <button className="btn btn-outline btn-sm" type="submit">เลือก</button>
+        </form>
+        <RegenButton key={only} total={only ? keys.filter((k) => k.includes(only)).length : keys.length} only={only} />
       </section>
       {scan ? (
         <section className="panel">

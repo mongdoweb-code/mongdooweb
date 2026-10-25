@@ -87,19 +87,20 @@ export async function localKeys() {
   return [...new Set(refs.filter((r) => !r.external && /\.webp$/.test(r.key) && !r.key.startsWith("logo/")).map((r) => r.key))].sort();
 }
 
-/** สร้างรูปย่อของรูปลำดับ [offset, offset+limit) */
-export async function regenerateBatch(offset: number, limit: number, force: boolean) {
-  const keys = await localKeys();
+/** สร้างรูปย่อของรูปลำดับ [offset, offset+limit) — only: เฉพาะ key ที่มีข้อความนี้ (เช่น ชื่อโฟลเดอร์/รหัสรูป) · ทำพร้อมกัน 3 รูป */
+export async function regenerateBatch(offset: number, limit: number, force: boolean, only = "") {
+  const keys = (await localKeys()).filter((k) => !only || k.includes(only));
   const slice = keys.slice(offset, offset + limit);
   let created = 0;
   const errors: string[] = [];
-  for (const k of slice) {
-    try {
-      created += await generateVariants(k, { force });
-    } catch (e) {
-      errors.push(`${k}: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
+  for (let i = 0; i < slice.length; i += 3)
+    await Promise.all(slice.slice(i, i + 3).map(async (k) => {
+      try {
+        created += await generateVariants(k, { force });
+      } catch (e) {
+        errors.push(`${k}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }));
   return { total: keys.length, next: offset + slice.length, created, errors };
 }
 

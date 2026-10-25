@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { regenerateAction } from "./actions";
 
-export function RegenButton({ total }: { total: number }) {
+export function RegenButton({ total, only = "" }: { total: number; only?: string }) {
   const [state, setState] = useState<{ done: number; total: number; created: number; errors: string[] } | null>(null);
   const [busy, setBusy] = useState(false);
   const stop = useRef(false);
@@ -15,7 +15,7 @@ export function RegenButton({ total }: { total: number }) {
     setState({ done: 0, total, created: 0, errors: [] });
     try {
       for (;;) {
-        const r = await regenerateAction(offset, force);
+        const r = await regenerateAction(offset, force, only);
         created += r.created;
         errors.push(...r.errors);
         offset = r.next;

@@ -5,9 +5,9 @@ import { logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin } from "@/lib/auth";
 import { dropMissingProductImages, regenerateBatch } from "@/lib/media-scan";
 
-export async function regenerateAction(offset: number, force: boolean) {
+export async function regenerateAction(offset: number, force: boolean, only = "") {
   const admin = await requireAdmin();
-  const r = await regenerateBatch(Math.max(0, Math.floor(offset) || 0), 6, !!force);
+  const r = await regenerateBatch(Math.max(0, Math.floor(offset) || 0), 6, !!force, String(only).slice(0, 80));
   if (r.next >= r.total) await logAdmin(admin.id, "MEDIA", `สร้างรูปย่อใหม่${force ? " (ทั้งหมด)" : ""} ครบ ${r.total} รูป`);
   return r;
 }

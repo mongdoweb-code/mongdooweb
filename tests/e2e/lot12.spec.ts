@@ -65,7 +65,7 @@ async function loginAs(page: Page, username: string, password: string) {
   await page.fill("#u" + V, username);
   await page.fill("#pw" + V, password);
   await page.click(".login-card button[type=submit]" + V);
-  await expect(page).toHaveURL(/\/admin(\?|$|\/)/);
+  await expect(page).toHaveURL(/\/admin(\?.*)?$/);
 }
 async function staffPage(browser: Browser) {
   const ctx = await browser.newContext({ baseURL: test.info().project.use.baseURL, locale: "th-TH", timezoneId: "Asia/Bangkok" });
@@ -225,7 +225,7 @@ test("A22 ต้นทุน + รายงานกำไร (สินค้�
   expect(csv.status()).toBe(200);
   const text = await csv.text();
   expect(text).toContain("อัตรากำไร (%)");
-  expect(text).toMatch(new RegExp(`E2E-L12-${TAG}-A",?2,1000\\.00,300\\.00,700\\.00,70\\.0`));
+  expect(text).toMatch(new RegExp(`E2E-L12-${TAG}-A"?,2,1000\\.00,300\\.00,700\\.00,70\\.0`));
 
   // พนักงาน: ไม่มีต้นทุนที่ไหนเลย
   const { ctx, page: s } = await staffPage(browser);
@@ -661,7 +661,7 @@ test("U14 รูปหลายขนาด: srcset บนการ์ด/แก
   const webp = await request.get(`${base}-w640.webp`, { headers: { Accept: "image/webp,*/*" } });
   expect(webp.status()).toBe(200);
   expect(webp.headers()["content-type"]).toBe("image/webp");
-  expect(webp.headers()["vary"]).toBe("Accept");
+  expect(webp.headers()["vary"]).toMatch(/\bAccept\b/);
   const meta = await sharp(await webp.body()).metadata();
   expect(meta.width).toBe(640);
   const avif = await request.get(`${base}-w320.webp`, { headers: { Accept: "image/avif,image/webp,*/*" } });
@@ -703,17 +703,18 @@ test("A15 ตรวจรูป: รูปหาย/ยังไม่มีร�
   await writeImage(`products/e2e/${TAG}-b.webp`, "#d23c2c", 900);
   await db.query(`UPDATE "Product" SET images=$2 WHERE id=$1`, [ids.b, [`products/e2e/${TAG}-b.webp`]]);
   await login(page);
-  await page.goto("/admin/media?scan=1");
+  await page.goto(`/admin/media?scan=1&only=${TAG}`);
   const issues = page.locator("#mediaIssues" + V);
   await expect(issues.locator(`tr[data-problem=missing]:has-text("${MISSING_KEY}")`)).toContainText(`E2E-L12-${TAG}-C`);
   await expect(issues.locator(`tr[data-problem=no-variants]:has-text("${TAG}-b.webp")`)).toBeVisible();
   await expect(issues.locator(`tr[data-problem=missing]:has-text("${MISSING_KEY}") a`)).toHaveAttribute("href", `/admin/products/${ids.c}`);
 
+  await page.goto(`/admin/media?only=${TAG}`);
   await page.click("#regenMissing" + V);
   await expect(page.locator("#regenStatus" + V)).toContainText("เสร็จแล้ว", { timeout: 150_000 });
   expect(existsSync(join(UP, `products/e2e/${TAG}-b-w1280.webp`))).toBe(true);
   expect(existsSync(join(UP, `products/e2e/${TAG}-b-w320.avif`))).toBe(true);
-  await page.goto("/admin/media?scan=1");
+  await page.goto(`/admin/media?scan=1&only=${TAG}`);
   await expect(page.locator(`#mediaIssues tr[data-problem=no-variants]:has-text("${TAG}-b.webp")` + V)).toHaveCount(0);
 
   await page.click('button:has-text("เอารูปสินค้าที่หายออก")' + V);

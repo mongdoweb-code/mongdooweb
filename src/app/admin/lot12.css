@@ -128,3 +128,5 @@ tr.pf-unknown td{color:var(--c-muted)}
 .regen{display:grid;gap:10px}
 .regen-prog{display:grid;gap:6px;font-size:13.5px}
 @media (max-width:700px){.task-form .two{grid-template-columns:1fr}}
+.regen-only{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px}
+.regen-only input{height:34px;border:1.5px solid var(--c-line);padding:0 8px;min-width:200px}
