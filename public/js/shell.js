@@ -85,6 +85,77 @@ addEventListener('pointerdown', e => { lastPointer = e.pointerType || 'mouse'; }
 $$('[data-line]').forEach(a => a.href = LINE_URL);
 
 /* =========================================================
+   LINE พร้อมบริบท + สถานะร้านเปิด/ปิด (U27)
+   - ปุ่ม LINE ลอย: หน้าสินค้า → พิมพ์ชื่อ/รหัสสินค้าไว้ให้, หน้าติดตาม → เลขที่คำสั่งซื้อ (ใช้ oaMessage เมื่อร้านตั้ง LINE ID)
+   - เวลาทำการ (ตั้งที่ /admin/home) คำนวณตามเวลาไทยในเบราว์เซอร์ → หน้าที่แคชไว้ยังแสดงสถานะถูกต้อง
+   ========================================================= */
+const MdwLine = (() => {
+  const S = MDW_DATA.settings || {};
+  const id = typeof S.lineId === 'string' ? S.lineId.trim() : '';
+  const okId = /^@?[\w.-]{2,40}$/.test(id);
+  const msgUrl = text => okId ? `https://line.me/R/oaMessage/${encodeURIComponent(id.startsWith('@') ? id : '@' + id)}/?${encodeURIComponent(text)}` : LINE_URL;
+  /** ข้อความตามหน้าที่ลูกค้าเปิดอยู่ (null = ไม่มีบริบท ใช้ลิงก์เพิ่มเพื่อนตามเดิม) */
+  function context(){
+    const own = $('[data-line-context]');
+    if (own && own.getAttribute('data-line-context')) return own.getAttribute('data-line-context');
+    const pm = /^\/product\/([^/?#]+)/.exec(location.pathname);
+    if (pm){
+      let slug = pm[1]; try { slug = decodeURIComponent(slug); } catch (e) {}
+      const p = byId(slug);
+      const name = p ? p.name : (($('h1') || {}).textContent || '').trim();
+      if (name) return `สวัสดีครับ/ค่ะ สอบถามสินค้า\n${name}${p && p.sku ? `\nรหัสสินค้า: ${p.sku}` : ''}\n${location.origin}${location.pathname}`;
+    }
+    if (/^\/track\b/.test(location.pathname)){
+      const card = $('.order-card[aria-label]');
+      const fromCard = card ? (/(MDW-[\w-]+)/i.exec(card.getAttribute('aria-label')) || [])[1] : '';
+      const input = $('#orderNo');
+      const no = fromCard || (input && /^MDW-[\w-]{4,30}$/i.test(input.value.trim()) ? input.value.trim().toUpperCase() : '') || new URLSearchParams(location.search).get('no') || '';
+      if (no) return `สวัสดีครับ/ค่ะ สอบถามคำสั่งซื้อเลขที่ ${no.slice(0, 40)}`;
+    }
+    return null;
+  }
+  // ตั้งลิงก์ตอนกด (ข้อมูลบางอย่าง เช่น เลขคำสั่งซื้อ เพิ่งมาหลังโหลดหน้า)
+  const sync = a => { const t = context(); a.href = t ? msgUrl(t) : LINE_URL; };
+  $$('.float-line').forEach(a => { sync(a); ['pointerdown', 'focus', 'click'].forEach(ev => a.addEventListener(ev, () => sync(a))); });
+
+  // ---------- เวลาทำการ ----------
+  const DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+  const HM = /^([01]\d|2[0-4]):[0-5]\d$/;
+  const hours = (Array.isArray(S.hours) ? S.hours : []).filter(h => h && Number.isInteger(h.day) && HM.test(h.open) && HM.test(h.close) && h.open < h.close);
+  const mins = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  /** วันในสัปดาห์และนาทีของวัน ตามเวลาไทย (Asia/Bangkok = UTC+7 ไม่มีเวลาออมแสง) */
+  function bkkNow(){ const d = new Date(Date.now() + 7 * 3600e3); return { day: d.getUTCDay(), min: d.getUTCHours() * 60 + d.getUTCMinutes() }; }
+  function status(){
+    if (!hours.length) return null;
+    const n = bkkNow();
+    const today = hours.filter(h => h.day === n.day);
+    const cur = today.find(h => mins(h.open) <= n.min && n.min < mins(h.close));
+    if (cur) return { open: true, text: `ร้านเปิดอยู่ · ปิด ${cur.close} น.` };
+    for (let k = 0; k < 8; k++){
+      const day = (n.day + k) % 7;
+      const next = hours.filter(h => h.day === day && (k > 0 || mins(h.open) > n.min)).sort((a, b) => mins(a.open) - mins(b.open))[0];
+      if (next) return { open: false, text: `ปิดแล้ว · เปิดอีกครั้ง${k === 0 ? 'วันนี้' : k === 1 ? 'พรุ่งนี้' : 'วัน' + DAYS[day]} ${next.open} น.` };
+    }
+    return { open: false, text: 'ปิดแล้ว' };
+  }
+  function paint(){
+    const st = status();
+    $$('[data-open-status]').forEach(el => { el.textContent = st ? st.text : ''; el.classList.toggle('is-open', !!(st && st.open)); el.classList.toggle('is-closed', !!(st && !st.open)); });
+    $$('.float-line').forEach(a => {
+      let b = $('.fl-st', a);
+      if (!st){ if (b) b.remove(); return; }
+      if (!b){ b = document.createElement('span'); b.className = 'fl-st'; a.appendChild(b); }
+      b.className = 'fl-st ' + (st.open ? 'on' : 'off');
+      a.title = st.text;
+      a.setAttribute('aria-label', `แชทกับร้านทาง LINE — ${st.text}`);
+    });
+  }
+  paint();
+  setInterval(paint, 60e3);
+  return { context, msgUrl, status };
+})();
+
+/* =========================================================
    CATEGORIES (U11–U17) — render จาก mdw_categories
    ========================================================= */
 function normCat(c, i){
@@ -565,25 +636,62 @@ function toast(msg){
 (() => {
   const panel = $('#searchPanel'), btn = $('#searchBtn'), input = $('#q'), box = $('#suggestWrap'), list = $('#suggest'), status = $('#sgStatus');
   const SEARCH_URL = '/search?q=';
-  const norm = s => String(s).normalize('NFC').toLowerCase().replace(/[​-‍﻿]/g, '').replace(/\s+/g, '');
-  // คำพ้อง ไทย ↔ อังกฤษ ที่ลูกค้าใช้บ่อย
-  const SYN = { pool:'สระ', 'สระ':'pool', fountain:'น้ำพุ', 'น้ำพุ':'fountain', garden:'สวน', 'สวน':'garden', underwater:'ใต้น้ำ', 'ใต้น้ำ':'underwater',
-    rgb:'เปลี่ยนสี', 'เปลี่ยนสี':'rgb', 'สีขาว':'แสงขาว', white:'แสงขาว', 'ขาว':'white', 'หม้อแปลง':'adapter', 'อะแดปเตอร์':'หม้อแปลง' };
+  // ต้องตรงกับ normWord ใน src/lib/search.ts (ตัวพิมพ์ เว้นวรรค ขีด จุด ไม่มีผล)
+  const norm = s => String(s).normalize('NFC').toLowerCase().replace(/[​-‍﻿]/g, '').replace(/[\s\-_./,()[\]"'“”+]+/g, '');
+  // คำพ้อง ไทย ↔ อังกฤษ จากหลังบ้าน (/admin/search) — คำใดคำหนึ่งในกลุ่มเจอก็นับว่าเจอ
+  const SYN = new Map();
+  (Array.isArray(MDW_DATA.synonyms) ? MDW_DATA.synonyms : []).forEach(g => {
+    const words = (Array.isArray(g) ? g : []).map(norm).filter(Boolean);
+    words.forEach(w => { const set = SYN.get(w) || new Set(); words.forEach(o => { if (o !== w) set.add(o); }); SYN.set(w, set); });
+  });
+  const alts = t => [t, ...(SYN.get(t) || [])];
   const INDEX = CATALOG.map(p => ({ p, name: norm(p.name), sku: norm(p.sku || ''), hay: norm([p.name, p.sku || '', p.cat, (p.specs || []).join(' '), p.kw || ''].join(' ')) }));
-  let results = [], sel = -1;
+  let results = [], sel = -1, approx = false;
+
+  /* ระยะแก้ไขน้อยสุดของคำเมื่อเทียบกับช่วงใดช่วงหนึ่งในข้อความ (พิมพ์ผิดเล็กน้อยยังเจอ) */
+  function fuzzy(text, pat, k){
+    const m = pat.length; let prev = Array.from({ length: m + 1 }, (_, i) => i), cur = new Array(m + 1), best = m;
+    for (let j = 1; j <= text.length; j++){
+      cur[0] = 0; const c = text.charCodeAt(j - 1);
+      for (let i = 1; i <= m; i++) cur[i] = Math.min(prev[i - 1] + (pat.charCodeAt(i - 1) === c ? 0 : 1), prev[i] + 1, cur[i - 1] + 1);
+      if (cur[m] < best) best = cur[m];
+      if (!best) return 0;
+      [prev, cur] = [cur, prev];
+    }
+    return best <= k ? best : Infinity;
+  }
+  const budget = n => n >= 8 ? 2 : n >= 4 ? 1 : 0;
 
   function search(q){
-    const toks = q.trim().split(/\s+/).map(norm).filter(Boolean);
+    const toks = q.trim().split(/\s+/).map(norm).filter(Boolean).slice(0, 8);
+    approx = false;
     if (!toks.length) return [];
-    return INDEX.map(x => {
-      let ok = true, score = 0;
-      toks.forEach(t => {
-        const alt = SYN[t] ? norm(SYN[t]) : null;
-        if (x.hay.includes(t) || (alt && x.hay.includes(alt))){ score += x.sku && x.sku === t ? 6 : x.sku && x.sku.startsWith(t) ? 4 : x.name.startsWith(t) ? 3 : x.name.includes(t) ? 2 : 1; }
-        else ok = false;
-      });
-      return ok ? { p: x.p, score: score + (x.p.best ? .5 : 0) } : null;
-    }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 6).map(x => x.p);
+    const strict = tokens => INDEX.map(x => {
+      let score = 0;
+      for (const t of tokens){
+        if (!alts(t).some(a => x.hay.includes(a))) return null;
+        score += x.sku && x.sku === t ? 6 : x.sku && x.sku.startsWith(t) ? 4 : x.name.startsWith(t) ? 3 : x.name.includes(t) ? 2 : 1;
+      }
+      return { p: x.p, score: score + (x.p.best ? .5 : 0) };
+    }).filter(Boolean).sort((a, b) => b.score - a.score).map(x => x.p);
+    let out = strict(toks);
+    if (!out.length && toks.length > 1) out = strict([toks.join('')]);
+    if (out.length) return out.slice(0, 6);
+    // ผลใกล้เคียง: พิมพ์ผิด 1–2 ตัว (ตามความยาวคำ) หรือส่วนต้นของคำ ≥ 60%
+    const near = (x, t) => {
+      let best = 0;
+      for (const a of alts(t)){
+        if (x.hay.includes(a)) return 1;
+        const k = budget(a.length);
+        if (k){ const d = fuzzy(x.hay, a, k); if (d !== Infinity) best = Math.max(best, 1 - d / (a.length + 1)); }
+        for (let n = a.length - 1, min = Math.max(2, Math.ceil(a.length * .6)); n >= min; n--) if (x.hay.includes(a.slice(0, n))){ best = Math.max(best, n / a.length); break; }
+      }
+      return best;
+    };
+    const loose = INDEX.map(x => { let score = 0, all = true; toks.forEach(t => { const v = near(x, t); if (!v) all = false; score += v; }); return { p: x.p, score: all ? score + .5 : score }; })
+      .filter(x => x.score >= Math.max(.6, toks.length * .5)).sort((a, b) => b.score - a.score).slice(0, 6).map(x => x.p);
+    approx = loose.length > 0;
+    return loose;
   }
   function highlight(name, q){
     const t = q.trim().split(/\s+/).sort((a, b) => b.length - a.length)[0] || '';
@@ -606,8 +714,9 @@ function toast(msg){
         <span class="thumb">${thumb(p, 'span')}</span>
         <span><b>${highlight(p.name, q)}</b><small>${esc(p.cat)}${p.sku ? ' · ' + esc(p.sku) : ''}</small></span>
         <span class="pr">${priceTxt(p)}</span></a>`).join('');
+      if (approx) list.insertAdjacentHTML('afterbegin', '<div class="sg-approx" role="option" aria-disabled="true" aria-selected="false">ไม่พบคำที่ตรงทั้งหมด · แสดงผลที่ใกล้เคียง</div>');
       $('#sgFoot').hidden = false;
-      status.textContent = `พบ ${results.length} รายการ`;
+      status.textContent = approx ? `ผลใกล้เคียง ${results.length} รายการ` : `พบ ${results.length} รายการ`;
     }
     show(true);
   }
@@ -757,6 +866,12 @@ mdwReveal();
 document.getElementById('yr').textContent = new Date().getFullYear();
 // เปิดตะกร้าทันทีเมื่อมาจากลิงก์ #cart (เช่น ไอคอนตะกร้าในหน้า checkout)
 if (location.hash === '#cart'){ history.replaceState(null, '', location.pathname + location.search); openCart($('#cartBtn')); }
+
+/* หน้าออฟไลน์เมื่อเน็ตหลุด (U29) — public/sw.js เก็บเฉพาะไฟล์ static + offline.html ไม่เก็บหน้าที่มีข้อมูลส่วนตัว */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  const reg = () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+  if (document.readyState === 'complete') reg(); else addEventListener('load', reg);
+}
 
 /* แจ้งสคริปต์ของแต่ละหน้า (เช่น home.js) ว่าส่วนกลางพร้อมแล้ว */
 window.mdwShellReady = true;

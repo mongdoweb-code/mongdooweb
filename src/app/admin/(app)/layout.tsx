@@ -25,6 +25,14 @@ const ICON = {
   pages: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4" />,
   users: <><circle cx="9" cy="8" r="4" /><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11l2 2 4-4" /></>,
   system: <><rect x="3" y="4" width="18" height="12" /><path d="M8 20h8M12 16v4" /></>,
+  // ล็อต 10: รีวิว · รอสินค้าเข้า · หน้าแรก · ผลงาน · บทความ · ค้นหา · redirect
+  star: <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />,
+  bell: <path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0" />,
+  home: <path d="M3 11 12 4l9 7M5 10v10h14V10M10 20v-5h4v5" />,
+  photo: <><rect x="3" y="5" width="18" height="14" /><circle cx="9" cy="10" r="2" /><path d="m21 16-5-5-8 8" /></>,
+  post: <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" />,
+  search: <><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></>,
+  redirect: <path d="M4 7h11a4 4 0 0 1 0 8H8M8 11l-4 4 4 4" />,
 };
 const Ico = ({ k }: { k: keyof typeof ICON }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
@@ -34,10 +42,12 @@ const Ico = ({ k }: { k: keyof typeof ICON }) => (
 export default async function AdminAppLayout({ children }: LayoutProps<"/admin">) {
   // หน้า "บัญชีของฉัน" ต้องเปิดได้แม้ยังต้องเปลี่ยนรหัสผ่าน — หน้าอื่นตรวจซ้ำด้วย requireAdmin() ของตัวเองและพามาที่นี่
   const admin = await requireAdmin({ allowPasswordChange: true });
-  const [pending, unpaid, inquiries] = await Promise.all([
+  const [pending, unpaid, inquiries, reviews, waiting] = await Promise.all([
     prisma.order.count({ where: { status: "PENDING_VERIFICATION" } }),
     prisma.salesDocument.count({ where: { type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } } }),
     prisma.inquiry.count({ where: { status: "NEW" } }),
+    prisma.review.count({ where: { status: "PENDING" } }),
+    prisma.stockAlert.count({ where: { notifiedAt: null } }),
   ]);
   const owner = admin.role === "OWNER";
   return (
@@ -62,6 +72,13 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/slides", label: "สไลด์หน้าแรก", icon: <Ico k="slides" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/pages", label: "หน้าเนื้อหา / FAQ", icon: <Ico k="pages" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/reviews", label: "รีวิวสินค้า", icon: <Ico k="star" />, badge: reviews, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/stock-alerts", label: "รอสินค้าเข้า", icon: <Ico k="bell" />, badge: waiting, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/home", label: "หน้าแรก / ความน่าเชื่อถือ", icon: <Ico k="home" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/projects", label: "ผลงานติดตั้ง", icon: <Ico k="photo" />, group: "เนื้อหาและ SEO" },
+            { href: "/admin/posts", label: "บทความ", icon: <Ico k="post" />, group: "เนื้อหาและ SEO" },
+            { href: "/admin/search", label: "ค้นหา / คำพ้อง", icon: <Ico k="search" />, group: "เนื้อหาและ SEO" },
+            { href: "/admin/redirects", label: "Redirect / หน้า 404", icon: <Ico k="redirect" />, group: "เนื้อหาและ SEO" },
             { href: "/admin/docs/QUOTATION", label: "ใบเสนอราคา", icon: <Ico k="qt" />, group: "เอกสารขาย" },
             { href: "/admin/docs/INVOICE", label: "ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: unpaid, group: "เอกสารขาย" },
             { href: "/admin/docs/RECEIPT", label: "ใบเสร็จรับเงิน", icon: <Ico k="rc" />, group: "เอกสารขาย" },

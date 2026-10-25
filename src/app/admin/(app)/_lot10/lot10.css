@@ -1,0 +1,57 @@
+/* ===== Lot 10 หลังบ้าน: รีวิว · รอสินค้าเข้า · ผลงาน · บทความ · ค้นหา · redirect · หน้าแรก ===== */
+.l10-list{list-style:none}
+.l10-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 18px;padding:16px;border-bottom:1px solid var(--c-line)}
+.l10-row:last-child{border-bottom:0}
+.l10-row .sub{display:block;font-size:12.5px;color:var(--c-muted)}
+.l10-row-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;justify-content:flex-end}
+.l10-row-acts form{display:inline}
+.l10-body{white-space:pre-line;margin:6px 0;font-size:14px}
+.l10-stars{color:#C77700;letter-spacing:1px}
+.l10-stars i{font-style:normal;color:#D6D1C6}
+.l10-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.l10-thumbs img{width:72px;height:72px;object-fit:cover;background:var(--c-cream)}
+.l10-reply{display:grid;gap:6px;margin-top:8px}
+.l10-reply textarea{width:100%;min-height:60px;border:1.5px solid var(--c-line);padding:8px 10px;font:inherit;font-size:14px}
+.l10-reply-old{background:var(--c-cream);padding:8px 12px;font-size:13.5px;border-left:3px solid var(--c-orange);white-space:pre-line}
+.l10-grp{padding:14px 16px;border-bottom:1px solid var(--c-line)}
+.l10-grp-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;align-items:center}
+.l10-grp-head b{font-size:15px}
+.l10-mini{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}
+.l10-mini th{text-align:left;font-size:12px;color:var(--c-muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--c-line)}
+.l10-mini td{padding:7px 8px;border-bottom:1px solid var(--c-line);vertical-align:top}
+.l10-mini tr:last-child td{border-bottom:0}
+.l10-mini .done td{color:var(--c-muted)}
+.l10-inline{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.l10-inline .field{flex:1 1 200px}
+.l10-help{font-size:12.5px;color:var(--c-muted);line-height:1.6}
+.l10-help code{background:var(--c-cream);padding:0 4px;font-size:12px}
+.l10-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.l10-order{list-style:none;display:grid;gap:6px}
+.l10-order li{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;gap:10px;align-items:center;background:#fff;border:1px solid var(--c-line);padding:8px 10px}
+.l10-order li.off{opacity:.6}
+.l10-order .n{font-weight:700;color:var(--c-muted);text-align:center}
+.l10-order button{min-width:34px}
+.l10-logos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.l10-logos figure{border:1px solid var(--c-line);padding:8px;display:grid;gap:6px;background:#fff}
+.l10-logos img{height:56px;width:100%;object-fit:contain}
+.l10-logos input{height:34px;border:1.5px solid var(--c-line);padding:0 8px;font-size:13px;width:100%}
+.l10-stats-ed{display:grid;gap:6px}
+.l10-stats-ed div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px}
+.l10-stats-ed input,.l10-hours-ed input{height:38px;border:1.5px solid var(--c-line);padding:0 10px;font:inherit;font-size:14px;width:100%;min-width:0}
+.l10-hours-ed{display:grid;gap:6px}
+.l10-hours-ed>div{display:grid;grid-template-columns:110px 1fr 1fr;gap:8px;align-items:center;font-size:14px}
+.l10-hours-ed label{display:flex;gap:6px;align-items:center}
+.l10-bar{display:inline-block;height:6px;background:var(--c-orange);vertical-align:middle;margin-right:6px}
+.l10-path{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;word-break:break-all}
+.l10-err{background:#FBF0EE;padding:10px 14px;color:var(--c-err);font-size:13.5px;margin-bottom:12px}
+.l10-ok{margin-bottom:12px}
+.l10-syn{display:flex;flex-wrap:wrap;gap:4px}
+.l10-syn span{background:var(--c-cream);padding:2px 8px;font-size:13px}
+.l10-cover{max-width:320px;width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--c-cream);display:block;margin-bottom:6px}
+@media (max-width:900px){
+  .l10-cols{grid-template-columns:1fr}
+  .l10-row{grid-template-columns:1fr}
+  .l10-row-acts{justify-content:flex-start}
+  .l10-hours-ed>div{grid-template-columns:1fr 1fr}
+  .l10-mini{display:block;overflow-x:auto}
+}

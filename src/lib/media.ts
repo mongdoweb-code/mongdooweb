@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { sniffImage, storage } from "@/lib/storage";
 
 export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
-export const MEDIA_PREFIXES = ["products", "slides", "logo", "categories"] as const;
+export const MEDIA_PREFIXES = ["products", "slides", "logo", "categories", "reviews", "projects", "posts", "trust"] as const;
 export type MediaPrefix = (typeof MEDIA_PREFIXES)[number];
 
 export class MediaError extends Error {}

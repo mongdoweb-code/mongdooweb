@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ไม่มีการเชื่อมต่ออินเทอร์เน็ต — มองดูเว็บ</title>
+<style>
+  :root{--c-ink:#161616;--c-muted:#5f5a52;--c-cream:#f7f5f1;--c-orange:#F26B38;--c-orange-dk:#c84d1f}
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--c-cream);color:var(--c-ink);font-family:system-ui,"Noto Sans Thai",sans-serif;line-height:1.6}
+  main{min-height:100vh;display:grid;place-items:center;padding:16px}
+  .card{background:#fff;max-width:520px;width:100%;padding:36px 28px;text-align:center}
+  .logo{font-weight:800;font-size:20px;margin-bottom:18px}
+  .logo span{color:var(--c-orange)}
+  h1{font-size:22px;margin-bottom:8px}
+  p{color:var(--c-muted);margin-bottom:10px}
+  ul{text-align:left;color:var(--c-muted);margin:14px 0 20px 20px;font-size:15px}
+  button{background:var(--c-orange-dk);color:#fff;border:0;padding:14px 26px;font:inherit;font-weight:700;cursor:pointer;min-height:48px}
+  button:focus-visible{outline:3px solid var(--c-ink);outline-offset:2px}
+  .st{font-size:14px;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <div class="logo" aria-hidden="true">มองดู<span>เว็บ</span></div>
+    <h1>ไม่มีการเชื่อมต่ออินเทอร์เน็ต</h1>
+    <p>เปิดหน้านี้ไม่ได้เพราะเน็ตหลุดหรือสัญญาณอ่อน</p>
+    <ul>
+      <li>สินค้าในตะกร้ายังอยู่ครบ (เก็บไว้ในเครื่องนี้)</li>
+      <li>ถ้ากำลังแนบสลิป ให้กลับไปหน้าเดิมเมื่อเน็ตกลับมา ระบบจะลองส่งใหม่ให้อัตโนมัติ</li>
+    </ul>
+    <button type="button" id="retry">ลองใหม่</button>
+    <p class="st" id="st" role="status" aria-live="polite"></p>
+  </div>
+</main>
+<script>
+  var st = document.getElementById('st');
+  document.getElementById('retry').addEventListener('click', function(){ st.textContent = 'กำลังลองใหม่…'; location.reload(); });
+  // เน็ตกลับมาแล้ว → โหลดหน้าเดิมให้เอง
+  addEventListener('online', function(){ st.textContent = 'เน็ตกลับมาแล้ว กำลังโหลดหน้า…'; location.reload(); });
+</script>
+</body>
+</html>

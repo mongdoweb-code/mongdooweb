@@ -351,8 +351,30 @@ const drop = $('#drop');
 drop.addEventListener('drop', e => setSlip(e.dataTransfer.files[0]));
 $('#slipRemove').onclick = () => { slipFile = null; $('#slip').value = ''; $('#preview').classList.remove('on'); $('#drop').hidden = false; $('#slip').focus(); };
 
-/* ส่งด้วย XHR เพื่อแสดงแถบความคืบหน้าการอัปโหลด */
-function uploadWithProgress(url, fd, onProgress){
+/* ส่งด้วย XHR เพื่อแสดงแถบความคืบหน้าการอัปโหลด
+   เน็ตไม่ดี (U29): หลุด/เซิร์ฟเวอร์ตอบ 5xx → ลองใหม่อัตโนมัติ 4 ครั้ง เว้นช่วง 2, 4, 8, 16 วินาที (ออฟไลน์ = รอเน็ตกลับมาก่อน)
+   ครั้งก่อนหลุดกลางทางแต่จริงๆ ส่งถึงแล้ว → ครั้งถัดไปได้ 409 "แนบสลิปแล้ว" = ถือว่าสำเร็จ */
+async function uploadWithProgress(url, fd, onProgress){
+  const waitOnline = () => navigator.onLine === false ? new Promise(r => addEventListener('online', r, { once: true })) : Promise.resolve();
+  let res, lost = false;
+  for (let attempt = 0; attempt <= 4; attempt++){
+    if (attempt){
+      const sec = 2 ** attempt;
+      $('#upLabel').textContent = navigator.onLine === false ? 'ไม่มีอินเทอร์เน็ต — จะส่งสลิปให้อัตโนมัติเมื่อเน็ตกลับมา…' : `เน็ตไม่เสถียร กำลังลองส่งใหม่ (ครั้งที่ ${attempt}/4) ใน ${sec} วินาที…`;
+      await new Promise(r => setTimeout(r, sec * 1000));
+      await waitOnline();
+      $('#upLabel').textContent = `กำลังส่งสลิปอีกครั้ง (ครั้งที่ ${attempt}/4)…`;
+      onProgress(0);
+    }
+    res = await uploadOnce(url, fd, onProgress);
+    if (res.ok) return res;
+    if (lost && res.status === 409) return { ok: true, status: 200, data: {} };
+    if (res.status !== 0 && res.status < 500) return res;
+    lost = true;
+  }
+  return res;
+}
+function uploadOnce(url, fd, onProgress){
   return new Promise(resolve => {
     const x = new XMLHttpRequest();
     x.open('POST', url);

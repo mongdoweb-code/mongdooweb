@@ -1,5 +1,7 @@
 // ไม่พบหน้า/สินค้า (เช่น หมวดหรือสินค้าที่ถูกปิด) — แสดงในโครงหน้าร้าน
+import { Suspense } from "react";
 import { PageHead } from "./_components/PageHead";
+import { NotFoundLog } from "./_lot10/NotFoundLog";
 
 export default function ShopNotFound() {
   return (
@@ -18,6 +20,9 @@ export default function ShopNotFound() {
           </p>
         </div>
       </div>
+      <Suspense fallback={null}>
+        <NotFoundLog />
+      </Suspense>
     </main>
   );
 }

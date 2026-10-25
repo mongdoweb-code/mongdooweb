@@ -3,6 +3,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { ShopSetting } from "../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { parseOpeningHours } from "@/lib/home";
 
 export const STOREFRONT_TAG = "storefront";
 
@@ -104,5 +105,6 @@ export async function getPublicShopInfo() {
     logoKey: s.logoKey,
     freeShipMinSatang: freeShipFrom(tiers),
     tiers,
+    openingHours: parseOpeningHours(s.openingHours), // เวลาทำการแบบมีโครงสร้าง → สถานะ "ร้านเปิดอยู่/ปิดแล้ว" (U27)
   };
 }

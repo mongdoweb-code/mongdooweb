@@ -1,6 +1,7 @@
 // ติดต่อเรา — ข้อมูลจากตั้งค่าร้าน (ที่อยู่ เวลาทำการ โทร LINE อีเมล แผนที่) + ฟอร์มติดต่อ (Inquiry CONTACT)
 import type { Metadata } from "next";
 import { formatPhone } from "@/lib/format";
+import { DAY_NAMES, hoursSummary } from "@/lib/home";
 import { getPublicShopInfo } from "@/lib/settings";
 import { InquiryForm } from "../_lot2/InquiryForm";
 import { PageHead } from "../_components/PageHead";
@@ -44,10 +45,25 @@ export default async function ContactPage() {
                     )}
                   </li>
                 )}
-                {s.businessHours && (
+                {(s.openingHours.length > 0 || s.businessHours) && (
                   <li>
                     <span>เวลาทำการ</span>
-                    {s.businessHours}
+                    {/* สถานะเปิด/ปิด คำนวณในเบราว์เซอร์ตามเวลาไทย (public/js/shell.js) หน้าแคชไว้ก็ยังถูกต้อง */}
+                    {s.openingHours.length > 0 && <b className="l10-open" data-open-status aria-live="polite" />}
+                    {s.openingHours.length > 0 ? (
+                      <span className="l10-hours" title={hoursSummary(s.openingHours)}>
+                        {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                          const h = s.openingHours.filter((x) => x.day === d);
+                          return (
+                            <span key={d} className="l10-hours-row">
+                              <em>{DAY_NAMES[d]}</em> {h.length ? h.map((x) => `${x.open}–${x.close}`).join(", ") : "ปิด"}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    ) : (
+                      s.businessHours
+                    )}
                   </li>
                 )}
                 {tel && (

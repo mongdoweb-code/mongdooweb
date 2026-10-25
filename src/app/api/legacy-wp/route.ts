@@ -1,4 +1,5 @@
 // redirect 301 จาก URL แบบ query ของ WordPress/WooCommerce เดิม (next.config.ts ส่ง "/?..." มาที่นี่พร้อม query เดิม)
+//   /?p=123 /?page_id=                                   → บทความที่มี wpId ตรงกัน (/blog/<slug>) ถ้ามี
 //   /?p=123 /?page_id= /?attachment_id= /?add-to-cart=  → สินค้าที่มี wooId ตรงกัน (ไม่พบ → สินค้าทั้งหมด)
 //   /?product=<slug เดิม>                               → สินค้าที่ legacyPath ตรงกัน
 //   /?product_cat=<slug เดิม>                           → หมวดที่ legacySlug ตรงกัน
@@ -38,6 +39,11 @@ async function resolve(q: URLSearchParams): Promise<string> {
   for (const key of ["p", "page_id", "attachment_id", "add-to-cart"]) {
     const id = Number(q.get(key));
     if (Number.isInteger(id) && id > 0 && id < 2 ** 31) {
+      // บทความเดิมของ WordPress (/?p=123) → /blog/<slug> (Post.wpId ตั้งในหลังบ้าน /admin/posts)
+      if (key === "p" || key === "page_id") {
+        const post = await prisma.post.findFirst({ where: { wpId: id, status: "PUBLISHED", OR: [{ publishAt: null }, { publishAt: { lte: new Date() } }] }, select: { slug: true } });
+        if (post) return `/blog/${encodeURIComponent(post.slug)}`;
+      }
       const p = await prisma.product.findFirst({ where: { wooId: id, isActive: true }, select: { slug: true } });
       if (p) return `/product/${encodeURIComponent(p.slug)}`;
       // หน้า/บทความของ WordPress ที่ไม่ใช่สินค้า → หน้าแรก; ถ้าเป็นการขอสินค้า → สินค้าทั้งหมด
