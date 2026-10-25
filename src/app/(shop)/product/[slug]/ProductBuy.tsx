@@ -2,6 +2,9 @@
 // หน้าสินค้า (ฝั่งเบราว์เซอร์): แกลเลอรีรูป + ขยายเต็มจอ, เลือกจำนวนแล้วใส่ตะกร้า, แถบใส่ตะกร้าติดล่างจอบนมือถือ
 // ตะกร้าใช้ของกลางใน public/js/shell.js (window.addToCart / openCart, localStorage "mdw_cart")
 import { useCallback, useEffect, useRef, useState } from "react";
+import { unitForQty, viewPrice, type SaleInfo, type TierInfo } from "@/lib/pricing";
+import { formatBaht } from "../../_components/format";
+import { useNow } from "../../_components/PriceBits";
 
 type ShellWindow = Window & { addToCart?: (id: string, qty: number, mode: string) => boolean; openCart?: (from?: Element) => void };
 type Img = { full: string; sm: string };
@@ -11,7 +14,8 @@ const FULL = 1600;
 
 // ---------------- แกลเลอรี ----------------
 
-export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; badge?: string | null }) {
+/** badge = ป้ายบนรูป (component ราคาที่คำนวณ "ลด x%" ตามเวลาจริง) */
+export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; badge?: React.ReactNode }) {
   const [i, setI] = useState(0);
   const [zoom, setZoom] = useState<number | null>(null);
   const track = useRef<HTMLDivElement>(null);
@@ -73,7 +77,7 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
     return (
       <div className="pdp-gallery">
         <div className="pdp-main">
-          {badge && <span className="prod-badge">{badge}</span>}
+          {badge}
           <div className="ph" />
         </div>
       </div>
@@ -93,7 +97,7 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
       }}
     >
       <div className="pdp-main gal">
-        {badge && <span className="prod-badge">{badge}</span>}
+        {badge}
         <div className="gal-track" ref={track}>
           {images.map((im, k) => (
             <button
@@ -304,14 +308,18 @@ export function BuyBox({
   name,
   price,
   img,
+  tiers,
 }: {
   slug: string;
   max: number;
   stockLeft: number | null;
   unit: string;
   name: string;
-  price: string;
+  /** ราคา 1 ชิ้น (ค่าที่แคชไว้ + ช่วงลดราคา) — คำนวณราคาปัจจุบันตามเวลาจริงของเครื่อง */
+  price: { price: number; compareAt: number | null; sale: SaleInfo | null };
   img?: string;
+  /** ราคาขายส่ง: คิดจากจำนวนรวมในตะกร้า (ที่มีอยู่ + ที่จะใส่เพิ่ม) เหมือนที่ server คิดตอนสั่งซื้อ */
+  tiers?: TierInfo;
 }) {
   const [have, setHave] = useState(0);
   const [text, setText] = useState("1");
@@ -322,6 +330,9 @@ export function BuyBox({
   // จำนวนที่จะใส่ตะกร้า = ค่าที่พิมพ์ ตัดให้อยู่ในช่วง 1..ที่เหลือให้ใส่ได้เสมอ
   const qty = clamp(Number(text));
   const set = (v: number) => setText(String(clamp(v)));
+  const base = viewPrice(price, useNow()).price;
+  const unitPrice = unitForQty(base, tiers, have + qty);
+  const wholesale = unitPrice < base;
 
   // จำนวนที่อยู่ในตะกร้าแล้ว (อัปเดตเมื่อใส่ตะกร้า หรือแก้จากแท็บอื่น)
   useEffect(() => {
@@ -417,6 +428,11 @@ export function BuyBox({
             </span>
           )}
         </p>
+        {wholesale && (
+          <p className="pdp-tier-on" role="status">
+            ได้ราคาขายส่ง <b>{formatBaht(unitPrice)}</b>/{unit} (รวมในตะกร้า {have + qty} {unit})
+          </p>
+        )}
       </div>
       <div className="pdp-bar" hidden={!bar} role="region" aria-label="ใส่ตะกร้าด่วน">
         <div className="pdp-bar-in">
@@ -426,7 +442,7 @@ export function BuyBox({
           )}
           <div className="pdp-bar-txt">
             <span className="nm">{name}</span>
-            <b>{price}</b>
+            <b>{formatBaht(unitPrice)}</b>
           </div>
           <button className="btn btn-primary btn-sm" type="button" disabled={full} onClick={(e) => add(e.currentTarget)}>
             {full ? "ครบจำนวนแล้ว" : qty > 1 ? `ใส่ตะกร้า ${qty} ${unit}` : "ใส่ตะกร้า"}

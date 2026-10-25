@@ -393,6 +393,7 @@ function renderFinder(){
       ${r.acc.map(byId).filter(Boolean).map(p => row(p, true)).join('')}
     </div>
     <ul class="f-notes">${r.notes.map(n => `<li>${n}</li>`).join('')}</ul>
+    ${r.recs[0] && !r.recs[0].kit && (fAns.power === 'plug' || fAns.power === 'far') ? `<p class="f-psu"><a class="link-more" href="/tools/psu-calculator?light=${encodeURIComponent(r.recs[0].id)}" data-psu-link>ติดตั้งหลายดวง? คำนวณขนาดหม้อแปลงที่ต้องใช้</a></p>` : ''}
     <div class="f-actions">
       <button class="btn btn-primary" data-fadd="${esc([r.recs[0].id, ...r.acc].join(','))}">ใส่ชุดที่แนะนำลงตะกร้า <span class="arr">→</span></button>
       <a href="${LINE_URL}" class="btn btn-line" target="_blank" rel="noopener">ถามทีมงานทาง LINE</a>

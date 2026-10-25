@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { ConfirmSubmit } from "../../_components/AdminClient";
 import { useFormAction } from "../../_components/useFormAction";
+import type { SpecDef } from "@/lib/specs";
 import { deleteProduct, duplicateProduct, saveProduct, type ProductFormState } from "./actions";
+import { SaleTierFields, SpecFields, type ExtrasValues } from "./ProductExtras";
 
 export type ProductValues = {
   id: string; name: string; slug: string; sku: string; categoryId: string; unit: string;
@@ -14,13 +16,16 @@ export type ProductValues = {
   specs: { label: string; value: string }[]; images: { key: string; url: string }[];
   useAreas: string[]; lightColor: string; includesPsu: boolean; isAccessory: boolean;
   orders: number;
+  /** ล็อต 9: ราคาลดตามเวลา ราคาขายส่ง สเปกตามหมวด กลุ่มตัวเลือก */
+  extras: ExtrasValues;
 };
 
 const slugify = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 const USE = [["POOL", "สระว่ายน้ำ"], ["POND", "บ่อปลา/บ่อน้ำ"], ["FOUNTAIN", "น้ำพุ"], ["GARDEN", "สวน"]];
 
-export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText }: {
+export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText, specDefs, children }: {
   v: ProductValues; categories: { id: string; name: string }[]; saved: boolean; copied?: boolean; owner?: boolean; siteHost?: string; shortText?: string;
+  specDefs: SpecDef[]; children?: React.ReactNode;
 }) {
   const [state, onSubmit, pending] = useFormAction<ProductFormState>(saveProduct, saved ? { ok: "เพิ่มสินค้าแล้ว" } : copied ? { ok: "ทำสำเนาแล้ว — สำเนานี้ปิดขายอยู่ แก้ไขแล้วเปิดขายได้" } : {});
   const [name, setName] = useState(v.name);
@@ -36,6 +41,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
   const [slugTouched, setSlugTouched] = useState(!!v.id);
   const [preview, setPreview] = useState(false);
   const [desc, setDesc] = useState(v.description);
+  const [cat, setCat] = useState(v.categoryId);
   const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
   const move = (i: number, d: number) => {
     const next = [...images];
@@ -77,7 +83,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               </div>
               <div className="two">
                 <div className="field"><label htmlFor="categoryId">หมวดหมู่</label>
-                  <select id="categoryId" name="categoryId" defaultValue={v.categoryId} required {...bad("categoryId")}>
+                  <select id="categoryId" name="categoryId" value={cat} onChange={(e) => setCat(e.target.value)} required {...bad("categoryId")}>
                     {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select></div>
                 <div className="field"><label htmlFor="unit">หน่วย</label><input id="unit" name="unit" defaultValue={v.unit} maxLength={20} placeholder="ชิ้น / ชุด / ม้วน" /></div>
@@ -137,6 +143,8 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               <div><button type="button" className="btn btn-outline btn-sm" onClick={() => setSpecs([...specs, { label: "", value: "" }])}>+ เพิ่มสเปก</button></div>
             </div>
 
+            <SpecFields v={v.extras} defs={specDefs} categoryId={cat} fields={state.fields} />
+
             <div className="box">
               <h3>คำอธิบาย</h3>
               <div className="field"><label htmlFor="shortDescription">คำอธิบายย่อ (แสดงใต้ราคา)</label><textarea id="shortDescription" name="shortDescription" defaultValue={v.shortDescription} rows={3} maxLength={5000} /></div>
@@ -175,6 +183,18 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               </div>
             </div>
 
+            <SaleTierFields v={v.extras} fields={state.fields} />
+            {v.extras.group && (
+              <div className="box" id="variantBox">
+                <h3>กลุ่มตัวเลือกสินค้า</h3>
+                <p>
+                  อยู่ในกลุ่ม <b>{v.extras.group.name}</b>
+                  {v.extras.group.options ? ` · ตัวนี้: ${v.extras.group.options}` : ""}
+                </p>
+                <div><Link className="btn btn-outline btn-sm" href={`/admin/products/variants/${v.extras.group.id}`}>จัดการกลุ่มตัวเลือก</Link></div>
+              </div>
+            )}
+
             <div className="box">
               <h3>ตัวช่วยเลือกไฟ (หน้าแรก)</h3>
               <span className="lbl" style={{ fontSize: 13, fontWeight: 600, color: "var(--c-muted)" }}>เหมาะกับพื้นที่</span>
@@ -206,6 +226,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
           </div>
         </div>
       </form>
+      {children}
       {v.id && (
         <form action={duplicateProduct} className="box" style={{ marginTop: 16, maxWidth: 520 }}>
           <input type="hidden" name="id" value={v.id} />

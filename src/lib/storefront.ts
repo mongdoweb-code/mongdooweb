@@ -3,8 +3,13 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { mediaUrl } from "@/lib/media";
+import { displayPrice, nextPriceChange, revalidateFor, saleInfo, tierInfo, type SaleInfo, type TierInfo } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { downloadHref, parseDownloads } from "@/lib/product-downloads";
+import { getSpecDefs } from "@/lib/product-data";
 import { STOREFRONT_TAG, getPublicShopInfo } from "@/lib/settings";
+import { defsFor, formatAttr, parseAttrs } from "@/lib/specs";
+import { readOptions, type VariantGroupView } from "@/lib/variants";
 
 /** tag ของข้อมูลหน้าร้าน — หลังบ้านเรียก updateTag(STOREFRONT_TAG) หลังแก้สินค้า/หมวด/สไลด์/ตั้งค่า */
 export { STOREFRONT_TAG };
@@ -32,6 +37,10 @@ export type CatalogItem = {
   kw?: string;
   /** รหัสสินค้า (ใช้ค้นหาด้วยรหัส เช่น "DL1") */
   sku?: string;
+  /** ลดราคาตามช่วงเวลา (ยังไม่หมดเวลา) — เบราว์เซอร์คำนวณราคาปัจจุบันเองจากเวลาเริ่ม/สิ้นสุด */
+  sale?: SaleInfo;
+  /** ราคาขายส่งตามจำนวน [[จำนวนขั้นต่ำ, ราคา/ชิ้น], …] */
+  tiers?: TierInfo;
 };
 
 export type ShopCategory = {
@@ -59,7 +68,6 @@ const available = (p: { trackStock: boolean; stock: number; inStock: boolean }) 
 
 export async function getShopData() {
   "use cache";
-  cacheLife("hours");
   cacheTag(STOREFRONT_TAG);
 
   const [categories, products, shop] = await Promise.all([
@@ -71,6 +79,9 @@ export async function getShopData() {
     }),
     getPublicShopInfo(),
   ]);
+  // แคชหมดรอบพอดีเวลาที่ราคาลดเริ่ม/หมด (เบราว์เซอร์ก็คำนวณราคาตามเวลาเองอีกชั้น)
+  const now = new Date();
+  cacheLife({ stale: 300, revalidate: revalidateFor(nextPriceChange(products, now), now), expire: 86400 });
 
   const shopCategories: ShopCategory[] = categories.map((c) => ({
     id: c.slug,
@@ -86,14 +97,19 @@ export async function getShopData() {
 
   const catalog: CatalogItem[] = products.map((p) => {
     const img = mediaUrl(p.images[0], "sm");
+    const dp = displayPrice(p, now);
+    const sale = saleInfo(p, now);
+    const tiers = tierInfo(p);
     return {
       id: p.slug,
       name: p.name,
       cat: p.category.nameTh,
       catId: p.category.slug,
       specs: specValues(p.specs).slice(0, 3),
-      price: bahtFromSatang(p.priceSatang),
-      ...(p.compareAtSatang && p.compareAtSatang > p.priceSatang ? { compareAt: bahtFromSatang(p.compareAtSatang) } : {}),
+      price: bahtFromSatang(dp.priceSatang),
+      ...(dp.compareAtSatang ? { compareAt: bahtFromSatang(dp.compareAtSatang) } : {}),
+      ...(sale ? { sale } : {}),
+      ...(tiers.length ? { tiers } : {}),
       ...(img ? { img } : {}),
       inStock: available(p),
       ...(p.trackStock ? { maxQty: p.stock } : {}),
@@ -196,15 +212,55 @@ export async function getCategoryByLegacySlug(legacy: string) {
 /** รายละเอียดสินค้าสำหรับหน้าสินค้า (null = ไม่พบ/ปิดขาย) */
 export async function getProductDetail(slug: string) {
   "use cache";
-  cacheLife("hours");
   cacheTag(STOREFRONT_TAG);
 
   const p = await prisma.product.findFirst({
     where: { slug, isActive: true, isService: false, category: { isActive: true } },
-    include: { category: { select: { slug: true, nameTh: true, nameEn: true } } },
+    include: {
+      category: { select: { id: true, slug: true, nameTh: true, nameEn: true } },
+      variantGroup: {
+        include: {
+          products: {
+            where: { isActive: true, isService: false, category: { isActive: true } },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          },
+        },
+      },
+    },
   });
   if (!p) return null;
+  const now = new Date();
+  const members = p.variantGroup?.products ?? [];
+  // หมดรอบแคชพร้อมเวลาราคาลดของสินค้านี้หรือตัวเลือกอื่นในกลุ่มเปลี่ยน
+  cacheLife({ stale: 300, revalidate: revalidateFor(nextPriceChange([p, ...members], now), now), expire: 86400 });
+  const defs = defsFor(await getSpecDefs(), p.categoryId);
+  const attrs = parseAttrs(p.attrs);
+  const dp = displayPrice(p, now);
+
+  // กลุ่มตัวเลือก (U1): สมาชิกที่เปิดขาย ≥ 2 ตัวเท่านั้นจึงแสดงปุ่มเลือก
+  let variants: VariantGroupView | null = null;
+  if (p.variantGroup && members.length >= 2 && members.some((m) => m.id === p.id)) {
+    const g = p.variantGroup;
+    const primary = members.find((m) => m.id === g.primaryId) ?? members[0];
+    variants = {
+      id: g.id,
+      name: g.name,
+      optionNames: g.optionNames,
+      primarySlug: primary.slug,
+      members: members.map((m) => ({
+        slug: m.slug,
+        name: m.name,
+        sku: m.sku,
+        options: readOptions(m.variantOptions, g.optionNames),
+        inStock: available(m),
+        price: bahtFromSatang(displayPrice(m, now).priceSatang),
+        img: mediaUrl(m.images[0], "sm"),
+      })),
+    };
+  }
+
   return {
+    id: p.id,
     slug: p.slug,
     sku: p.sku,
     name: p.name,
@@ -213,8 +269,10 @@ export async function getProductDetail(slug: string) {
     seoTitle: p.seoTitle,
     seoDescription: p.seoDescription,
     unit: p.unit,
-    price: bahtFromSatang(p.priceSatang),
-    compareAt: p.compareAtSatang && p.compareAtSatang > p.priceSatang ? bahtFromSatang(p.compareAtSatang) : null,
+    price: bahtFromSatang(dp.priceSatang),
+    compareAt: dp.compareAtSatang ? bahtFromSatang(dp.compareAtSatang) : null,
+    sale: saleInfo(p, now),
+    tiers: tierInfo(p),
     inStock: available(p),
     stockLeft: p.trackStock ? p.stock : null,
     images: p.images.map((k) => ({ full: mediaUrl(k)!, sm: mediaUrl(k, "sm")! })),
@@ -223,6 +281,12 @@ export async function getProductDetail(slug: string) {
           .map((s) => ({ label: String(s?.label ?? ""), value: String(s?.value ?? "") }))
           .filter((s) => s.value)
       : [],
+    /** สเปกแบบมีโครงสร้าง (ตามนิยามของหมวด) ที่สินค้านี้มีค่า */
+    attrs: defs.filter((d) => attrs[d.code] != null).map((d) => ({ code: d.code, label: d.label, value: formatAttr(d, attrs[d.code]), raw: attrs[d.code] })),
+    downloads: parseDownloads(p.downloads).map((d) => ({ name: d.name, sizeBytes: d.sizeBytes, href: downloadHref(p.slug, d.key) })),
+    variants,
+    /** หน้าหลักของกลุ่มตัวเลือก (canonical) */
+    canonicalSlug: variants?.primarySlug ?? p.slug,
     badge: p.badge,
     isAccessory: p.isAccessory,
     includesPsu: p.includesPsu,
@@ -414,7 +478,7 @@ export function searchCatalog(catalog: CatalogItem[], categories: ShopCategory[]
 // ---------- ซื้อคู่กัน ----------
 
 /** หมวดโคมไฟที่ต่อผ่านหม้อแปลง (DC12V / AC24V) */
-const LIGHT_CATS = new Set([
+export const LIGHT_CATS = new Set([
   "underwater-light",
   "pool-light",
   "fountain-light",
@@ -428,9 +492,9 @@ const LIGHT_CATS = new Set([
 /** หมวดที่ต่อสายใต้น้ำ/กลางแจ้ง → แนะนำท่อหดกันน้ำ */
 const WET_CATS = new Set(["underwater-light", "pool-light", "fountain-light", "uplight-led", "garden-light"]);
 
-type Power = { v: "12" | "24"; ac: boolean | null };
+export type Power = { v: "12" | "24"; ac: boolean | null };
 /** แรงดันไฟจากข้อความ เช่น "DC12V", "AC 24V", "12V" (ไม่ระบุ AC/DC → ac = null) · พบหลายค่าที่ต่างกัน = ไม่แน่ใจ (null) */
-function powerOf(text: string): Power | null {
+export function powerOf(text: string): Power | null {
   const found = new Map<string, Power>();
   for (const m of text.matchAll(/(ac|dc)?\s*(12|24)\s*v(ac|dc)?(?![a-z])/gi)) {
     const t = (m[1] ?? m[3] ?? "").toLowerCase();
@@ -440,9 +504,9 @@ function powerOf(text: string): Power | null {
   }
   return found.size === 1 ? [...found.values()][0] : null;
 }
-const samePower = (a: Power, b: Power | null) => !!b && a.v === b.v && (a.ac === null || b.ac === null || a.ac === b.ac);
-const powerLabel = (p: Power) => `${p.ac === null ? "" : p.ac ? "AC" : "DC"}${p.v}V`;
-const isPsuName = (name: string, catId: string) => catId === "power-supply" || /หม้อแปลง|power\s*supply|transformer/i.test(name);
+export const samePower = (a: Power, b: Power | null) => !!b && a.v === b.v && (a.ac === null || b.ac === null || a.ac === b.ac);
+export const powerLabel = (p: Power) => `${p.ac === null ? "" : p.ac ? "AC" : "DC"}${p.v}V`;
+export const isPsuName = (name: string, catId: string) => catId === "power-supply" || /หม้อแปลง|power\s*supply|transformer/i.test(name);
 const hasRemote = (name: string) => /รีโมท|remote|controller/i.test(name);
 
 export type Pairing = { item: CatalogItem; reason: string };

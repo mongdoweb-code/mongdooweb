@@ -5,7 +5,9 @@ import { requireAdmin } from "@/lib/auth";
 import { bahtText } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
+import { saleActive } from "@/lib/pricing";
 import { toggleProduct } from "./actions";
+import { BulkBar } from "./BulkBar";
 import "../../lot3.css";
 
 const STATUS = { all: "ทั้งหมด", active: "เปิดขาย", inactive: "ปิดขาย", out: "สินค้าหมด", inquire: "สอบถามราคา", low: "สต็อกใกล้หมด" } as const;
@@ -65,6 +67,8 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           <p>เปิดขาย {activeCount} รายการ · ทั้งหมด {counts.reduce((a, c) => a + c._count._all, 0)} รายการ</p>
         </div>
         <div className="head-actions">
+          <Link className="btn btn-outline" href="/admin/products/variants">ตัวเลือกสินค้า</Link>
+          <Link className="btn btn-outline" href="/admin/products/sale">ลดราคาตามเวลา</Link>
           <a className="btn btn-outline" href="/admin/products/export" download>ส่งออก CSV</a>
           {admin.role === "OWNER" && <Link className="btn btn-outline" href="/admin/products/import">นำเข้า CSV</Link>}
           <Link className="btn btn-primary" href="/admin/products/new">+ เพิ่มสินค้า</Link>
@@ -95,9 +99,10 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           </select>
           <button className="btn btn-outline btn-sm" type="submit">ค้นหา</button>
         </form>
+        <BulkBar categories={cats.map((c) => ({ id: c.id, name: c.nameTh }))} />
         <table className="tbl prod-tbl">
           <thead>
-            <tr><th style={{ width: 64 }}>รูป</th><th>สินค้า</th><th>หมวด</th><th className="r">ราคา</th><th className="r">สต็อก</th><th>สถานะ</th><th /></tr>
+            <tr><th style={{ width: 36 }}><input type="checkbox" id="bulkAll" aria-label="เลือกทั้งหมดในหน้านี้" /></th><th style={{ width: 64 }}>รูป</th><th>สินค้า</th><th>หมวด</th><th className="r">ราคา</th><th className="r">สต็อก</th><th>สถานะ</th><th /></tr>
           </thead>
           <tbody>
             {rows.map((p) => {
@@ -105,6 +110,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
               const out = p.trackStock ? p.stock <= 0 : !p.inStock;
               return (
                 <tr key={p.id} className={p.isActive ? "" : "row-off"}>
+                  <td><input type="checkbox" name="ids" value={p.id} form="bulkForm" aria-label={`เลือก ${p.sku}`} /></td>
                   <td>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {img ? <img className="pthumb" src={img} alt="" loading="lazy" /> : <span className="pthumb" />}
@@ -119,6 +125,11 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
                   <td className="r num">
                     {p.priceSatang ? bahtText(p.priceSatang) : <span className="chip warn">สอบถามราคา</span>}
                     {p.compareAtSatang ? <span className="sub"><s>{bahtText(p.compareAtSatang)}</s></span> : null}
+                    {p.salePriceSatang ? (
+                      <span className={`chip ${saleActive(p) ? "ok" : "warn"}`} title={p.saleEndsAt ? `ถึง ${p.saleEndsAt.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}` : undefined}>
+                        ลด {bahtText(p.salePriceSatang)}{saleActive(p) ? "" : p.saleEndsAt && p.saleEndsAt <= new Date() ? " (หมดแล้ว)" : " (ตั้งเวลา)"}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="r num">{p.trackStock ? <Link href={`/admin/stock/${p.id}`} className={p.stock <= T ? "chip warn" : "link"} title="ประวัติ/ปรับสต็อก">{p.stock}</Link> : <span className="sub">ไม่นับ</span>}</td>
                   <td>

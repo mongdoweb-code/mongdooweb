@@ -10,10 +10,23 @@ async function entries() {
   cacheLife("hours");
   cacheTag(STOREFRONT_TAG);
   const [products, categories] = await Promise.all([
-    prisma.product.findMany({ where: { isActive: true, isService: false, category: { isActive: true } }, select: { slug: true, updatedAt: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.product.findMany({
+      where: { isActive: true, isService: false, category: { isActive: true } },
+      select: { id: true, slug: true, updatedAt: true, variantGroupId: true, variantGroup: { select: { primaryId: true } } },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    }),
     prisma.category.findMany({ where: { isActive: true }, select: { slug: true }, orderBy: { sortOrder: "asc" } }),
   ]);
-  return { products: products.map((p) => ({ slug: p.slug, at: p.updatedAt.toISOString() })), categories: categories.map((c) => c.slug) };
+  // สินค้าหลายตัวเลือก: ใส่เฉพาะหน้าหลักของกลุ่ม (canonical) — ตัวหลักปิดขาย = ตัวแรกที่เปิดขาย
+  const active = new Set(products.map((p) => p.id));
+  const firstOf = new Map<string, string>();
+  for (const p of products) if (p.variantGroupId && !firstOf.has(p.variantGroupId)) firstOf.set(p.variantGroupId, p.id);
+  const canonical = products.filter((p) => {
+    if (!p.variantGroupId) return true;
+    const primary = p.variantGroup?.primaryId && active.has(p.variantGroup.primaryId) ? p.variantGroup.primaryId : firstOf.get(p.variantGroupId);
+    return primary === p.id;
+  });
+  return { products: canonical.map((p) => ({ slug: p.slug, at: p.updatedAt.toISOString() })), categories: categories.map((c) => c.slug) };
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

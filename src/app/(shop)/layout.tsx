@@ -9,6 +9,7 @@ import { renderShellTop } from "./_markup/top";
 import "./shop.css";
 import "./pages.css";
 import "./lot2.css";
+import "./lot9.css";
 
 export default async function ShopLayout({ children }: LayoutProps<"/">) {
   const [data, info, extras] = await Promise.all([getShopData(), getPublicShopInfo(), getStorefrontExtras()]);

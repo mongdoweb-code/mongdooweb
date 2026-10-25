@@ -40,6 +40,27 @@ const DEFAULT_CATEGORIES = Array.isArray(MDW_DATA.categories) ? MDW_DATA.categor
 const byId = id => CATALOG.find(p => p.id === id);
 const PRODUCTS = CATALOG.filter(p => p.best);
 
+/* ---------- ล็อต 9: ราคาลดตามช่วงเวลา (U3) + ราคาขายส่ง (U10) ----------
+   ข้อมูลหน้าร้านถูกแคชไว้ → คำนวณราคาปัจจุบันจากเวลาเริ่ม/สิ้นสุดของโปรด้วยเวลาจริงของเครื่อง
+   sale = { p: ราคาลด, r: ราคาปกติ, w: ราคาขีดฆ่าเมื่อไม่ลด, f/t: เริ่ม/สิ้นสุด (ms) } · tiers = [[จำนวนขั้นต่ำ, ราคา/ชิ้น]]
+   ราคาที่คิดเงินจริงคำนวณที่ server เสมอ (ตรวจตะกร้า/บันทึกคำสั่งซื้อ) */
+function applySaleClock(now){
+  CATALOG.forEach(p => {
+    const s = p && p.sale;
+    if (!s || typeof s !== 'object' || !(s.p > 0) || !(s.r > 0)) return;
+    const on = (!s.f || now >= s.f) && (!s.t || now < s.t);
+    p.price = on ? s.p : s.r;
+    if (on) p.compareAt = s.r; else if (s.w > s.r) p.compareAt = s.w; else delete p.compareAt;
+  });
+}
+applySaleClock(Date.now());
+/* ราคาต่อชิ้นเมื่อมี q ชิ้นในตะกร้า (ต่ำสุดของราคาปัจจุบันกับราคาขายส่งที่ถึงขั้น) */
+function unitPrice(p, q){
+  let u = p ? p.price : 0;
+  if (u > 0 && Array.isArray(p.tiers)) p.tiers.forEach(t => { if (Array.isArray(t) && q >= t[0] && t[1] > 0 && t[1] < u) u = t[1]; });
+  return u;
+}
+
 /* =========================================================
    HELPERS — storage ปลอดภัย (ห่อ try/catch ทุกครั้ง), escape, URL ที่อนุญาต
    ========================================================= */
@@ -286,7 +307,8 @@ let cartAtLoad = rawCart();
 let cart = loadCart();
 /* ราคาที่ลูกค้าเห็นตอนใส่ตะกร้า { slug: บาท } — ใช้แจ้งเมื่อราคาเปลี่ยน */
 const seenPrices = () => { const s = LS.json(SEEN_KEY); return s && typeof s === 'object' && !Array.isArray(s) ? s : {}; };
-function saveSeen(){ const old = seenPrices(), s = {}; Object.keys(cart).forEach(id => { const p = byId(id); s[id] = old[id] != null ? old[id] : p.price; }); LS.set(SEEN_KEY, JSON.stringify(s)); }
+/* changed = รายการที่ลูกค้าเพิ่งใส่/แก้จำนวน → ราคาที่เห็นคือราคาต่อชิ้นของจำนวนนั้น (รวมราคาขายส่ง) */
+function saveSeen(changed){ const old = seenPrices(), s = {}; Object.keys(cart).forEach(id => { const p = byId(id); s[id] = id !== changed && old[id] != null ? old[id] : unitPrice(p, cart[id]); }); LS.set(SEEN_KEY, JSON.stringify(s)); }
 let cartFlags = {};      // { slug: ข้อความแจ้งใต้รายการ } จากการตรวจครั้งล่าสุด
 let cartNotes = [];      // ข้อความสรุปด้านบนตะกร้า
 let validating = null, validatedAt = 0;
@@ -309,7 +331,9 @@ function validateCart(force){
         if (l.status !== 'gone'){
           // อัปเดตข้อมูลสินค้าในหน้าให้ตรงกับฐานข้อมูล (ตะกร้า, ป๊อปอัป, ปุ่มซื้อคู่กัน ใช้ชุดเดียวกัน)
           if (!p){ p = { id: l.id, name: l.name, cat: '', catId: '', specs: [], use: [], color: l.color || 'any' }; CATALOG.push(p); }
-          p.name = l.name; p.price = l.price; p.inStock = l.status !== 'out' && l.status !== 'ask';
+          // l.price = ราคาต่อชิ้นของจำนวนในบรรทัดนั้น (รวมราคาลด/ราคาขายส่ง) — ข้อมูลในหน้าไม่ตรง → ใช้ราคาจาก server
+          if (unitPrice(p, l.qty || l.wanted || 1) !== l.price){ p.price = l.price; delete p.tiers; delete p.sale; }
+          p.name = l.name; p.inStock = l.status !== 'out' && l.status !== 'ask';
           if (l.maxQty != null) p.maxQty = l.maxQty; else delete p.maxQty;
           if (l.img) p.img = l.img;
         }
@@ -337,9 +361,9 @@ function validateCart(force){
 }
 
 const cartEl = document.getElementById('cart');
-const saveCart = () => { LS.set(CART_KEY, JSON.stringify(cart)); saveSeen(); };
+const saveCart = changed => { LS.set(CART_KEY, JSON.stringify(cart)); saveSeen(changed); };
 const cartQty = () => Object.values(cart).reduce((a,b) => a + b, 0);
-const cartSum = () => Object.entries(cart).reduce((s,[id,q]) => s + byId(id).price * q, 0);
+const cartSum = () => Object.entries(cart).reduce((s,[id,q]) => s + unitPrice(byId(id), q) * q, 0);
 const capCount = n => n > 99 ? '99+' : String(n);
 const cartAria = n => n ? `ตะกร้า ${n} ชิ้น` : 'ตะกร้า ว่าง';
 
@@ -351,7 +375,7 @@ function addToCart(id, qty = 1, mode = 'open'){ // mode: open | toast | silent
   if (want > maxQty(p)) toast(`"${p.name}" มีสินค้าเหลือ ${maxQty(p)} ชิ้น`);
   cart[id] = Math.min(want, maxQty(p));
   if (!cart[id]){ delete cart[id]; return false; }
-  saveCart(); renderCart();
+  saveCart(id); renderCart();
   ['cartCount', 'fabCount'].forEach(k => { const c = document.getElementById(k); c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); });
   if (mode === 'open') openCart(); else if (mode === 'toast') toast('เพิ่ม "' + byId(id).name + '" ลงตะกร้าแล้ว');
   window.mdwTrack('add_to_cart', { value: p.price * qty, items: [{ id: p.id, name: p.name, price: p.price, qty }] });
@@ -362,7 +386,7 @@ function setQty(id, q){
   if (p && q > maxQty(p)) toast(`"${p.name}" มีสินค้าเหลือ ${maxQty(p)} ชิ้น`);
   if (q <= 0 || !p) delete cart[id]; else cart[id] = Math.min(q, maxQty(p));
   delete cartFlags[id]; cartNotes = [];
-  saveCart(); renderCart();
+  saveCart(id); renderCart();
 }
 function renderBadges(){
   const n = cartQty();
@@ -400,12 +424,12 @@ function renderCart(){
       <br><a href="/#finder" class="btn btn-primary" data-cart-close>ช่วยเลือกไฟ</a></div>` + recentHtml();
     return;
   }
-  const items = Object.entries(cart).map(([id,q]) => { const p = byId(id); return `
+  const items = Object.entries(cart).map(([id,q]) => { const p = byId(id), u = unitPrice(p, q); return `
     <div class="ci">
       <a class="ci-thumb" href="/product/${encodeURIComponent(p.id)}" tabindex="-1" aria-hidden="true">${thumb(p)}</a>
       <div>
         <div class="ci-name"><a href="/product/${encodeURIComponent(p.id)}">${esc(p.name)}</a></div>
-        <div class="ci-unit">${baht(p.price)} / ชิ้น</div>${cartFlags[id] ? `<div class="ci-flag">${esc(cartFlags[id])}</div>` : ''}
+        <div class="ci-unit">${baht(u)} / ชิ้น${u < p.price ? ` <span class="ci-tier">ราคาขายส่ง (ปกติ ${baht(p.price)})</span>` : ''}</div>${cartFlags[id] ? `<div class="ci-flag">${esc(cartFlags[id])}</div>` : ''}
         <div class="qty">
           <button data-qty="${esc(id)}" data-d="-1" aria-label="ลดจำนวน ${esc(p.name)}">−</button>
           <span aria-label="จำนวน">${q}</span>
@@ -413,7 +437,7 @@ function renderCart(){
         </div>
       </div>
       <div class="ci-right">
-        <div class="ci-line">${baht(p.price * q)}</div>
+        <div class="ci-line">${baht(u * q)}</div>
         <button class="ci-del" data-del="${esc(id)}" aria-label="ลบ ${esc(p.name)} ออกจากตะกร้า">ลบ</button>
       </div>
     </div>`; }).join('');
@@ -757,6 +781,92 @@ mdwReveal();
 document.getElementById('yr').textContent = new Date().getFullYear();
 // เปิดตะกร้าทันทีเมื่อมาจากลิงก์ #cart (เช่น ไอคอนตะกร้าในหน้า checkout)
 if (location.hash === '#cart'){ history.replaceState(null, '', location.pathname + location.search); openCart($('#cartBtn')); }
+
+/* =========================================================
+   ล็อต 9: รายการโปรด (U7) + เปรียบเทียบสินค้า (U5) — เก็บในเครื่อง (localStorage) ไม่ต้องสมัครสมาชิก
+   ปุ่ม [data-wish] / [data-compare] ในการ์ดและหน้าสินค้า · ไอคอนหัวใจบนแถบหัว · แถบเปรียบเทียบด้านล่างจอ
+   ========================================================= */
+const MdwLists = (() => {
+  const WISH = 'mdw_wish', CMP = 'mdw_compare', CMP_MAX = 4, WISH_MAX = 60;
+  const read = k => { const v = LS.json(k); return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x.length <= 200).slice(0, k === CMP ? CMP_MAX : WISH_MAX) : []; };
+  const write = (k, v) => { LS.set(k, JSON.stringify(v)); document.dispatchEvent(new CustomEvent('mdw:lists', { detail: { key: k } })); };
+  const HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+  // ไอคอนรายการโปรดบนแถบหัว (ก่อนตะกร้า) + ลิงก์ในเมนูมือถือ
+  const head = $('.header-actions'), cw = $('#cartWrap');
+  let wishLink = null;
+  if (head && cw){
+    wishLink = document.createElement('a');
+    wishLink.href = '/wishlist'; wishLink.className = 'icon-btn wish-link'; wishLink.id = 'wishLink';
+    wishLink.innerHTML = HEART + '<span class="cart-count" id="wishCount" aria-hidden="true" hidden>0</span>';
+    head.insertBefore(wishLink, cw);
+  }
+  const drOther = $('#drawer .dr-other');
+  if (drOther && !$('#drawer a[href="/wishlist"]')){
+    const a1 = document.createElement('a'); a1.href = '/wishlist'; a1.textContent = 'รายการโปรด';
+    const a2 = document.createElement('a'); a2.href = '/compare'; a2.textContent = 'เปรียบเทียบสินค้า';
+    const a3 = document.createElement('a'); a3.href = '/tools/psu-calculator'; a3.textContent = 'คำนวณหม้อแปลง';
+    drOther.insertBefore(a3, drOther.firstChild); drOther.insertBefore(a2, a3); drOther.insertBefore(a1, a2);
+  }
+  // แถบเปรียบเทียบ (แสดงเมื่อเลือก ≥ 1 ชิ้น)
+  const tray = document.createElement('div');
+  tray.className = 'cmp-tray'; tray.id = 'cmpTray'; tray.hidden = true;
+  tray.setAttribute('role', 'region'); tray.setAttribute('aria-label', 'สินค้าที่เลือกเปรียบเทียบ');
+  document.body.appendChild(tray);
+
+  function sync(){
+    const wish = read(WISH), cmp = read(CMP);
+    $$('[data-wish]').forEach(b => b.setAttribute('aria-pressed', wish.includes(b.dataset.wish) ? 'true' : 'false'));
+    $$('[data-compare]').forEach(b => b.setAttribute('aria-pressed', cmp.includes(b.dataset.compare) ? 'true' : 'false'));
+    if (wishLink){
+      const n = wish.length, c = $('#wishCount');
+      c.textContent = n > 99 ? '99+' : String(n); c.hidden = n === 0;
+      wishLink.setAttribute('aria-label', n ? `รายการโปรด ${n} รายการ` : 'รายการโปรด');
+    }
+    const onCmpPage = location.pathname === '/compare';
+    tray.hidden = !cmp.length || onCmpPage;
+    document.body.classList.toggle('cmp-on', !tray.hidden);
+    if (!tray.hidden){
+      const items = cmp.map(id => byId(id)).filter(Boolean);
+      tray.innerHTML = `<div class="container cmp-in">
+        <b class="cmp-t">เปรียบเทียบ <span>${cmp.length}/${CMP_MAX}</span></b>
+        <ul>${items.map(p => `<li>${p.img && safeImg(p.img) ? `<img src="${esc(p.img)}" alt="" width="40" height="40">` : `<span class="${phClass(p)}"></span>`}<span class="nm">${esc(p.name)}</span><button type="button" data-cmp-del="${esc(p.id)}" aria-label="เอา ${esc(p.name)} ออกจากการเปรียบเทียบ">×</button></li>`).join('')}</ul>
+        <a class="btn btn-primary btn-sm" href="/compare?ids=${cmp.map(encodeURIComponent).join(',')}">${cmp.length < 2 ? 'ดูการเปรียบเทียบ' : 'เปรียบเทียบเลย'}</a>
+        <button type="button" class="f-link" data-cmp-clear>ล้าง</button></div>`;
+    }
+  }
+  function toggle(key, id){
+    const list = read(key), i = list.indexOf(id), p = byId(id), nm = p ? `"${p.name}"` : 'สินค้านี้';
+    if (i >= 0){ list.splice(i, 1); write(key, list); toast(key === WISH ? `นำ ${nm} ออกจากรายการโปรดแล้ว` : `นำ ${nm} ออกจากการเปรียบเทียบแล้ว`); return; }
+    if (key === CMP && list.length >= CMP_MAX){ toast(`เปรียบเทียบได้สูงสุด ${CMP_MAX} ชิ้น — เอาบางชิ้นออกก่อน`); return; }
+    if (key === WISH){ if (list.length >= WISH_MAX) list.pop(); list.unshift(id); } else list.push(id); // เปรียบเทียบ: เรียงตามลำดับที่เลือก
+    write(key, list);
+    toast(key === WISH ? `เพิ่ม ${nm} ในรายการโปรดแล้ว` : `เพิ่ม ${nm} ในการเปรียบเทียบแล้ว (${read(CMP).length}/${CMP_MAX})`);
+  }
+  document.addEventListener('click', e => {
+    const w = e.target.closest('[data-wish]');
+    if (w){ e.preventDefault(); toggle(WISH, w.dataset.wish); return; }
+    const c = e.target.closest('[data-compare]');
+    if (c){ e.preventDefault(); toggle(CMP, c.dataset.compare); return; }
+    const r = e.target.closest('[data-cmp-remove]');
+    if (r){ write(CMP, read(CMP).filter(x => x !== r.dataset.cmpRemove)); return; } // ลิงก์ "เอาออก" ในหน้าเปรียบเทียบ (ไปหน้าใหม่ตามปกติ)
+    const d = e.target.closest('[data-cmp-del]');
+    if (d){ write(CMP, read(CMP).filter(x => x !== d.dataset.cmpDel)); return; }
+    if (e.target.closest('[data-cmp-clear]')) write(CMP, []);
+  });
+  document.addEventListener('mdw:lists', sync);
+  addEventListener('storage', e => { if (e.key === null || e.key === WISH || e.key === CMP) sync(); });
+  // ปุ่มที่ React วาดเพิ่มทีหลัง (สินค้าที่ดูล่าสุด, หน้ารายการโปรด) → ตั้งสถานะให้ตรง
+  if (window.MutationObserver){
+    let raf = 0;
+    new MutationObserver(ms => {
+      if (raf || !ms.some(m => [...m.addedNodes].some(n => n.nodeType === 1 && (n.matches('[data-wish],[data-compare]') || n.querySelector('[data-wish],[data-compare]'))))) return;
+      raf = requestAnimationFrame(() => { raf = 0; sync(); });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+  sync();
+  return { read, write, sync, WISH, CMP, CMP_MAX };
+})();
+window.mdwLists = MdwLists;
 
 /* แจ้งสคริปต์ของแต่ละหน้า (เช่น home.js) ว่าส่วนกลางพร้อมแล้ว */
 window.mdwShellReady = true;

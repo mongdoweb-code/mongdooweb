@@ -12,7 +12,17 @@ const MAX_FILES = 3;
 
 function readCart(): CartRow[] {
   try {
-    const cart = JSON.parse(localStorage.getItem("mdw_cart") || "{}") as Record<string, number>;
+    // ?items=slug:qty,slug:qty (จากหน้ารายการโปรด) ใช้แทนตะกร้า
+    const fromUrl = new URLSearchParams(location.search).get("items");
+    const cart: Record<string, number> = fromUrl
+      ? Object.fromEntries(
+          fromUrl
+            .split(",")
+            .slice(0, 30)
+            .map((x) => x.split(":"))
+            .map(([slug, q]) => [decodeURIComponent(slug ?? "").slice(0, 200), Math.min(999, Math.max(1, Math.floor(Number(q)) || 1))]),
+        )
+      : (JSON.parse(localStorage.getItem("mdw_cart") || "{}") as Record<string, number>);
     const data = JSON.parse(document.getElementById("mdw-data")?.textContent || "{}") as { catalog?: { id: string; name: string }[] };
     const names = new Map((data.catalog ?? []).map((p) => [p.id, p.name]));
     return Object.entries(cart)
@@ -33,6 +43,7 @@ export function InquiryForm({ kind }: { kind: Kind }) {
   const [done, setDone] = useState<{ id: string } | null>(null);
   const [cart, setCart] = useState<CartRow[]>([]);
   const [useCart, setUseCart] = useState(true);
+  const [fromWish, setFromWish] = useState(false);
   const [atts, setAtts] = useState<Att[]>([]);
   const [attBusy, setAttBusy] = useState(false);
   const openedAt = useRef(0);
@@ -45,6 +56,7 @@ export function InquiryForm({ kind }: { kind: Kind }) {
     // ตะกร้าอยู่ใน localStorage ของเบราว์เซอร์ — อ่านหลัง mount (เป็นการซิงก์กับระบบภายนอก)
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isQuote) setCart(readCart());
+    if (isQuote) setFromWish(new URLSearchParams(location.search).has("items"));
   }, [isQuote]);
 
   const err = (name: string) =>
@@ -202,7 +214,7 @@ export function InquiryForm({ kind }: { kind: Kind }) {
       {isQuote && cart.length > 0 && (
         <div className="field">
           <div className="q-items-h">
-            <b>สินค้าที่สนใจ (จากตะกร้าของคุณ)</b>
+            <b>สินค้าที่สนใจ ({fromWish ? "จากรายการโปรดของคุณ" : "จากตะกร้าของคุณ"})</b>
             <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 500, margin: 0 }}>
               <input type="checkbox" checked={useCart} onChange={(e) => setUseCart(e.target.checked)} style={{ width: 18, height: 18, accentColor: "var(--c-orange)" }} />
               แนบรายการนี้

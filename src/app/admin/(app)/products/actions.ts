@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { setStock } from "@/lib/stock";
 import { parseCsv } from "@/lib/csv";
 import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
+import { readProductExtras } from "@/lib/product-extras";
 
 export type ProductFormState = { error?: string; fields?: string[]; ok?: string };
 
@@ -69,6 +70,10 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
       fields: bad,
     };
 
+  // ล็อต 9: ราคาลดตามช่วงเวลา ราคาขายส่ง สเปกแบบมีโครงสร้าง
+  const extras = await readProductExtras(f, categoryId, price);
+  if ("error" in extras) return { error: extras.error, fields: extras.fields };
+
   // รูปใหม่
   const uploaded: string[] = [];
   for (const file of f.getAll("newImages")) {
@@ -107,6 +112,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     lightColor: COLORS.includes(str(f, "lightColor") as LightColor) ? (str(f, "lightColor") as LightColor) : "ANY",
     includesPsu: f.get("includesPsu") === "on",
     isAccessory: f.get("isAccessory") === "on",
+    ...extras.data,
   };
 
   // สต็อกเปลี่ยนผ่าน src/lib/stock.ts เท่านั้น (มีประวัติ) — แก้เฉพาะเมื่อผู้ใช้เปลี่ยนตัวเลขจริง กันทับยอดที่ขายไประหว่างเปิดฟอร์ม
