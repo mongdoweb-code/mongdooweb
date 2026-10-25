@@ -11,7 +11,9 @@ import {
   checkShipRows, makeOrderNo, nextPending, normTracking, restockLines, type ShipRow,
 } from "@/lib/admin-orders";
 import { parseCsv } from "@/lib/csv";
+import { releaseCouponTx } from "@/lib/coupons";
 import { customerFromOrder } from "@/lib/docs";
+import { sendOrderEmail } from "@/lib/email";
 import { bahtText, phoneDigits } from "@/lib/format";
 import { validateAddress, validateTaxInvoice } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
@@ -50,8 +52,8 @@ async function transition(tx: Tx, orderNo: string, from: OrderStatus[], data: Pr
 async function confirmPaid(tx: Tx, orderNo: string, from: OrderStatus[], adminId: string, note: string): Promise<StockResult[] | null> {
   const id = await transition(tx, orderNo, from, { status: "PAID", paidAt: new Date(), rejectReason: null });
   if (!id) return null;
-  const slip = await tx.paymentSlip.findFirst({ where: { orderId: id }, orderBy: { uploadedAt: "desc" } });
-  if (slip && slip.status !== "ACCEPTED") await tx.paymentSlip.update({ where: { id: slip.id }, data: { status: "ACCEPTED" } });
+  // รอบ 3: ลูกค้าแนบได้หลายสลิป → อนุมัติทุกสลิปที่รอตรวจ
+  await tx.paymentSlip.updateMany({ where: { orderId: id, status: "PENDING" }, data: { status: "ACCEPTED" } });
   await tx.orderEvent.create({ data: { orderId: id, type: "APPROVED", note, adminId } });
   const items = await tx.orderItem.findMany({ where: { orderId: id, productId: { not: null } }, select: { productId: true, qty: true } });
   return moveStock(tx, items.map((i) => ({ productId: i.productId!, delta: -i.qty })), { reason: "SALE", ref: orderNo, adminId, note: "ตัดสต็อกเมื่อยืนยันการชำระเงิน" });
@@ -73,6 +75,7 @@ export async function approveOrder(f: FormData) {
   const moves = await prisma.$transaction((tx) => confirmPaid(tx, orderNo, ["PENDING_VERIFICATION"], admin.id, "ยืนยันการชำระเงิน"));
   if (moves) {
     afterStock(moves, orderNo);
+    after(() => sendOrderEmail(orderNo, "PAID"));
     await logAdmin(admin.id, "ORDER", `อนุมัติการชำระเงิน ${orderNo}`);
   }
   // ไปคำสั่งซื้อที่รอตรวจถัดไปอัตโนมัติ (ลดคลิกตอนเคลียร์คิว)
@@ -89,8 +92,7 @@ export async function rejectOrder(f: FormData) {
   const ok = await prisma.$transaction(async (tx) => {
     const id = await transition(tx, orderNo, ["PENDING_VERIFICATION"], { status: "REJECTED", rejectReason: full });
     if (!id) return false;
-    const slip = await tx.paymentSlip.findFirst({ where: { orderId: id }, orderBy: { uploadedAt: "desc" } });
-    if (slip) await tx.paymentSlip.update({ where: { id: slip.id }, data: { status: "REJECTED" } });
+    await tx.paymentSlip.updateMany({ where: { orderId: id, status: "PENDING" }, data: { status: "REJECTED" } });
     await tx.orderEvent.create({ data: { orderId: id, type: "REJECTED", note: full, adminId: admin.id } });
     return true;
   });
@@ -127,6 +129,7 @@ export async function markPaid(f: FormData) {
   const moves = await prisma.$transaction((tx) => confirmPaid(tx, orderNo, ["AWAITING_SLIP", "REJECTED"], admin.id, text));
   if (moves) {
     afterStock(moves, orderNo);
+    after(() => sendOrderEmail(orderNo, "PAID"));
     await logAdmin(admin.id, "ORDER", `${orderNo}: ${text}`);
   }
   redirect(backTo(f, { open: orderNo }));
@@ -148,8 +151,10 @@ export async function shipOrder(f: FormData) {
   const carrier = CARRIERS.includes(str(f, "carrier", 60)) ? str(f, "carrier", 60) : CARRIERS[0];
   const trackingNo = normTracking(str(f, "trackingNo", 40));
   if (!TRACKING_RE.test(trackingNo)) redirect(backTo(f, { open: orderNo, err: "tracking" }));
-  if (await prisma.$transaction((tx) => ship(tx, orderNo, carrier, trackingNo, admin.id)))
+  if (await prisma.$transaction((tx) => ship(tx, orderNo, carrier, trackingNo, admin.id))) {
+    after(() => sendOrderEmail(orderNo, "SHIPPED"));
     await logAdmin(admin.id, "ORDER", `จัดส่ง ${orderNo} (${carrier} · ${trackingNo})`);
+  }
   redirect(backTo(f, { open: orderNo }));
 }
 
@@ -191,7 +196,12 @@ export async function applyShipCsv(_prev: ShipCsvState, f: FormData): Promise<Sh
       shipped.push(r.orderNo);
     }
   }
-  if (done) await logAdmin(admin.id, "ORDER", `บันทึกเลขพัสดุจาก CSV ${done} รายการ: ${shipped.join(", ")}`);
+  if (done) {
+    after(async () => {
+      for (const no of shipped) await sendOrderEmail(no, "SHIPPED");
+    });
+    await logAdmin(admin.id, "ORDER", `บันทึกเลขพัสดุจาก CSV ${done} รายการ: ${shipped.join(", ")}`);
+  }
   const skipped = checked.length - done;
   return { ok: `บันทึกเลขพัสดุแล้ว ${done} รายการ${skipped ? ` · ข้าม ${skipped} แถวที่ไม่ผ่านการตรวจ` : ""}`, rows: checked, csv: text };
 }
@@ -214,8 +224,11 @@ export async function cancelOrder(f: FormData) {
   const why = reasonOf(f, CANCEL_REASONS);
   const ok = await prisma.$transaction(async (tx) => {
     const id = await transition(tx, orderNo, CANCELLABLE, { status: "CANCELLED", cancelReason: why });
-    if (id) await tx.orderEvent.create({ data: { orderId: id, type: "CANCELLED", note: `ยกเลิกคำสั่งซื้อ — ${why}`, adminId: admin.id } });
-    return !!id;
+    if (!id) return false;
+    // ยังไม่ได้รับเงิน → คืนสิทธิ์คูปองให้ลูกค้า
+    const coupon = await releaseCouponTx(tx, id);
+    await tx.orderEvent.create({ data: { orderId: id, type: "CANCELLED", note: `ยกเลิกคำสั่งซื้อ — ${why}${coupon ? ` · คืนสิทธิ์คูปอง ${coupon}` : ""}`, adminId: admin.id } });
+    return true;
   });
   if (ok) await logAdmin(admin.id, "ORDER", `ยกเลิกคำสั่งซื้อ ${orderNo}: ${why}`);
   redirect(backTo(f, { open: orderNo }));

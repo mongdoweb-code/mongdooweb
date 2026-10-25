@@ -88,6 +88,9 @@ export default async function ContactPage() {
                   <a href="/warranty">การรับประกันและเคลมสินค้า</a>
                 </li>
                 <li>
+                  <a href="/claim">แจ้งเคลม / คืนสินค้าออนไลน์</a>
+                </li>
+                <li>
                   <a href="/how-to-order">วิธีสั่งซื้อและชำระเงิน</a>
                 </li>
               </ul>

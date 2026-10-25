@@ -22,7 +22,7 @@ export async function GET(req: Request) {
     include: { items: true },
     orderBy: { createdAt: "asc" },
   });
-  const head = ["เลขที่", "วันที่", "สถานะ", "ชื่อผู้รับ", "เบอร์โทร", "ที่อยู่", "รหัสไปรษณีย์", "รายการ", "วิธีส่ง", "ยอดรวม", "ขนส่ง", "เลขพัสดุ", "หมายเหตุ"];
+  const head = ["เลขที่", "วันที่", "สถานะ", "ชื่อผู้รับ", "เบอร์โทร", "ที่อยู่", "รหัสไปรษณีย์", "รายการ", "วิธีส่ง", "ยอดรวม", "ขนส่ง", "เลขพัสดุ", "หมายเหตุ", "การชำระเงิน", "คูปอง", "ส่วนลด", "ค่าธรรมเนียม COD", "ค่าส่งพื้นที่ห่างไกล"];
   const lines = orders.map((o) =>
     [
       o.orderNo,
@@ -38,6 +38,11 @@ export async function GET(req: Request) {
       o.carrier,
       o.trackingNo,
       o.note,
+      o.paymentMethod === "COD" ? "เก็บเงินปลายทาง" : "โอน/พร้อมเพย์",
+      o.couponCode,
+      (o.discountSatang / 100).toFixed(2),
+      (o.codFeeSatang / 100).toFixed(2),
+      (o.remoteFeeSatang / 100).toFixed(2),
     ].map(q).join(","),
   );
   await prisma.adminLog.create({ data: { type: "ORDERS_EXPORT", note: `ส่งออก CSV ${orders.length} รายการ`, adminId: admin.id } });

@@ -32,6 +32,7 @@ import { LabelOptions } from "../_components/LabelOptions";
 import { docFromOrder } from "./docs/actions";
 import { addOrderNote, approveOrder, cancelOrder, markPaid, refundOrder, rejectOrder, reopenOrder, shipOrder } from "./order-actions";
 import { BulkLabels, EditOrderForm } from "./orders/OrderForms";
+import { confirmCodOrder, settleCod } from "./orders/cod-actions";
 import "../lot3.css";
 
 type Mode = "reject" | "edit" | "pay" | "cancel" | "refund" | null;
@@ -68,7 +69,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
   const mode: Mode = MODES.find((m) => m === sp.mode) ?? null;
   const bulk = f.tab === "PAID";
   const [list, stats] = await Promise.all([listOrders(f), orderStats()]);
-  const count = (s: keyof typeof STATUS_LABEL) => stats.count[s] ?? 0;
+  const count = (s: keyof typeof STATUS_LABEL | "COD") => stats.count[s] ?? 0;
   const allCount = Object.values(stats.count).reduce((a, b) => a + (b ?? 0), 0);
   const pend = count("PENDING_VERIFICATION");
   const firstPending = pend ? await nextPending() : null;
@@ -85,6 +86,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
         </div>
         <div className="head-actions">
           <Link className="btn btn-outline" href="/admin/orders/new">+ สร้างคำสั่งซื้อ</Link>
+          <Link className="btn btn-outline" href="/admin/orders/cod">กระทบยอด COD</Link>
           <a className="btn btn-outline" href={`/admin/orders.csv${filterQuery({ ...f, page: 1 })}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 4v12M7 11l5 5 5-5" /><path d="M4 20h16" /></svg>
             ส่งออก CSV
@@ -116,6 +118,13 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
           <b className="num">{pend}</b>
           <small>{pend ? "ตรวจคิวเก่าสุดก่อน" : "ไม่มีงานค้าง"}</small>
         </a>
+        {count("COD") > 0 && (
+          <a className="kpi hot" href={href({ tab: "COD", page: 1 })} id="kpiCod">
+            <span>รอยืนยัน COD</span>
+            <b className="num">{count("COD")}</b>
+            <small>โทรยืนยันก่อนจัดส่ง</small>
+          </a>
+        )}
         <a className="kpi" href={href({ tab: "PAID", page: 1 })}>
           <span>ชำระแล้ว รอจัดส่ง</span>
           <b className="num">{count("PAID")}</b>
@@ -246,6 +255,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
                       {o.check?.late && <span className="chip warn">วันที่โอนเก่า</span>}
                       {o.hasNote && <span className="chip gray">มีโน้ตภายใน</span>}
                       {o.channel === "ADMIN" && <span className="chip gray">สร้างจากหลังร้าน</span>}
+                      {o.paymentMethod === "COD" && <span className="chip warn">COD{o.codSettled ? " · รับเงินแล้ว" : ""}</span>}
+                      {o.couponCode && <span className="chip gray">คูปอง {o.couponCode}</span>}
+                      {o.slipCount > 1 && <span className="chip gray">{o.slipCount} สลิป</span>}
                     </div>
                   </td>
                 </tr>
@@ -426,6 +438,8 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
             <span className="sub">
               <span className={`st st-${o.status}`}>{STATUS_LABEL[o.status]}</span> · {fmt(o.createdAt)}
               {o.channel === "ADMIN" && " · สร้างจากหลังร้าน"}
+              {o.paymentMethod === "COD" && <> · <span className="chip warn" id="codChip">เก็บเงินปลายทาง</span></>}
+              {o.shippingMethod === "pickup" && <> · <span className="chip gray">รับที่ร้าน</span></>}
             </span>
           </div>
           <div className="d-nav">
@@ -455,17 +469,17 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                 <>
                   <div className="l3-amt" id="slipAmounts">
                     <div><span>ยอดที่ต้องชำระ</span><b>{baht(o.totalSatang)}</b></div>
-                    <div className={o.slip.declaredAmountSatang === o.totalSatang ? "ok" : "bad"}>
-                      <span>ยอดในสลิป (ลูกค้าแจ้ง)</span>
-                      <b>{baht(o.slip.declaredAmountSatang)}</b>
+                    <div className={o.slipSumSatang === o.totalSatang ? "ok" : "bad"} id="slipSum">
+                      <span>{o.slipCount > 1 ? `ยอดรวมสลิปที่ยังไม่ถูกปฏิเสธ (${o.slips.filter((x) => x.status !== "REJECTED").length} สลิป)` : "ยอดในสลิป (ลูกค้าแจ้ง)"}</span>
+                      <b>{baht(o.slipSumSatang)}</b>
                     </div>
                   </div>
-                  <SlipViewer src={`/admin/slips/${o.slip.id}`} alt={`สลิปของ ${o.orderNo}`} orderSatang={o.totalSatang} slipSatang={o.slip.declaredAmountSatang} />
+                  <SlipViewer src={`/admin/slips/${o.slip.id}`} alt={`สลิปของ ${o.orderNo}`} orderSatang={o.totalSatang} slipSatang={o.slipSumSatang} />
                   {o.slipCount > 1 && (
                     <div className="l3-slips" aria-label="สลิปทั้งหมด">
                       {o.slips.map((x, i) => (
                         <a key={x.id} href={`/admin/slips/${x.id}`} target="_blank" rel="noopener" aria-current={x.id === o.slip!.id ? "true" : undefined}>
-                          สลิปครั้งที่ {i + 1} · {baht(x.declaredAmountSatang)}{x.status === "REJECTED" ? " · ไม่ผ่าน" : ""}
+                          สลิปครั้งที่ {i + 1} · {baht(x.declaredAmountSatang)}{x.status === "REJECTED" ? " · ไม่ผ่าน" : x.status === "ACCEPTED" ? " · ผ่าน" : " · รอตรวจ"}
                         </a>
                       ))}
                     </div>
@@ -481,7 +495,7 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                   </div>
                 </>
               ) : (
-                <div className="empty">{o.status === "AWAITING_SLIP" ? "ลูกค้ายังไม่แนบสลิป" : "ไม่มีภาพสลิป"}</div>
+                <div className="empty">{o.paymentMethod === "COD" ? "เก็บเงินปลายทาง — ไม่ต้องแนบสลิป" : o.status === "AWAITING_SLIP" ? "ลูกค้ายังไม่แนบสลิป" : "ไม่มีภาพสลิป"}</div>
               )}
             </div>
           </div>
@@ -509,13 +523,13 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                 <h3>ตรวจอัตโนมัติ</h3>
                 <div className="checks">
                   {c.diffSatang === 0 ? (
-                    <div className="ck ok">{ICON.ok}<div><b>ยอดในสลิปตรงกับยอดสั่งซื้อ</b><small>{baht(o.slip.declaredAmountSatang)}</small></div></div>
+                    <div className="ck ok">{ICON.ok}<div><b>ยอดในสลิปตรงกับยอดสั่งซื้อ</b><small>{baht(o.slipSumSatang)}{o.slipCount > 1 ? ` (รวม ${o.slipCount} สลิป)` : ""}</small></div></div>
                   ) : (
                     <div className="ck bad">
                       {ICON.bad}
                       <div>
                         <b>ยอด{c.diffSatang > 0 ? "เกิน" : "ขาด"} {baht(Math.abs(c.diffSatang))}</b>
-                        <small>สลิป {baht(o.slip.declaredAmountSatang)} · ต้องชำระ {baht(o.totalSatang)}</small>
+                        <small>สลิป{o.slipCount > 1 ? "รวม" : ""} {baht(o.slipSumSatang)} · ต้องชำระ {baht(o.totalSatang)}</small>
                       </div>
                     </div>
                   )}
@@ -549,7 +563,41 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
               </div>
             )}
 
-            {o.status === "PENDING_VERIFICATION" && mode !== "reject" && (
+            {o.status === "PENDING_VERIFICATION" && o.paymentMethod === "COD" && (
+              <div className="act" id="codConfirmBox">
+                <h3>ยืนยันคำสั่งซื้อเก็บเงินปลายทาง (COD)</h3>
+                <p className="l3-note">โทรยืนยันกับลูกค้า ({formatPhone(o.phone)}) ก่อน — ยอดเก็บปลายทาง <b>{baht(o.totalSatang)}</b> (รวมค่าธรรมเนียม COD {baht(o.codFeeSatang)}) · ยืนยันแล้วระบบตัดสต็อกและย้ายไป &quot;รอจัดส่ง&quot;</p>
+                <form action={confirmCodOrder} className="reject-form">
+                  <input type="hidden" name="orderNo" value={o.orderNo} />
+                  <input type="hidden" name="ret" value={ret} />
+                  <div className="field">
+                    <label htmlFor="codNote">บันทึกการยืนยัน (ไม่บังคับ)</label>
+                    <input id="codNote" name="note" maxLength={200} placeholder="เช่น โทรยืนยันแล้ว 14:20 ลูกค้าสะดวกรับวันพรุ่งนี้" />
+                  </div>
+                  <div className="act-row">
+                    <button className="btn btn-ok" type="submit">ยืนยันคำสั่งซื้อ COD</button>
+                    <a className="btn btn-danger" href={here("cancel")}>ยกเลิก (ติดต่อไม่ได้/ลูกค้าไม่รับ)</a>
+                  </div>
+                </form>
+              </div>
+            )}
+            {o.paymentMethod === "COD" && o.status === "SHIPPED" && (
+              <div className="box" id="codSettleBox">
+                <h3>เงินเก็บปลายทาง</h3>
+                {o.codSettledAt ? (
+                  <p>ขนส่งโอนเงินคืนแล้วเมื่อ {fmt(o.codSettledAt)}</p>
+                ) : (
+                  <form action={settleCod} className="act-row">
+                    <input type="hidden" name="pick" value={o.orderNo} />
+                    <input type="hidden" name="from" value="drawer" />
+                    <input type="hidden" name="ret" value={ret} />
+                    <span className="sub">ยังไม่ได้รับเงิน {baht(o.totalSatang)} จากขนส่ง</span>
+                    <button className="btn btn-ok btn-sm" type="submit">รับเงินแล้ว</button>
+                  </form>
+                )}
+              </div>
+            )}
+            {o.status === "PENDING_VERIFICATION" && o.paymentMethod !== "COD" && mode !== "reject" && (
               <div className="act">
                 <h3>ผลการตรวจสลิป</h3>
                 <form action={approveOrder} className="act-row">
@@ -807,7 +855,14 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
               </div>
               <div className="totals">
                 <div><span>ค่าสินค้า</span><b className="num">{baht(o.subtotalSatang)}</b></div>
-                <div><span>ค่าจัดส่ง ({o.shippingName})</span><b className="num">{o.shippingSatang ? baht(o.shippingSatang) : "ฟรี"}</b></div>
+                {o.discountSatang > 0 && (
+                  <div id="drawerDiscount">
+                    <span>ส่วนลดคูปอง {o.coupon ? <Link className="link" href={`/admin/coupons/${o.coupon.couponId}`}>{o.couponCode}</Link> : o.couponCode}</span>
+                    <b className="num">−{baht(o.discountSatang)}</b>
+                  </div>
+                )}
+                <div><span>ค่าจัดส่ง ({o.shippingName}){o.remoteFeeSatang > 0 ? ` · รวมพื้นที่ห่างไกล ${baht(o.remoteFeeSatang)}` : ""}</span><b className="num">{o.shippingSatang ? baht(o.shippingSatang) : "ฟรี"}</b></div>
+                {o.codFeeSatang > 0 && <div><span>ค่าธรรมเนียมเก็บเงินปลายทาง</span><b className="num">{baht(o.codFeeSatang)}</b></div>}
                 <div className="g"><span>ยอดชำระ</span><b className="num">{baht(o.totalSatang)}</b></div>
               </div>
             </div>

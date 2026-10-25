@@ -8,7 +8,7 @@ import { logAdmin } from "@/lib/admin-log";
 import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
-import { allocDocNo, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, prefixOf, todayYmd, totalsFor, type Tx } from "@/lib/docs";
+import { custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, type Tx } from "@/lib/docs";
 import { DocUserError, issueDocTx, recordInvoicePaymentTx } from "@/lib/doc-payments";
 import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";

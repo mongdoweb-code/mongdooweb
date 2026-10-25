@@ -25,6 +25,8 @@ const ICON = {
   pages: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4" />,
   users: <><circle cx="9" cy="8" r="4" /><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11l2 2 4-4" /></>,
   system: <><rect x="3" y="4" width="18" height="12" /><path d="M8 20h8M12 16v4" /></>,
+  coupon: <path d="M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3zM9 4v16" />,
+  claim: <><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z" /><path d="m9 12 2 2 4-4" /></>,
 };
 const Ico = ({ k }: { k: keyof typeof ICON }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
@@ -34,10 +36,12 @@ const Ico = ({ k }: { k: keyof typeof ICON }) => (
 export default async function AdminAppLayout({ children }: LayoutProps<"/admin">) {
   // หน้า "บัญชีของฉัน" ต้องเปิดได้แม้ยังต้องเปลี่ยนรหัสผ่าน — หน้าอื่นตรวจซ้ำด้วย requireAdmin() ของตัวเองและพามาที่นี่
   const admin = await requireAdmin({ allowPasswordChange: true });
-  const [pending, unpaid, inquiries] = await Promise.all([
-    prisma.order.count({ where: { status: "PENDING_VERIFICATION" } }),
+  const [pending, unpaid, inquiries, claims, docSlips] = await Promise.all([
+    prisma.order.count({ where: { status: "PENDING_VERIFICATION" } }), // รวม COD ที่รอยืนยัน
     prisma.salesDocument.count({ where: { type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } } }),
     prisma.inquiry.count({ where: { status: "NEW" } }),
+    prisma.claim.count({ where: { status: "NEW" } }),
+    prisma.docSlip.count({ where: { status: "PENDING" } }),
   ]);
   const owner = admin.role === "OWNER";
   return (
@@ -57,6 +61,8 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/dashboard", label: "ภาพรวม", icon: <Ico k="dash" /> },
             { href: "/admin", label: "คำสั่งซื้อ", icon: <Ico k="orders" />, badge: pending },
             { href: "/admin/inquiries", label: "คำขอจากลูกค้า", icon: <Ico k="inbox" />, badge: inquiries },
+            { href: "/admin/claims", label: "เคลม / คืนสินค้า", icon: <Ico k="claim" />, badge: claims },
+            { href: "/admin/coupons", label: "คูปองส่วนลด", icon: <Ico k="coupon" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/stock", label: "สต็อก", icon: <Ico k="stock" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
@@ -65,6 +71,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/docs/QUOTATION", label: "ใบเสนอราคา", icon: <Ico k="qt" />, group: "เอกสารขาย" },
             { href: "/admin/docs/INVOICE", label: "ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: unpaid, group: "เอกสารขาย" },
             { href: "/admin/docs/RECEIPT", label: "ใบเสร็จรับเงิน", icon: <Ico k="rc" />, group: "เอกสารขาย" },
+            { href: "/admin/docs/slips", label: "สลิปจากลิงก์ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: docSlips, group: "เอกสารขาย" },
             { href: "/admin/customers", label: "ลูกค้า", icon: <Ico k="cust" />, group: "เอกสารขาย" },
             { href: "/admin/reports", label: "รายงานยอดขาย", icon: <Ico k="report" />, group: "รายงาน" },
             { href: "/admin/log", label: "บันทึกการใช้งาน", icon: <Ico k="log" />, group: "รายงาน" },
