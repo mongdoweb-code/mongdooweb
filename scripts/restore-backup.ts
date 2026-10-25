@@ -51,7 +51,11 @@ async function main() {
     if (!wipe) {
       for (const t of order) {
         const n = Number((await db.query(`SELECT COUNT(*)::int AS n FROM "${t}"`)).rows[0].n);
-        if (n > 0) throw new Error(`ตาราง ${t} มีข้อมูลอยู่แล้ว ${n} แถว — ใช้ฐานข้อมูลใหม่ หรือเพิ่ม --wipe เพื่อล้างก่อน (ระวัง: ลบข้อมูลเดิมทั้งหมด)`);
+        if (n > 0) {
+          const msg = `ตาราง ${t} มีข้อมูลอยู่แล้ว ${n} แถว — ใช้ฐานข้อมูลใหม่ หรือเพิ่ม --wipe เพื่อล้างก่อน (ระวัง: ลบข้อมูลเดิมทั้งหมด)`;
+          if (!dry) throw new Error(msg);
+          console.warn(`! ${msg}`);
+        }
       }
     }
     if (dry) {
