@@ -23,6 +23,8 @@ export const LOG_TYPES: Record<string, string> = {
   DOC: "เอกสารขาย",
   LABEL: "พิมพ์ใบปะหน้า",
   LINE: "แจ้งเตือน LINE",
+  COUPON: "คูปองส่วนลด",
+  CLAIM: "เคลม/คืนสินค้า",
 };
 
 export async function logAdmin(adminId: string | null, type: keyof typeof LOG_TYPES | string, note: string) {

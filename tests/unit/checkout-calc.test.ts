@@ -55,6 +55,7 @@ eq(weightExtra(wt, 50000), 20000, "หนักเกินขั้นสุด
 eq(weightExtra([], 99999), 0, "ไม่ตั้งขั้นน้ำหนัก");
 eq(parseRemoteZips("95, 96000 ,abc 1 9512"), ["95", "96000", "9512"], "รหัสไปรษณีย์ห่างไกลจากข้อความ");
 ok(isRemoteZip("95120", ["95"]) && !isRemoteZip("10110", ["95"]) && !isRemoteZip("951", ["95"]), "ตรวจรหัสขึ้นต้น");
+ok(isRemoteZip("84360", ["84360", "84280"]) && !isRemoteZip("84361", ["84360", "84280"]), "รหัสเต็ม 5 หลักตรงตัว");
 
 const cfg: ShipConfig = {
   tiers, expressEnabled: true, expressExtraSatang: 4000, weightTiers: wt, remoteZips: ["95", "63170"], remoteFeeSatang: 5000,

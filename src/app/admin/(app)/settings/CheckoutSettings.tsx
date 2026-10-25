@@ -9,7 +9,7 @@ export type CheckoutSettingsValues = {
   remoteZips: string; remoteFee: string; weightTiers: { maxKg: string; extra: string }[];
   pickupEnabled: boolean; pickupNote: string;
   emailEnabled: boolean; templates: Record<string, { subject: string; body: string }>; defaults: Record<string, { subject: string; body: string }>;
-  smtp: { configured: boolean; host: string; port: number; from: string };
+  smtp: { configured: boolean; placeholder: boolean; host: string; port: number; from: string };
   vars: string[];
 };
 const TPL_LABEL: Record<string, string> = { ORDER_RECEIVED: "ได้รับคำสั่งซื้อ", PAID: "ชำระเงินแล้ว / ร้านยืนยัน", SHIPPED: "จัดส่งแล้ว (มีเลขพัสดุ)" };
@@ -32,6 +32,7 @@ export function CheckoutSettings({ v }: { v: CheckoutSettingsValues }) {
         <div className="set-grid">
           <div className="box" id="codBox">
             <h3>เก็บเงินปลายทาง (COD)</h3>
+            <small className="sub">ค่าเริ่มต้นเป็นค่าตัวอย่าง — แก้ไขค่าธรรมเนียม/ยอดสูงสุดได้ตามสัญญากับขนส่ง</small>
             <label className="chk-row"><input type="checkbox" name="codEnabled" checked={cod} onChange={(e) => setCod(e.target.checked)} /> เปิดให้ลูกค้าเลือกเก็บเงินปลายทาง</label>
             <div className="two">
               <div className="field"><label htmlFor="codFee">ค่าธรรมเนียม COD (บาท)</label><input id="codFee" name="codFee" defaultValue={v.codFee} inputMode="decimal" {...bad("codFee")} /></div>
@@ -44,7 +45,7 @@ export function CheckoutSettings({ v }: { v: CheckoutSettingsValues }) {
             <h3>ค่าส่งพื้นที่ห่างไกล</h3>
             <div className="field"><label htmlFor="remoteFee">ค่าส่งเพิ่ม (บาท)</label><input id="remoteFee" name="remoteFee" defaultValue={v.remoteFee} inputMode="decimal" {...bad("remoteFee")} /></div>
             <div className="field">
-              <label htmlFor="remoteZips">รหัสไปรษณีย์ (5 หลัก หรือขึ้นต้น 2–4 หลัก เช่น 95 = ทุกรหัสที่ขึ้นต้น 95)</label>
+              <label htmlFor="remoteZips">รหัสไปรษณีย์พื้นที่ห่างไกล — แก้ไขได้ (5 หลัก หรือขึ้นต้น 2–4 หลัก เช่น 95 = ทุกรหัสที่ขึ้นต้น 95)</label>
               <textarea id="remoteZips" name="remoteZips" rows={4} defaultValue={v.remoteZips} placeholder="เช่น 63170 95 96 58" {...bad("remoteZips")} />
             </div>
           </div>
@@ -78,7 +79,9 @@ export function CheckoutSettings({ v }: { v: CheckoutSettingsValues }) {
             <p className={v.smtp.configured ? "sub" : "warn-box"} id="smtpStatus">
               {v.smtp.configured
                 ? `SMTP พร้อมใช้: ${v.smtp.host}:${v.smtp.port} · ผู้ส่ง ${v.smtp.from}`
-                : "ยังไม่ได้ตั้งค่า SMTP ในเซิร์ฟเวอร์ (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM) — อีเมลจะถูกบันทึกเป็น \"ข้าม\" จนกว่าจะตั้งค่า"}
+                : v.smtp.placeholder
+                  ? "ค่า SMTP ในเซิร์ฟเวอร์ยังเป็นค่าตัวอย่าง (smtp.example.com / change-me) — ยังไม่ได้ตั้งค่า SMTP จริง อีเมลจะถูกบันทึกเป็น \"ข้าม\""
+                  : "ยังไม่ได้ตั้งค่า SMTP ในเซิร์ฟเวอร์ (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM) — อีเมลจะถูกบันทึกเป็น \"ข้าม\" จนกว่าจะตั้งค่า"}
             </p>
             <label className="chk-row"><input type="checkbox" name="emailEnabled" checked={email} onChange={(e) => setEmail(e.target.checked)} /> ส่งอีเมลเมื่อ ได้รับคำสั่งซื้อ / ชำระแล้ว / จัดส่ง (เฉพาะลูกค้าที่กรอกอีเมล)</label>
             <small className="sub">ตัวแปรที่ใช้ได้: {v.vars.join(" ")} · เว้นว่าง = ใช้ข้อความเริ่มต้น</small>

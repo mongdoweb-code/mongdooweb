@@ -836,7 +836,9 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                     )}
                   </div>
                 )}
-                {o.status !== "CANCELLED" && <LabelOptions target={`orders=${encodeURIComponent(o.orderNo)}`} idKey={o.orderNo} />}
+                {o.status !== "CANCELLED" && (
+                  <LabelOptions target={`orders=${encodeURIComponent(o.orderNo)}`} idKey={o.orderNo} cod={o.paymentMethod === "COD" ? (o.totalSatang / 100).toFixed(2) : undefined} />
+                )}
               </div>
             )}
 

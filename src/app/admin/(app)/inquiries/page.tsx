@@ -41,7 +41,7 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/admin/
       <div className="page-head">
         <div>
           <h1>คำขอจากลูกค้า</h1>
-          <p>ขอใบเสนอราคา ติดต่อสอบถาม และเคลมสินค้าจากหน้าเว็บ — เปิดดูเพื่อจดโน้ต เปลี่ยนสถานะ หรือสร้างใบเสนอราคา</p>
+          <p>ขอใบเสนอราคา และติดต่อสอบถามจากหน้าเว็บ — เปิดดูเพื่อจดโน้ต เปลี่ยนสถานะ หรือสร้างใบเสนอราคา · เรื่องเคลม/คืนสินค้าใหม่อยู่ที่ <Link className="link" href="/admin/claims">เคลม / คืนสินค้า</Link> (คำขอเคลมเดิมยังเปิดดูได้ที่นี่)</p>
         </div>
       </div>
       {one(sp.deleted) === "1" && <div className="ok-box" role="status" style={{ marginBottom: 12 }}>ลบคำขอแล้ว</div>}

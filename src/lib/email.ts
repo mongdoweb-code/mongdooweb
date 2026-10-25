@@ -56,10 +56,14 @@ export function renderTemplate(text: string, vars: Record<string, string>) {
 }
 
 const env = (k: string) => process.env[k]?.trim() ?? "";
+/** ค่าตัวอย่างจาก .env.example (smtp.example.com / change-me) = ยังไม่ได้ตั้งค่าจริง → ไม่พยายามส่ง */
+export const isPlaceholderSmtp = (host: string, password: string, from: string) =>
+  /(^|\.)example\.(com|org|net)$/i.test(host) || /^(change-?me|changeme|xxx+|your[-_]?password)$/i.test(password) || /@example\.(com|org|net)>?$/i.test(from);
 /** สถานะการตั้งค่า SMTP (ไม่เปิดเผยรหัสผ่าน) */
 export function smtpStatus() {
   const host = env("SMTP_HOST"), from = env("SMTP_FROM") || env("SMTP_USER");
-  return { configured: !!host && !!from, host, port: Number(env("SMTP_PORT")) || 587, user: env("SMTP_USER"), from };
+  const placeholder = !!host && isPlaceholderSmtp(host, env("SMTP_PASSWORD"), from);
+  return { configured: !!host && !!from && !placeholder, placeholder, host, port: Number(env("SMTP_PORT")) || 587, user: env("SMTP_USER"), from };
 }
 
 let transport: nodemailer.Transporter | null = null;
@@ -88,7 +92,8 @@ function htmlBody(text: string) {
 type SendResult = { status: "SENT" | "FAILED" | "SKIPPED"; error?: string };
 
 async function deliver(to: string, subject: string, body: string): Promise<SendResult> {
-  if (!smtpStatus().configured) return { status: "SKIPPED", error: "ยังไม่ได้ตั้งค่า SMTP (SMTP_HOST/SMTP_FROM)" };
+  const st = smtpStatus();
+  if (!st.configured) return { status: "SKIPPED", error: st.placeholder ? "ค่า SMTP ยังเป็นค่าตัวอย่าง (smtp.example.com / change-me) — ไม่ได้ส่ง" : "ยังไม่ได้ตั้งค่า SMTP (SMTP_HOST/SMTP_FROM)" };
   try {
     await mailer().sendMail({ from: smtpStatus().from, to, subject: subject.replace(/[\r\n]+/g, " "), text: body, html: htmlBody(body) });
     return { status: "SENT" };
