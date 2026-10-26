@@ -93,7 +93,7 @@ const Slider = (() => {
   const btnPlay = $('#sPlay');
   const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>';
   const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
-  let slides = [], cur = 0, elapsed = 0, last = 0, raf = 0, sig = '';
+  let slides = [], cur = 0, elapsed = 0, last = 0, raf = 0, sig = '', lastPct = -1;
   let userPaused = RM.matches; // ผู้ใช้ที่ตั้งค่าลดการเคลื่อนไหว: ไม่เล่นอัตโนมัติจนกว่าจะกดเล่นเอง
   const reasons = new Set();
 
@@ -107,8 +107,11 @@ const Slider = (() => {
     let img = '';
     if (s.image){
       const u = unsplash(s.image);
+      // สไลด์ที่ยังไม่แสดงไม่มี src (เก็บไว้ใน data-*) — สไลด์ซ้อนกันอยู่ในจอ loading="lazy" จึงไม่ช่วย
+      // ไม่งั้นรูปทุกสไลด์แย่งแบนด์วิดท์กับรูปแรก (LCP) บนมือถือ · go() ใส่ src ให้สไลด์ปัจจุบันและถัดไป (U14)
+      const pre = i === 0 ? '' : 'data-';
       const attrs = i === 0 ? 'loading="eager" fetchpriority="high"' : 'loading="lazy"';
-      img = `<img class="s-img" src="${esc(u ? u.src : s.image)}"${u ? ` srcset="${esc(u.srcset)}" sizes="100vw"` : ''}
+      img = `<img class="s-img" ${pre}src="${esc(u ? u.src : s.image)}"${u ? ` ${pre}srcset="${esc(u.srcset)}" sizes="100vw"` : ''}
         alt="${esc(s.alt)}" width="1920" height="1080" decoding="async" draggable="false" ${attrs}>`;
     }
     const c1 = s.cta1 ? `<a class="btn btn-primary" href="${esc(s.cta1.href)}">${esc(s.cta1.label)} <span class="arr" aria-hidden="true">→</span></a>` : '';
@@ -132,7 +135,7 @@ const Slider = (() => {
     const n = slides.length;
     wrap.innerHTML = slides.map((s, i) => slideHTML(s, i, n)).join('');
     dots.innerHTML = slides.map((s, i) => `<button class="seg" type="button" aria-label="ไปสไลด์ที่ ${i + 1}: ${esc(s.title)}"><i></i></button>`).join('');
-    $$('.s-img', wrap).forEach(img => { if (img.complete) markImg(img); });
+    $$('.s-img', wrap).forEach(img => { if (img.complete && img.getAttribute('src')) markImg(img); });
     root.querySelector('.s-controls').hidden = n < 2;
     let idx = keepId ? slides.findIndex(s => s.id === keepId) : 0;
     cur = -1;
@@ -167,9 +170,18 @@ const Slider = (() => {
     cur = i;
     $$('.seg', dots).forEach((d, k) => { d.setAttribute('aria-current', k === i ? 'true' : 'false'); d.querySelector('i').style.setProperty('--p', 0); });
     countEl.innerHTML = `<b>${String(i + 1).padStart(2, '0')}</b> / ${String(n).padStart(2, '0')}`;
-    // โหลดรูปสไลด์ถัดไปล่วงหน้า เพื่อให้ crossfade ไม่กระตุก
+    // ใส่ src ให้สไลด์นี้ + โหลดรูปสไลด์ถัดไปล่วงหน้า (หลังหน้าโหลดเสร็จ) เพื่อให้ crossfade ไม่กระตุก
+    const wake = img => {
+      if (!img || img.getAttribute('src')) return;
+      if (img.dataset.srcset) img.srcset = img.dataset.srcset;
+      img.src = img.dataset.src;
+    };
+    wake(els[i] && els[i].querySelector('.s-img'));
     const nx = els[(i + 1) % n] && els[(i + 1) % n].querySelector('.s-img');
-    if (nx) nx.loading = 'eager';
+    if (nx){
+      nx.loading = 'eager';
+      if (document.readyState === 'complete') wake(nx); else addEventListener('load', () => setTimeout(() => wake(nx), 300), { once: true });
+    }
     elapsed = 0; last = 0;
     paint();
   }
@@ -181,7 +193,8 @@ const Slider = (() => {
   function tick(t){
     if (!last) last = t;
     elapsed += t - last; last = t;
-    if (elapsed >= DUR) go(cur + 1); else paint();
+    // แถบความคืบหน้าอัปเดตทีละ 1% (ไม่ใช่ทุกเฟรม) — ลดงานวาดหน้าจอบนมือถือ
+    if (elapsed >= DUR) go(cur + 1); else if (Math.floor(elapsed / DUR * 100) !== lastPct){ lastPct = Math.floor(elapsed / DUR * 100); paint(); }
     raf = requestAnimationFrame(tick);
   }
   function update(){

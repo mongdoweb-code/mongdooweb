@@ -405,7 +405,7 @@ section{padding:96px 0}
 .footer-bottom{margin-top:40px;border-top:1px solid #2a2a2a;padding:22px 0;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:#8d887f}
 
 /* ---------- Floating buttons: LINE / cart / back-to-top (U20, U24) ---------- */
-.fabs{position:fixed;right:20px;bottom:calc(20px + var(--consent-h));z-index:40;display:flex;flex-direction:column-reverse;align-items:center;gap:12px;transition:bottom .25s}
+.fabs{position:fixed;right:20px;bottom:20px;transform:translateY(calc(-1 * var(--consent-h)));z-index:40;display:flex;flex-direction:column-reverse;align-items:center;gap:12px;transition:transform .25s}
 .float-line{width:56px;height:56px;border-radius:50%;background:#06C755;color:#fff;display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.18);font-weight:800;font-size:13px}
 .fab{width:48px;height:48px;display:grid;place-items:center;background:var(--c-white);color:var(--c-black);border:1px solid var(--c-line);box-shadow:0 8px 24px rgba(0,0,0,.12);position:relative;transition:opacity .2s,transform .2s}
 .fab:hover{color:var(--c-orange)}
