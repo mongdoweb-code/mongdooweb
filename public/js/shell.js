@@ -127,7 +127,7 @@ function renderCats(){
   // การ์ดหมวด: รูปสินค้าจริงของหมวด + ชื่อ + จำนวนสินค้า — ทั้งการ์ดเป็นลิงก์เดียวไปหน้าหมวด
   if ($('#catGrid')) $('#catGrid').innerHTML = CATS.map((c, i) => {
     const media = c.img
-      ? `<img src="${esc(c.img)}" alt="" width="480" height="480" loading="${i < 4 ? 'eager' : 'lazy'}" decoding="async">`
+      ? `<img src="${esc(c.img)}"${srcsetOf(c.img) ? ` srcset="${esc(srcsetOf(c.img))}" sizes="(max-width: 640px) 46vw, (max-width: 900px) 46vw, 160px"` : ''} alt="" width="480" height="480" loading="${i < 4 ? 'eager' : 'lazy'}" decoding="async">`
       : `<span class="cat-ph" aria-hidden="true">${svg(c.icon)}</span>`;
     const meta = c.count ? `${c.count.toLocaleString('th-TH')} รายการ` : 'สอบถามทางร้าน';
     return `<a class="cat-card reveal in" data-cat="${esc(c.id)}" href="${esc(catHref(c))}">
