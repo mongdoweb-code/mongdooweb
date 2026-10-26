@@ -53,7 +53,7 @@ export default async function VariantGroupPage({ params, searchParams }: PagePro
       )}
       <div style={{ maxWidth: 980 }}>
         <GroupForm
-          key={members.map((m) => m.id + optionLabel(g.optionNames, m.options)).join("|") + g.optionNames.join(",")}
+          key={members.map((m) => m.id).join("|") + g.optionNames.join(",")}
           g={{ id: g.id, name: g.name, optionNames: g.optionNames, primaryId: primary?.id ?? "", members }}
         />
         <div style={{ marginTop: 16 }}>

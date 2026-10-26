@@ -152,6 +152,7 @@ test("U1 ตัวเลือกสินค้า: ปุ่มเลือก
 });
 
 test("U3 ราคาลดตามเวลา: ป้าย ลด x%, ราคาเดิมขีดฆ่า, นับถอยหลัง, หมดเวลาแล้วกลับราคาปกติเอง (ทั้งหน้าและที่ server)", async ({ page, browser }) => {
+  test.setTimeout(150_000);
   await shop(page);
   await page.goto(`/product/${S.v1}`);
   await expect(page.locator(".pdp-price")).toContainText("฿450");
@@ -174,7 +175,7 @@ test("U3 ราคาลดตามเวลา: ป้าย ลด x%, รา
   const before = await page.request.post("/api/cart/validate", { data: { items: { [S.exp]: 1 } } });
   expect((await before.json()).lines[0].price).toBe(800);
   await page.waitForTimeout(Math.max(0, end.getTime() - Date.now()));
-  await expect(page.locator(".pdp-price")).toHaveText("฿1,000", { timeout: 70_000 });
+  await expect(page.locator(".pdp-price")).toHaveText("฿1,000", { timeout: 10_000 });
   await expect(page.locator(".pdp-countdown")).toHaveCount(0);
   await expect(page.locator(".pdp-main .prod-badge")).toHaveCount(0);
   // ราคาที่คิดเงินจริงที่ server
@@ -578,8 +579,8 @@ test("A12 แก้หลายรายการพร้อมกัน: ร�
   await page.fill('#bulkForm input[name="salePct"]', "50");
   await page.click('#bulkForm button[type="submit"]');
   await expect(page.locator("#bulkForm .login-info")).toContainText("ตั้งลดราคา 50%");
-  rows = await q(`SELECT sku, "salePriceSatang" FROM "Product" WHERE sku IN ('E2E-L9-N1','E2E-L9-N2') ORDER BY sku`);
-  expect(rows.map((r) => (r as { salePriceSatang: number }).salePriceSatang)).toEqual([27500, 49500]);
+  const sales = await q<{ salePriceSatang: number }>(`SELECT "salePriceSatang" FROM "Product" WHERE sku IN ('E2E-L9-N1','E2E-L9-N2') ORDER BY sku`);
+  expect(sales.map((r) => r.salePriceSatang)).toEqual([27500, 49500]);
   await open();
   await page.selectOption("#bulkOp", "clearSale");
   await page.click('#bulkForm button[type="submit"]');

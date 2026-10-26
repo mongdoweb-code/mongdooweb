@@ -12,7 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "import:woo": "tsx scripts/import-woocommerce.ts",
-    "test:unit": "tsx tests/unit/doc-calc.test.ts && tsx tests/unit/desc-migrate.test.ts",
+    "test:unit": "tsx tests/unit/doc-calc.test.ts && tsx tests/unit/desc-migrate.test.ts && tsx tests/unit/lot9.test.ts",
     "migrate:desc-images": "tsx scripts/migrate-description-images.ts",
     "db:seed-if-empty": "tsx scripts/seed-if-empty.ts",
     "test:e2e": "playwright test"

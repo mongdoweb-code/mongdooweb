@@ -20,8 +20,8 @@ function subscribe(cb: () => void) {
   };
 }
 
-/** เวลาปัจจุบัน (ms) ปัดลงตาม step — ฝั่ง server/ตอน hydrate = null */
-export function useNow(step = 60_000): number | null {
+/** เวลาปัจจุบัน (ms) ปัดลงตาม step (ค่าเริ่มต้น 1 วินาที — ราคาเปลี่ยนตรงเวลาโปรเริ่ม/หมด) — ฝั่ง server/ตอน hydrate = null */
+export function useNow(step = 1000): number | null {
   const get = useCallback(() => Math.floor(Date.now() / step) * step, [step]);
   return useSyncExternalStore(subscribe, get, () => null);
 }

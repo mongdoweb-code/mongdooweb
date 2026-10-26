@@ -248,6 +248,8 @@ async function saveGroup(groupId: string | null, f: FormData): Promise<Lot9State
   // เพิ่งเพิ่มด้วย SKU และยังไม่มีค่า → บันทึกได้ แต่ต้องใส่ค่าก่อนจึงผ่าน — แจ้งให้กรอก
   const label = (id: string) => products.find((p) => p.id === id)!.sku;
   const err = validateGroup(optionNames, members.map((m) => ({ label: label(m.id), options: m.options })));
+  // ค่าซ้ำ/ค่าว่างของสินค้าเดิมในกลุ่ม = ไม่บันทึก · สินค้าที่เพิ่งเพิ่มด้วย SKU ยังไม่มีค่า = บันทึกได้แล้วให้กรอกต่อ
+  if (err && !addSkus.length) return { error: err };
   const primary = str(f, "primaryId", 40);
   const primaryId = members.some((m) => m.id === primary) ? primary : members[0].id;
 
