@@ -90,6 +90,7 @@ function safeImg(u){
 const RM = matchMedia('(prefers-reduced-motion: reduce)');
 const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.deco}</svg>`;
 const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 const baht = n => '฿' + Number(n).toLocaleString('th-TH', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 const phClass = p => 'ph' + (p.acc ? ' acc' : p.color === 'rgb' ? ' rgb' : '');
 /* รูปสินค้า (ถ้ามี) หรือภาพแทนแบบต้นแบบ */
@@ -118,7 +119,9 @@ function normCat(c, i){
     group: CATEGORY_GROUPS[c.group] ? c.group : 'deco',
     slug: str(c.slug, 600).replace(/^\/+/, ''),
     popular: Array.isArray(c.popular) ? c.popular.map(p => str(p, 40)).filter(Boolean).slice(0, 4) : [],
-    visible: !!c.visible, order: num(c.order, i), _i: i
+    visible: !!c.visible, order: num(c.order, i), _i: i,
+    count: Math.max(0, Math.floor(num(c.count, 0))),
+    img: typeof c.img === 'string' && /^\/media\/[\w./-]+$/.test(c.img) ? c.img : ''
   };
 }
 function getCats(){
@@ -134,25 +137,19 @@ function renderCats(){
   if ($('#catCount')) $('#catCount').textContent = n;
   const groups = Object.keys(CATEGORY_GROUPS).map(g => ({ g, label: CATEGORY_GROUPS[g], items: CATS.filter(c => c.group === g) })).filter(x => x.items.length);
 
-  // การ์ดหมวด + dropdown รายการยอดนิยม
-  if ($('#catGrid')) $('#catGrid').innerHTML = CATS.map(c => {
-    const href = esc(catHref(c));
-    return `<div class="cat-card reveal in" data-cat="${esc(c.id)}">
-      <div class="cat-tilt">
-        <a class="cat-main" href="${href}" aria-describedby="pop-${esc(c.id)}">
-          <span class="cat-icon">${svg(c.icon)}</span>
-          <div><h3>${esc(c.th)}</h3><span class="cat-en">${esc(c.en)}</span></div>
-          <span class="go">ดูสินค้า ${CHEV}</span>
-        </a>
-      </div>
-      <div class="cat-pop" id="pop-${esc(c.id)}">
-        <div class="cat-pop-in">
-          ${c.popular.length ? `<p class="cat-pop-h">ยอดนิยมใน${esc(c.th)}</p>
-          <ul>${c.popular.map(p => `<li><a href="${href}">${esc(p)}</a></li>`).join('')}</ul>` : ''}
-          <a class="cat-all" href="${href}">ดูทั้งหมด</a>
-        </div>
-      </div>
-    </div>`;
+  // การ์ดหมวด: รูปสินค้าจริงของหมวด + ชื่อ + จำนวนสินค้า — ทั้งการ์ดเป็นลิงก์เดียวไปหน้าหมวด
+  if ($('#catGrid')) $('#catGrid').innerHTML = CATS.map((c, i) => {
+    const media = c.img
+      ? `<img src="${esc(c.img)}" alt="" width="480" height="480" loading="${i < 4 ? 'eager' : 'lazy'}" decoding="async">`
+      : `<span class="cat-ph" aria-hidden="true">${svg(c.icon)}</span>`;
+    const meta = c.count ? `${c.count.toLocaleString('th-TH')} รายการ` : 'สอบถามทางร้าน';
+    return `<a class="cat-card reveal in" data-cat="${esc(c.id)}" href="${esc(catHref(c))}">
+      <span class="cat-media">${media}<span class="cat-badge" aria-hidden="true">${svg(c.icon)}</span></span>
+      <span class="cat-body">
+        <span class="cat-name"><b>${esc(c.th)}</b><span class="cat-en">${esc(c.en)}</span></span>
+        <span class="cat-foot"><span class="cat-count">${meta}</span><span class="cat-arrow" aria-hidden="true">${ARROW}</span></span>
+      </span>
+    </a>`;
   }).join('') || '<p class="sec-sub">ยังไม่มีหมวดสินค้าที่เปิดแสดง</p>';
 
   // Mega panel
