@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
       // หน้าแบ่งหน้าของบล็อก/หน้าแรก, ผู้เขียน, คลังรายเดือน
       { source: "/page/:n*", destination: "/", statusCode: 301 },
       { source: "/author/:path*", destination: "/", statusCode: 301 },
-      // คลังรายปี/เดือน /2019/05/... → src/proxy.ts (บทความเดิมที่มี legacyPath → /blog/<slug>, ที่เหลือ → /blog)
+      // คลังรายปี/เดือน /2019/05/... → src/proxy.ts (บทความเดิมที่มี legacyPath → /blog/<slug>, ที่เหลือ → หน้าแรก)
       // หมวดบทความแบบซ้อน/แบ่งหน้า → หน้าหมวด (หน้าหมวดส่งต่อหมวดเดิมที่ไม่มีแล้วเอง)
       { source: "/category/:slug/:rest+", destination: "/category/:slug", statusCode: 301 },
       // RSS feed

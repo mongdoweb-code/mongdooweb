@@ -122,8 +122,8 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
   // บทความเดิมของ WordPress (permalink /ชื่อบทความ/ หรือ /ปี/เดือน/ชื่อบทความ/)
   const post = await findLegacyPost(pathname);
   if (post) return moved(req, post);
-  // คลังบทความรายปี/เดือนของ WordPress ที่ไม่มีบทความตรง → หน้าบทความทั้งหมด
-  if (/^\/\d{4}(\/|$)/.test(pathname)) return moved(req, "/blog");
+  // คลังบทความรายปี/เดือนของ WordPress ที่ไม่มีบทความตรง → หน้าแรก (เหมือนเดิม)
+  if (/^\/\d{4}(\/|$)/.test(pathname)) return moved(req, "/");
   return pass(req);
 }
 
