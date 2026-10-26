@@ -274,8 +274,11 @@ test("U5 เปรียบเทียบสินค้า: เลือกจ
   await expect(page).toHaveURL(new RegExp(`/compare\\?ids=${S.v1}$`));
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mdw_compare") || "[]"))).toEqual([S.v1]);
   // สูงสุด 4 ชิ้น
-  await page.evaluate((ids) => localStorage.setItem("mdw_compare", JSON.stringify(ids)), [S.v1, S.v2, S.v3, S.psu1]);
+  // (ตั้งค่าในหน้าอื่น — หน้าเปรียบเทียบเขียนรายการของตัวเองลงเครื่องตอนโหลด)
   await page.goto(`/product/${S.psu2}`);
+  await page.evaluate((ids) => localStorage.setItem("mdw_compare", JSON.stringify(ids)), [S.v1, S.v2, S.v3, S.psu1]);
+  await page.reload();
+  await expect(page.locator("#cmpTray .cmp-t")).toContainText("4/4");
   await page.click(".pdp-tool[data-compare]");
   await expect(page.locator("#toast")).toContainText("สูงสุด 4 ชิ้น");
   await expect(page.locator(".pdp-tool[data-compare]")).toHaveAttribute("aria-pressed", "false");
