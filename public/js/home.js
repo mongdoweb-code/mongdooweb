@@ -245,78 +245,7 @@ const Slider = (() => {
   return { render: () => render(slides[cur] && slides[cur].id), go: i => go(i), get index(){ return cur; }, get count(){ return slides.length; }, get playing(){ return isPlaying(); } };
 })();
 
-/* ---------- Category cards: tilt 3D + dropdown (U14, U15) ---------- */
-(() => {
-  const grid = $('#catGrid');
-  const fine = matchMedia('(hover: hover) and (pointer: fine)');
-  const st = new WeakMap();
-  const active = new Set();
-  let raf = 0;
-  function loop(){
-    raf = 0;
-    active.forEach(card => {
-      const s = st.get(card), tilt = card.querySelector('.cat-tilt');
-      if (!s || !tilt){ active.delete(card); return; }
-      s.rx += (s.tx - s.rx) * .15; s.ry += (s.ty - s.ry) * .15; s.l += (s.tl - s.l) * .15;
-      tilt.style.transform = `perspective(900px) rotateX(${s.rx.toFixed(2)}deg) rotateY(${s.ry.toFixed(2)}deg) translateY(${s.l.toFixed(2)}px)`;
-      if (Math.abs(s.tx - s.rx) + Math.abs(s.ty - s.ry) + Math.abs(s.tl - s.l) < .02 && s.tx === 0 && s.ty === 0 && s.tl === 0){
-        tilt.style.transform = ''; active.delete(card);
-      }
-    });
-    if (active.size) raf = requestAnimationFrame(loop);
-  }
-  const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
-  const canTilt = () => fine.matches && !RM.matches;
-  function setActive(card, on){ card.classList.toggle('active', on); }
-
-  grid.addEventListener('pointerover', e => {
-    if (e.pointerType !== 'mouse') return;
-    const card = e.target.closest('.cat-card');
-    if (card && !card.contains(e.relatedTarget)) setActive(card, true);
-  });
-  grid.addEventListener('pointerout', e => {
-    if (e.pointerType !== 'mouse') return;
-    const card = e.target.closest('.cat-card');
-    if (card && !card.contains(e.relatedTarget)){
-      if (!card.contains(document.activeElement) || !document.activeElement.matches(':focus-visible')) setActive(card, false);
-      const s = st.get(card); if (s){ s.tx = s.ty = s.tl = 0; kick(); }
-    }
-  });
-  grid.addEventListener('pointermove', e => {
-    if (e.pointerType !== 'mouse' || !canTilt()) return;
-    const card = e.target.closest('.cat-card'); if (!card) return;
-    const tilt = card.querySelector('.cat-tilt');
-    let s = st.get(card); if (!s){ s = { rx:0, ry:0, l:0, tx:0, ty:0, tl:0 }; st.set(card, s); }
-    if (tilt.contains(e.target)){
-      const r = tilt.getBoundingClientRect();
-      const px = clamp((e.clientX - r.left) / r.width, 0, 1) - .5, py = clamp((e.clientY - r.top) / r.height, 0, 1) - .5;
-      s.ty = px * 12; s.tx = -py * 12; // สูงสุด ±6°
-    } else { s.tx = 0; s.ty = 0; } // เมาส์อยู่บน dropdown: เลิกเอียงแต่ยังยกขึ้น
-    s.tl = -6;
-    active.add(card); kick();
-  });
-  grid.addEventListener('focusin', e => { const c = e.target.closest('.cat-card'); if (c) setActive(c, true); });
-  grid.addEventListener('focusout', e => {
-    const c = e.target.closest('.cat-card');
-    if (c && !c.contains(e.relatedTarget) && !c.matches(':hover')) setActive(c, false);
-  });
-  // แตะครั้งแรก = เปิดรายการ, แตะครั้งที่สอง = ไปหน้าหมวด
-  grid.addEventListener('click', e => {
-    const main = e.target.closest('.cat-main'); if (!main) return;
-    const card = main.closest('.cat-card');
-    if (e.detail !== 0 && lastPointer !== 'mouse' && !card.classList.contains('open')){
-      e.preventDefault();
-      $$('.cat-card.open', grid).forEach(c => { c.classList.remove('open'); setActive(c, false); });
-      card.classList.add('open'); setActive(card, true);
-    }
-  });
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.cat-card')) $$('.cat-card.open', grid).forEach(c => { c.classList.remove('open'); setActive(c, false); });
-  });
-  grid.addEventListener('keydown', e => {
-    if (e.key === 'Escape'){ const c = e.target.closest('.cat-card'); if (c){ c.classList.remove('open', 'active'); c.querySelector('.cat-main').focus(); } }
-  });
-})();
+/* การ์ดหมวดหมู่ (render ใน shell.js) เป็นลิงก์ธรรมดา — เอฟเฟกต์ hover อยู่ใน CSS ทั้งหมด */
 
 /* =========================================================
    PRODUCTS + JSON-LD ItemList (U23, U25)
