@@ -45,6 +45,10 @@ export type ShopCategory = {
   /** แสดงในเมนู/การ์ดหน้าแรก */
   visible: boolean;
   order: number;
+  /** จำนวนสินค้าที่เปิดขายในหมวด */
+  count: number;
+  /** รูปตัวแทนหมวด = รูปสินค้าขายดี/ยอดเข้าชมสูงสุดในหมวด (ขนาดย่อ) */
+  img?: string;
 };
 
 /** specs ในฐานข้อมูลเป็น [{label, value}] — การ์ดสินค้าแสดงแค่ value */
@@ -82,6 +86,7 @@ export async function getShopData() {
     popular: c.popular,
     visible: c.showOnHome,
     order: c.sortOrder,
+    count: 0,
   }));
 
   const catalog: CatalogItem[] = products.map((p) => {
@@ -107,6 +112,15 @@ export async function getShopData() {
       sku: p.sku,
     };
   });
+
+  // จำนวนสินค้า + รูปตัวแทนของแต่ละหมวด (catalog เรียงขายดี/ยอดเข้าชมแล้ว → ตัวแรกที่มีรูป)
+  const bySlug = new Map(shopCategories.map((c) => [c.slug, c]));
+  for (const p of catalog) {
+    const c = bySlug.get(p.catId);
+    if (!c) continue;
+    c.count++;
+    if (!c.img && p.img) c.img = p.img;
+  }
 
   // อุปกรณ์ที่ตัวช่วยเลือกไฟแนะนำคู่กัน: หม้อแปลง DC12V และท่อหดกันน้ำ (ถ้ามีขาย)
   const orderable = catalog.filter((p) => p.price > 0 && p.inStock);

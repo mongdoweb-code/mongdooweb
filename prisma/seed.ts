@@ -7,6 +7,7 @@ import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import bcrypt from "bcryptjs";
+import { SHOP_MOCK_SHIPPING, SHOP_PAYMENT } from "../scripts/shop-info";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   PrismaClient,
@@ -155,19 +156,15 @@ async function main() {
   }
 
   // ตั้งค่าร้าน (ข้อมูลจากเจ้าของร้าน) — สร้างครั้งแรกเท่านั้น หลังจากนั้นแก้จากหลังบ้าน /admin/settings
-  // TODO: ชื่อบัญชีธนาคาร, PromptPay, ที่อยู่ และเลขผู้เสียภาษี รอเจ้าของร้านยืนยัน
+  // เลขผู้เสียภาษีและเกณฑ์ค่าส่งยังรอเจ้าของร้านยืนยัน · ค่า COD/พื้นที่ห่างไกลเป็นค่าจำลอง (scripts/shop-info.ts)
   await prisma.shopSetting.upsert({
     where: { id: "shop" },
     update: {},
     create: {
       id: "shop",
       legalName: "ร้านมองดูเว็บ",
-      bankAccounts: [
-        { bank: "KBANK", account: "4982105000", holder: "" },
-        { bank: "SCB", account: "0852358798", holder: "" },
-      ],
-      promptpayId: null,
-      promptpayName: "มองดูเว็บ",
+      ...SHOP_PAYMENT,
+      ...SHOP_MOCK_SHIPPING,
       // ค่าส่งตามยอดสั่งซื้อ 6 ขั้น (ช่วงยอดเป็นค่าเริ่มต้น แก้ได้ในหลังบ้าน)
       shippingTiers: [
         { minSatang: 0, feeSatang: 6000 },
