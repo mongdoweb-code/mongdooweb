@@ -185,10 +185,18 @@ export async function recordSlugChange(oldPath: string, newPath: string) {
 // ---------- บันทึกหน้า 404 ----------
 
 /** บันทึก path ที่ไม่พบ (ไม่เก็บ query เพราะอาจมีข้อมูลส่วนตัว) + referer ล่าสุด (เฉพาะ origin + path) */
+const recent = new Map<string, number>();
+
 export async function logNotFound(rawPath: string, referer: string | null) {
   try {
     const path = normalizePath(rawPath).slice(0, 300);
     if (!path.startsWith("/") || RESERVED.test(path) || path === "/") return;
+    // หน้า "ไม่พบหน้า" อาจ render 2 รอบต่อคำขอเดียว (HTML + ส่วนที่ stream) → นับครั้งเดียวในช่วง 2 วินาที
+    const now = Date.now();
+    const k = `${path}|${referer ?? ""}`;
+    if (now - (recent.get(k) ?? 0) < 2000) return;
+    recent.set(k, now);
+    if (recent.size > 500) for (const [kk, t] of recent) if (now - t > 2000) recent.delete(kk);
     let ref: string | null = null;
     if (referer) {
       try {

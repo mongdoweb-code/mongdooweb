@@ -49,7 +49,8 @@ export default async function ContactPage() {
                   <li>
                     <span>เวลาทำการ</span>
                     {/* สถานะเปิด/ปิด คำนวณในเบราว์เซอร์ตามเวลาไทย (public/js/shell.js) หน้าแคชไว้ก็ยังถูกต้อง */}
-                    {s.openingHours.length > 0 && <b className="l10-open" data-open-status aria-live="polite" />}
+                    {/* ใส่ผ่าน innerHTML → React ไม่ล้างข้อความที่ shell.js เติมตอน hydrate */}
+                    {s.openingHours.length > 0 && <span dangerouslySetInnerHTML={{ __html: '<b class="l10-open" data-open-status aria-live="polite"></b>' }} />}
                     {s.openingHours.length > 0 ? (
                       <span className="l10-hours" title={hoursSummary(s.openingHours)}>
                         {[1, 2, 3, 4, 5, 6, 0].map((d) => {
