@@ -7,6 +7,7 @@
 // เรียกซ้ำในวันเดียวกันได้อย่างปลอดภัย: ยกเลิกซ้ำไม่ได้ (มีเงื่อนไขสถานะ) และข้อ 2–3 ส่งวันละครั้ง (เครื่องหมายใน AdminLog)
 import { createHash, timingSafeEqual } from "node:crypto";
 import { logAdmin } from "@/lib/admin-log";
+import { releaseCouponTx } from "@/lib/coupons";
 import { runBackup } from "@/lib/backup";
 import { addDaysYmd, fromYmd, ymdBkk } from "@/lib/doc-calc";
 import { statusWhere } from "@/lib/docs";
@@ -48,7 +49,8 @@ async function run(req: Request) {
       const done = await prisma.$transaction(async (tx) => {
         const r = await tx.order.updateMany({ where: { id: o.id, status: "AWAITING_SLIP" }, data: { status: "CANCELLED", cancelReason: why } });
         if (r.count !== 1) return false;
-        await tx.orderEvent.create({ data: { orderId: o.id, type: "CANCELLED", note: `ยกเลิกคำสั่งซื้อ — ${why}` } });
+        const coupon = await releaseCouponTx(tx, o.id); // คืนสิทธิ์คูปองเหมือนการยกเลิกโดยลูกค้า/แอดมิน
+        await tx.orderEvent.create({ data: { orderId: o.id, type: "CANCELLED", note: `ยกเลิกคำสั่งซื้อ — ${why}` + (coupon ? ` · คืนสิทธิ์คูปอง ${coupon}` : "") } });
         return true;
       });
       if (done) cancelled.push(o.orderNo);
