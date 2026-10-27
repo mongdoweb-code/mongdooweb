@@ -11,7 +11,7 @@ import { BarChart, RankTable, baht, qtyText, shortDate } from "./_ui";
 import "../../lot3.css";
 
 export default async function ReportsPage({ searchParams }: PageProps<"/admin/reports">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const f = parseReportFilter(await searchParams);
   const list = await salesBetween(fromYmd(f.from), fromYmd(addDaysYmd(f.to, 1)));
   const total = sumSales(list);
@@ -31,6 +31,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
           </p>
         </div>
         <div className="head-actions">
+          {admin.role === "OWNER" && <Link className="btn btn-outline" href="/admin/reports/profit">รายงานกำไร</Link>}
           <Link className="btn btn-outline" href="/admin/reports/vat">รายงานภาษีขาย</Link>
           <a className="btn btn-primary" href={exportHref} download>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5" /><path d="M4 20h16" /></svg>

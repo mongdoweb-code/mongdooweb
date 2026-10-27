@@ -3,9 +3,11 @@
 // 1) ยกเลิกคำสั่งซื้อที่ไม่แนบสลิปเกิน N วัน (ShopSetting.autoCancelDays, 0 = ปิด) — บันทึก OrderEvent ทุกรายการ
 // 2) แจ้ง LINE สินค้าใกล้หมดที่ลดถึงเกณฑ์จากการปรับ/นำเข้า (การขายแจ้งทันทีตอนอนุมัติอยู่แล้ว) — ครั้งเดียวต่อรอบ
 // 3) สรุปประจำวันทาง LINE (ShopSetting.lineDailySummary)
+// 4) สำรองข้อมูลทุกตารางไปที่ storage "backups/YYYY-MM-DD.zip" (A26) — วันละครั้ง ลบไฟล์เก่าเกิน ShopSetting.backupRetentionDays
 // เรียกซ้ำในวันเดียวกันได้อย่างปลอดภัย: ยกเลิกซ้ำไม่ได้ (มีเงื่อนไขสถานะ) และข้อ 2–3 ส่งวันละครั้ง (เครื่องหมายใน AdminLog)
 import { createHash, timingSafeEqual } from "node:crypto";
 import { logAdmin } from "@/lib/admin-log";
+import { runBackup } from "@/lib/backup";
 import { addDaysYmd, fromYmd, ymdBkk } from "@/lib/doc-calc";
 import { statusWhere } from "@/lib/docs";
 import { bahtText } from "@/lib/format";
@@ -54,6 +56,11 @@ async function run(req: Request) {
     if (cancelled.length) await logAdmin(null, "CRON", `ยกเลิกอัตโนมัติ ${cancelled.length} คำสั่งซื้อ (ไม่ชำระเกิน ${s.autoCancelDays} วัน): ${cancelled.join(", ")}`);
   }
 
+  // ---------- 4) สำรองข้อมูลรายวัน (ทำก่อนงาน LINE เพราะงาน LINE จบเร็วเมื่อส่งไปแล้ววันนี้) ----------
+  const bk = await runBackup("งานอัตโนมัติรายวัน", { onlyIfMissing: true });
+  const backup = bk.ok ? { status: "ok", key: bk.key, sizeBytes: bk.sizeBytes, expired: bk.expired } : "skipped" in bk ? { status: bk.skipped } : { status: "failed", error: bk.error };
+  if (bk.ok || !("skipped" in bk)) await logAdmin(null, "BACKUP", bk.ok ? `สำรองข้อมูลอัตโนมัติ ${bk.key} (${(bk.sizeBytes / 1024).toFixed(0)} KB${bk.expired ? `, ลบไฟล์เก่า ${bk.expired}` : ""})` : `สำรองข้อมูลอัตโนมัติไม่สำเร็จ: ${"error" in bk ? bk.error : ""}`);
+
   // ---------- ส่ง LINE วันละครั้ง (จองเครื่องหมายของวันนี้ใน transaction ที่ล็อกไว้ กันเรียกพร้อมกัน) ----------
   const since = fromYmd(today);
   const claim = await prisma.$transaction(async (tx) => {
@@ -66,7 +73,7 @@ async function run(req: Request) {
     return { first: true, last: prev?.createdAt ?? null };
   });
 
-  const result: Record<string, unknown> = { ok: true, date: today, autoCancelDays: s.autoCancelDays, cancelled };
+  const result: Record<string, unknown> = { ok: true, date: today, autoCancelDays: s.autoCancelDays, cancelled, backup };
   if (!claim.first) return Response.json({ ...result, lowStock: "already-sent-today", summary: "already-sent-today" });
 
   // ---------- 2) สินค้าใกล้หมดที่ลดถึงเกณฑ์จากงานอื่นนอกจากการขาย ----------

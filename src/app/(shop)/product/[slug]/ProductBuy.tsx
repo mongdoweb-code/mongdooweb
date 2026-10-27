@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { unitForQty, viewPrice, type SaleInfo, type TierInfo } from "@/lib/pricing";
 import { formatBaht } from "../../_components/format";
 import { useNow } from "../../_components/PriceBits";
+import { srcSetOf } from "@/lib/img-srcset";
 
 type ShellWindow = Window & { addToCart?: (id: string, qty: number, mode: string) => boolean; openCart?: (from?: Element) => void };
 type Img = { full: string; sm: string };
@@ -111,7 +112,7 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
               {/* eslint-disable-next-line @next/next/no-img-element -- รูป WebP จาก /media ย่อขนาดแล้ว */}
               <img
                 src={im.full}
-                srcSet={`${im.sm} 480w, ${im.full} ${FULL}w`}
+                srcSet={srcSetOf(im.full) ?? `${im.sm} 480w, ${im.full} ${FULL}w`}
                 sizes="(max-width: 768px) 100vw, 50vw"
                 alt={k === 0 ? alt : `${alt} รูปที่ ${k + 1}`}
                 width={FULL}

@@ -2,7 +2,7 @@
 // บันทึกตั้งค่าร้าน / โลโก้ / แถบประกาศ / รหัสวิเคราะห์ / งานอัตโนมัติ — เจ้าของร้านเท่านั้น
 // (รหัสผ่านย้ายไป /admin/account, ผู้ใช้ย้ายไป /admin/users)
 import { refresh } from "next/cache";
-import { refreshStorefront, logAdmin } from "@/lib/admin-log";
+import { diffOf, refreshStorefront, logAdmin } from "@/lib/admin-log";
 import { requireOwner } from "@/lib/auth";
 import { isValidThaiTaxId } from "@/lib/format";
 import { MediaError, saveImage } from "@/lib/media";
@@ -96,7 +96,8 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
     }
   }
 
-  await prisma.shopSetting.update({
+  const before = await prisma.shopSetting.findUnique({ where: { id: "shop" } });
+  const after = await prisma.shopSetting.update({
     where: { id: "shop" },
     data: {
       legalName: str(f, "legalName", 120),
@@ -138,7 +139,8 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
       ...(f.get("removeLogo") === "on" && !logoKey ? { logoKey: null } : {}),
     },
   });
-  await logAdmin(admin.id, "SETTINGS", "บันทึกตั้งค่าร้าน");
+  // A29: บันทึกค่าก่อน/หลังของช่องที่เปลี่ยน (ไม่มีความลับในตารางนี้ — โทเคน LINE/SMTP อยู่ใน env)
+  await logAdmin(admin.id, "SETTINGS", "บันทึกตั้งค่าร้าน", { entity: "ShopSetting", diff: diffOf(before, after) });
   refreshStorefront();
   refresh();
   return { ok: "บันทึกการตั้งค่าแล้ว — หน้าร้านและหน้าชำระเงินใช้ค่าใหม่ทันที" };

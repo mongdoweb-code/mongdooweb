@@ -342,5 +342,6 @@ export async function ProductListing({
 }
 
 export function ListingFallback() {
-  return <div className="pg-empty">กำลังโหลดสินค้า…</div>;
+  // จองความสูงไว้ก่อนรายการสินค้ามาถึง (stream) — ท้ายเว็บจะได้ไม่กระโดด (CLS, U14)
+  return <div className="pg-empty" style={{ minHeight: "150vh" }}>กำลังโหลดสินค้า…</div>;
 }

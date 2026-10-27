@@ -13,6 +13,7 @@ import { optionLabel, readOptions } from "@/lib/variants";
 import "../../../lot3.css";
 import { DownloadsBox } from "../DownloadsBox";
 import { ProductForm, type ProductValues } from "../ProductForm";
+import { HistoryLink } from "../../../_components/HistoryLink";
 
 const baht = (s: number | null) => (s ? String(s / 100) : "");
 
@@ -67,6 +68,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
         <div>
           <p><Link className="link" href="/admin/products">← สินค้าทั้งหมด</Link></p>
           <h1>{v.id ? v.name : "เพิ่มสินค้าใหม่"}</h1>
+          {v.id && <p><HistoryLink entity={`Product:${v.id}`} /></p>}
         </div>
       </div>
       <ProductForm

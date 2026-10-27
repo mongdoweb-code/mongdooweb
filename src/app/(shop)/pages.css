@@ -240,7 +240,7 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 @media (min-width:769px){.pdp-bar{display:none}}
 @media (max-width:768px){
   body.pdp-bar-on{padding-bottom:72px}
-  body.pdp-bar-on .fabs{bottom:calc(88px + var(--consent-h))}
+  body.pdp-bar-on .fabs{bottom:88px}
   body.pdp-bar-on .toast{bottom:calc(96px + var(--consent-h))}
 }
 @media (prefers-reduced-motion:reduce){.pdp-bar{animation:none}}

@@ -1,5 +1,6 @@
 // การ์ดสินค้า — markup เดียวกับ "สินค้าขายดี" ในหน้าแรก (ปุ่ม data-add ทำงานผ่าน shell.js)
 // ไม่มี import ฝั่ง server จึงใช้ได้ทั้งใน server component และ client component (สินค้าที่ดูล่าสุด)
+import { CARD_SIZES, srcSetOf } from "@/lib/img-srcset";
 import type { CatalogItem } from "@/lib/storefront";
 import { formatBaht } from "./format";
 import { CardPrice, PriceBadge } from "./PriceBits";
@@ -28,6 +29,8 @@ export function ProductCard({ p, eager = false, note, options }: { p: CatalogIte
           // eslint-disable-next-line @next/next/no-img-element -- รูปย่อ WebP จาก /media อยู่แล้ว
           <img
             src={p.img}
+            srcSet={srcSetOf(p.img, 640)}
+            sizes={CARD_SIZES}
             alt=""
             width={THUMB_SIZE}
             height={THUMB_SIZE}

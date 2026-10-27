@@ -83,7 +83,7 @@ function s3Driver(): StorageDriver {
   };
 }
 
-const MIME: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", json: "application/json", pdf: "application/pdf" };
+const MIME: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", json: "application/json", zip: "application/zip", pdf: "application/pdf" };
 const mimeOf = (key: string) => MIME[key.split(".").pop()!.toLowerCase()] ?? "application/octet-stream";
 
 let driver: StorageDriver | undefined;

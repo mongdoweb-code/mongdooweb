@@ -2,6 +2,7 @@
 // ลำดับส่วน/ซ่อนส่วน + ความน่าเชื่อถือ ผลงาน บทความ ตั้งได้ที่ /admin/home (_lot10/HomeSections.tsx)
 import type { Metadata } from "next";
 import Script from "next/script";
+import { preload } from "react-dom";
 import { getPublicShopInfo } from "@/lib/settings";
 import { getHomeSlides, jsonForScript } from "@/lib/storefront";
 import { HomeSections } from "./_lot10/HomeSections";
@@ -72,8 +73,24 @@ function orgLd(info: Awaited<ReturnType<typeof getPublicShopInfo>>) {
   };
 }
 
+/** srcset ของรูปสไลด์ — ต้องตรงกับ unsplash() ใน public/js/home.js ทุกตัวอักษร (เบราว์เซอร์จึงใช้ไฟล์ที่ preload ไว้ ไม่โหลดซ้ำ) */
+function slideSrcSet(u: string) {
+  const m = /^\/media\/(.+)\.webp$/.exec(u);
+  if (m) return { src: u, srcset: [640, 960, 1280].map((w) => `/media/${m[1]}-w${w}.webp ${w}w`).concat(`${u} 1600w`).join(", ") };
+  if (!u.startsWith("https://images.unsplash.com/")) return { src: u, srcset: undefined };
+  const b = u.split("?")[0], q = (w: number) => `${b}?auto=format&fit=crop&w=${w}&q=75`;
+  return { src: q(1920), srcset: [640, 828, 1280, 1920].map((w) => `${q(w)} ${w}w`).join(", ") };
+}
+
 export default async function Home() {
   const [slides, info] = await Promise.all([getHomeSlides(), getPublicShopInfo()]);
+  // U14: รูปสไลด์แรกคือ LCP ของหน้าแรก แต่ถูกวาดโดย home.js หลังโหลดสคริปต์ → preload ให้เบราว์เซอร์เริ่มโหลดตั้งแต่อ่าน <head>
+  // (สไลด์ที่ตั้งเวลาไว้กรองซ้ำในเบราว์เซอร์ — ส่วนใหญ่สไลด์แรกตามลำดับคือสไลด์ที่แสดง)
+  const first = [...slides].sort((a, b) => a.order - b.order).find((s) => s.active && s.image);
+  if (first) {
+    const im = slideSrcSet(first.image);
+    preload(im.src, { as: "image", fetchPriority: "high", ...(im.srcset ? { imageSrcSet: im.srcset, imageSizes: "100vw" } : {}) });
+  }
   return (
     <>
       <main id="main" tabIndex={-1}>

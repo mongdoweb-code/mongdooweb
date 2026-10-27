@@ -1,42 +1,40 @@
-// /admin/customers — ลูกค้าสำหรับเอกสารขาย: ค้นหา (ชื่อ/รหัส/เบอร์/เลขผู้เสียภาษี), ยอดค้างชำระ, จำนวนเอกสาร
+// /admin/customers — ลูกค้า: ค้นหา (ชื่อ/รหัส/เบอร์/เลขผู้เสียภาษี/แท็ก), ยอดค้างชำระ, จำนวนเอกสาร
+// รอบ 3 (A23): กลุ่มลูกค้า — แท็ก, ยอดซื้อรวม, ซื้อล่าสุด, ตัวกรอง (แท็ก/ยอดซื้อ/วันที่ซื้อล่าสุด/มีเลขผู้เสียภาษี) + ส่งออกสำหรับบรอดแคสต์
 import Link from "next/link";
-import type { Prisma } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
+import { allTags, parseSegment, segmentActive, segmentCustomers, segmentQuery } from "@/lib/customer-segments";
 import { money } from "@/lib/doc-calc";
-import { formatPhone, phoneDigits } from "@/lib/format";
+import { formatPhone } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import "../../lot12.css";
 
 const PER = 30;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+const day = (d: Date | null) => (d ? d.toLocaleDateString("th-TH", { dateStyle: "medium", timeZone: "Asia/Bangkok" }) : "—");
 
 export default async function CustomersPage({ searchParams }: PageProps<"/admin/customers">) {
   await requireAdmin();
   const sp = await searchParams;
-  const q = one(sp.q).trim().slice(0, 80);
-  const kind = one(sp.kind) === "COMPANY" ? "COMPANY" : one(sp.kind) === "PERSON" ? "PERSON" : "";
-  const d = phoneDigits(q);
-  const where: Prisma.CustomerWhereInput = {
-    ...(kind ? { kind } : {}),
-    ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { code: q }, { contactName: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, ...(d.length >= 3 ? [{ phone: { contains: d } }, { taxId: { contains: d } }] : [])] } : {}),
-  };
-  const total = await prisma.customer.count({ where });
+  const f = parseSegment(sp);
+  const [list, tags] = await Promise.all([segmentCustomers(f), allTags()]);
+  const total = list.length;
   const pages = Math.max(1, Math.ceil(total / PER));
   const page = Math.min(pages, Math.max(1, Number(one(sp.page)) || 1));
-  const rows = await prisma.customer.findMany({ where, orderBy: { code: "desc" }, skip: (page - 1) * PER, take: PER, include: { _count: { select: { documents: true, orders: true } } } });
+  const rows = list.slice((page - 1) * PER, page * PER);
   const owe = rows.length
     ? await prisma.salesDocument.groupBy({ by: ["customerId"], where: { customerId: { in: rows.map((r) => r.id) }, type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } }, _sum: { grandSatang: true, paidSatang: true } })
     : [];
   const oweOf = (id: string) => { const o = owe.find((x) => x.customerId === id); return o ? (o._sum.grandSatang ?? 0) - (o._sum.paidSatang ?? 0) : 0; };
-  const qs = (patch: Record<string, string>) => {
-    const s = new URLSearchParams(Object.entries({ q, kind, ...patch }).filter(([, v]) => v)).toString();
-    return `/admin/customers${s ? `?${s}` : ""}`;
-  };
+  const qs = (patch: Record<string, string>) => `/admin/customers${segmentQuery(f, patch)}`;
+  const spendSum = list.reduce((s, c) => s + c.stats.spendSatang, 0);
+  const seg = segmentActive(f);
   return (
-    <main className="main">
+    <main className="main" id="page-customers">
       <div className="page-head">
-        <div><h1>ลูกค้า</h1><p>ข้อมูลลูกค้าสำหรับใบเสนอราคา ใบแจ้งหนี้ และใบเสร็จ · ทั้งหมด {total} ราย</p></div>
+        <div><h1>ลูกค้า</h1><p>ข้อมูลลูกค้าสำหรับใบเสนอราคา ใบแจ้งหนี้ และใบเสร็จ · {seg || f.q || f.kind ? "ตามตัวกรอง" : "ทั้งหมด"} <span id="cuTotal">{total}</span> ราย · ยอดซื้อรวม ฿{money(spendSum)}</p></div>
         <div className="head-actions">
-          <a className="btn btn-outline" href={`/admin/customers/export.csv${qs({}).replace("/admin/customers", "")}`} download>ส่งออก CSV</a>
+          <a className="btn btn-outline" href={`/admin/customers/export.csv${segmentQuery(f, { sort: "" })}`} download>ส่งออก CSV</a>
+          <a className="btn btn-outline" href={`/admin/customers/broadcast.csv${segmentQuery(f, { sort: "" })}`} download id="cuBroadcast">ส่งออกสำหรับบรอดแคสต์</a>
           <Link className="btn btn-primary" href="/admin/customers/new">+ เพิ่มลูกค้า</Link>
         </div>
       </div>
@@ -45,36 +43,73 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
         <div className="toolbar">
           <div className="tabs" role="tablist">
             {([["", "ทั้งหมด"], ["COMPANY", "นิติบุคคล"], ["PERSON", "บุคคลธรรมดา"]] as const).map(([k, l]) => (
-              <Link key={k} className={`tab ${kind === k ? "on" : ""}`} role="tab" aria-selected={kind === k} href={qs({ kind: k, page: "" })}>{l}</Link>
+              <Link key={k} className={`tab ${f.kind === k ? "on" : ""}`} role="tab" aria-selected={f.kind === k} href={qs({ kind: k, page: "" })}>{l}</Link>
             ))}
           </div>
           <form className="search" action="/admin/customers" role="search">
-            {kind && <input type="hidden" name="kind" value={kind} />}
+            {Object.entries({ ...f, q: "" }).filter(([, v]) => v && v !== "code").map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
             <label className="sr-only" htmlFor="cq">ค้นหาลูกค้า</label>
-            <input id="cq" name="q" type="search" defaultValue={q} placeholder="ชื่อ, รหัส, เบอร์โทร, เลขผู้เสียภาษี" />
+            <input id="cq" name="q" type="search" defaultValue={f.q} placeholder="ชื่อ, รหัส, เบอร์โทร, เลขผู้เสียภาษี, แท็ก" />
           </form>
         </div>
-        <table className="tbl">
-          <thead><tr><th style={{ width: 70 }}>รหัส</th><th>ลูกค้า</th><th>ติดต่อ</th><th className="r">เอกสาร</th><th className="r">ค้างชำระ</th></tr></thead>
+        <details className="seg-box" open={seg}>
+          <summary>กลุ่มลูกค้า / ตัวกรองเพิ่มเติม{seg ? " (กำลังกรอง)" : ""}</summary>
+          <form className="seg-form" action="/admin/customers" id="segForm">
+            {f.q && <input type="hidden" name="q" value={f.q} />}
+            {f.kind && <input type="hidden" name="kind" value={f.kind} />}
+            <div className="field">
+              <label htmlFor="sgTag">แท็ก</label>
+              <select id="sgTag" name="tag" defaultValue={f.tag}>
+                <option value="">ทุกแท็ก</option>
+                {tags.map((t) => <option key={t.tag} value={t.tag}>{t.tag} ({t.n})</option>)}
+              </select>
+            </div>
+            <div className="field"><label htmlFor="sgMin">ยอดซื้อรวมตั้งแต่ (บาท)</label><input id="sgMin" name="minSpend" inputMode="decimal" defaultValue={f.minSpend} /></div>
+            <div className="field"><label htmlFor="sgMax">ถึง (บาท)</label><input id="sgMax" name="maxSpend" inputMode="decimal" defaultValue={f.maxSpend} /></div>
+            <div className="field"><label htmlFor="sgFrom">ซื้อล่าสุดตั้งแต่</label><input id="sgFrom" type="date" name="lastFrom" defaultValue={f.lastFrom} /></div>
+            <div className="field"><label htmlFor="sgTo">ถึง</label><input id="sgTo" type="date" name="lastTo" defaultValue={f.lastTo} /></div>
+            <div className="field">
+              <label htmlFor="sgTax">เลขผู้เสียภาษี</label>
+              <select id="sgTax" name="taxId" defaultValue={f.taxId}><option value="">ทั้งหมด</option><option value="yes">มีเลขผู้เสียภาษี</option><option value="no">ไม่มี</option></select>
+            </div>
+            <div className="field">
+              <label htmlFor="sgSort">เรียงตาม</label>
+              <select id="sgSort" name="sort" defaultValue={f.sort}><option value="code">รหัสลูกค้า (ใหม่ก่อน)</option><option value="spend">ยอดซื้อรวมมากสุด</option><option value="last">ซื้อล่าสุด</option></select>
+            </div>
+            <div className="seg-acts">
+              <button className="btn btn-dark btn-sm" type="submit">กรอง</button>
+              {seg && <Link className="link" href={`/admin/customers${segmentQuery({ ...f, tag: "", taxId: "", minSpend: "", maxSpend: "", lastFrom: "", lastTo: "" })}`}>ล้างตัวกรอง</Link>}
+            </div>
+          </form>
+          {tags.length > 0 && (
+            <div className="seg-tags" aria-label="แท็กที่ใช้บ่อย">
+              {tags.slice(0, 20).map((t) => <Link key={t.tag} className={`tag-chip${f.tag === t.tag ? " on" : ""}`} href={qs({ tag: f.tag === t.tag ? "" : t.tag, page: "" })}>{t.tag} <small>{t.n}</small></Link>)}
+            </div>
+          )}
+        </details>
+        <table className="tbl" id="cuTable">
+          <thead><tr><th style={{ width: 70 }}>รหัส</th><th>ลูกค้า</th><th>ติดต่อ</th><th className="r">ยอดซื้อรวม</th><th>ซื้อล่าสุด</th><th className="r">ค้างชำระ</th></tr></thead>
           <tbody>
             {rows.map((c) => {
               const o = oweOf(c.id);
               return (
-                <tr key={c.id}>
+                <tr key={c.id} data-code={c.code}>
                   <td className="num cu-code">{c.code}</td>
                   <td>
                     <Link className="row-link" href={`/admin/customers/${c.id}`}><b>{c.name}</b>
                       <span className="sub">{c.kind === "COMPANY" ? `นิติบุคคล · ${c.branch ?? "สำนักงานใหญ่"}` : "บุคคลธรรมดา"}{c.taxId ? ` · ${c.taxId}` : ""}</span></Link>
+                    {c.tags.length > 0 && <span className="cu-tags">{c.tags.map((t) => <span key={t} className="tag-chip sm">{t}</span>)}</span>}
                   </td>
                   <td className="sub" style={{ fontSize: 13.5 }}>{c.phone ? formatPhone(c.phone) : "—"}{c.province ? ` · ${c.province}` : ""}</td>
-                  <td className="r num">{c._count.documents}{c._count.orders ? <span className="sub">เว็บ {c._count.orders}</span> : null}</td>
+                  <td className="r num cu-spend">{c.stats.spendSatang ? `฿${money(c.stats.spendSatang)}` : <span className="sub">—</span>}<span className="sub">{c.stats.orders + c.stats.receipts ? `${c.stats.orders + c.stats.receipts} ครั้ง` : `เอกสาร ${c._count.documents}`}</span></td>
+                  <td className="sub">{day(c.stats.lastAt)}</td>
                   <td className="r num">{o > 0 ? <b className="owe">฿{money(o)}</b> : <span className="sub">—</span>}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        {!rows.length && <div className="empty"><b>{q ? "ไม่พบลูกค้า" : "ยังไม่มีลูกค้า"}</b><Link className="link" href="/admin/customers/new">เพิ่มลูกค้า</Link></div>}
+        {!rows.length && <div className="empty"><b>{f.q || seg ? "ไม่พบลูกค้าตามตัวกรอง" : "ยังไม่มีลูกค้า"}</b><Link className="link" href="/admin/customers/new">เพิ่มลูกค้า</Link></div>}
         {total > PER && (
           <div className="tbl-foot">
             <span>แสดง {(page - 1) * PER + 1}–{(page - 1) * PER + rows.length} จาก {total} ราย</span>

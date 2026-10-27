@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { logoutAction } from "../actions";
 import { IdleGuard, SideToggle } from "../_components/AdminClient";
 import { AdminNav } from "../_components/AdminNav";
+import { TopTools } from "../_components/TopTools";
+import "../lot12.css";
 
 const ICON = {
   orders: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" />,
@@ -36,6 +38,11 @@ const ICON = {
   post: <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" />,
   search: <><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></>,
   redirect: <path d="M4 7h11a4 4 0 0 1 0 8H8M8 11l-4 4 4 4" />,
+  task: <><rect x="4" y="4" width="16" height="16" /><path d="m8 12 3 3 5-6" /></>,
+  po: <path d="M3 4h2l2 11h11l2-8H7M9 20h.01M17 20h.01M12 9v4M10 11h4" />,
+  backup: <><ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" /></>,
+  shield: <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6zM9 12l2 2 4-4" />,
+  image: <><rect x="3" y="5" width="18" height="14" /><circle cx="9" cy="10" r="1.6" /><path d="m3 17 6-5 4 4 3-2 5 4" /></>,
 };
 const Ico = ({ k }: { k: keyof typeof ICON }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
@@ -45,7 +52,8 @@ const Ico = ({ k }: { k: keyof typeof ICON }) => (
 export default async function AdminAppLayout({ children }: LayoutProps<"/admin">) {
   // หน้า "บัญชีของฉัน" ต้องเปิดได้แม้ยังต้องเปลี่ยนรหัสผ่าน — หน้าอื่นตรวจซ้ำด้วย requireAdmin() ของตัวเองและพามาที่นี่
   const admin = await requireAdmin({ allowPasswordChange: true });
-  const [pending, unpaid, inquiries, claims, docSlips, reviews, waiting] = await Promise.all([
+  const owner = admin.role === "OWNER";
+  const [pending, unpaid, inquiries, claims, docSlips, reviews, waiting, myOverdue, pdpaNew] = await Promise.all([
     prisma.order.count({ where: { status: "PENDING_VERIFICATION" } }), // รวม COD ที่รอยืนยัน
     prisma.salesDocument.count({ where: { type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } } }),
     prisma.inquiry.count({ where: { status: "NEW" } }),
@@ -53,8 +61,10 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
     prisma.docSlip.count({ where: { status: "PENDING" } }),
     prisma.review.count({ where: { status: "PENDING" } }),
     prisma.stockAlert.count({ where: { notifiedAt: null } }),
+    // A25: งานของฉันที่เกินกำหนด (ป้ายแดงที่เมนู "งานที่ต้องทำ")
+    prisma.adminTask.count({ where: { done: false, assigneeId: admin.id, dueAt: { lt: new Date() } } }),
+    owner ? prisma.dataRequest.count({ where: { status: "NEW" } }) : 0,
   ]);
-  const owner = admin.role === "OWNER";
   return (
     <div className="shell">
       <aside className="side" id="side" aria-label="เมนูหลังร้าน">
@@ -74,11 +84,14 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/inquiries", label: "คำขอจากลูกค้า", icon: <Ico k="inbox" />, badge: inquiries },
             { href: "/admin/claims", label: "เคลม / คืนสินค้า", icon: <Ico k="claim" />, badge: claims },
             { href: "/admin/coupons", label: "คูปองส่วนลด", icon: <Ico k="coupon" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/tasks", label: "งานที่ต้องทำ", icon: <Ico k="task" />, badge: myOverdue },
             { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/stock", label: "สต็อก", icon: <Ico k="stock" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/purchase-orders", label: "ใบสั่งซื้อ (PO)", icon: <Ico k="po" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/specs", label: "สเปกสินค้าต่อหมวด", icon: <Ico k="specs" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/slides", label: "สไลด์หน้าแรก", icon: <Ico k="slides" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/media", label: "ตรวจรูปภาพ", icon: <Ico k="image" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/pages", label: "หน้าเนื้อหา / FAQ", icon: <Ico k="pages" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/reviews", label: "รีวิวสินค้า", icon: <Ico k="star" />, badge: reviews, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/stock-alerts", label: "รอสินค้าเข้า", icon: <Ico k="bell" />, badge: waiting, group: "สินค้าและหน้าร้าน" },
@@ -100,6 +113,8 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
                   { href: "/admin/users", label: "ผู้ใช้หลังบ้าน", icon: <Ico k="users" />, group: "ระบบ" },
                   { href: "/admin/line", label: "แจ้งเตือน LINE", icon: <Ico k="line" />, group: "ระบบ" },
                   { href: "/admin/system", label: "สถานะระบบ", icon: <Ico k="system" />, group: "ระบบ" },
+                  { href: "/admin/backups", label: "สำรองข้อมูล", icon: <Ico k="backup" />, group: "ระบบ" },
+                  { href: "/admin/data-requests", label: "คำขอข้อมูลส่วนบุคคล", icon: <Ico k="shield" />, group: "ระบบ", badge: pdpaNew },
                 ]
               : []),
             { href: "/admin/account", label: "บัญชีของฉัน", icon: <Ico k="users" />, group: "ระบบ" },
@@ -126,6 +141,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
           </div>
           <span className="tb-page">{admin.displayName}</span>
         </div>
+        {!admin.mustChangePassword && <TopTools />}
         {children}
       </div>
       <IdleGuard />

@@ -11,6 +11,8 @@ import { prisma } from "@/lib/prisma";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
 import { deleteCustomer, mergeCustomer } from "../actions";
 import { CustomerForm, type CustomerValues } from "../CustomerForm";
+import { CustomerExtras } from "../CustomerExtras";
+import "../../../lot12.css";
 
 export const instant = false;
 
@@ -100,6 +102,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               <div><span>รับชำระแล้ว (ใบเสร็จ)</span><b className="num">฿{money(paidTotal)}</b></div>
               <div><span>เอกสารทั้งหมด</span><b className="num">{docs.length}</b></div>
             </div>
+            <CustomerExtras customerId={c.id} tags={c.tags} />
             <section className="cu-hist">
               <h3>ประวัติเอกสาร</h3>
               {docs.length ? (
