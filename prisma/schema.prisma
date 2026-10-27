@@ -282,6 +282,7 @@ model OrderItem {
   nameSnapshot String // ชื่อ ณ ตอนสั่ง
   priceSatang  Int // ราคาต่อชิ้น ณ ตอนสั่ง
   qty          Int
+  costSatang   Int? // ต้นทุนต่อชิ้น ณ ตอนยืนยันชำระ (รายงานกำไรย้อนหลังไม่เปลี่ยนตามต้นทุนใหม่)
 
   @@index([orderId])
 }
@@ -523,25 +524,26 @@ enum CustomerKind {
 }
 
 model Customer {
-  id          String         @id @default(cuid())
-  code        String         @unique // "0495" (รหัสลูกค้า 4 หลัก ตามเอกสารเดิม)
-  kind        CustomerKind   @default(PERSON)
-  name        String
-  taxId       String?        @db.VarChar(13) // ตรวจ checksum 13 หลัก
-  branch      String? // "สำนักงานใหญ่" | "สาขาที่ 00001"
-  contactName String?
-  phone       String?
-  email       String?
-  addressLine String?
-  subdistrict String?
-  district    String?
-  province    String?
-  postalCode  String?        @db.VarChar(5)
-  shipTo      Json? // ที่อยู่จัดส่งแยก {name, phone, address}
-  note        String?
-  tags        String[]       @default([]) // กลุ่มลูกค้า เช่น "ผู้รับเหมา", "VIP"
-  notes       InternalNote[]
-  tasks       AdminTask[]
+  id              String         @id @default(cuid())
+  code            String         @unique // "0495" (รหัสลูกค้า 4 หลัก ตามเอกสารเดิม)
+  kind            CustomerKind   @default(PERSON)
+  name            String
+  taxId           String?        @db.VarChar(13) // ตรวจ checksum 13 หลัก
+  branch          String? // "สำนักงานใหญ่" | "สาขาที่ 00001"
+  contactName     String?
+  phone           String?
+  email           String?
+  addressLine     String?
+  subdistrict     String?
+  district        String?
+  province        String?
+  postalCode      String?        @db.VarChar(5)
+  shipTo          Json? // ที่อยู่จัดส่งแยก {name, phone, address}
+  note            String?
+  tags            String[]       @default([]) // กลุ่มลูกค้า เช่น "ผู้รับเหมา", "VIP"
+  marketingOptOut Boolean        @default(false) // คัดค้านการตลาด (PDPA) — ไม่อยู่ในไฟล์บรอดแคสต์
+  notes           InternalNote[]
+  tasks           AdminTask[]
 
   documents SalesDocument[]
   orders    Order[]
@@ -647,6 +649,7 @@ model SalesDocumentItem {
   qtyMilli       Int // จำนวน ×1000 (รองรับ 2.5 เมตร)
   priceSatang    Int
   discountSatang Int           @default(0)
+  costSatang     Int? // ต้นทุนต่อหน่วย ณ ตอนออกเอกสาร (ใบเสร็จที่ไม่ผูกคำสั่งซื้อ → รายงานกำไร)
 
   @@index([documentId, sortOrder])
 }
