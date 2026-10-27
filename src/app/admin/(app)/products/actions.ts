@@ -8,6 +8,7 @@ import { requireAdmin, requireOwner } from "@/lib/auth";
 import { sanitizeDescription } from "@/lib/html";
 import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
+import { queueRestockIfAvailableNow } from "@/lib/stock-alerts";
 import { setStock } from "@/lib/stock";
 import { recordSlugChange } from "@/lib/redirects";
 import { parseCsv } from "@/lib/csv";
@@ -134,7 +135,9 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
       return u;
     });
     // A29: เก็บค่าก่อน/หลังของฟิลด์ที่เปลี่ยน (ดูได้ที่ /admin/log?entity=Product:<id>)
-    const diff = diffOf(old, { ...saved, stock: (await prisma.product.findUnique({ where: { id }, select: { stock: true } }))?.stock ?? saved.stock });
+    const now = await prisma.product.findUniqueOrThrow({ where: { id }, select: { id: true, trackStock: true, stock: true, inStock: true, isActive: true } });
+    queueRestockIfAvailableNow(old, now); // U9: สินค้าไม่นับสต็อกติ๊ก "มีของ" อีกครั้ง / กลับมาเปิดขาย → แจ้งลูกค้าที่รอ
+    const diff = diffOf(old, { ...saved, stock: now.stock });
     await logAdmin(admin.id, "PRODUCT", `แก้ไขสินค้า ${sku} — ${name}`, { entity: `Product:${id}`, diff });
     if (old.slug !== slug) await recordSlugChange(`/product/${old.slug}`, `/product/${slug}`); // ลิงก์เดิม → 301 อัตโนมัติ (A13)
   } else {
@@ -174,7 +177,8 @@ export async function toggleProduct(f: FormData) {
   const id = str(f, "id", 40);
   const p = await prisma.product.findUnique({ where: { id } });
   if (p) {
-    await prisma.product.update({ where: { id }, data: { isActive: !p.isActive } });
+    const u = await prisma.product.update({ where: { id }, data: { isActive: !p.isActive } });
+    queueRestockIfAvailableNow(p, u);
     await logAdmin(admin.id, "PRODUCT", `${p.isActive ? "ปิด" : "เปิด"}ขายสินค้า ${p.sku}`, { entity: `Product:${p.id}`, diff: { isActive: [p.isActive, !p.isActive] } });
     refreshStorefront();
   }
