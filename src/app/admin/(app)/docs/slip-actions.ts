@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { money } from "@/lib/doc-calc";
 import { DOC_SLIP_REJECT_REASONS, approveDocSlip, rejectDocSlip } from "@/lib/doc-online";
 import { DocUserError } from "@/lib/doc-payments";
+import { afterOrderPaid } from "@/lib/order-confirm";
 import { prisma } from "@/lib/prisma";
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").trim().slice(0, max);
@@ -18,7 +19,8 @@ export async function approveDocSlipAction(f: FormData) {
   if (!slip) redirect("/admin/docs/slips");
   try {
     const r = await approveDocSlip(slipId, admin.id);
-    await logAdmin(admin.id, "DOC", `อนุมัติสลิปจากลิงก์ ${r.ivNo} → ออกใบเสร็จ ${r.rcNo}`);
+    afterOrderPaid(r.orderPaid);
+    await logAdmin(admin.id, "DOC", `อนุมัติสลิปจากลิงก์ ${r.ivNo} → ออกใบเสร็จ ${r.rcNo}${r.orderPaid ? ` · คำสั่งซื้อ ${r.orderPaid.orderNo} ชำระแล้ว` : ""}`);
     redirect(`${back(f, slip.documentId)}?paid=${encodeURIComponent(r.rcNo)}&rc=${r.rcId}`);
   } catch (e) {
     if (e instanceof DocUserError) redirect(`${back(f, slip.documentId)}?err=${encodeURIComponent(e.message)}`);

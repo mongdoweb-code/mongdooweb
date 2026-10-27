@@ -166,11 +166,13 @@ export const MARKS = {
   upright: ["ตั้งขึ้น", '<path d="M8 19V5M5 8l3-3 3 3M16 19V5M13 8l3-3 3 3"/><path d="M4 21.5h16"/>'],
 } as const;
 export type MarkKey = keyof typeof MARKS;
-export type LabelData = { ref: string; name: string; phone: string; addr: string; zip: string; carrier: string; items: { name: string; qtyMilli: number }[] };
+/** codSatang: ยอดเก็บเงินปลายทางของใบนี้ (คำสั่งซื้อ COD = ยอดคำสั่งซื้อ, 0 = ไม่เก็บ) — ไม่ระบุ = ใช้ค่าจากตัวเลือก (ใบปะหน้าจากเอกสาร) */
+export type LabelData = { ref: string; name: string; phone: string; addr: string; zip: string; carrier: string; items: { name: string; qtyMilli: number }[]; codSatang?: number };
 export type LabelOpts = { size: "A6" | "A4"; boxes: number; codSatang: number; marks: Record<MarkKey, boolean>; showItems: boolean };
 export type Sender = { name: string; phone: string; address: string; logo: string };
 
 function labelHtml(L: LabelData, o: LabelOpts, s: Sender, b: number, nb: number) {
+  const cod = L.codSatang ?? o.codSatang;
   const zip = String(L.zip || "").replace(/\D/g, "").slice(0, 5).padEnd(5, " ").split("");
   const marks = (Object.keys(MARKS) as MarkKey[]).filter((k) => o.marks[k]);
   return `<section class="label">
@@ -182,7 +184,7 @@ function labelHtml(L: LabelData, o: LabelOpts, s: Sender, b: number, nb: number)
       <div class="lb-zip" aria-label="รหัสไปรษณีย์ ${esc(L.zip)}">${zip.map((c) => `<span>${esc(c.trim())}</span>`).join("")}</div></div>
     <div class="lb-info"><div class="lb-bc">${L.ref ? code128Svg(L.ref, "lb-bcs") : ""}<div class="lb-ref">${esc(L.ref)}</div></div>
       <div class="lb-box"><small>กล่องที่</small><b>${b}/${nb}</b></div></div>
-    <div class="lb-row"><span>ขนส่ง: <b>${esc(L.carrier || "—")}</b></span>${o.codSatang > 0 ? `<span class="lb-cod">เก็บเงินปลายทาง ฿${money(o.codSatang)}</span>` : ""}</div>
+    <div class="lb-row"><span>ขนส่ง: <b>${esc(L.carrier || "—")}</b></span>${cod > 0 ? `<span class="lb-cod">เก็บเงินปลายทาง ฿${money(cod)}</span>` : ""}</div>
     ${marks.length ? `<div class="lb-marks">${marks.map((k) => `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${MARKS[k][1]}</svg>${MARKS[k][0]}</span>`).join("")}</div>` : ""}
     ${o.showItems && L.items.length ? `<ul class="lb-items">${L.items.slice(0, 6).map((i) => `<li><span>${esc(i.name)}</span><span>×${qtyFmt(i.qtyMilli).replace(/\.00$/, "")}</span></li>`).join("")}${L.items.length > 6 ? `<li><span>และอีก ${L.items.length - 6} รายการ</span><span></span></li>` : ""}</ul>` : ""}
   </section>`;

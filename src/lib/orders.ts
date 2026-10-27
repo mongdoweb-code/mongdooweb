@@ -75,7 +75,9 @@ export async function validateCart(items: unknown, seenPrices: unknown) {
     const p = bySlug.get(slug);
     if (!p || !p.isActive || p.isService || !p.category.isActive)
       return { id: slug, name: p?.name ?? "", price: 0, qty: 0, wanted: qty, maxQty: 0, color: "any", status: "gone" };
-    const price = unitPriceSatang(p, qty) / 100;
+    // สต็อกไม่พอ → ลดจำนวนลงเหลือเท่าที่มี แล้วคิดราคาตามจำนวนสุดท้าย (ราคาขายส่งตามจำนวนอาจเปลี่ยน)
+    const finalQty = p.trackStock && p.stock > 0 && p.stock < qty ? p.stock : qty;
+    const price = unitPriceSatang(p, finalQty) / 100;
     const img = mediaUrl(p.images[0], "sm") ?? undefined;
     const base = {
       id: slug, name: p.name, price, wanted: qty, maxQty: p.trackStock ? Math.max(0, p.stock) : null, color: p.lightColor.toLowerCase(),
@@ -83,7 +85,7 @@ export async function validateCart(items: unknown, seenPrices: unknown) {
     };
     if (p.priceSatang <= 0) return { ...base, qty: 0, status: "ask" };
     if (p.trackStock ? p.stock <= 0 : !p.inStock) return { ...base, qty: 0, status: "out" };
-    if (p.trackStock && p.stock < qty) return { ...base, qty: p.stock, status: "qty" };
+    if (p.trackStock && p.stock < qty) return { ...base, qty: finalQty, status: "qty" };
     const old = Number(seen[slug]);
     if (Number.isFinite(old) && old > 0 && Math.round(old * 100) !== unitPriceSatang(p, qty)) return { ...base, qty, status: "price", oldPrice: old };
     return { ...base, qty, status: "ok" };
@@ -179,14 +181,7 @@ export function validateTaxInvoice(raw: unknown): { ok: true; value: TaxInvoiceR
   return fields.length ? { ok: false, fields, messages } : { ok: true, value: v };
 }
 
-/** อ่าน Order.taxInvoice กลับเป็นข้อมูลที่ใช้ได้ (หลังบ้าน/ออกใบเสร็จ) — null = ลูกค้าไม่ได้ขอ */
-export function parseTaxInvoice(v: unknown): TaxInvoiceRequest | null {
-  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
-  const r = v as Record<string, unknown>;
-  const s = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : "");
-  if (!s("name") || !s("taxId")) return null;
-  return { kind: r.kind === "PERSON" ? "PERSON" : "COMPANY", name: s("name"), taxId: s("taxId"), branch: s("branch"), address: s("address") };
-}
+/** อ่าน Order.taxInvoice กลับ (หลังบ้าน/ออกใบเสร็จ): ใช้ parseTaxInvoice ใน src/lib/admin-orders.ts */
 
 export class OrderError extends Error {
   constructor(message: string, readonly status = 400, readonly fields?: string[], readonly messages?: Record<string, string>) {
@@ -194,9 +189,9 @@ export class OrderError extends Error {
   }
 }
 
-// ---------- เลขที่คำสั่งซื้อ: MDW-YYMMDD-NNNN (วันที่ตามเวลาไทย, เลขสุ่ม 4 หลัก) ----------
+// ---------- เลขที่คำสั่งซื้อ: MDW-YYMMDD-NNNN (วันที่ตามเวลาไทย, เลขสุ่ม 4 หลัก) — ใช้ทั้งหน้าเว็บและคำสั่งซื้อจากหลังร้าน ----------
 
-function makeOrderNo(now = new Date()) {
+export function makeOrderNo(now = new Date()) {
   const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "2-digit", month: "2-digit", day: "2-digit" })
     .format(now)
     .replace(/-/g, "");

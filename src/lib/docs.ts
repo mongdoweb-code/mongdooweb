@@ -6,6 +6,7 @@ import { addrText, calcTotals, docDateTime, fromYmd, promptPayPayload, ymdBkk, t
 import { DOC_META, displayStatus, type CustSnap, type DocSt, type DocView, type LabelData, type Sender, type ShopHead } from "@/lib/doc-render";
 import { formatPhone } from "@/lib/format";
 import { mediaUrl } from "@/lib/media";
+import { customerForOrder, nextCustomerCode as nextCode, type OrderForCustomer } from "@/lib/order-customer";
 import { prisma } from "@/lib/prisma";
 import { bankLabel, parseBankAccounts } from "@/lib/settings";
 
@@ -45,12 +46,8 @@ export async function allocDocNo(tx: Tx, type: DocType, issueYmd: string, prefix
   throw new Error("ไม่สามารถจองเลขที่เอกสารได้");
 }
 
-/** รหัสลูกค้า 4 หลักถัดไป ("0001") */
-export async function nextCustomerCode(tx: Tx | typeof prisma = prisma) {
-  const last = await tx.customer.findMany({ select: { code: true }, orderBy: { code: "desc" }, take: 50 });
-  const max = last.map((c) => Number(c.code)).filter(Number.isFinite).reduce((a, b) => Math.max(a, b), 0);
-  return String(max + 1).padStart(4, "0");
-}
+/** รหัสลูกค้า 4 หลักถัดไป ("0001") — ตัวจริงอยู่ที่ src/lib/order-customer.ts */
+export const nextCustomerCode = (tx: Tx | typeof prisma = prisma) => nextCode(tx);
 
 export function custSnapshot(c: Customer): CustSnap {
   const ship = c.shipTo && typeof c.shipTo === "object" && !Array.isArray(c.shipTo) ? (c.shipTo as CustSnap["shipTo"]) : null;
@@ -144,21 +141,8 @@ export function statusWhere(st: DocSt | "all", today = todayYmd()): Prisma.Sales
   }
 }
 
-/** สร้างลูกค้าจากคำสั่งซื้อเว็บ (จับคู่ด้วยเบอร์โทร) */
-export async function customerFromOrder(tx: Tx, o: { customerId: string | null; customerName: string; phone: string; email: string | null; addressLine: string; subdistrict: string; district: string; province: string; postalCode: string }) {
-  if (o.customerId) {
-    const c = await tx.customer.findUnique({ where: { id: o.customerId } });
-    if (c) return c;
-  }
-  const found = await tx.customer.findFirst({ where: { phone: o.phone }, orderBy: { createdAt: "asc" } });
-  if (found) return found;
-  return tx.customer.create({
-    data: {
-      code: await nextCustomerCode(tx), kind: "PERSON", name: o.customerName, phone: o.phone, email: o.email,
-      addressLine: o.addressLine, subdistrict: o.subdistrict, district: o.district, province: o.province, postalCode: o.postalCode, note: "สร้างจากคำสั่งซื้อหน้าเว็บ",
-    },
-  });
-}
+/** ลูกค้าของคำสั่งซื้อ (ผูกไว้แล้ว / จับคู่ด้วยเบอร์โทร-อีเมล / สร้างใหม่) — ดู src/lib/order-customer.ts */
+export const customerFromOrder = (tx: Tx, o: OrderForCustomer) => customerForOrder(tx, o);
 
 /** คำนวณยอดเอกสารใหม่จากรายการ (ไม่เชื่อยอดจากเบราว์เซอร์) */
 export function totalsFor(items: { qtyMilli: number; priceSatang: number; discountSatang: number }[], discountSatang: number, vatMode: SalesDocument["vatMode"], vatRateBp: number) {

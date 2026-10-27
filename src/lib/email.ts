@@ -8,52 +8,10 @@ import nodemailer from "nodemailer";
 import { carrierTrackUrl } from "@/lib/carriers";
 import { siteUrl } from "@/lib/line";
 import { prisma } from "@/lib/prisma";
+import { parseTemplates, renderTemplate, templateFor, type EmailTemplate, TEMPLATE_LABEL } from "@/lib/email-templates";
 
-export const EMAIL_TEMPLATES = ["ORDER_RECEIVED", "PAID", "SHIPPED"] as const;
-export type EmailTemplate = (typeof EMAIL_TEMPLATES)[number];
-export type TemplateText = { subject: string; body: string };
 
-export const TEMPLATE_LABEL: Record<EmailTemplate | "TEST", string> = {
-  ORDER_RECEIVED: "ได้รับคำสั่งซื้อ",
-  PAID: "ชำระเงินแล้ว",
-  SHIPPED: "จัดส่งแล้ว",
-  TEST: "ทดสอบ",
-};
-
-/** ตัวแปรที่ใช้ในแม่แบบได้ */
-export const TEMPLATE_VARS = ["{orderNo}", "{name}", "{total}", "{tracking}", "{trackUrl}", "{orderUrl}", "{shop}"];
-
-export const DEFAULT_TEMPLATES: Record<EmailTemplate, TemplateText> = {
-  ORDER_RECEIVED: {
-    subject: "ได้รับคำสั่งซื้อ {orderNo} แล้ว — {shop}",
-    body: "เรียนคุณ{name}\n\nร้านได้รับคำสั่งซื้อเลขที่ {orderNo} ยอดชำระ {total} แล้ว ขอบคุณที่สั่งซื้อครับ\n\nดู/พิมพ์ใบสั่งซื้อ: {orderUrl}\nติดตามสถานะและแนบสลิป: {trackUrl}\n\n{shop}",
-  },
-  PAID: {
-    subject: "ยืนยันการชำระเงิน {orderNo} — {shop}",
-    body: "เรียนคุณ{name}\n\nร้านยืนยันคำสั่งซื้อ {orderNo} ยอด {total} เรียบร้อยแล้ว กำลังเตรียมจัดส่งสินค้าให้\n\nติดตามสถานะ: {trackUrl}\n\n{shop}",
-  },
-  SHIPPED: {
-    subject: "จัดส่งสินค้าแล้ว {orderNo} — {shop}",
-    body: "เรียนคุณ{name}\n\nร้านจัดส่งคำสั่งซื้อ {orderNo} แล้ว\nเลขพัสดุ: {tracking}\n\nติดตามสถานะ: {trackUrl}\n\n{shop}",
-  },
-};
-
-/** แม่แบบที่ร้านแก้ไว้ (ช่องที่ว่าง = ใช้ค่าเริ่มต้น) */
-export function parseTemplates(v: unknown): Record<EmailTemplate, TemplateText> {
-  const o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
-  const out = {} as Record<EmailTemplate, TemplateText>;
-  for (const k of EMAIL_TEMPLATES) {
-    const t = o[k] && typeof o[k] === "object" ? (o[k] as Record<string, unknown>) : {};
-    const subject = typeof t.subject === "string" && t.subject.trim() ? t.subject.trim().slice(0, 200) : DEFAULT_TEMPLATES[k].subject;
-    const body = typeof t.body === "string" && t.body.trim() ? t.body.slice(0, 5000) : DEFAULT_TEMPLATES[k].body;
-    out[k] = { subject, body };
-  }
-  return out;
-}
-
-export function renderTemplate(text: string, vars: Record<string, string>) {
-  return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? vars[k] : m));
-}
+export * from "@/lib/email-templates";
 
 const env = (k: string) => process.env[k]?.trim() ?? "";
 /** ค่าตัวอย่างจาก .env.example (smtp.example.com / change-me) = ยังไม่ได้ตั้งค่าจริง → ไม่พยายามส่ง */
@@ -116,12 +74,12 @@ export async function sendOrderEmail(orderNo: string, template: EmailTemplate) {
     ]);
     if (!s?.emailEnabled || !o?.email) return;
     if (await prisma.emailLog.findFirst({ where: { orderId: o.id, template, status: "SENT" }, select: { id: true } })) return;
-    const t = parseTemplates(s.emailTemplates)[template];
+    const t = templateFor(parseTemplates(s.emailTemplates), template, o);
     const trackUrl = `${siteUrl()}/track?no=${encodeURIComponent(o.orderNo)}`;
     const vars = {
       orderNo: o.orderNo, name: o.customerName, total: baht(o.totalSatang), shop: s.legalName, trackUrl,
       orderUrl: o.publicToken ? `${siteUrl()}/track/order/${encodeURIComponent(o.orderNo)}?t=${o.publicToken}` : trackUrl,
-      tracking: o.trackingNo ? `${o.trackingNo}${o.carrier ? ` (${o.carrier})` : ""}${carrierTrackUrl(o.carrier, o.trackingNo) ? ` ${carrierTrackUrl(o.carrier, o.trackingNo)}` : ""}` : "-",
+      tracking: o.shippingMethod === "pickup" ? "รับที่ร้าน (ไม่มีเลขพัสดุ)" : o.trackingNo ? `${o.trackingNo}${o.carrier ? ` (${o.carrier})` : ""}${carrierTrackUrl(o.carrier, o.trackingNo) ? ` ${carrierTrackUrl(o.carrier, o.trackingNo)}` : ""}` : "-",
     };
     const r = await deliver(o.email, renderTemplate(t.subject, vars), renderTemplate(t.body, vars));
     await prisma.emailLog.create({ data: { to: o.email, template, orderId: o.id, status: r.status, error: r.error ?? null } });

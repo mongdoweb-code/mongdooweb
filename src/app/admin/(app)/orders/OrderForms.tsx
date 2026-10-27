@@ -3,6 +3,8 @@
 // ทุกยอดเงินที่แสดงเป็นแค่ตัวอย่าง — server คำนวณใหม่ทั้งหมดตอนบันทึก
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { unitPriceSatang, type Tier } from "@/lib/pricing";
+import { quoteShipping, type ShipConfig } from "@/lib/shipping";
 import { PROVINCES } from "@/lib/thai-address";
 import { useFormAction } from "../../_components/useFormAction";
 import {
@@ -119,13 +121,18 @@ export function EditOrderForm({ orderNo, ret, init, tax, cancelHref, pickup }: {
 }
 
 /* ---------- สร้างคำสั่งซื้อจากหลังร้าน ---------- */
-export type PickProduct = { id: string; sku: string; name: string; priceSatang: number; trackStock: boolean; stock: number; inStock: boolean; isActive: boolean };
+/** priceSatang = ราคาขายจริง 1 ชิ้น (รวมราคาลดตามช่วงเวลา) · tiers = ราคาขายส่งตามจำนวน · weightGram ใช้คิดค่าส่งตามน้ำหนัก */
+export type PickProduct = { id: string; sku: string; name: string; priceSatang: number; tiers?: Tier[]; weightGram: number; trackStock: boolean; stock: number; inStock: boolean; isActive: boolean };
+/** ราคาตั้งต้นตามจำนวน (unitPriceSatang แบบเดียวกับหน้าร้าน) เป็นบาท — "" = สอบถามราคา */
+const defaultPrice = (p: PickProduct, qty: string) => {
+  const sat = unitPriceSatang({ priceSatang: p.priceSatang, tierPrices: p.tiers }, Math.max(1, Math.floor(Number(qty)) || 1));
+  return sat ? String(sat / 100) : "";
+};
 type Line = { productId: string; qty: string; price: string };
 type Cust = Awaited<ReturnType<typeof findCustomers>>[number];
 
-export function ManualOrderForm({ products, tiers, expressEnabled, expressExtraSatang, sources }: {
-  products: PickProduct[]; tiers: { minSatang: number; feeSatang: number }[]; expressEnabled: boolean; expressExtraSatang: number; sources: string[];
-}) {
+export function ManualOrderForm({ products, ship, sources }: { products: PickProduct[]; ship: ShipConfig; sources: string[] }) {
+  const { expressEnabled, expressExtraSatang } = ship;
   const [state, onSubmit, pending] = useFormAction<OrderFormState>(createManualOrder, {});
   const [a, setA] = useState<Addr>({ name: "", phone: "", email: "", addr: "", sub: "", dist: "", prov: "", zip: "", note: "" });
   const [t, setT] = useState<Tax>(EMPTY_TAX);
@@ -158,8 +165,11 @@ export function ManualOrderForm({ products, tiers, expressEnabled, expressExtraS
   }, [pq, products]);
 
   const subtotal = lines.reduce((s, l) => s + toSat(l.price) * (Math.floor(Number(l.qty)) || 0), 0);
-  const tierFee = tiers.reduce((fee, x) => (subtotal >= x.minSatang ? x.feeSatang : fee), tiers[0]?.feeSatang ?? 0);
-  const fee = shipping === "pickup" ? 0 : shipping === "custom" ? toSat(shipFee) : tierFee + (shipping === "express" ? expressExtraSatang : 0);
+  // ค่าส่งแบบเดียวกับหน้าชำระเงิน (ขั้นตามยอด + น้ำหนักรวม + พื้นที่ห่างไกลตามรหัสไปรษณีย์) — server คำนวณซ้ำตอนบันทึก
+  const totalGram = lines.reduce((g, l) => g + (byId.get(l.productId)?.weightGram ?? 0) * (Math.floor(Number(l.qty)) || 0), 0);
+  const quote = (m: "std" | "express") => quoteShipping({ ...ship, pickupEnabled: true }, { method: m, subtotalSatang: subtotal, totalGram, zip: a.zip });
+  const tierFee = quote("std").shippingSatang;
+  const fee = shipping === "pickup" ? 0 : shipping === "custom" ? toSat(shipFee) : quote(shipping === "express" ? "express" : "std").shippingSatang;
 
   const pickCustomer = (c: Cust) => {
     setCust(c);
@@ -171,7 +181,7 @@ export function ManualOrderForm({ products, tiers, expressEnabled, expressExtraS
   const addProduct = (p: PickProduct) => {
     setPq("");
     if (lines.some((l) => l.productId === p.id)) setLines(lines.map((l) => (l.productId === p.id ? { ...l, qty: String((Number(l.qty) || 0) + 1) } : l)));
-    else setLines([...lines, { productId: p.id, qty: "1", price: p.priceSatang ? String(p.priceSatang / 100) : "" }]);
+    else setLines([...lines, { productId: p.id, qty: "1", price: defaultPrice(p, "1") }]);
   };
   const payload: ManualPayload = {
     customerId: cust?.id, ...a, source, items: lines, shipping, shippingFee: shipFee, paid, payMethod, payNote, tax: t,
@@ -214,7 +224,7 @@ export function ManualOrderForm({ products, tiers, expressEnabled, expressExtraS
                 return (
                   <div className="mo-item" key={l.productId}>
                     <div className="nm"><b>{p.name}</b><small>{p.sku}{p.trackStock ? ` · คงเหลือ ${p.stock}` : ""}{over ? " · สต็อกไม่พอ" : ""}</small></div>
-                    <div className="q"><label className="sr-only" htmlFor={`q${i}`}>จำนวน</label><input id={`q${i}`} inputMode="numeric" value={l.qty} className={over || bad(`item.${i}`) ? "bad" : ""} onChange={(e) => setLines(lines.map((x, k) => (k === i ? { ...x, qty: e.target.value } : x)))} /></div>
+                    <div className="q"><label className="sr-only" htmlFor={`q${i}`}>จำนวน</label><input id={`q${i}`} inputMode="numeric" value={l.qty} className={over || bad(`item.${i}`) ? "bad" : ""} onChange={(e) => setLines(lines.map((x, k) => (k === i ? { ...x, qty: e.target.value, ...(x.price === defaultPrice(p, x.qty) ? { price: defaultPrice(p, e.target.value) } : {}) } : x)))} /></div>
                     <div className="p"><label className="sr-only" htmlFor={`p${i}`}>ราคาต่อหน่วย (บาท)</label><input id={`p${i}`} inputMode="decimal" value={l.price} placeholder="ราคา" className={bad(`item.${i}`)} onChange={(e) => setLines(lines.map((x, k) => (k === i ? { ...x, price: e.target.value } : x)))} /></div>
                     <div className="sum">{baht(toSat(l.price) * q)}</div>
                     <button type="button" className="icon-btn sm x" aria-label={`ลบ ${p.name}`} onClick={() => setLines(lines.filter((_, k) => k !== i))}>✕</button>
@@ -263,8 +273,8 @@ export function ManualOrderForm({ products, tiers, expressEnabled, expressExtraS
             </div>
             <h3 style={{ marginTop: 6 }}>การจัดส่ง</h3>
             <div className="mo-radio">
-              <label><input type="radio" name="ship" checked={shipping === "std"} onChange={() => setShipping("std")} /><span><b>ส่งธรรมดา</b><small>ค่าส่งตามยอดสั่งซื้อ ({baht(tierFee)})</small></span></label>
-              {expressEnabled && <label><input type="radio" name="ship" checked={shipping === "express"} onChange={() => setShipping("express")} /><span><b>ส่งด่วน</b><small>+{baht(expressExtraSatang)}</small></span></label>}
+              <label><input type="radio" name="ship" checked={shipping === "std"} onChange={() => setShipping("std")} /><span><b>ส่งธรรมดา</b><small>ค่าส่งตามยอดสั่งซื้อ/น้ำหนัก/พื้นที่ ({baht(tierFee)})</small></span></label>
+              {expressEnabled && <label><input type="radio" name="ship" checked={shipping === "express"} onChange={() => setShipping("express")} /><span><b>ส่งด่วน</b><small>+{baht(expressExtraSatang)} ({baht(quote("express").shippingSatang)})</small></span></label>}
               <label><input type="radio" name="ship" checked={shipping === "custom"} onChange={() => setShipping("custom")} /><span><b>กำหนดค่าส่งเอง</b><small>เช่น ของใหญ่/ส่งต่างจังหวัด</small></span></label>
               <label><input type="radio" name="ship" checked={shipping === "pickup"} onChange={() => setShipping("pickup")} /><span><b>รับเองที่ร้าน</b><small>ไม่มีค่าส่ง</small></span></label>
             </div>

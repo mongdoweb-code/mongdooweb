@@ -14,6 +14,7 @@ import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
+import { afterOrderPaid, type ConfirmResult } from "@/lib/order-confirm";
 
 export type DocState = { error?: string; fields?: string[]; ok?: string };
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").trim().slice(0, max);
@@ -262,14 +263,17 @@ export async function recordPayment(_prev: DocState, f: FormData): Promise<DocSt
   if (bad.length) return { error: bad.includes("paidAt") ? "วันที่รับชำระไม่ถูกต้อง (ห้ามเป็นวันในอนาคต)" : bad.includes("amount") ? "กรุณาใส่ยอดเงินที่รับชำระ" : "กรุณาเลือกวิธีชำระเงิน", fields: bad };
 
   let rcId = "", rcNo = "", ivNo = "";
+  let orderPaid: ConfirmResult | null = null;
   try {
     const r = await prisma.$transaction((tx) => recordInvoicePaymentTx(tx, { invoiceId: id, paidYmd, amountSatang: amount, method, reference: reference || null, adminId: admin.id }, s));
     ({ rcId, rcNo, ivNo } = r);
+    orderPaid = r.orderPaid;
   } catch (e) {
     if (e instanceof DocUserError) return { error: e.message };
     throw e;
   }
-  await logAdmin(admin.id, "DOC", `รับชำระ ${ivNo} ฿${money(amount)} → ออกใบเสร็จ ${rcNo}`);
+  afterOrderPaid(orderPaid);
+  await logAdmin(admin.id, "DOC", `รับชำระ ${ivNo} ฿${money(amount)} → ออกใบเสร็จ ${rcNo}${orderPaid ? ` · คำสั่งซื้อ ${orderPaid.orderNo} ชำระแล้ว` : ""}`);
   redirect(`${docPath({ type: "INVOICE", id })}?paid=${encodeURIComponent(rcNo)}&rc=${rcId}`);
 }
 
@@ -326,6 +330,8 @@ export async function docFromOrder(f: FormData) {
   const exist = await prisma.salesDocument.findFirst({ where: { orderId: o.id, type, status: { not: "VOID" } } });
   if (exist) redirect(`${docPath(exist)}?exists=1`);
   if (type === "RECEIPT" && !["PAID", "SHIPPED"].includes(o.status)) redirect(`/admin?tab=ALL&open=${o.orderNo}`);
+  // คำสั่งซื้อที่ยกเลิกแล้ว: ห้ามออกใบแจ้งหนี้ (รับชำระไม่ได้ และจะไม่ถูกนับยอดขาย)
+  if (o.status === "CANCELLED") redirect(`/admin?tab=ALL&open=${o.orderNo}&err=cancelled`);
   const items = [
     ...o.items.map((i, k) => ({ sortOrder: k + 1, productId: i.productId, sku: i.product?.sku ?? null, name: i.nameSnapshot, detail: null, unit: i.product?.unit ?? "ชิ้น", qtyMilli: i.qty * 1000, priceSatang: i.priceSatang, discountSatang: 0 })),
     ...(o.shippingSatang > 0 ? [{ sortOrder: o.items.length + 1, productId: null, sku: "Shipping", name: "ค่าส่งสินค้า", detail: o.remoteFeeSatang > 0 ? `${o.shippingName} (รวมค่าส่งพื้นที่ห่างไกล ${money(o.remoteFeeSatang)} บาท)` : o.shippingName, unit: "กล่อง", qtyMilli: 1000, priceSatang: o.shippingSatang, discountSatang: 0 }] : []),

@@ -6,7 +6,9 @@ import { requireAdmin, requireOwner } from "@/lib/auth";
 import { addDaysYmd, fromYmd } from "@/lib/doc-calc";
 import { custSnapshot, defaultTerms, nextCustomerCode, todayYmd, totalsFor } from "@/lib/docs";
 import { phoneDigits } from "@/lib/format";
+import { matchCustomer } from "@/lib/order-customer";
 import { INQ_KIND, INQ_STATUS, isInqStatus, parseInqItems } from "@/lib/inquiries";
+import { unitPriceSatang } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { storage } from "@/lib/storage";
@@ -41,7 +43,7 @@ export async function saveInquiryNote(f: FormData) {
 }
 
 /**
- * สร้างใบเสนอราคาจากคำขอ: หา/สร้างลูกค้าด้วยเบอร์โทร → QT ฉบับร่าง (รายการจากสินค้าที่สนใจ ราคาปัจจุบัน)
+ * สร้างใบเสนอราคาจากคำขอ: หา/สร้างลูกค้าด้วยเบอร์โทร → QT ฉบับร่าง (รายการจากสินค้าที่สนใจ ราคาขายจริงตามจำนวน: ราคาลดตามช่วงเวลา/ราคาขายส่ง)
  * → ผูก Inquiry.quotationId/customerId → ไปหน้าแก้ไขเอกสาร (ถ้าเคยสร้างแล้วและยังอยู่ ให้เปิดใบเดิม)
  */
 export async function quotationFromInquiry(f: FormData) {
@@ -56,13 +58,13 @@ export async function quotationFromInquiry(f: FormData) {
   const s = await getSettings();
   const wanted = parseInqItems(q.items);
   const products = wanted.length
-    ? await prisma.product.findMany({ where: { slug: { in: wanted.map((w) => w.slug).filter(Boolean) } }, select: { id: true, slug: true, sku: true, name: true, unit: true, priceSatang: true } })
+    ? await prisma.product.findMany({ where: { slug: { in: wanted.map((w) => w.slug).filter(Boolean) } }, select: { id: true, slug: true, sku: true, name: true, unit: true, priceSatang: true, salePriceSatang: true, saleStartsAt: true, saleEndsAt: true, tierPrices: true } })
     : [];
   const items = wanted.map((w, i) => {
     const p = products.find((x) => x.slug === w.slug);
     return {
       sortOrder: i + 1, productId: p?.id ?? null, sku: p?.sku ?? null, name: (p?.name ?? w.name).slice(0, 300),
-      detail: p ? null : "สินค้าตามที่ลูกค้าระบุ (ไม่พบในระบบ — ใส่ราคาเอง)", unit: p?.unit ?? "ชิ้น", qtyMilli: w.qty * 1000, priceSatang: p?.priceSatang ?? 0, discountSatang: 0,
+      detail: p ? null : "สินค้าตามที่ลูกค้าระบุ (ไม่พบในระบบ — ใส่ราคาเอง)", unit: p?.unit ?? "ชิ้น", qtyMilli: w.qty * 1000, priceSatang: p ? unitPriceSatang(p, w.qty) : 0, discountSatang: 0,
     };
   });
   // ราคาหน้าเว็บรวม VAT แล้ว → เปิด VAT ให้ถอดภาษีแบบรวมใน (ยอดเท่าราคาที่ลูกค้าเห็น)
@@ -74,7 +76,7 @@ export async function quotationFromInquiry(f: FormData) {
     const claim = await tx.inquiry.updateMany({ where: { id: q.id, quotationId: q.quotationId }, data: { updatedAt: new Date() } });
     if (claim.count !== 1) return null;
     let c = q.customerId ? await tx.customer.findUnique({ where: { id: q.customerId } }) : null;
-    if (!c && phone) c = await tx.customer.findFirst({ where: { phone }, orderBy: { createdAt: "asc" } });
+    if (!c && phone) c = await matchCustomer(tx, { phone, email: null }); // เทียบเบอร์เฉพาะตัวเลข (เหมือนคำสั่งซื้อ)
     if (!c) {
       const company = q.company?.trim();
       c = await tx.customer.create({

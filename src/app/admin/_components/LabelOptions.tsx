@@ -7,7 +7,8 @@ const MARKS = [["fragile", "ระวังแตก"], ["noThrow", "ห้า�
 type Prefs = { size: "A6" | "A4"; marks: Record<string, boolean>; showItems: boolean };
 const DEF: Prefs = { size: "A6", marks: { fragile: true, noThrow: true, upright: true }, showItems: false };
 
-export function LabelOptions({ target, idKey, cod: cod0 = "" }: { target: string; idKey: string; cod?: string }) {
+/** codFixed (สตางค์): ใบปะหน้าจากคำสั่งซื้อ — ยอดเก็บเงินปลายทางมาจากคำสั่งซื้อ (0 = ไม่เก็บ) แสดงอย่างเดียว ไม่ส่ง ?cod= */
+export function LabelOptions({ target, idKey, cod: cod0 = "", codFixed }: { target: string; idKey: string; cod?: string; codFixed?: number }) {
   const [p, setP] = useState<Prefs>(DEF);
   const [boxes, setBoxes] = useState(1);
   const [cod, setCod] = useState(cod0);
@@ -25,7 +26,7 @@ export function LabelOptions({ target, idKey, cod: cod0 = "" }: { target: string
   const qs = new URLSearchParams({ size: p.size, boxes: String(boxes), marks: MARKS.filter(([k]) => p.marks[k]).map(([k]) => k).join(",") || "none", auto: "1" });
   if (p.showItems) qs.set("items", "1");
   const codN = Number(cod.replace(/[,\s฿]/g, ""));
-  if (codN > 0) qs.set("cod", String(codN));
+  if (codFixed === undefined && codN > 0) qs.set("cod", String(codN));
   const url = `/admin/print/labels?${target}&${qs}`;
   return (
     <div className="lbo">
@@ -35,7 +36,11 @@ export function LabelOptions({ target, idKey, cod: cod0 = "" }: { target: string
             <option value="A6">A6 100×150 มม. (เครื่องพิมพ์ฉลาก)</option><option value="A4">A4 — 4 ใบต่อแผ่น</option>
           </select></div>
         <div className="field"><label htmlFor={`lb-boxes-${idKey}`}>จำนวนกล่อง</label><input id={`lb-boxes-${idKey}`} type="number" min={1} max={50} value={boxes} onChange={(e) => setBoxes(Math.min(50, Math.max(1, Math.round(Number(e.target.value) || 1))))} /></div>
-        <div className="field"><label htmlFor={`lb-cod-${idKey}`}>เก็บเงินปลายทาง (บาท)</label><input id={`lb-cod-${idKey}`} inputMode="decimal" placeholder="ไม่เก็บ" value={cod} onChange={(e) => setCod(e.target.value)} /></div>
+        {codFixed === undefined ? (
+          <div className="field"><label htmlFor={`lb-cod-${idKey}`}>เก็บเงินปลายทาง (บาท)</label><input id={`lb-cod-${idKey}`} inputMode="decimal" placeholder="ไม่เก็บ" value={cod} onChange={(e) => setCod(e.target.value)} /></div>
+        ) : (
+          <div className="field"><span className="sub">เก็บเงินปลายทาง</span><b id={`lb-cod-${idKey}`}>{codFixed > 0 ? `฿${(codFixed / 100).toLocaleString("th-TH", { minimumFractionDigits: 2 })}` : "ไม่เก็บ"}</b></div>
+        )}
       </div>
       <div className="lbo-chk">
         {MARKS.map(([k, l]) => <label key={k}><input type="checkbox" checked={!!p.marks[k]} onChange={(e) => save({ ...p, marks: { ...p.marks, [k]: e.target.checked } })} /> {l}</label>)}

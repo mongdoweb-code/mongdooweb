@@ -1,6 +1,6 @@
 // GET|POST /api/cron/daily — งานประจำวัน (เรียกวันละครั้ง 07:00 เวลาไทย จาก Railway Cron หรือบริการ ping ภายนอก)
 // ยืนยันตัวตนด้วย CRON_SECRET: header "Authorization: Bearer <key>" หรือ "x-cron-secret: <key>" หรือ ?key=<key>
-// 1) ยกเลิกคำสั่งซื้อที่ไม่แนบสลิปเกิน N วัน (ShopSetting.autoCancelDays, 0 = ปิด) — บันทึก OrderEvent ทุกรายการ
+// 1) ยกเลิกคำสั่งซื้อที่ไม่แนบสลิปเกิน N วัน (ShopSetting.autoCancelDays, 0 = ปิด) — บันทึก OrderEvent ทุกรายการ · ข้ามคำสั่งซื้อที่มีใบแจ้งหนี้ค้างชำระ
 // 2) แจ้ง LINE สินค้าใกล้หมดที่ลดถึงเกณฑ์จากการปรับ/นำเข้า (การขายแจ้งทันทีตอนอนุมัติอยู่แล้ว) — ครั้งเดียวต่อรอบ
 // 3) สรุปประจำวันทาง LINE (ShopSetting.lineDailySummary)
 // 4) สำรองข้อมูลทุกตารางไปที่ storage "backups/YYYY-MM-DD.zip" (A26) — วันละครั้ง ลบไฟล์เก่าเกิน ShopSetting.backupRetentionDays
@@ -43,7 +43,11 @@ async function run(req: Request) {
   const cancelled: string[] = [];
   if (s.autoCancelDays > 0) {
     const cutoff = new Date(now.getTime() - s.autoCancelDays * 864e5);
-    const stale = await prisma.order.findMany({ where: { status: "AWAITING_SLIP", createdAt: { lt: cutoff } }, select: { id: true, orderNo: true }, take: 500 });
+    // คำสั่งซื้อที่ออกใบแจ้งหนี้แล้ว (รอชำระตามกำหนดในใบแจ้งหนี้ / ชำระบางส่วน) ไม่ยกเลิกอัตโนมัติ
+    const stale = await prisma.order.findMany({
+      where: { status: "AWAITING_SLIP", createdAt: { lt: cutoff }, documents: { none: { type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } } } },
+      select: { id: true, orderNo: true }, take: 500,
+    });
     const why = `ไม่ชำระเงินภายใน ${s.autoCancelDays} วัน (ยกเลิกอัตโนมัติ)`;
     for (const o of stale) {
       const done = await prisma.$transaction(async (tx) => {
