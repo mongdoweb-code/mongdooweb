@@ -556,6 +556,12 @@ export async function attachSlip(input: {
   if (!(amount > 0) || amount > 10_000_000) throw new OrderError("กรุณากรอกยอดที่โอน", 400, ["paidAmt"]);
 
   const sha256 = createHash("sha256").update(buf).digest("hex");
+  // ส่งซ้ำไฟล์เดิมกับคำสั่งซื้อเดิม (เช่น เน็ตหลุดหลังเซิร์ฟเวอร์รับไปแล้ว แล้วเบราว์เซอร์ลองใหม่) = ถือว่าสำเร็จ ไม่สร้างสลิปซ้ำ
+  const same = await prisma.paymentSlip.findFirst({
+    where: { orderId: order.id, sha256, status: { not: "REJECTED" } },
+    select: { id: true },
+  });
+  if (same) return { orderNo: order.orderNo, totalSatang: order.totalSatang, slipCount: count, extra: false, repeated: true };
   const now = new Date();
   const key = `slips/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${order.orderNo.toLowerCase()}-${sha256.slice(0, 16)}-${Date.now()}.${kind.ext}`;
   await storage().put(key, buf);

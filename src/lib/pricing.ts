@@ -94,10 +94,12 @@ export function nextPriceChange(list: PriceInput[], now: Date = new Date()): Dat
   return next == null ? null : new Date(next);
 }
 
-/** อายุแคช (วินาที) ให้หมดรอบพอดีกับเวลาที่ราคาเปลี่ยน — อย่างน้อย 30 วินาที อย่างมาก 1 ชั่วโมง */
+/** อายุแคช (วินาที) ให้หมดรอบใกล้เวลาที่ราคาเปลี่ยน — อย่างน้อย 5 นาที อย่างมาก 1 ชั่วโมง
+ *  ไม่ต่ำกว่า 5 นาที: แคชที่อายุสั้นกว่านั้น Next.js ไม่นับเป็นส่วน prerender (ทำให้หน้า /products เตือน Date.now ระหว่าง prerender)
+ *  ช่วงรอยต่อไม่ผิด: ราคาบนหน้าคำนวณใหม่ในเบราว์เซอร์ทุกวินาที (PriceBits) และยอดสั่งซื้อคำนวณที่เซิร์ฟเวอร์เสมอ */
 export function revalidateFor(next: Date | null, now: Date = new Date(), max = 3600) {
   if (!next) return max;
-  return Math.max(30, Math.min(max, Math.ceil((next.getTime() - now.getTime()) / 1000) + 1));
+  return Math.max(300, Math.min(max, Math.ceil((next.getTime() - now.getTime()) / 1000) + 1));
 }
 
 export type PriceView = { price: number; compareAt: number | null; on: boolean; endsAt: number | null };

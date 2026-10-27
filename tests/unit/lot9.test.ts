@@ -23,7 +23,7 @@ assert.equal(viewPrice({ price: 500, sale: { ...si, f: now.getTime() + H } }, no
 assert.equal(unitForQty(450, [[10, 400]], 9), 450);
 assert.equal(unitForQty(450, [[10, 400]], 10), 400);
 assert.equal(nextPriceChange([p], now)?.getTime(), now.getTime() + H);
-assert.equal(revalidateFor(new Date(now.getTime() + 5000), now), 30);
+assert.equal(revalidateFor(new Date(now.getTime() + 5000), now), 300);
 assert.equal(revalidateFor(null, now), 3600);
 assert.equal(priceAfterPercent(99900, 15), 84900);
 

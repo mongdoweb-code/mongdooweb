@@ -29,6 +29,8 @@ export async function POST(req: Request, ctx: RouteContext<"/api/orders/[orderNo
       paidAt: String(form.get("paidAt") ?? ""),
       amount: String(form.get("amount") ?? ""),
     });
+    // ส่งซ้ำไฟล์เดิม (ลองใหม่หลังเน็ตหลุด) = สำเร็จแล้ว ไม่แจ้งเตือนซ้ำ
+    if ("repeated" in result && result.repeated) return Response.json(result, { status: 200 });
     // แจ้งเตือนร้านทาง LINE หลังตอบลูกค้าแล้ว (ไม่ทำให้การแนบสลิปช้าหรือล้ม)
     after(async () => {
       await notifySlipUploaded(result.orderNo);
