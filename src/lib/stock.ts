@@ -9,6 +9,7 @@ import type { Prisma } from "../../generated/prisma/client";
 import { logAdmin } from "@/lib/admin-log";
 import { notifyShop, siteUrl } from "@/lib/line";
 import { prisma } from "@/lib/prisma";
+import { queueRestockAlert } from "@/lib/stock-alerts";
 
 type Tx = Prisma.TransactionClient;
 
@@ -53,6 +54,7 @@ async function write(tx: Tx, p: Locked, after: number, meta: StockMeta): Promise
     },
   });
   p.stock = after;
+  if (before <= 0 && after > 0) queueRestockAlert(p.id); // แจ้ง LINE ร้านเมื่อมีลูกค้ารอของ (U9) — ตรวจซ้ำหลัง transaction จบ
   return { productId: p.id, sku: p.sku, name: p.name, before, after, change: after - before };
 }
 

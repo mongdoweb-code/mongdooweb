@@ -50,3 +50,25 @@ export async function faqEmpty(): Promise<boolean> {
     return false;
   }
 }
+
+/** /blog/<slug>: เผยแพร่แล้วและถึงเวลาเผยแพร่ (publishAt ≤ ตอนนี้) = ok · ร่าง/ตั้งเวลาไว้/ไม่มี = 404 */
+export async function checkPost(slug: string): Promise<RouteCheck> {
+  if (!slug || slug.length > 200 || slug.includes("/")) return { kind: "missing" };
+  try {
+    const p = await prisma.post.findUnique({ where: { slug }, select: { status: true, publishAt: true } });
+    return p && p.status === "PUBLISHED" && (!p.publishAt || p.publishAt.getTime() <= Date.now()) ? OK : { kind: "missing" };
+  } catch {
+    return OK;
+  }
+}
+
+/** /projects/<slug>: เผยแพร่แล้ว = ok · ไม่มี/ซ่อน = 404 */
+export async function checkProject(slug: string): Promise<RouteCheck> {
+  if (!slug || slug.length > 200 || slug.includes("/")) return { kind: "missing" };
+  try {
+    const p = await prisma.project.findUnique({ where: { slug }, select: { isPublished: true } });
+    return p?.isPublished ? OK : { kind: "missing" };
+  } catch {
+    return OK;
+  }
+}

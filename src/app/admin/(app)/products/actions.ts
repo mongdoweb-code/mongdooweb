@@ -9,6 +9,7 @@ import { sanitizeDescription } from "@/lib/html";
 import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { setStock } from "@/lib/stock";
+import { recordSlugChange } from "@/lib/redirects";
 import { parseCsv } from "@/lib/csv";
 import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
 import { readProductExtras } from "@/lib/product-extras";
@@ -121,7 +122,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
   void _stock;
   let saved;
   if (id) {
-    const old = await prisma.product.findUnique({ where: { id }, select: { trackStock: true, stock: true } });
+    const old = await prisma.product.findUnique({ where: { id }, select: { trackStock: true, stock: true, slug: true } });
     if (!old) return { error: "ไม่พบสินค้า" };
     saved = await prisma.$transaction(async (tx) => {
       // เลิกนับสต็อก: บันทึกการล้างยอดก่อน
@@ -133,6 +134,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
       return u;
     });
     await logAdmin(admin.id, "PRODUCT", `แก้ไขสินค้า ${sku} — ${name}`);
+    if (old.slug !== slug) await recordSlugChange(`/product/${old.slug}`, `/product/${slug}`); // ลิงก์เดิม → 301 อัตโนมัติ (A13)
   } else {
     saved = await prisma.$transaction(async (tx) => {
       const c = await tx.product.create({ data: { ...rest, stock: 0, inStock: trackStock ? false : inStock } });

@@ -8,6 +8,7 @@ import { requireAdmin, requireOwner } from "@/lib/auth";
 import { baseline, snapshot } from "@/lib/content-version";
 import { ICON_KEYS } from "@/lib/icons";
 import { prisma } from "@/lib/prisma";
+import { recordSlugChange } from "@/lib/redirects";
 
 export type CatState = { error?: string; fields?: string[]; ok?: string };
 const GROUPS: CategoryGroup[] = ["WATER", "OUTDOOR", "BUILDING", "DECO"];
@@ -41,8 +42,11 @@ export async function saveCategory(_prev: CatState, f: FormData): Promise<CatSta
     showOnHome: f.get("showOnHome") === "on",
     isActive: f.get("isActive") === "on",
   };
-  if (id) await prisma.category.update({ where: { id }, data });
-  else {
+  if (id) {
+    const prev = await prisma.category.findUnique({ where: { id }, select: { slug: true } });
+    await prisma.category.update({ where: { id }, data });
+    if (prev && prev.slug !== slug) await recordSlugChange(`/category/${prev.slug}`, `/category/${slug}`); // ลิงก์เดิม → 301 อัตโนมัติ
+  }  else {
     const last = await prisma.category.aggregate({ _max: { sortOrder: true } });
     await prisma.category.create({ data: { ...data, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
   }

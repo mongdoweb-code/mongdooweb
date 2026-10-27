@@ -24,6 +24,8 @@ import { ProductCard, ProductGrid, formatBaht } from "../../_components/ProductC
 import { RecentlyViewed } from "../../_components/RecentlyViewed";
 import { PdpPrice } from "./PdpPrice";
 import { BuyBox, Gallery } from "./ProductBuy";
+import { ProductReviews } from "../_reviews/ProductReviews";
+import { StockAlertForm } from "../_reviews/StockAlertForm";
 
 // สินค้า/หมวดที่เพิ่มใหม่หลัง build (ไม่อยู่ใน generateStaticParams) ให้ render ตอนเปิดหน้าได้
 export const instant = false;
@@ -262,6 +264,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
                 <a className="btn btn-line pdp-line" href={lineAsk} target="_blank" rel="noopener" data-line-ask>
                   {p.price > 0 ? "สอบถามวันที่สินค้าเข้า ทาง LINE" : "สอบถามราคาทาง LINE"}
                 </a>
+                {p.price > 0 && <StockAlertForm slug={p.slug} />}
                 <p className="pdp-qty-note">
                   {p.price > 0
                     ? "สินค้าหมดชั่วคราว — ทักร้านเพื่อจองหรือสอบถามรุ่นใกล้เคียง"
@@ -377,6 +380,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
             <ProductGrid items={related} />
           </section>
         )}
+        <ProductReviews slug={p.slug} name={p.name} />
         <RecentlyViewed currentId={p.slug} />
       </div>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonForScript(productLd(p)) }} />

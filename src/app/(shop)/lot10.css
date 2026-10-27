@@ -1,0 +1,130 @@
+/* ===== Lot 10 =====
+   รีวิว · แจ้งเมื่อมีของ · ผลงาน · บทความ · ความน่าเชื่อถือหน้าแรก · สถานะร้านเปิด/ปิด · ค้นหาใกล้เคียง
+   ใช้ token สีและจังหวะเดียวกับ shop.css (คลาสขึ้นต้น l10- ไม่ชนของเดิม) */
+
+/* ---------- ดาว ---------- */
+.l10-stars{display:inline-flex;gap:1px;font-size:16px;line-height:1;color:#D6D1C6;vertical-align:middle}
+.l10-stars i{font-style:normal}
+.l10-stars i.on{color:#C77700}
+.l10-stars i.half{background:linear-gradient(90deg,#C77700 50%,#D6D1C6 50%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.l10-stars.lg{font-size:24px}
+
+/* ---------- รีวิวในหน้าสินค้า ---------- */
+.l10-reviews{margin-top:64px;scroll-margin-top:calc(var(--header-h) + 16px)}
+.l10-rv-grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:40px;align-items:start}
+.l10-rv-sum{background:var(--c-cream);padding:24px;display:grid;gap:10px}
+.l10-rv-avg b{font-size:44px;font-weight:800;line-height:1}
+.l10-rv-avg span{color:var(--c-muted);margin-left:4px}
+.l10-rv-count{color:var(--c-muted);font-size:14px}
+.l10-rv-dist{list-style:none;display:grid;gap:4px;font-size:13px}
+.l10-rv-dist li{display:grid;grid-template-columns:44px 1fr 28px;gap:8px;align-items:center}
+.l10-rv-dist i{display:block;height:8px;background:var(--c-cream-dk)}
+.l10-rv-dist em{display:block;height:100%;background:#C77700}
+.l10-rv-dist li span:last-child{text-align:right;color:var(--c-muted)}
+.l10-rv-none{color:var(--c-muted)}
+.l10-rv-open{width:100%;margin-top:6px}
+.l10-rv-list{list-style:none;display:grid;gap:0}
+.l10-rv{padding:20px 0;border-bottom:1px solid var(--c-line)}
+.l10-rv:first-child{padding-top:0}
+.l10-rv-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:14px}
+.l10-rv-head time{color:var(--c-muted);margin-left:auto}
+.l10-rv-badge{font-size:12px;font-weight:600;color:#1E6B45;background:#E8F5EE;padding:1px 8px}
+.l10-rv-body{margin-top:8px;white-space:pre-line}
+.l10-rv-imgs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.l10-rv-imgs img{width:96px;height:96px;object-fit:cover;background:var(--c-cream)}
+.l10-rv-reply{margin-top:12px;background:var(--c-cream);border-left:3px solid var(--c-orange);padding:10px 14px;font-size:14px}
+.l10-rv-reply p{white-space:pre-line}
+.l10-rv-form{background:#fff;padding:16px;margin-top:6px}
+.l10-rv-form .grid2{grid-template-columns:1fr}
+.l10-note{font-size:13.5px;color:var(--c-muted);margin-bottom:8px}
+.l10-rate{border:0;margin-bottom:12px}
+.l10-rate legend{font-size:14px;font-weight:600;margin-bottom:4px}
+.l10-rate-row{display:flex;align-items:center;gap:2px}
+.l10-rate label{position:relative;cursor:pointer;font-size:30px;line-height:1;color:#CFC9BD;padding:2px}
+.l10-rate label.on{color:#C77700}
+.l10-rate input{position:absolute;opacity:0;width:1px;height:1px}
+.l10-rate label:focus-within{outline:2px solid var(--c-orange);outline-offset:1px}
+.l10-rate-lbl{margin-left:10px;font-size:14px;color:var(--c-muted)}
+.l10-rate.err legend,.l10-rate .err-msg{color:#B3261E}
+.l10-files{list-style:none;display:grid;gap:4px;margin-top:8px;font-size:14px}
+.l10-files li{display:flex;justify-content:space-between;gap:10px;background:var(--c-cream);padding:6px 10px}
+.l10-files .link{background:none;border:0;color:#B3261E;text-decoration:underline;cursor:pointer;font:inherit}
+.l10-rv-done{margin-top:6px}
+
+/* ---------- แจ้งเมื่อมีของ ---------- */
+.l10-sa-btn{width:100%;margin-top:10px}
+.l10-sa-form{background:var(--c-cream);padding:16px;margin-top:12px}
+.l10-sa-ok{margin-top:12px}
+
+/* ---------- การ์ดผลงาน/บทความ ---------- */
+.l10-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.l10-card{display:flex;flex-direction:column;background:#fff;border:1px solid var(--c-line)}
+.l10-card-img{display:block;aspect-ratio:4/3;background:var(--c-cream);overflow:hidden}
+.l10-card-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease)}
+.l10-card:hover .l10-card-img img{transform:scale(1.04)}
+.l10-card-img .ph{display:block;width:100%;height:100%;background:radial-gradient(circle at 50% 70%,rgba(242,107,56,.35),transparent 50%),var(--c-black)}
+.l10-card-body{padding:18px 20px 22px;display:grid;gap:6px}
+.l10-card-t{font-size:18px;font-weight:700;line-height:1.4}
+.l10-card-t a:hover{color:var(--c-orange-ink)}
+.l10-card-body p{font-size:14.5px;color:var(--c-muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.l10-kinds{margin-bottom:24px}
+.l10-kinds .chip span{font-size:12px;color:var(--c-muted);margin-left:6px}
+.chip.on{background:var(--c-black);border-color:var(--c-black);color:#fff}
+.chip.on span{color:rgba(255,255,255,.8)}
+.l10-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:32px}
+.l10-cta{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;background:var(--c-cream);padding:22px 24px;margin-top:40px}
+.l10-cta>div{flex:1 1 280px}
+.l10-cta b{display:block;font-size:18px}
+.l10-cta p{color:var(--c-muted);font-size:14.5px}
+
+/* ---------- หน้าผลงาน / บทความ ---------- */
+.l10-gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:32px}
+.l10-gallery a{display:block;background:var(--c-cream);aspect-ratio:4/3;overflow:hidden}
+.l10-gallery a.lead{grid-column:span 2;grid-row:span 2}
+.l10-gallery.n1 a.lead{grid-column:1/-1;aspect-ratio:16/9}
+.l10-gallery img{width:100%;height:100%;object-fit:cover}
+.l10-article-wrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:48px;align-items:start}
+.l10-prose figure{margin:20px 0}
+.l10-prose figure img{width:100%;height:auto;background:var(--c-cream)}
+.l10-prose figcaption{font-size:13.5px;color:var(--c-muted);margin-top:6px}
+.l10-post{max-width:780px}
+.l10-post h1{font-size:clamp(28px,4vw,40px);line-height:1.25}
+.l10-post-meta{color:var(--c-muted);margin:8px 0 20px}
+.l10-post-cover{width:100%;height:auto;margin-bottom:28px;background:var(--c-cream)}
+.l10-tags{margin-top:24px}
+
+/* ---------- หน้าแรก: ความน่าเชื่อถือ / ผลงาน / บทความ ---------- */
+.l10-trust,.l10-home-sec{padding:88px 0}
+.l10-trust{background:var(--c-cream)}
+.l10-trust-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--c-line);border:1px solid var(--c-line)}
+.l10-trust-grid>div{background:#fff;padding:24px 20px;display:grid;gap:4px;align-content:start}
+.l10-trust-grid b{font-size:36px;font-weight:800;line-height:1.1}
+.l10-trust-grid span{font-size:14px;color:var(--c-muted)}
+.l10-logos{list-style:none;display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;justify-content:center;margin-top:36px}
+.l10-logos img{height:48px;width:auto;max-width:150px;object-fit:contain;filter:grayscale(1);opacity:.85;transition:filter .2s,opacity .2s}
+.l10-logos a:hover img,.l10-logos img:hover{filter:none;opacity:1}
+
+/* ---------- สถานะร้านเปิด/ปิด ---------- */
+.float-line{position:relative}
+.fl-st{position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;border:2px solid #fff;background:#9a958c}
+.fl-st.on{background:#2BD46B}
+.l10-open{display:block;font-weight:700;margin:2px 0 4px}
+.l10-open.is-open{color:#1E6B45}
+.l10-open.is-closed{color:#9E3C17}
+.l10-hours{display:grid;gap:2px;font-size:14px}
+.l10-hours-row em{font-style:normal;display:inline-block;min-width:76px;color:var(--c-muted)}
+
+/* ---------- ค้นหาด่วน: ผลใกล้เคียง ---------- */
+.sg-approx{padding:8px 14px;font-size:13px;color:var(--c-muted);background:var(--c-cream)}
+
+@media (max-width:960px){
+  .l10-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .l10-rv-grid,.l10-article-wrap{grid-template-columns:1fr;gap:28px}
+  .l10-trust,.l10-home-sec{padding:64px 0}
+}
+@media (max-width:600px){
+  .l10-cards{grid-template-columns:1fr}
+  .l10-gallery{grid-template-columns:repeat(2,1fr)}
+  .l10-trust-grid b{font-size:30px}
+  .l10-logos img{height:38px}
+}

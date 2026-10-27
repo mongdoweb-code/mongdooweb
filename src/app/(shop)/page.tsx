@@ -1,9 +1,10 @@
 // หน้าแรก — เนื้อหาย้ายมาจาก prototype/mongdoweb-home.html, สไลด์มาจากฐานข้อมูล
+// ลำดับส่วน/ซ่อนส่วน + ความน่าเชื่อถือ ผลงาน บทความ ตั้งได้ที่ /admin/home (_lot10/HomeSections.tsx)
 import type { Metadata } from "next";
 import Script from "next/script";
 import { getPublicShopInfo } from "@/lib/settings";
 import { getHomeSlides, jsonForScript } from "@/lib/storefront";
-import { HOME_MAIN } from "./_markup/home";
+import { HomeSections } from "./_lot10/HomeSections";
 
 const OG_IMAGE =
   "https://images.unsplash.com/photo-1517384084767-6bc118943770?auto=format&fit=crop&w=1200&h=630&q=75";
@@ -75,7 +76,9 @@ export default async function Home() {
   const [slides, info] = await Promise.all([getHomeSlides(), getPublicShopInfo()]);
   return (
     <>
-      <main id="main" tabIndex={-1} dangerouslySetInnerHTML={{ __html: HOME_MAIN }} />
+      <main id="main" tabIndex={-1}>
+        <HomeSections />
+      </main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonForScript(orgLd(info)) }} />
       <script id="mdw-slides" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(slides) }} />
       <Script src="/js/home.js" strategy="afterInteractive" />

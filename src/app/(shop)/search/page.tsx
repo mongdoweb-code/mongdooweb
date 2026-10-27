@@ -1,9 +1,12 @@
-// ผลค้นหาสินค้า (/search?q=...) — ค้นจากชื่อ รหัสสินค้า หมวด สเปก และคำพ้องไทย/อังกฤษ
+// ผลค้นหาสินค้า (/search?q=...) — ค้นจากชื่อ รหัสสินค้า หมวด สเปก และคำพ้องไทย/อังกฤษ (แก้ได้ที่ /admin/search)
+// พิมพ์ผิดเล็กน้อยยังเจอ (ผลใกล้เคียง) · บันทึกคำค้น + จำนวนผล (ไม่เก็บข้อมูลผู้ใช้) ไว้ดูคำที่ค้นไม่เจอในหลังบ้าน
 // ไม่เจอ → คำค้นแนะนำ + หมวดยอดนิยม + ปุ่มถามร้านทาง LINE (พิมพ์คำค้นไว้ให้)
 import type { Metadata } from "next";
+import { after } from "next/server";
 import { Suspense } from "react";
+import { getSynonymGroups, logSearch, smartSearch } from "@/lib/search";
 import { getPublicShopInfo } from "@/lib/settings";
-import { getShopData, lineMessageUrl, searchProducts } from "@/lib/storefront";
+import { getShopData, lineMessageUrl } from "@/lib/storefront";
 import { PageHead } from "../_components/PageHead";
 import { ProductGrid } from "../_components/ProductCard";
 import { ListingFallback } from "../_components/ProductListing";
@@ -20,8 +23,10 @@ const SUGGEST = ["ไฟใต้น้ำ", "ไฟสระ", "RGB", "หม�
 async function Results({ searchParams }: { searchParams: PageProps<"/search">["searchParams"] }) {
   const raw = (await searchParams).q;
   const q = (Array.isArray(raw) ? raw[0] : raw)?.trim().slice(0, 100) ?? "";
-  const [{ catalog, categories }, info] = await Promise.all([getShopData(), getPublicShopInfo()]);
-  const { items, approx } = q ? searchProducts(catalog, categories, q) : { items: [], approx: false };
+  const [{ catalog, categories }, info, synonyms] = await Promise.all([getShopData(), getPublicShopInfo(), getSynonymGroups()]);
+  const { items, approx } = q ? smartSearch(catalog, categories, q, synonyms) : { items: [], approx: false };
+  // บันทึกหลังส่งหน้าแล้ว (ไม่ทำให้หน้าช้า)
+  if (q) after(() => logSearch(q, items.length));
   const popular = categories.filter((c) => c.visible && catalog.some((p) => p.catId === c.slug)).slice(0, 8);
   const lineHref = lineMessageUrl(info.lineId, `สวัสดีครับ/ค่ะ กำลังหาสินค้า: ${q || "ไฟ LED"} มีรุ่นที่แนะนำไหมครับ/คะ`, info.lineUrl);
 

@@ -7,6 +7,7 @@ import { displayPrice, nextPriceChange, revalidateFor, saleInfo, tierInfo, type 
 import { prisma } from "@/lib/prisma";
 import { downloadHref, parseDownloads } from "@/lib/product-downloads";
 import { getSpecDefs } from "@/lib/product-data";
+import { getSynonymGroups } from "@/lib/search";
 import { STOREFRONT_TAG, getPublicShopInfo } from "@/lib/settings";
 import { defsFor, formatAttr, parseAttrs } from "@/lib/specs";
 import { readOptions, type VariantGroupView } from "@/lib/variants";
@@ -74,7 +75,7 @@ export async function getShopData() {
   "use cache";
   cacheTag(STOREFRONT_TAG);
 
-  const [categories, products, shop] = await Promise.all([
+  const [categories, products, shop, synonyms] = await Promise.all([
     prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.product.findMany({
       where: { isActive: true, isService: false, category: { isActive: true } },
@@ -82,6 +83,7 @@ export async function getShopData() {
       include: { category: { select: { slug: true, nameTh: true } } },
     }),
     getPublicShopInfo(),
+    getSynonymGroups(),
   ]);
   // แคชหมดรอบพอดีเวลาที่ราคาลดเริ่ม/หมด (เบราว์เซอร์ก็คำนวณราคาตามเวลาเองอีกชั้น)
   const now = new Date();
@@ -147,8 +149,11 @@ export async function getShopData() {
     categories: shopCategories,
     catalog,
     finderAcc: { psu: psu?.id ?? null, shrink: shrink?.id ?? null },
+    synonyms, // คำพ้องสำหรับช่องค้นหาด่วน (src/lib/search.ts)
     settings: {
       lineUrl: shop.lineUrl,
+      lineId: shop.lineId, // ลิงก์แชท LINE พร้อมข้อความ (oaMessage)
+      hours: shop.openingHours, // สถานะร้านเปิด/ปิด คำนวณฝั่งเบราว์เซอร์ (หน้าแคชไว้ก็ยังถูกต้อง)
       freeShipMin: shop.freeShipMinSatang != null ? bahtFromSatang(shop.freeShipMinSatang) : null,
     },
   };
