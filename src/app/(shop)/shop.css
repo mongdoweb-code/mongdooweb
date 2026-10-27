@@ -250,6 +250,9 @@ section{padding:96px 0}
 .slide.align-center .s-ctas{justify-content:center}
 @keyframes sIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 .is-active .s-copy > *{animation:sIn .8s var(--ease) both;animation-delay:calc(.2s + var(--i,0) * .1s)}
+/* ปุ่มในสไลด์เลื่อนเข้าอย่างเดียว ไม่จางเข้า — ระหว่างจาง ข้อความบนปุ่มคอนทราสต์ต่ำ (axe) และหน้าโหลดเร็วขึ้นแล้ว (U14) จึงเห็นช่วงนี้ได้ */
+@keyframes sInT{from{transform:translateY(18px)}to{transform:none}}
+.is-active .s-copy > .s-ctas{animation-name:sInT}
 .s-credit{position:absolute;right:16px;top:12px;font-size:11px;color:rgba(255,255,255,.6);text-shadow:0 1px 4px rgba(0,0,0,.6);max-width:60%;text-align:right;line-height:1.4}
 .slide.img-broken .s-credit{display:none}
 .s-controls{position:absolute;left:0;right:0;bottom:var(--lift,0px);z-index:3;transition:bottom .25s}
