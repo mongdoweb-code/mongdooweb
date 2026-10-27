@@ -28,7 +28,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
     const t = setTimeout(async () => {
       setBusy(true);
       try {
-        const r = await fetch(`/admin/search?q=${encodeURIComponent(term)}`, { cache: "no-store" });
+        const r = await fetch(`/admin/global-search?q=${encodeURIComponent(term)}`, { cache: "no-store" });
         const j = r.ok ? ((await r.json()) as { hits: Hit[] }) : { hits: [] };
         if (my === seq.current) { setHits(j.hits); setSel(0); }
       } finally {

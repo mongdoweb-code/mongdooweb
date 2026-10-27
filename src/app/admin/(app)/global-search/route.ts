@@ -1,4 +1,4 @@
-// GET /admin/search?q= — ค้นหาทั้งระบบ (กล่อง Ctrl+K) · ตามสิทธิ์ผู้ใช้ · ตอบ JSON
+// GET /admin/global-search?q= — ค้นหาทั้งระบบ (กล่อง Ctrl+K) · ตามสิทธิ์ผู้ใช้ · ตอบ JSON
 import { routeAdmin } from "@/lib/auth";
 import { globalSearch } from "@/lib/global-search";
 

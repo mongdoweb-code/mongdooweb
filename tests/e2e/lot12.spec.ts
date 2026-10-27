@@ -399,19 +399,19 @@ test("A27 ค้นหาทั้งระบบ Ctrl+K / '/' — คำสั�
   await page.keyboard.press("Escape");
   await expect(page.locator("#gsInput")).toHaveCount(0);
   // สินค้า (SKU) และทางลัดหน้า
-  const r = await (await page.request.get(`/admin/search?q=${encodeURIComponent(`E2E-L12-${TAG}-B`)}`)).json();
+  const r = await (await page.request.get(`/admin/global-search?q=${encodeURIComponent(`E2E-L12-${TAG}-B`)}`)).json();
   expect(r.hits.some((h: { group: string; href: string }) => h.group === "สินค้า" && h.href === `/admin/products/${ids.b}`)).toBe(true);
-  const own = await (await page.request.get("/admin/search?q=ต้นทุน")).json();
+  const own = await (await page.request.get("/admin/global-search?q=ต้นทุน")).json();
   expect(own.hits.some((h: { href: string }) => h.href === "/admin/purchase-orders/costs")).toBe(true);
   // พนักงานไม่เห็นหน้าเฉพาะเจ้าของร้าน · ไม่ล็อกอิน = 401
   const { ctx, page: s } = await staffPage(browser);
-  const st = await (await s.request.get("/admin/search?q=ต้นทุน")).json();
+  const st = await (await s.request.get("/admin/global-search?q=ต้นทุน")).json();
   expect(st.hits.some((h: { href: string }) => h.href === "/admin/purchase-orders/costs")).toBe(false);
-  const st2 = await (await s.request.get("/admin/search?q=สำรองข้อมูล")).json();
+  const st2 = await (await s.request.get("/admin/global-search?q=สำรองข้อมูล")).json();
   expect(st2.hits.length).toBe(0);
   await ctx.close();
   const anon = await browser.newContext({ baseURL: test.info().project.use.baseURL });
-  expect((await anon.request.get("/admin/search?q=MDW", { maxRedirects: 0 })).status()).not.toBe(200);
+  expect((await anon.request.get("/admin/global-search?q=MDW", { maxRedirects: 0 })).status()).not.toBe(200);
   await anon.close();
 });
 
