@@ -554,6 +554,9 @@ test("U29 เน็ตไม่ดี: หน้าออฟไลน์ (servic
   await page.goto("/products").catch(() => {});
   await expect(page.locator("h1")).toHaveText("ไม่มีการเชื่อมต่ออินเทอร์เน็ต");
   await ctx.setOffline(false);
+  // หน้าออฟไลน์โหลดหน้าเดิมเองเมื่อเน็ตกลับมา (รอให้เสร็จก่อน ไม่งั้นการเปิดหน้าถัดไปถูกยกเลิกกลางทาง)
+  await expect(page.locator("h1")).not.toHaveText("ไม่มีการเชื่อมต่ออินเทอร์เน็ต", { timeout: 15_000 });
+  await page.waitForLoadState("load");
   await page.goto("/");
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mdw_cart") || "{}"))).toEqual({ [A.slug]: 2 });
   // แคชเก็บเฉพาะ offline.html + ไฟล์ static (ไม่มีหน้า HTML/หลังบ้าน/API)
