@@ -105,20 +105,27 @@ export async function regenerateBatch(offset: number, limit: number, force: bool
 }
 
 /** เอารูปที่ไม่มีไฟล์แล้วออกจากรายการรูปของสินค้า (ไม่แตะรูปที่ยังอยู่) */
-export async function dropMissingProductImages() {
+/**
+ * เอารูปที่ไม่มีไฟล์จริงออกจากสินค้า — ป้องกันการลบผิดพลาดแบบเหมาเข่ง:
+ * - อ่านไฟล์ไม่ได้เพราะ error (เช่น S3 ล่ม/ตั้งค่าผิด) = เก็บรูปไว้ ไม่นับว่า "หาย"
+ * - ถ้ารูปที่หายมีมากผิดปกติ (> 10 รูป และ > 20% ของรูปทั้งหมดในที่เก็บไฟล์) = ไม่ลบเลย เพราะน่าจะเป็นปัญหาที่เก็บไฟล์ ไม่ใช่รูปหายจริง
+ */
+export async function dropMissingProductImages(): Promise<{ changed: { id: string; sku: string; removed: string[] }[]; refused?: { missing: number; total: number } }> {
   const products = await prisma.product.findMany({ where: { images: { isEmpty: false } }, select: { id: true, sku: true, images: true } });
-  const changed: { id: string; sku: string; removed: string[] }[] = [];
+  const plan: { id: string; sku: string; keep: string[]; removed: string[] }[] = [];
+  let total = 0, missing = 0;
   for (const p of products) {
     const keep: string[] = [], removed: string[] = [];
     for (const k of p.images) {
       if (/^https?:\/\//i.test(k)) { keep.push(k); continue; }
-      const has = await storage().get(k).catch(() => null);
-      (has ? keep : removed).push(k);
+      total++;
+      let has: Buffer | null | "error";
+      try { has = await storage().get(k); } catch { has = "error"; }
+      if (has === null) { removed.push(k); missing++; } else keep.push(k);
     }
-    if (removed.length) {
-      await prisma.product.update({ where: { id: p.id }, data: { images: keep } });
-      changed.push({ id: p.id, sku: p.sku, removed });
-    }
+    if (removed.length) plan.push({ id: p.id, sku: p.sku, keep, removed });
   }
-  return changed;
+  if (missing > 10 && missing > total * 0.2) return { changed: [], refused: { missing, total } };
+  for (const c of plan) await prisma.product.update({ where: { id: c.id }, data: { images: c.keep } });
+  return { changed: plan.map(({ id, sku, removed }) => ({ id, sku, removed })) };
 }

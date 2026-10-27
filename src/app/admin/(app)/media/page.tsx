@@ -10,7 +10,7 @@ import { RegenButton } from "./RegenButton";
 import "../../lot12.css";
 
 export default async function MediaPage({ searchParams }: PageProps<"/admin/media">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const sp = await searchParams;
   const doScan = sp.scan === "1";
   const only = typeof sp.only === "string" ? sp.only.slice(0, 80) : "";
@@ -30,6 +30,11 @@ export default async function MediaPage({ searchParams }: PageProps<"/admin/medi
         </div>
       </div>
       {typeof sp.dropped === "string" && <div className="ok-box" role="status" style={{ marginBottom: 12 }}>เอารูปที่หายออกจากสินค้าแล้ว {sp.dropped} รูป</div>}
+      {typeof sp.dropRefused === "string" && (
+        <div className="login-err" role="alert" style={{ marginBottom: 12 }}>
+          ยังไม่ได้เอารูปออก: พบรูปที่หาย {sp.dropRefused} รูป ซึ่งมากผิดปกติ — มักเกิดจากการตั้งค่าที่เก็บไฟล์ผิด (เช่น S3 / UPLOAD_DIR) กรุณาตรวจที่หน้า &quot;ระบบ&quot; ก่อน
+        </div>
+      )}
       <section className="box" style={{ marginBottom: 16 }}>
         <h3>สร้างรูปย่อใหม่</h3>
         <p className="l3-note">ใช้กับรูปที่อัปโหลดก่อนมีรูปหลายขนาด หรือหลังย้ายที่เก็บไฟล์ — รูปที่อัปโหลดใหม่สร้างรูปย่อให้อัตโนมัติ (ถ้ายังไม่สร้าง หน้าร้านจะสร้างให้ตอนเปิดครั้งแรก แต่ช้ากว่า)</p>
@@ -49,7 +54,7 @@ export default async function MediaPage({ searchParams }: PageProps<"/admin/medi
             <div className="l3-kpi"><span>มีรูปย่อแล้ว</span><b className="num">{scan.withVariants}</b><small>จาก {scan.local} รูปที่อัปโหลด</small></div>
             <div className="l3-kpi"><span>ต้องแก้</span><b className="num" id="mIssues">{issues.filter((i) => i.problem !== "no-variants").length}</b><small>หาย/เสีย/ลิงก์เสีย</small></div>
           </div>
-          {missingProducts > 0 && (
+          {missingProducts > 0 && admin.role === "OWNER" && (
             <form action={dropMissingAction} style={{ padding: "0 16px 12px" }}>
               <ConfirmSubmit className="btn btn-outline btn-sm" title="เอารูปที่หายออกจากสินค้า?" body={`รูปสินค้าที่ไม่มีไฟล์แล้ว ${missingProducts} รูปจะถูกเอาออกจากรายการรูปของสินค้า (หน้าร้านจะไม่แสดงรูปเสีย)`} confirmLabel="เอาออก">เอารูปสินค้าที่หายออก ({missingProducts})</ConfirmSubmit>
             </form>
