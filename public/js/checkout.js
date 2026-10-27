@@ -47,13 +47,18 @@ let orderNo = null;   // ได้จาก server หลังกรอกข�
 let srv = null;       // ยอดที่ server คำนวณ (สตางค์) — ใช้แสดงยอดชำระและสร้าง QR
 let addrSent = null;  // ข้อมูลผู้รับที่ส่งให้ server ล่าสุด
 let taxSent = null;   // ข้อมูลใบกำกับภาษีที่ส่งให้ server ล่าสุด
+/* รอบ 3: วิธีชำระ (โอน/เก็บเงินปลายทาง), คูปอง, ยอดจาก server (ค่าส่งตามน้ำหนัก/พื้นที่ห่างไกล) */
+let payMethod = 'TRANSFER', couponCode = '', quote = null, quoteSeq = 0, quoteTimer = 0;
 
 const subtotal = () => knownCart().reduce((s,[id,q]) => s + byId(id).price * q, 0);
 /* ค่าส่งตามยอดสั่งซื้อ (ขั้นจากหน้าตั้งค่าร้าน) — server คำนวณซ้ำอีกครั้งตอนบันทึกคำสั่งซื้อ */
 const tierFee = sub => SHOP.tiers.reduce((fee, t) => sub >= t.min ? t.fee : fee, SHOP.tiers[0] ? SHOP.tiers[0].fee : 0);
 const freeFrom = () => { const t = SHOP.tiers.find(t => t.fee === 0 && t.min > 0); return t ? t.min : null; };
-const shipCost = (id = shipId) => tierFee(subtotal()) + (id === 'express' ? SHOP.expressExtra : 0);
-const total = () => srv && step >= 2 ? srv.totalSatang / 100 : subtotal() + shipCost();
+const shipCost = (id = shipId) => id === 'pickup' ? 0 : tierFee(subtotal()) + (id === 'express' ? SHOP.expressExtra : 0);
+const isPickup = () => shipId === 'pickup';
+/* ยอดที่แสดง: หลังบันทึก = ยอดจาก server (srv) · ก่อนบันทึก = ยอดคำนวณล่าสุดจาก server (quote) หรือประมาณเอง */
+const cur = () => srv && step >= 2 ? srv : quote;
+const total = () => cur() ? cur().totalSatang / 100 : subtotal() + shipCost();
 const thumbHtml = p => p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : `<div class="${phClass(p)}"></div>`;
 
 /* ---------- render: summary ---------- */
@@ -61,10 +66,22 @@ function renderSummary(){
   $('#sumItems').innerHTML = knownCart().map(([id,q]) => { const p = byId(id); return `
     <div class="si"><div class="si-thumb">${thumbHtml(p)}<em>${q}</em></div>
     <div class="si-name">${esc(p.name)}</div><div class="si-price">${baht(p.price*q)}</div></div>`; }).join('');
-  const sub = srv && step >= 2 ? srv.subtotalSatang / 100 : subtotal();
-  const sc = srv && step >= 2 ? srv.shippingSatang / 100 : shipCost();
+  const c = cur();
+  const sub = c ? c.subtotalSatang / 100 : subtotal();
+  const sc = c ? c.shippingSatang / 100 : shipCost();
   $('#sSub').textContent = baht(sub);
-  $('#sShip').innerHTML = sc === 0 ? '<span class="free">ส่งฟรี</span>' : baht(sc);
+  $('#sShip').innerHTML = isPickup() || (c && c.shippingMethod === 'pickup') ? '<span class="free">รับที่ร้าน</span>' : sc === 0 ? '<span class="free">ส่งฟรี</span>' : baht(sc);
+  const notes = [];
+  if (c && c.weightFeeSatang) notes.push(`รวมค่าน้ำหนัก ${baht(c.weightFeeSatang / 100)}`);
+  if (c && c.remoteFeeSatang) notes.push(`รวมพื้นที่ห่างไกล ${baht(c.remoteFeeSatang / 100)}`);
+  $('#sShipNote').textContent = notes.length ? `(${notes.join(' · ')})` : '';
+  const disc = c ? c.discountSatang / 100 : 0;
+  $('#sDiscRow').hidden = !disc;
+  $('#sDisc').textContent = '−' + baht(disc);
+  $('#sDiscCode').textContent = c && c.couponCode ? c.couponCode : '';
+  const cod = c ? c.codFeeSatang / 100 : 0;
+  $('#sCodRow').hidden = !cod;
+  $('#sCod').textContent = baht(cod);
   $('#sTotal').textContent = baht(total());
   $('#totMini').textContent = baht(total());
   const nd = $('#nudge');
@@ -78,22 +95,81 @@ function renderSummary(){
 }
 function renderShipOpts(){
   $('#shipOpts').innerHTML = SHOP.shipping.map(s => {
-    const fee = shipCost(s.id), free = fee === 0;
+    // ค่าส่งของตัวเลือกที่เลือกอยู่ใช้ยอดจาก server (รวมค่าน้ำหนัก/พื้นที่ห่างไกล) ตัวเลือกอื่นเป็นค่าประมาณตามยอดสั่งซื้อ
+    const fee = s.id === shipId && quote && quote.shippingMethod === s.id ? quote.shippingSatang / 100 : shipCost(s.id), free = fee === 0;
+    const label = s.id === 'pickup' ? 'ไม่มีค่าส่ง' : free ? 'ฟรี' : baht(fee);
     return `<label class="radio"><input type="radio" name="ship" value="${esc(s.id)}" ${s.id === shipId ? 'checked' : ''}>
       <div><b>${esc(s.name)}</b><small>${esc(s.desc)}</small></div>
-      <span class="p ${free ? 'free' : ''}">${free ? 'ฟรี' : baht(fee)}</span></label>`;
+      <span class="p ${free ? 'free' : ''}">${label}</span></label>`;
   }).join('') + (SHOP.tiers.length > 1 ? `<details class="ship-rates"><summary>ดูอัตราค่าส่งตามยอดสั่งซื้อ</summary><ul>${SHOP.tiers.map((t, i) => {
       const next = SHOP.tiers[i + 1];
       const range = next ? `${baht(t.min)} – ${baht(next.min - 0.01)}` : `ตั้งแต่ ${baht(t.min)}`;
       return `<li><span>${range}</span><b>${t.fee ? baht(t.fee) : 'ส่งฟรี'}</b></li>`;
     }).join('')}</ul></details>` : '');
+  renderPayOpts();
 }
-$('#shipOpts').addEventListener('change', e => { if (e.target.name === 'ship'){ shipId = e.target.value; renderSummary(); } });
+/* วิธีชำระเงิน: โอน/พร้อมเพย์ หรือ เก็บเงินปลายทาง (เมื่อร้านเปิด และไม่ใช่รับที่ร้าน) */
+function renderPayOpts(){
+  const codOk = !!SHOP.cod && !isPickup();
+  if (!codOk && payMethod === 'COD') payMethod = 'TRANSFER';
+  $('#payBox').hidden = !SHOP.cod;
+  if (!SHOP.cod) return;
+  $('#payOpts').innerHTML = `<label class="radio"><input type="radio" name="pay" value="TRANSFER" ${payMethod === 'TRANSFER' ? 'checked' : ''}>
+      <div><b>โอนเงิน / สแกน QR พร้อมเพย์</b><small>แนบสลิปหลังโอน ร้านตรวจแล้วจัดส่ง</small></div><span class="p free">ไม่มีค่าธรรมเนียม</span></label>
+    <label class="radio"><input type="radio" name="pay" value="COD" ${payMethod === 'COD' ? 'checked' : ''} ${codOk ? '' : 'disabled'}>
+      <div><b>เก็บเงินปลายทาง (COD)</b><small>${codOk ? 'จ่ายเงินสดเมื่อได้รับสินค้า' + (SHOP.cod.max ? ` · ยอดไม่เกิน ${baht(SHOP.cod.max)}` : '') : 'ใช้ไม่ได้กับการรับสินค้าที่ร้าน'}</small></div>
+      <span class="p">${SHOP.cod.fee ? '+' + baht(SHOP.cod.fee) : 'ฟรี'}</span></label>`;
+}
+/* รับที่ร้าน: ซ่อนช่องที่อยู่ แสดงเวลาเปิดร้าน · ใบกำกับภาษีต้องกรอกที่อยู่เอง */
+function syncPickup(){
+  const p = isPickup();
+  $('#addrBox').hidden = p;
+  $('#pickupBox').hidden = !p;
+  $('#pickupNote').textContent = SHOP.pickupNote || '';
+  if (p && $('#tiSame').checked){ $('#tiSame').checked = false; syncTax(); }
+  $('#tiSame').closest('label').hidden = p;
+}
+$('#shipOpts').addEventListener('change', e => { if (e.target.name === 'ship'){ shipId = e.target.value; syncPickup(); renderPayOpts(); renderSummary(); refreshQuote(); } });
+$('#payOpts').addEventListener('change', e => { if (e.target.name === 'pay'){ payMethod = e.target.value; $('#err-payment').textContent = ''; refreshQuote(); } });
+
+/* ---------- ยอดจาก server (POST /api/orders/preview) — คูปอง ค่าส่งตามน้ำหนัก/พื้นที่ห่างไกล ค่าธรรมเนียม COD ---------- */
+function refreshQuote(delay = 0){
+  clearTimeout(quoteTimer);
+  quoteTimer = setTimeout(async () => {
+    if (!knownCart().length) return;
+    const seq = ++quoteSeq;
+    try {
+      const res = await fetch('/api/orders/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: Object.fromEntries(knownCart()), shipping: shipId, zip: isPickup() ? '' : val('zip'), payment: payMethod, coupon: couponCode, phone: val('phone'), orderNo }) });
+      if (seq !== quoteSeq || !res.ok) return;
+      quote = await res.json();
+      const msg = $('#err-coupon');
+      if (couponCode){
+        msg.className = 'coupon-msg ' + (quote.couponError ? 'bad' : 'ok');
+        msg.textContent = quote.couponError || `ใช้โค้ด ${quote.couponCode} แล้ว ลด ${baht(quote.discountSatang / 100)}`;
+        $('#coupon').setAttribute('aria-invalid', quote.couponError ? 'true' : 'false');
+      }
+      $('#err-payment').textContent = payMethod === 'COD' && quote.codError ? quote.codError : '';
+      renderShipOpts(); renderSummary();
+    } catch (e) {}
+  }, delay);
+}
+function applyCoupon(){
+  couponCode = $('#coupon').value.trim().toUpperCase();
+  $('#coupon').value = couponCode;
+  const msg = $('#err-coupon');
+  if (!couponCode){ msg.textContent = ''; msg.className = 'coupon-msg'; } else { msg.className = 'coupon-msg'; msg.textContent = 'กำลังตรวจโค้ด…'; }
+  refreshQuote();
+}
+$('#couponApply').addEventListener('click', applyCoupon);
+$('#coupon').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); applyCoupon(); } });
 
 /* ---------- step navigation ---------- */
 function go(n){
   if (n >= 2 && !orderNo) n = 1;   // ต้องบันทึกข้อมูลจัดส่งก่อน
+  if (n === 3 && srv && srv.paymentMethod === 'COD') n = 2;   // เก็บเงินปลายทาง ไม่ต้องแนบสลิป
   step = n;
+  $('#stepper').children[2].querySelector('span').textContent = srv && srv.paymentMethod === 'COD' ? 'ยืนยันสั่งซื้อ' : 'แนบสลิป';
   ['#step1','#step2','#step3'].forEach((s,i) => $(s).hidden = i + 1 !== n);
   [...$('#stepper').children].forEach((li,i) => { li.className = i + 1 < n ? 'st-done' : i + 1 === n ? 'st-now' : ''; li.toggleAttribute('aria-current', i + 1 === n); });
   if (n >= 2) renderPayment();
@@ -158,6 +234,7 @@ function check(id){
 $('#prov').addEventListener('change', () => { check('prov'); if (val('zip')) check('zip'); });
 $('#zip').addEventListener('input', e => {
   e.target.value = digits(e.target.value).slice(0, 5);
+  if (e.target.value.length === 5 || quote && quote.remoteFeeSatang) refreshQuote(400); // ค่าส่งพื้นที่ห่างไกลตามรหัสไปรษณีย์
   // เดาจังหวัดจากรหัสไปรษณีย์ เมื่อยังไม่ได้เลือก (เฉพาะกรณีที่ตรงจังหวัดเดียว)
   if (e.target.value.length >= 2 && !val('prov')){
     const hit = Object.keys(PROV).filter(p => PROV[p].includes(e.target.value.slice(0, 2)));
@@ -165,6 +242,8 @@ $('#zip').addEventListener('input', e => {
   }
 });
 $('#tiTaxId').addEventListener('input', e => { e.target.value = e.target.value.replace(/[^\d\s-]/g, ''); });
+// คูปองจำกัดต่อเบอร์ → ตรวจใหม่เมื่อแก้เบอร์
+$('#phone').addEventListener('change', () => { if (couponCode) refreshQuote(); });
 
 /* ---------- ใบกำกับภาษี ---------- */
 function syncTax(){
@@ -199,12 +278,17 @@ $('#forgetAddr').addEventListener('click', () => {
 
 $('#step1').addEventListener('submit', async e => {
   e.preventDefault();
-  const ids = [...Object.keys(RULES), ...(wantTax() ? Object.keys(TAX_RULES) : [])];
+  // รับที่ร้าน: ไม่ต้องตรวจช่องที่อยู่
+  const ADDR_ONLY = ['addr', 'sub', 'dist', 'prov', 'zip'];
+  const ids = [...Object.keys(RULES).filter(id => !isPickup() || !ADDR_ONLY.includes(id)), ...(wantTax() ? Object.keys(TAX_RULES) : [])];
   const bad = ids.filter(id => !check(id));
   if (bad.length){ document.getElementById(bad[0]).focus(); toast('กรุณาตรวจข้อมูลที่มีเครื่องหมายสีแดง'); return; }
-  const addr = { name:val('name'), phone:val('phone'), email:val('email'), addr:val('addr'), sub:val('sub'), dist:val('dist'), prov:val('prov'), zip:val('zip'), note:val('note') };
+  const addr = isPickup()
+    ? { name:val('name'), phone:val('phone'), email:val('email'), addr:'', sub:'', dist:'', prov:'', zip:'', note:val('note') }
+    : { name:val('name'), phone:val('phone'), email:val('email'), addr:val('addr'), sub:val('sub'), dist:val('dist'), prov:val('prov'), zip:val('zip'), note:val('note') };
   const taxInvoice = wantTax() ? { kind: tiKind(), name: val('tiName'), taxId: digits(val('tiTaxId')), branch: tiKind() === 'PERSON' ? '' : val('tiBranch'),
-    address: $('#tiSame').checked ? shipAddrText(addr) : val('tiAddr') } : null;
+    address: $('#tiSame').checked && !isPickup() ? shipAddrText(addr) : val('tiAddr') } : null;
+  if (couponCode !== $('#coupon').value.trim().toUpperCase()) couponCode = $('#coupon').value.trim().toUpperCase(); // พิมพ์โค้ดแต่ยังไม่กด "ใช้โค้ด"
   if ($('#remember').checked){ const s = { v: 2 }; SAVE_FIELDS.forEach(k => s[k] = addr[k]); store.set(SAVE_KEY, s); $('#savedAddr').hidden = false; }
   else store.del(SAVE_KEY);
   // บันทึกคำสั่งซื้อที่ server (ย้อนกลับมาแก้ = แก้คำสั่งซื้อเดิม ไม่สร้างใหม่)
@@ -212,24 +296,31 @@ $('#step1').addEventListener('submit', async e => {
   btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
   try {
     const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: Object.fromEntries(knownCart()), shipping: shipId, address: addr, taxInvoice, orderNo }) });
+      body: JSON.stringify({ items: Object.fromEntries(knownCart()), shipping: shipId, address: addr, taxInvoice, orderNo, coupon: couponCode, payment: payMethod }) });
     const data = await res.json().catch(() => ({}));
     if (!res.ok){
       const msgs = data.messages || {};
-      (data.fields || []).forEach(id => setErr(id, msgs[id] || 'กรุณาตรวจข้อมูลช่องนี้'));
-      const first = (data.fields || [])[0]; if (first && document.getElementById(first)) document.getElementById(first).focus();
+      const fields = data.fields || [];
+      fields.filter(id => id !== 'coupon' && id !== 'payment').forEach(id => setErr(id, msgs[id] || 'กรุณาตรวจข้อมูลช่องนี้'));
+      // คูปอง/เก็บเงินปลายทางใช้ไม่ได้ → แสดงใต้ช่องนั้น
+      if (fields.includes('coupon')){ const m = $('#err-coupon'); m.className = 'coupon-msg bad'; m.textContent = msgs.coupon || data.error; $('#coupon').focus(); }
+      if (fields.includes('payment')){ $('#err-payment').textContent = msgs.payment || data.error; }
+      const first = fields[0]; if (first && first !== 'coupon' && document.getElementById(first)) document.getElementById(first).focus();
       toast(data.error || 'บันทึกคำสั่งซื้อไม่สำเร็จ กรุณาลองใหม่');
-      if (res.status === 409) validateCart(); // ราคา/สต็อกเปลี่ยนระหว่างกรอก → ดึงข้อมูลล่าสุด
+      if (res.status === 409 && !fields.length) validateCart(); // ราคา/สต็อกเปลี่ยนระหว่างกรอก → ดึงข้อมูลล่าสุด
       return;
     }
+    const before = total();
     orderNo = data.orderNo; srv = data; addrSent = addr; taxSent = taxInvoice;
     session.set('mdw_last_order', { no: orderNo, phone: digits(addr.phone) }); // ให้หน้าติดตามกรอกให้อัตโนมัติ (ในแท็บนี้เท่านั้น)
-    if (Math.abs(srv.totalSatang / 100 - (subtotal() + shipCost())) > 0.001) toast('ราคาสินค้ามีการเปลี่ยนแปลง ยอดชำระอัปเดตตามราคาล่าสุดแล้ว');
+    if (Math.abs(srv.totalSatang / 100 - before) > 0.001) toast('ยอดชำระอัปเดตตามราคา/ค่าส่งล่าสุดแล้ว');
   } catch (err){
     toast('เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่'); return;
   } finally { btn.disabled = false; btn.textContent = label; }
   $('#shipTo').classList.add('on');
-  $('#shipTo').innerHTML = `<span>จัดส่งถึง</span><b>${esc(addr.name)}</b> · ${esc(fmtPhone(addr.phone))}<br>${esc(shipAddrText(addr))}`
+  $('#shipTo').innerHTML = (srv.shippingMethod === 'pickup' ? `<span>รับสินค้าที่ร้าน</span><b>${esc(addr.name)}</b> · ${esc(fmtPhone(addr.phone))}${SHOP.pickupNote ? '<br>' + esc(SHOP.pickupNote) : ''}`
+      : `<span>จัดส่งถึง</span><b>${esc(addr.name)}</b> · ${esc(fmtPhone(addr.phone))}<br>${esc(shipAddrText(addr))}`)
+    + (srv.paymentMethod === 'COD' ? '<span style="margin-top:8px">ชำระเงิน</span>เก็บเงินปลายทาง (COD)' : '')
     + (taxInvoice ? `<span style="margin-top:8px">ใบกำกับภาษี</span>${esc(taxInvoice.name)} · ${esc(taxInvoice.taxId)}` : '');
   go(2);
 });
@@ -243,6 +334,13 @@ const bankCards = () => SHOP.banks.length ? SHOP.banks.map(b => `<div class="ban
 function renderPayment(){
   $('#payAmount').textContent = baht(total());
   $('#orderNo').textContent = orderNo;
+  // เก็บเงินปลายทาง: ไม่ต้องโอน/แนบสลิป — แสดงปุ่มยืนยันสั่งซื้อแทน
+  const cod = !!(srv && srv.paymentMethod === 'COD');
+  $('#codPane').hidden = !cod; $('#codActs').hidden = !cod;
+  $('#payTabs').hidden = cod; $('#payActs').hidden = cod;
+  $$('.pane').forEach(p => p.style.display = cod ? 'none' : '');
+  $('#payTitle').textContent = cod ? 'ยืนยันสั่งซื้อ (เก็บเงินปลายทาง)' : 'ชำระเงิน';
+  if (cod){ $('#codAmount').textContent = baht(total()); return; }
   $('#qrName').textContent = SHOP.promptpayName || '';
   const qb = $('#qrBox');
   if (SHOP.promptpay){
@@ -269,7 +367,24 @@ document.addEventListener('click', e => {
   const text = c.hasAttribute('data-copy-amount') ? total().toFixed(2) : c.hasAttribute('data-copy-order') ? orderNo : c.dataset.copy;
   (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('คัดลอกแล้ว: ' + text), () => toast(text));
 });
-$('#payLater').addEventListener('click', () => showDone('later'));
+/* โอนทีหลัง: แจ้ง server (ส่งอีเมลยืนยันคำสั่งซื้อพร้อมลิงก์แนบสลิป ถ้าร้านเปิดใช้) แล้วไปหน้าสำเร็จ */
+$('#payLater').addEventListener('click', () => {
+  fetch(`/api/orders/${encodeURIComponent(orderNo)}/confirm`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: addrSent ? addrSent.phone : val('phone'), mode: 'later' }) }).catch(() => {});
+  showDone('later');
+});
+/* เก็บเงินปลายทาง: ยืนยันสั่งซื้อ → เข้าคิว "รอยืนยัน COD" ของร้าน */
+$('#codConfirm').addEventListener('click', async e => {
+  const btn = e.currentTarget, label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'กำลังยืนยัน…';
+  try {
+    const res = await fetch(`/api/orders/${encodeURIComponent(orderNo)}/confirm`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: addrSent ? addrSent.phone : val('phone'), mode: 'cod' }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok){ toast(data.error || 'ยืนยันไม่สำเร็จ กรุณาลองใหม่'); return; }
+    showDone('cod');
+  } catch (err) { toast('เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ตแล้วลองใหม่'); }
+  finally { btn.disabled = false; btn.textContent = label; }
+});
 
 /* PromptPay QR (มาตรฐาน EMVCo ของ ธปท.) — สร้าง payload พร้อมยอดเงิน */
 function promptPayPayload(id, amount){
@@ -406,27 +521,37 @@ let doneInfo = null;
 function showDone(mode){
   const items = knownCart().map(([id, q]) => { const p = byId(id); return { id, name: p.name, price: p.price, qty: q }; });
   doneInfo = { mode, orderNo, items, sub: srv.subtotalSatang / 100, ship: srv.shippingSatang / 100, total: srv.totalSatang / 100,
+    disc: (srv.discountSatang || 0) / 100, coupon: srv.couponCode || '', cod: (srv.codFeeSatang || 0) / 100, pickup: srv.shippingMethod === 'pickup',
     shipName: srv.shippingName, addr: addrSent, tax: taxSent, at: new Date() };
   window.mdwTrack('purchase', { transaction_id: orderNo, value: doneInfo.total, items });
   store.del('mdw_cart'); store.del('mdw_cart_seen'); cart = {}; renderHdrCart();
-  const paid = mode === 'paid';
+  const paid = mode === 'paid', isCod = mode === 'cod';
   $('#checkoutView').hidden = true; $('#doneView').hidden = false;
-  $('#doneTitle').textContent = paid ? 'ได้รับคำสั่งซื้อและสลิปแล้ว ขอบคุณครับ' : 'บันทึกคำสั่งซื้อแล้ว — รอการชำระเงิน';
-  $('#doneCard').classList.toggle('pending', !paid);
+  $('#doneTitle').textContent = paid ? 'ได้รับคำสั่งซื้อและสลิปแล้ว ขอบคุณครับ' : isCod ? 'ได้รับคำสั่งซื้อแล้ว — ร้านจะโทรยืนยันก่อนจัดส่ง' : 'บันทึกคำสั่งซื้อแล้ว — รอการชำระเงิน';
+  $('#doneCard').classList.toggle('pending', !paid && !isCod);
   $('#doneNo').textContent = orderNo;
   $('#doneAmt').textContent = baht(doneInfo.total);
-  $('#doneStatus').textContent = paid ? 'สถานะ: รอตรวจสอบสลิป' : 'สถานะ: รอโอนเงินและแนบสลิป';
+  $('#doneStatus').textContent = paid ? 'สถานะ: รอตรวจสอบสลิป' : isCod ? 'สถานะ: รอร้านยืนยัน (เก็บเงินปลายทาง)' : 'สถานะ: รอโอนเงินและแนบสลิป';
   $('#doneItems').innerHTML = items.map(i => `<div class="si"><div class="si-name">${esc(i.name)} <span class="q">× ${i.qty}</span></div><div class="si-price">${baht(i.price * i.qty)}</div></div>`).join('');
   $('#doneRows').innerHTML = `<div><span>ค่าสินค้า</span><b>${baht(doneInfo.sub)}</b></div>
-    <div><span>ค่าจัดส่ง (${esc(doneInfo.shipName)})</span><b>${doneInfo.ship ? baht(doneInfo.ship) : 'ส่งฟรี'}</b></div>
-    <div class="grand"><span>ยอดชำระทั้งหมด</span><b>${baht(doneInfo.total)}</b></div>`;
+    ${doneInfo.disc ? `<div><span>ส่วนลด${doneInfo.coupon ? ' (' + esc(doneInfo.coupon) + ')' : ''}</span><b>−${baht(doneInfo.disc)}</b></div>` : ''}
+    <div><span>${doneInfo.pickup ? 'รับสินค้าที่ร้าน' : `ค่าจัดส่ง (${esc(doneInfo.shipName)})`}</span><b>${doneInfo.ship ? baht(doneInfo.ship) : doneInfo.pickup ? 'ไม่มีค่าส่ง' : 'ส่งฟรี'}</b></div>
+    ${doneInfo.cod ? `<div><span>ค่าธรรมเนียมเก็บเงินปลายทาง</span><b>${baht(doneInfo.cod)}</b></div>` : ''}
+    <div class="grand"><span>${isCod ? 'ยอดเก็บปลายทาง' : 'ยอดชำระทั้งหมด'}</span><b>${baht(doneInfo.total)}</b></div>`;
   const a = doneInfo.addr;
-  $('#doneAddr').innerHTML = `<span>จัดส่งถึง</span><b>${esc(a.name)}</b> · ${esc(fmtPhone(a.phone))}<br>${esc(shipAddrText(a))}`
+  $('#doneAddr').innerHTML = (doneInfo.pickup ? `<span>รับสินค้าที่ร้าน</span><b>${esc(a.name)}</b> · ${esc(fmtPhone(a.phone))}${SHOP.pickupNote ? '<br>' + esc(SHOP.pickupNote) : ''}`
+      : `<span>จัดส่งถึง</span><b>${esc(a.name)}</b> · ${esc(fmtPhone(a.phone))}<br>${esc(shipAddrText(a))}`)
     + (doneInfo.tax ? `<span>ขอใบกำกับภาษีในนาม</span><b>${esc(doneInfo.tax.name)}</b> · เลขผู้เสียภาษี ${esc(doneInfo.tax.taxId)}${doneInfo.tax.branch ? ' · ' + esc(doneInfo.tax.branch) : ''}` : '');
   $('#donePayNote').textContent = paid ? 'ร้านได้รับสลิปแล้ว ข้อมูลบัญชีด้านล่างไว้สำหรับอ้างอิง' : `โอนยอด ${baht(doneInfo.total)} เข้าบัญชีใดก็ได้ด้านล่าง แล้วแนบสลิปที่หน้าติดตามคำสั่งซื้อ`;
   $('#doneBanks').innerHTML = bankCards() + (SHOP.promptpay ? `<div class="bank-card"><div class="bank-row"><span>พร้อมเพย์</span><div><b>${esc(SHOP.promptpay)}</b><button type="button" class="copy" data-copy="${esc(digits(SHOP.promptpay))}">คัดลอก</button></div></div></div>` : '');
+  $('#donePay').hidden = isCod;
   const when = doneInfo.at.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
-  $('#doneTimeline').innerHTML = (paid ? [
+  $('#doneTimeline').innerHTML = (isCod ? [
+      ['ok', 'ได้รับคำสั่งซื้อ (เก็บเงินปลายทาง)', when],
+      ['wait', 'ร้านโทรยืนยันคำสั่งซื้อ', 'ตามเบอร์ที่ให้ไว้ ' + fmtPhone(a.phone)],
+      ['', 'แพ็กและจัดส่งสินค้า', 'ดูเลขพัสดุได้ที่หน้าติดตามคำสั่งซื้อ'],
+      ['', 'ชำระเงินสดกับพนักงานขนส่ง', baht(doneInfo.total)],
+    ] : paid ? [
       ['ok', 'ได้รับคำสั่งซื้อและสลิป', when],
       ['wait', 'ทีมงานตรวจสอบยอดโอน', SHOP.checkWithin || ''],
       ['', 'แพ็กและจัดส่งสินค้า', 'ดูเลขพัสดุได้ที่หน้าติดตามคำสั่งซื้อ'],
@@ -439,7 +564,9 @@ function showDone(mode){
     ]).map(([c, t, s]) => `<li class="${c}">${esc(t)}<small>${esc(s)}</small></li>`).join('');
   const trackUrl = '/track?no=' + encodeURIComponent(orderNo);
   $('#doneTrack').href = trackUrl;
-  $('#doneUpload').hidden = paid;
+  $('#doneUpload').hidden = paid || isCod;
+  // ใบสั่งซื้อ (เปิดแล้วพิมพ์/บันทึก PDF ได้ ด้วยลิงก์ลับของคำสั่งซื้อนี้)
+  if (srv.printUrl){ $('#donePdf').href = srv.printUrl; $('#donePdf').hidden = false; }
   if (SHOP.line) $('#doneLine').href = SHOP.line; else $('#doneLine').hidden = true;
   scrollTo({ top: 0 });
   $('#doneTitle').focus({ preventScroll: true });
@@ -463,7 +590,10 @@ $('#doneImage').addEventListener('click', async () => {
   rule();
   d.items.forEach(i => L(17, 400, `${i.name.length > 46 ? i.name.slice(0, 45) + '…' : i.name} × ${i.qty}`, baht(i.price * i.qty)));
   rule();
-  L(17, 400, 'ค่าสินค้า', baht(d.sub)); L(17, 400, `ค่าจัดส่ง (${d.shipName})`, d.ship ? baht(d.ship) : 'ส่งฟรี');
+  L(17, 400, 'ค่าสินค้า', baht(d.sub));
+  if (d.disc) L(17, 400, `ส่วนลด${d.coupon ? ` (${d.coupon})` : ''}`, '−' + baht(d.disc));
+  L(17, 400, d.pickup ? 'รับสินค้าที่ร้าน' : `ค่าจัดส่ง (${d.shipName})`, d.ship ? baht(d.ship) : d.pickup ? 'ไม่มีค่าส่ง' : 'ส่งฟรี');
+  if (d.cod) L(17, 400, 'ค่าธรรมเนียมเก็บเงินปลายทาง', baht(d.cod));
   L(24, 800, 'ยอดชำระ', baht(d.total), '#1C1C1C', 2);
   rule();
   L(15, 600, 'จัดส่งถึง', '', '#6B6862'); L(17, 500, `${d.addr.name} · ${fmtPhone(d.addr.phone)}`);
@@ -547,7 +677,8 @@ function start(afterValidate){
   $('#emptyView').hidden = has; $('#checkoutView').hidden = !has;
   if (!has) return;
   if (!afterValidate && matchMedia('(max-width:900px)').matches) $('#sumDetails').open = false;
-  renderShipOpts(); renderSummary();
+  renderShipOpts(); syncPickup(); renderSummary();
+  if (afterValidate) refreshQuote(); // ยอดจริงจาก server (ค่าส่งตามน้ำหนัก/คูปอง) หลังตรวจตะกร้าแล้ว
   if (!started){ started = true; go(1); }
   if (afterValidate && !begun){
     begun = true;

@@ -5,6 +5,10 @@ import { requireOwner } from "@/lib/auth";
 import { mediaUrl } from "@/lib/media";
 import { BANKS, getSettings, parseBankAccounts, parseShippingTiers } from "@/lib/settings";
 import { SettingsForm } from "./SettingsForm";
+import { CheckoutSettings } from "./CheckoutSettings";
+import { DEFAULT_TEMPLATES, TEMPLATE_LABEL, TEMPLATE_VARS, smtpStatus } from "@/lib/email";
+import { prisma } from "@/lib/prisma";
+import { parseRemoteZips, parseWeightTiers } from "@/lib/shipping";
 
 const baht = (satang: number) => String(satang / 100);
 
@@ -43,6 +47,43 @@ export default async function SettingsPage() {
             autoCancelDays: s.autoCancelDays, lowStockThreshold: s.lowStockThreshold, lineLowStock: s.lineLowStock, lineDailySummary: s.lineDailySummary,
           }}
         />
+      <CheckoutSettings
+        v={{
+          codEnabled: s.codEnabled, codFee: baht(s.codFeeSatang), codMax: baht(s.codMaxSatang),
+          remoteZips: parseRemoteZips(s.remoteZips).join(" "), remoteFee: baht(s.remoteFeeSatang),
+          weightTiers: parseWeightTiers(s.weightTiers).map((t) => ({ maxKg: String(t.maxGram / 1000), extra: baht(t.extraSatang) })),
+          pickupEnabled: s.pickupEnabled, pickupNote: s.pickupNote ?? "",
+          emailEnabled: s.emailEnabled,
+          templates: (s.emailTemplates && typeof s.emailTemplates === "object" && !Array.isArray(s.emailTemplates) ? s.emailTemplates : {}) as Record<string, { subject: string; body: string }>,
+          defaults: DEFAULT_TEMPLATES, smtp: smtpStatus(), vars: TEMPLATE_VARS,
+        }}
+      />
+      <EmailLogBox />
     </main>
+  );
+}
+
+/** อีเมลที่ส่งล่าสุด (สถานะ ส่งแล้ว / ไม่สำเร็จ / ข้าม) */
+async function EmailLogBox() {
+  const rows = await prisma.emailLog.findMany({ orderBy: { createdAt: "desc" }, take: 15 });
+  if (!rows.length) return null;
+  const ST: Record<string, string> = { SENT: "ส่งแล้ว", FAILED: "ไม่สำเร็จ", SKIPPED: "ข้าม (ยังไม่ตั้ง SMTP/ปิดอยู่)" };
+  return (
+    <section className="box" id="emailLog" style={{ marginTop: 16 }}>
+      <h3>อีเมลล่าสุด</h3>
+      <table className="tbl">
+        <thead><tr><th>เวลา</th><th>ถึง</th><th>แม่แบบ</th><th>สถานะ</th></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td>{r.createdAt.toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Bangkok" })}</td>
+              <td>{r.to}</td>
+              <td>{TEMPLATE_LABEL[r.template as keyof typeof TEMPLATE_LABEL] ?? r.template}</td>
+              <td title={r.error ?? undefined}>{ST[r.status] ?? r.status}{r.error ? ` — ${r.error.slice(0, 80)}` : ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }

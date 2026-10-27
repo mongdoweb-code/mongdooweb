@@ -47,3 +47,34 @@ export async function getPublicReceipt(id: string, token: string | undefined) {
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   return d;
 }
+
+// ---------- รอบ 3: ลิงก์ลับใบเสนอราคา (ยืนยันออนไลน์ U25) และใบแจ้งหนี้ (ชำระออนไลน์ U26) ----------
+
+/** คืนโทเคนของเอกสารที่ออกแล้ว (ใบเสนอราคา/ใบแจ้งหนี้/ใบเสร็จ) สร้างใหม่ถ้ายังไม่มี — null = ฉบับร่าง/ไม่พบ */
+export async function ensureDocToken(docId: string): Promise<string | null> {
+  const d = await prisma.salesDocument.findUnique({ where: { id: docId }, select: { status: true, publicToken: true } });
+  if (!d || d.status === "DRAFT") return null;
+  if (d.publicToken) return d.publicToken;
+  await prisma.salesDocument.updateMany({ where: { id: docId, publicToken: null }, data: { publicToken: randomBytes(32).toString("base64url") } });
+  return (await prisma.salesDocument.findUnique({ where: { id: docId }, select: { publicToken: true } }))?.publicToken ?? null;
+}
+
+/** /track/doc/:id?t= — ใบเสนอราคา/ใบแจ้งหนี้ · ใบเสร็จใช้ /track/receipt */
+export const publicDocUrl = (d: { id: string; type: string }, token: string) =>
+  d.type === "RECEIPT" ? publicReceiptUrl(d.id, token) : `/track/doc/${encodeURIComponent(d.id)}?t=${encodeURIComponent(token)}`;
+
+/** ใบเสนอราคา/ใบแจ้งหนี้สำหรับลูกค้า (รวมสลิปที่ลูกค้าแนบ) — null ถ้าโทเคนไม่ถูกต้อง */
+export async function getPublicDoc(id: string, token: string | undefined) {
+  if (!token || !TOKEN_RE.test(token) || id.length > 40) return null;
+  const d = await prisma.salesDocument.findUnique({
+    where: { id },
+    include: {
+      ...DOC_INCLUDE,
+      slips: { orderBy: { createdAt: "desc" }, select: { id: true, amountSatang: true, transferredAt: true, status: true, rejectReason: true, createdAt: true } },
+    },
+  });
+  if (!d || (d.type !== "QUOTATION" && d.type !== "INVOICE") || d.status === "DRAFT" || !d.publicToken) return null;
+  const a = Buffer.from(d.publicToken), b = Buffer.from(token);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  return d;
+}

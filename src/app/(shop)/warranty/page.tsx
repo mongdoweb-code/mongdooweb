@@ -12,7 +12,8 @@ export default function WarrantyPage() {
   return (
     <ContentPage slug="warranty" eyebrow="ช่วยเหลือ" showUpdated>
       <p className="prose-cta">
-        <a className="btn btn-line" href="#" data-line target="_blank" rel="noopener">แจ้งเคลมทาง LINE</a>
+        <a className="btn btn-primary" href="/claim">แจ้งเคลม / คืนสินค้าออนไลน์</a>
+        <a className="btn btn-line" href="#" data-line target="_blank" rel="noopener">สอบถามทาง LINE</a>
         <a className="btn btn-outline" href="/contact">ส่งข้อความถึงร้าน</a>
       </p>
     </ContentPage>

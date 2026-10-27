@@ -23,6 +23,8 @@ async function CheckoutData() {
       tiers: cfg.tiers.map((t) => ({ min: t.minSatang / 100, fee: t.feeSatang / 100 })),
       expressExtra: cfg.expressExtraSatang / 100,
       checkWithin: cfg.checkWithin,
+      cod: cfg.cod ? { fee: cfg.cod.feeSatang / 100, max: cfg.cod.maxSatang / 100 } : null,
+      pickupNote: cfg.pickupNote,
       line: cfg.line,
       provinces: cfg.provinces,
     },

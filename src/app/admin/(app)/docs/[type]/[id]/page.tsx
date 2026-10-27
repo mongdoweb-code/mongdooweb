@@ -12,10 +12,11 @@ import { DocSheets } from "../../../../_components/DocSheets";
 import { LabelOptions } from "../../../../_components/LabelOptions";
 import { acceptQuote, convertQuote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, reviseQuote } from "../../actions";
 import { PaymentForm, VoidForm } from "../../DocForms";
+import { DocOnline } from "../../DocOnline";
 
 export const instant = false;
 
-const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก" };
+const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป" };
 
 export default async function DocViewPage({ params, searchParams }: PageProps<"/admin/docs/[type]/[id]">) {
   await requireAdmin();
@@ -103,6 +104,8 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
               {d.status !== "DRAFT" && act(duplicateDoc, "ทำสำเนาเป็นฉบับใหม่", "btn btn-ghost")}
             </div>
           </div>
+
+          <DocOnline doc={d} era={era} />
 
           {d.type === "INVOICE" && ["ISSUED", "PARTIAL"].includes(d.status) && (
             <section className="dv-sec">

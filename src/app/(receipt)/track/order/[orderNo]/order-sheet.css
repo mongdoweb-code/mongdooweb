@@ -1,0 +1,30 @@
+/* ใบสั่งซื้อ A4 ฝั่งลูกค้า (ใช้ .pp / .pp-bar ของหน้าพิมพ์หลังบ้าน) */
+.osheet{width:210mm;min-height:297mm;padding:14mm 14mm 10mm;background:#fff;color:#161616;font-family:'Noto Sans Thai','Sarabun','Tahoma',sans-serif;font-size:10pt;line-height:1.5;box-sizing:border-box;display:flex;flex-direction:column;gap:6mm;box-shadow:0 4px 18px rgba(0,0,0,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.os-head{display:flex;justify-content:space-between;gap:8mm;border-bottom:2px solid #F26B38;padding-bottom:4mm}
+.os-shop{display:flex;gap:4mm;align-items:flex-start}
+.os-shop img{width:18mm;height:18mm;object-fit:contain}
+.os-shop div{display:grid;font-size:9pt;color:#444}
+.os-shop b{font-size:12pt;color:#161616}
+.os-title{text-align:right;display:grid;align-content:start}
+.os-title h1{font-size:18pt;font-weight:700;line-height:1.1}
+.os-title span{font-size:8pt;letter-spacing:.2em;color:#777}
+.os-title b{font-size:12pt;margin-top:2mm}
+.os-meta{display:grid;grid-template-columns:1.3fr 1fr;gap:8mm}
+.os-meta h2,.os-pay h2{font-size:9pt;color:#777;font-weight:600;margin-bottom:1mm}
+.os-meta dl,.os-sum dl{display:grid;grid-template-columns:auto 1fr;gap:1mm 4mm;font-size:9.5pt}
+.os-meta dt,.os-sum dt{color:#666}
+.os-items{width:100%;border-collapse:collapse;font-size:9.5pt}
+.os-items th{background:#F4F1EA;text-align:left;padding:2mm;border-bottom:1px solid #ccc}
+.os-items td{padding:2mm;border-bottom:1px solid #eee;vertical-align:top}
+.os-items .r{text-align:right;white-space:nowrap}
+.os-items small{color:#777}
+.os-sum{display:grid;grid-template-columns:1fr auto;gap:8mm;align-items:start}
+.os-sum dl{grid-template-columns:auto auto;text-align:right}
+.os-sum .g{font-weight:700;font-size:12pt;color:#161616;border-top:1px solid #161616;padding-top:1.5mm}
+.os-words{font-size:9.5pt;color:#444;align-self:end}
+.os-pay{background:#F9F7F2;padding:3mm 4mm;font-size:9.5pt}
+.os-pay ul{margin:1mm 0 1mm 4mm}
+.os-note{font-size:9.5pt;color:#444}
+.os-foot{margin-top:auto;font-size:8pt;color:#888;text-align:center;border-top:1px solid #eee;padding-top:2mm}
+@media print{.osheet{box-shadow:none;margin:0}}
+@media (max-width:820px){.pp-body{padding:8px 0}.osheet{transform-origin:0 0}}

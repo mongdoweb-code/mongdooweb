@@ -15,6 +15,7 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
 
 export const TABS = [
   ["PENDING_VERIFICATION", "รอตรวจสลิป"],
+  ["COD", "รอยืนยัน COD"], // รอบ 3: เก็บเงินปลายทาง = PENDING_VERIFICATION + paymentMethod COD
   ["PAID", "รอจัดส่ง"],
   ["SHIPPED", "จัดส่งแล้ว"],
   ["REJECTED", "สลิปไม่ผ่าน"],
@@ -95,6 +96,18 @@ function rangeWhere(f: OrderFilter): { where: Prisma.OrderWhereInput; badRange: 
   return { where: {}, badRange: false };
 }
 
+/** เงื่อนไขของแท็บ — "รอตรวจสลิป" ไม่รวม COD (COD มีแท็บ "รอยืนยัน COD" แยก) */
+function tabWhere(tab: Tab): Prisma.OrderWhereInput {
+  if (tab === "ALL") return {};
+  if (tab === "COD") return { status: "PENDING_VERIFICATION", paymentMethod: "COD" };
+  if (tab === "PENDING_VERIFICATION") return { status: "PENDING_VERIFICATION", paymentMethod: "TRANSFER" };
+  return { status: tab };
+}
+
+/** ยอดรวมของสลิปที่ยังไม่ถูกปฏิเสธ (โอนหลายครั้ง/โอนเพิ่ม U19) */
+export const liveSlipSum = (slips: { declaredAmountSatang: number; status: string }[]) =>
+  slips.filter((x) => x.status !== "REJECTED").reduce((a, x) => a + x.declaredAmountSatang, 0);
+
 function searchWhere(q: string): Prisma.OrderWhereInput {
   if (!q) return {};
   const digits = q.replace(/\D/g, "");
@@ -131,19 +144,19 @@ async function duplicatesFor(slips: { orderId: string; sha256: string }[]) {
 export async function listOrders(f: OrderFilter) {
   const { where: rw, badRange } = rangeWhere(f);
   const base: Prisma.OrderWhereInput = { AND: [rw, searchWhere(f.q)] };
-  const where: Prisma.OrderWhereInput = f.tab === "ALL" ? base : { AND: [base, { status: f.tab }] };
+  const where: Prisma.OrderWhereInput = f.tab === "ALL" ? base : { AND: [base, tabWhere(f.tab)] };
   const total = await prisma.order.count({ where });
   const pages = Math.max(1, Math.ceil(total / f.size));
   const page = Math.min(f.page, pages);
   const rows = await prisma.order.findMany({
     where,
     // คิวรอตรวจ: เก่าสุดก่อน, อื่นๆ ใหม่สุดก่อน
-    orderBy: { createdAt: f.tab === "PENDING_VERIFICATION" ? "asc" : "desc" },
+    orderBy: { createdAt: f.tab === "PENDING_VERIFICATION" || f.tab === "COD" ? "asc" : "desc" },
     skip: (page - 1) * f.size,
     take: f.size,
     include: {
       items: { select: { qty: true } },
-      slips: { orderBy: { uploadedAt: "desc" }, take: 1 },
+      slips: { orderBy: { uploadedAt: "desc" } },
       events: { where: { type: "NOTE" }, select: { id: true }, take: 1 },
     },
   });
@@ -159,7 +172,7 @@ export async function listOrders(f: OrderFilter) {
       const check: SlipCheck | null =
         o.status === "PENDING_VERIFICATION" && s
           ? {
-              diffSatang: s.declaredAmountSatang - o.totalSatang,
+              diffSatang: liveSlipSum(o.slips) - o.totalSatang,
               dupOrderNos: dups.get(o.id) ?? [],
               late: o.createdAt.getTime() - s.transferredAt.getTime() > 3 * 864e5,
             }
@@ -174,10 +187,14 @@ export async function listOrders(f: OrderFilter) {
         itemCount: o.items.reduce((n, i) => n + i.qty, 0),
         shippingName: o.shippingName,
         totalSatang: o.totalSatang,
-        noSlip: o.status === "PENDING_VERIFICATION" && !s,
+        noSlip: o.status === "PENDING_VERIFICATION" && o.paymentMethod === "TRANSFER" && !s,
         check,
         hasNote: o.events.length > 0,
         channel: o.channel,
+        paymentMethod: o.paymentMethod,
+        couponCode: o.couponCode,
+        slipCount: o.slips.length,
+        codSettled: !!o.codSettledAt,
       };
     }),
   };
@@ -194,7 +211,11 @@ export async function orderStats() {
       select: { createdAt: true, totalSatang: true },
     }),
   ]);
-  const count = Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])) as Partial<Record<OrderStatus, number>>;
+  const count = Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])) as Partial<Record<OrderStatus | "COD", number>>;
+  // แท็บ "รอตรวจสลิป" ไม่รวม COD ที่รอยืนยัน
+  const cod = await prisma.order.count({ where: { status: "PENDING_VERIFICATION", paymentMethod: "COD" } });
+  count.COD = cod;
+  count.PENDING_VERIFICATION = (count.PENDING_VERIFICATION ?? 0) - cod;
   // ยอดขาย 7 วัน (ยืนยันแล้ว) ตามวันที่สั่งซื้อ เวลาไทย
   const days = Array.from({ length: 7 }, (_, i) => {
     const start = new Date(today.getTime() - (6 - i) * 864e5);
@@ -219,16 +240,26 @@ export async function getOrderDetail(orderNo: string) {
   });
   if (!o) return null;
   const slip = o.slips.at(-1) ?? null;
-  const dups = slip ? (await duplicatesFor([{ orderId: o.id, sha256: slip.sha256 }])).get(o.id) ?? [] : [];
+  const liveSlips = o.slips.filter((x) => x.status !== "REJECTED");
+  const dupAll = await prisma.paymentSlip.findMany({
+    where: { sha256: { in: liveSlips.map((x) => x.sha256) }, orderId: { not: o.id } },
+    select: { order: { select: { orderNo: true } } },
+  });
+  // สลิปเดียวกันแนบซ้ำในคำสั่งซื้อนี้เอง ก็ติดธงด้วย
+  const selfDup = new Set(liveSlips.map((x) => x.sha256)).size < liveSlips.length;
+  const dups = [...new Set([...dupAll.map((d) => d.order.orderNo), ...(selfDup ? [`${o.orderNo} (สลิปเดียวกันแนบซ้ำ)`] : [])])];
+  const slipSumSatang = liveSlipSum(o.slips);
   const totalOrders = await prisma.order.count();
   return {
     ...o,
     slip,
     slipCount: o.slips.length,
+    slipSumSatang,
     totalOrders,
+    coupon: o.couponCode ? await prisma.couponRedemption.findUnique({ where: { orderId: o.id }, select: { couponId: true, discountSatang: true } }) : null,
     check: slip
       ? {
-          diffSatang: slip.declaredAmountSatang - o.totalSatang,
+          diffSatang: slipSumSatang - o.totalSatang,
           dupOrderNos: dups,
           late: o.createdAt.getTime() - slip.transferredAt.getTime() > 3 * 864e5,
         }
@@ -240,10 +271,10 @@ export async function getOrderDetail(orderNo: string) {
 export async function neighbours(f: OrderFilter, orderNo: string) {
   const { where: rw } = rangeWhere(f);
   const base: Prisma.OrderWhereInput = { AND: [rw, searchWhere(f.q)] };
-  const where: Prisma.OrderWhereInput = f.tab === "ALL" ? base : { AND: [base, { status: f.tab }] };
+  const where: Prisma.OrderWhereInput = f.tab === "ALL" ? base : { AND: [base, tabWhere(f.tab)] };
   const list = await prisma.order.findMany({
     where,
-    orderBy: { createdAt: f.tab === "PENDING_VERIFICATION" ? "asc" : "desc" },
+    orderBy: { createdAt: f.tab === "PENDING_VERIFICATION" || f.tab === "COD" ? "asc" : "desc" },
     select: { orderNo: true },
     take: 1000,
   });
@@ -254,7 +285,7 @@ export async function neighbours(f: OrderFilter, orderNo: string) {
 /** คำสั่งซื้อที่รอตรวจเก่าสุด (ใช้ "ตรวจสลิปที่ค้างอยู่" และไปต่อหลังอนุมัติ/ปฏิเสธ) */
 export async function nextPending(exceptOrderNo?: string) {
   const o = await prisma.order.findFirst({
-    where: { status: "PENDING_VERIFICATION", ...(exceptOrderNo ? { orderNo: { not: exceptOrderNo } } : {}) },
+    where: { status: "PENDING_VERIFICATION", paymentMethod: "TRANSFER", ...(exceptOrderNo ? { orderNo: { not: exceptOrderNo } } : {}) },
     orderBy: { createdAt: "asc" },
     select: { orderNo: true },
   });

@@ -8,7 +8,8 @@ import { logAdmin } from "@/lib/admin-log";
 import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
-import { allocDocNo, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, prefixOf, todayYmd, totalsFor, type Tx } from "@/lib/docs";
+import { custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, type Tx } from "@/lib/docs";
+import { DocUserError, issueDocTx, recordInvoicePaymentTx } from "@/lib/doc-payments";
 import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -126,22 +127,14 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
 
 class UserError extends Error {}
 
-/** ออกเลขที่ + เปลี่ยนสถานะ (เรียกภายใน transaction) */
+/** ออกเลขที่ + เปลี่ยนสถานะ (เรียกภายใน transaction) — ตัวจริงอยู่ที่ src/lib/doc-payments.ts (ใช้ร่วมกับการอนุมัติสลิปใบแจ้งหนี้) */
 async function issueInTx(tx: Tx, id: string, adminId: string, s: Awaited<ReturnType<typeof getSettings>>) {
-  const d = await tx.salesDocument.findUniqueOrThrow({ where: { id }, include: { source: true, _count: { select: { items: true } } } });
-  if (d.status !== "DRAFT") throw new UserError("เอกสารนี้ออกเลขที่แล้ว");
-  if (!d._count.items || !d.customerId) throw new UserError("ต้องมีลูกค้าและรายการก่อนออกเอกสาร");
-  const ymd = ymdBkk(d.issueDate ?? new Date());
-  const no = await allocDocNo(tx, d.type, ymd, prefixOf(s, d.type));
-  const r = await tx.salesDocument.updateMany({ where: { id, status: "DRAFT" }, data: { docNo: no, status: "ISSUED", issueDate: fromYmd(ymd) } });
-  if (r.count !== 1) throw new UserError("เอกสารนี้ถูกออกเลขที่ไปแล้ว");
-  await event(tx, id, "ISSUED", adminId, `ออกเลขที่ ${no}`);
-  // ฉบับแก้ไขของใบเสนอราคา → ยกเลิกฉบับเดิม (เลขเดิมยังเก็บไว้)
-  if (d.type === "QUOTATION" && d.source?.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.source.status)) {
-    await tx.salesDocument.update({ where: { id: d.source.id }, data: { status: "VOID", voidReason: `มีฉบับแก้ไข ${no}` } });
-    await event(tx, d.source.id, "VOIDED", adminId, `มีฉบับแก้ไข ${no}`);
+  try {
+    return await issueDocTx(tx, id, adminId, s);
+  } catch (e) {
+    if (e instanceof DocUserError) throw new UserError(e.message);
+    throw e;
   }
-  return no;
 }
 
 export async function issueDoc(f: FormData) {
@@ -270,42 +263,10 @@ export async function recordPayment(_prev: DocState, f: FormData): Promise<DocSt
 
   let rcId = "", rcNo = "", ivNo = "";
   try {
-    await prisma.$transaction(async (tx) => {
-      // ล็อกใบแจ้งหนี้ กันบันทึกรับชำระซ้อนกัน
-      await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${id} FOR UPDATE`;
-      const iv = await tx.salesDocument.findUnique({ where: { id }, include: { items: { orderBy: { sortOrder: "asc" } }, payments: { where: { voided: false } } } });
-      if (!iv || iv.type !== "INVOICE") throw new UserError("ไม่พบใบแจ้งหนี้");
-      if (!["ISSUED", "PARTIAL"].includes(iv.status)) throw new UserError(iv.status === "PAID" ? "ใบแจ้งหนี้นี้ชำระครบแล้ว" : "ใบแจ้งหนี้นี้ยังไม่ได้ออก หรือถูกยกเลิก");
-      const outstanding = iv.grandSatang - iv.paidSatang;
-      if (amount > outstanding) throw new UserError(`ยอดรับชำระเกินยอดค้าง (คงค้าง ${money(outstanding)} บาท)`);
-      if (paidYmd < ymdBkk(iv.issueDate ?? iv.createdAt)) throw new UserError("วันที่รับชำระต้องไม่ก่อนวันที่ออกใบแจ้งหนี้");
-      ivNo = iv.docNo!;
-      const seq = iv.payments.length + 1;
-      const full = !iv.payments.length && amount === iv.grandSatang;
-      // ชำระเต็มจำนวนครั้งเดียว = คัดลอกรายการ · ชำระบางส่วน = 1 บรรทัด "รับชำระตามใบแจ้งหนี้ … (งวดที่ n)"
-      const items = full
-        ? iv.items.map(({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder }) => ({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder }))
-        : [{ sortOrder: 1, productId: null, sku: null, name: `รับชำระตามใบแจ้งหนี้ ${iv.docNo} (งวดที่ ${seq})`, detail: `ยอดตามใบแจ้งหนี้ ${money(iv.grandSatang)} บาท`, unit: "งวด", qtyMilli: 1000, priceSatang: amount, discountSatang: 0 }];
-      const vatMode: VatMode = full ? iv.vatMode : iv.vatMode === "NONE" ? "NONE" : "INCLUSIVE";
-      const discount = full ? iv.discountSatang : 0;
-      const totals = totalsFor(items, discount, vatMode, iv.vatRateBp || s.vatRateBp);
-      if (totals.grandSatang !== amount) throw new UserError("คำนวณยอดใบเสร็จไม่ตรงกับยอดรับชำระ");
-      const rc = await tx.salesDocument.create({
-        data: {
-          type: "RECEIPT", status: "DRAFT", customerId: iv.customerId, customerSnapshot: iv.customerSnapshot ?? {}, issueDate: fromYmd(paidYmd),
-          ...totals, vatMode, vatRateBp: vatMode === "NONE" ? 0 : iv.vatRateBp || s.vatRateBp, paymentMethod: method, carrier: iv.carrier,
-          paymentTerms: s.termsReceipt, sourceId: iv.id, orderId: iv.orderId, items: { create: items },
-        },
-      });
-      rcId = rc.id;
-      rcNo = await issueInTx(tx, rc.id, admin.id, s);
-      await tx.docPayment.create({ data: { invoiceId: iv.id, receiptId: rc.id, paidAt: fromYmd(paidYmd), amountSatang: amount, method, reference: reference || null } });
-      const paid = iv.paidSatang + amount;
-      await tx.salesDocument.update({ where: { id: iv.id }, data: { paidSatang: paid, status: paid >= iv.grandSatang ? "PAID" : "PARTIAL" } });
-      await event(tx, iv.id, "PAYMENT", admin.id, `รับชำระ ${money(amount)} บาท (${method}${reference ? ` · ${reference}` : ""}) → ${rcNo}`);
-    });
+    const r = await prisma.$transaction((tx) => recordInvoicePaymentTx(tx, { invoiceId: id, paidYmd, amountSatang: amount, method, reference: reference || null, adminId: admin.id }, s));
+    ({ rcId, rcNo, ivNo } = r);
   } catch (e) {
-    if (e instanceof UserError) return { error: e.message };
+    if (e instanceof DocUserError) return { error: e.message };
     throw e;
   }
   await logAdmin(admin.id, "DOC", `รับชำระ ${ivNo} ฿${money(amount)} → ออกใบเสร็จ ${rcNo}`);
@@ -367,11 +328,15 @@ export async function docFromOrder(f: FormData) {
   if (type === "RECEIPT" && !["PAID", "SHIPPED"].includes(o.status)) redirect(`/admin?tab=ALL&open=${o.orderNo}`);
   const items = [
     ...o.items.map((i, k) => ({ sortOrder: k + 1, productId: i.productId, sku: i.product?.sku ?? null, name: i.nameSnapshot, detail: null, unit: i.product?.unit ?? "ชิ้น", qtyMilli: i.qty * 1000, priceSatang: i.priceSatang, discountSatang: 0 })),
-    ...(o.shippingSatang > 0 ? [{ sortOrder: o.items.length + 1, productId: null, sku: "Shipping", name: "ค่าส่งสินค้า", detail: o.shippingName, unit: "กล่อง", qtyMilli: 1000, priceSatang: o.shippingSatang, discountSatang: 0 }] : []),
+    ...(o.shippingSatang > 0 ? [{ sortOrder: o.items.length + 1, productId: null, sku: "Shipping", name: "ค่าส่งสินค้า", detail: o.remoteFeeSatang > 0 ? `${o.shippingName} (รวมค่าส่งพื้นที่ห่างไกล ${money(o.remoteFeeSatang)} บาท)` : o.shippingName, unit: "กล่อง", qtyMilli: 1000, priceSatang: o.shippingSatang, discountSatang: 0 }] : []),
+    // รอบ 3: ค่าธรรมเนียมเก็บเงินปลายทาง (COD)
+    ...(o.codFeeSatang > 0 ? [{ sortOrder: o.items.length + 2, productId: null, sku: "COD", name: "ค่าธรรมเนียมเก็บเงินปลายทาง", detail: null, unit: "ครั้ง", qtyMilli: 1000, priceSatang: o.codFeeSatang, discountSatang: 0 }] : []),
   ];
+  // ส่วนลดคูปองเป็นส่วนลดท้ายบิล (ยอดรวมเอกสาร = ยอดคำสั่งซื้อ)
+  const orderDiscount = Math.max(0, o.discountSatang);
   // ราคาหน้าเว็บรวม VAT แล้ว → ถ้าเปิด VAT ให้ถอดภาษีออกมาแสดง (ยอดรวมเท่ายอดที่ลูกค้าโอน)
   const vatMode: VatMode = s.vatEnabled ? "INCLUSIVE" : "NONE";
-  const totals = totalsFor(items, 0, vatMode, s.vatRateBp);
+  const totals = totalsFor(items, orderDiscount, vatMode, s.vatRateBp);
   const today = todayYmd();
   const payYmd = o.paidAt ? ymdBkk(o.paidAt) : today;
   // ลูกค้าขอใบกำกับภาษีตอนสั่งซื้อ (A15) → ออกในนามผู้ขอ (เลขผู้เสียภาษี/สาขา/ที่อยู่ออกบิล) ส่งของถึงผู้รับในคำสั่งซื้อ
@@ -395,8 +360,8 @@ export async function docFromOrder(f: FormData) {
           type, status: "DRAFT", customerId: billTo.id, customerSnapshot: snap, orderId: o.id,
           issueDate: fromYmd(type === "RECEIPT" ? payYmd : today), dueDate: type === "INVOICE" ? fromYmd(ymdBkk(new Date(fromYmd(today).getTime() + s.invoiceDueDays * 864e5))) : null,
           ...totals, vatMode, vatRateBp: vatMode === "NONE" ? 0 : s.vatRateBp,
-          paymentMethod: "โอนเงินผ่านธนาคาร", carrier: o.carrier, paymentTerms: type === "INVOICE" ? defaultTerms(s, "INVOICE") : s.termsReceipt,
-          note: o.note ? `หมายเหตุลูกค้า: ${o.note}` : null, items: { create: items },
+          paymentMethod: o.paymentMethod === "COD" ? "เก็บเงินปลายทาง" : "โอนเงินผ่านธนาคาร", carrier: o.carrier, paymentTerms: type === "INVOICE" ? defaultTerms(s, "INVOICE") : s.termsReceipt,
+          note: [o.couponCode ? `ส่วนลดคูปอง ${o.couponCode}` : "", o.note ? `หมายเหตุลูกค้า: ${o.note}` : ""].filter(Boolean).join("\n") || null, items: { create: items },
         },
       });
       id = d.id;

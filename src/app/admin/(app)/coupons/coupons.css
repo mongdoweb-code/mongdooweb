@@ -1,0 +1,12 @@
+/* คูปอง + เคลม + COD (ล็อต 11) — หลังบ้าน */
+.cp-h{font-size:18px;margin:24px 0 10px}
+.cp-form{display:grid;gap:12px;max-width:820px}
+.cp-form .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cp-cats{border:0;padding:0;margin:0}
+.cp-cats legend{font-size:14px;font-weight:600;margin-bottom:6px}
+.cp-cat-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px 12px;max-height:220px;overflow:auto;border:1px solid var(--c-line);padding:10px}
+.cp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.cl-photos{display:flex;gap:10px;flex-wrap:wrap}
+.cl-photos img{width:140px;height:140px;object-fit:cover;border:1px solid var(--c-line);background:#f4f1ea}
+.cl-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.cp-form .two,.cl-grid{grid-template-columns:1fr}}

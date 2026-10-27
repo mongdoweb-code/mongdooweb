@@ -1,5 +1,6 @@
 // POST /api/orders — สร้าง (หรือแก้) คำสั่งซื้อจากขั้น "ข้อมูลจัดส่ง" ของหน้าชำระเงิน
-// body: { items: { slug: qty }, shipping: "std" | "express", address: {...}, taxInvoice?: {...} | null, orderNo?: string }
+// body: { items: { slug: qty }, shipping: "std" | "express" | "pickup", address: {...}, taxInvoice?: {...} | null, orderNo?: string,
+//         coupon?: string, payment?: "TRANSFER" | "COD" } — ยอดทั้งหมดคำนวณใหม่ที่ server
 import { OrderError, saveCheckoutOrder } from "@/lib/orders";
 import { clientIp, overLimit } from "@/lib/rate-limit";
 
@@ -14,7 +15,9 @@ export async function POST(req: Request) {
   }
   try {
     const address = body.address && typeof body.address === "object" ? (body.address as Record<string, unknown>) : {};
-    const order = await saveCheckoutOrder({ items: body.items, shipping: body.shipping, address, taxInvoice: body.taxInvoice, orderNo: body.orderNo });
+    const order = await saveCheckoutOrder({
+      items: body.items, shipping: body.shipping, address, taxInvoice: body.taxInvoice, orderNo: body.orderNo, coupon: body.coupon, payment: body.payment,
+    });
     return Response.json(order, { status: 201 });
   } catch (e) {
     if (e instanceof OrderError) return Response.json({ error: e.message, fields: e.fields, messages: e.messages }, { status: e.status });
