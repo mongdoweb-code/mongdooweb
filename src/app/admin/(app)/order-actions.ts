@@ -8,17 +8,20 @@ import { diffOf, logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin, requireOwner } from "@/lib/auth";
 import {
   ADMIN_SOURCES, CANCEL_REASONS, CANCELLABLE, CARRIERS, EDITABLE, REFUND_REASONS, REFUNDABLE, REJECT_REASONS, TRACKING_RE,
-  checkShipRows, makeOrderNo, nextPending, normTracking, restockLines, type ShipRow,
+  checkShipRows, nextPending, normTracking, restockLines, type ShipRow,
 } from "@/lib/admin-orders";
 import { parseCsv } from "@/lib/csv";
 import { releaseCouponTx } from "@/lib/coupons";
 import { customerFromOrder } from "@/lib/docs";
 import { sendOrderEmail } from "@/lib/email";
 import { bahtText, phoneDigits } from "@/lib/format";
-import { validateAddress, validateTaxInvoice } from "@/lib/orders";
+import { makeOrderNo, newPublicToken, validateAddress, validateTaxInvoice } from "@/lib/orders";
+import { afterOrderPaid, confirmOrderPaidTx, type ConfirmResult } from "@/lib/order-confirm";
+import { unitPriceSatang } from "@/lib/pricing";
+import { quoteShipping } from "@/lib/shipping";
 import { prisma } from "@/lib/prisma";
-import { getSettings, shippingFee } from "@/lib/settings";
-import { alertLowStock, moveStock, type StockResult } from "@/lib/stock";
+import { getSettings, shipConfig } from "@/lib/settings";
+import { moveStock } from "@/lib/stock";
 import { Prisma, type OrderStatus } from "../../../../generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;
@@ -46,24 +49,11 @@ async function transition(tx: Tx, orderNo: string, from: OrderStatus[], data: Pr
 }
 
 /**
- * ยืนยันการรับเงิน: เปลี่ยนเป็น "ชำระแล้ว" + ตัดสต็อก (บันทึก StockMovement) ใน transaction เดียว
- * ใช้ทั้งอนุมัติสลิป, บันทึกรับชำระเอง และคำสั่งซื้อที่แอดมินสร้างแบบชำระแล้ว
+ * ยืนยันการรับเงิน: ตัวจริงอยู่ที่ src/lib/order-confirm.ts (ใช้ร่วมกับ COD และใบแจ้งหนี้ที่ชำระครบ)
+ * สถานะ PAID + ตัดสต็อก + ผูกลูกค้า + บันทึกต้นทุน ใน transaction เดียว
  */
-async function confirmPaid(tx: Tx, orderNo: string, from: OrderStatus[], adminId: string, note: string): Promise<StockResult[] | null> {
-  const id = await transition(tx, orderNo, from, { status: "PAID", paidAt: new Date(), rejectReason: null });
-  if (!id) return null;
-  // รอบ 3: ลูกค้าแนบได้หลายสลิป → อนุมัติทุกสลิปที่รอตรวจ
-  await tx.paymentSlip.updateMany({ where: { orderId: id, status: "PENDING" }, data: { status: "ACCEPTED" } });
-  await tx.orderEvent.create({ data: { orderId: id, type: "APPROVED", note, adminId } });
-  const items = await tx.orderItem.findMany({ where: { orderId: id, productId: { not: null } }, select: { productId: true, qty: true } });
-  return moveStock(tx, items.map((i) => ({ productId: i.productId!, delta: -i.qty })), { reason: "SALE", ref: orderNo, adminId, note: "ตัดสต็อกเมื่อยืนยันการชำระเงิน" });
-}
-
-/** หลังตัดสต็อก: ล้างแคชหน้าร้าน + แจ้ง LINE สินค้าใกล้หมด (หลังตอบผู้ใช้แล้ว) */
-function afterStock(moves: StockResult[], orderNo: string) {
-  if (moves.length) refreshStorefront();
-  after(() => alertLowStock(moves, orderNo));
-}
+const confirmPaid = (tx: Tx, orderNo: string, from: OrderStatus[], adminId: string, note: string) =>
+  confirmOrderPaidTx(tx, { orderNo, from, adminId, note });
 
 // ---------------------------------------------------------------------------
 // ตรวจสลิป
@@ -72,10 +62,9 @@ function afterStock(moves: StockResult[], orderNo: string) {
 export async function approveOrder(f: FormData) {
   const admin = await requireAdmin();
   const orderNo = str(f, "orderNo", 40);
-  const moves = await prisma.$transaction((tx) => confirmPaid(tx, orderNo, ["PENDING_VERIFICATION"], admin.id, "ยืนยันการชำระเงิน"));
-  if (moves) {
-    afterStock(moves, orderNo);
-    after(() => sendOrderEmail(orderNo, "PAID"));
+  const done = await prisma.$transaction((tx) => confirmPaid(tx, orderNo, ["PENDING_VERIFICATION"], admin.id, "ยืนยันการชำระเงิน"));
+  if (done) {
+    afterOrderPaid(done);
     await logAdmin(admin.id, "ORDER", `อนุมัติการชำระเงิน ${orderNo}`);
   }
   // ไปคำสั่งซื้อที่รอตรวจถัดไปอัตโนมัติ (ลดคลิกตอนเคลียร์คิว)
@@ -126,10 +115,9 @@ export async function markPaid(f: FormData) {
   const note = str(f, "note", 200);
   if (!note) redirect(backTo(f, { open: orderNo, mode: "pay", err: "paynote" }));
   const text = `บันทึกรับชำระโดยแอดมิน (${method}) — ${note}`;
-  const moves = await prisma.$transaction((tx) => confirmPaid(tx, orderNo, ["AWAITING_SLIP", "REJECTED"], admin.id, text));
-  if (moves) {
-    afterStock(moves, orderNo);
-    after(() => sendOrderEmail(orderNo, "PAID"));
+  const done = await prisma.$transaction((tx) => confirmPaid(tx, orderNo, ["AWAITING_SLIP", "REJECTED"], admin.id, text));
+  if (done) {
+    afterOrderPaid(done);
     await logAdmin(admin.id, "ORDER", `${orderNo}: ${text}`);
   }
   redirect(backTo(f, { open: orderNo }));
@@ -154,6 +142,30 @@ export async function shipOrder(f: FormData) {
   if (await prisma.$transaction((tx) => ship(tx, orderNo, carrier, trackingNo, admin.id))) {
     after(() => sendOrderEmail(orderNo, "SHIPPED"));
     await logAdmin(admin.id, "ORDER", `จัดส่ง ${orderNo} (${carrier} · ${trackingNo})`);
+  }
+  redirect(backTo(f, { open: orderNo }));
+}
+
+/** รับที่ร้าน: ลูกค้ามารับสินค้าแล้ว → ปิดคำสั่งซื้อเป็น "จัดส่งแล้ว" (ไม่มีขนส่ง/เลขพัสดุ) */
+const PICKUP_CARRIER = "รับที่ร้าน";
+export async function pickupOrder(f: FormData) {
+  const admin = await requireAdmin();
+  const orderNo = str(f, "orderNo", 40);
+  const note = str(f, "note", 200);
+  const ok = await prisma.$transaction(async (tx) => {
+    const o = await tx.order.findUnique({ where: { orderNo }, select: { id: true } });
+    if (!o) return false;
+    const r = await tx.order.updateMany({
+      where: { id: o.id, status: "PAID", shippingMethod: "pickup" },
+      data: { status: "SHIPPED", carrier: PICKUP_CARRIER, trackingNo: null, shippedAt: new Date() },
+    });
+    if (r.count !== 1) return false;
+    await tx.orderEvent.create({ data: { orderId: o.id, type: "SHIPPED", note: `ลูกค้ารับสินค้าที่ร้านแล้ว${note ? ` — ${note}` : ""}`, adminId: admin.id } });
+    return true;
+  });
+  if (ok) {
+    after(() => sendOrderEmail(orderNo, "SHIPPED"));
+    await logAdmin(admin.id, "ORDER", `ลูกค้ารับสินค้าที่ร้าน ${orderNo}${note ? ` (${note})` : ""}`);
   }
   redirect(backTo(f, { open: orderNo }));
 }
@@ -412,34 +424,39 @@ export async function createManualOrder(_prev: OrderFormState, f: FormData): Pro
   bad.push(...tax.bad);
 
   // รายการสินค้า: ราคาตั้งเองได้ (ราคาตกลงทางโทร) แต่ตรวจที่ server ทุกช่อง
+  // ช่องราคาว่าง = ราคาขายจริงตามจำนวน (ราคาลดตามช่วงเวลา/ราคาขายส่ง — unitPriceSatang แบบเดียวกับหน้าร้าน)
   const lines = (Array.isArray(p.items) ? p.items : []).slice(0, 60);
   if (!lines.length) return { error: "กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ", fields: [...bad, "items"] };
   const products = await prisma.product.findMany({ where: { id: { in: lines.map((l) => String(l.productId)) }, isService: false } });
   const byId = new Map(products.map((x) => [x.id, x]));
   const items: { productId: string; nameSnapshot: string; priceSatang: number; qty: number }[] = [];
-  const merged = new Map<string, { qty: number; price: number }>();
+  const merged = new Map<string, { qty: number; price: number | null; i: number }>();
   for (const [i, l] of lines.entries()) {
     const prod = byId.get(String(l.productId));
     const qty = Math.floor(Number(l.qty));
-    const price = toSatang(l.price);
+    const blank = String(l.price ?? "").trim() === "";
+    const price = blank ? null : toSatang(l.price);
     if (!prod) return { error: `รายการที่ ${i + 1}: ไม่พบสินค้า`, fields: [...bad, `item.${i}`] };
     if (!(qty >= 1 && qty <= 999)) return { error: `"${prod.name}": จำนวนต้องเป็น 1–999`, fields: [...bad, `item.${i}`] };
-    if (Number.isNaN(price) || price <= 0) return { error: `"${prod.name}": กรุณาใส่ราคาต่อหน่วยมากกว่า 0`, fields: [...bad, `item.${i}`] };
+    if (price !== null && (Number.isNaN(price) || price <= 0)) return { error: `"${prod.name}": กรุณาใส่ราคาต่อหน่วยมากกว่า 0`, fields: [...bad, `item.${i}`] };
     const m = merged.get(prod.id);
     if (m && m.price !== price) return { error: `"${prod.name}" อยู่ในรายการซ้ำด้วยราคาต่างกัน`, fields: [...bad, `item.${i}`] };
-    merged.set(prod.id, { qty: (m?.qty ?? 0) + qty, price });
+    merged.set(prod.id, { qty: (m?.qty ?? 0) + qty, price, i: m?.i ?? i });
   }
   for (const [id, m] of merged) {
     const prod = byId.get(id)!;
     if (prod.trackStock && prod.stock < m.qty)
       return { error: `"${prod.name}" สต็อกไม่พอ (เหลือ ${prod.stock} ชิ้น) — รับของเข้าที่หน้าสต็อกก่อน หรือแก้จำนวน`, fields: bad };
-    items.push({ productId: id, nameSnapshot: prod.name, priceSatang: m.price, qty: m.qty });
+    const price = m.price ?? unitPriceSatang(prod, m.qty);
+    if (price <= 0) return { error: `"${prod.name}" เป็นสินค้าสอบถามราคา — กรุณาใส่ราคาต่อหน่วย`, fields: [...bad, `item.${m.i}`] };
+    items.push({ productId: id, nameSnapshot: prod.name, priceSatang: price, qty: m.qty });
   }
   if (bad.length || !v.ok) return { error: errorText([...v.messages, ...tax.messages]), fields: bad };
 
   const s = await getSettings();
   const subtotalSatang = items.reduce((a, i) => a + i.priceSatang * i.qty, 0);
   let shippingSatang = 0;
+  let remoteFeeSatang = 0;
   let shippingName = "รับสินค้าที่ร้าน";
   let shippingMethod: string = p.shipping;
   if (p.shipping === "custom") {
@@ -447,9 +464,13 @@ export async function createManualOrder(_prev: OrderFormState, f: FormData): Pro
     if (Number.isNaN(shippingSatang)) return { error: "ค่าส่งไม่ถูกต้อง", fields: ["shippingFee"] };
     shippingName = "ค่าส่ง (กำหนดเอง)";
   } else if (!pickup) {
-    shippingMethod = p.shipping === "express" && s.expressEnabled ? "express" : "std";
-    shippingSatang = shippingFee(s, shippingMethod, subtotalSatang);
-    shippingName = shippingMethod === "express" ? "ส่งด่วน" : "ส่งธรรมดา";
+    // คำนวณแบบเดียวกับหน้าชำระเงิน: ขั้นค่าส่งตามยอด (+ ส่งด่วน) + น้ำหนักรวม + พื้นที่ห่างไกลตามรหัสไปรษณีย์ผู้รับ
+    const totalGram = items.reduce((g, i) => g + Math.max(0, byId.get(i.productId)!.weightGram ?? 0) * i.qty, 0);
+    const q = quoteShipping(shipConfig(s), { method: p.shipping === "express" ? "express" : "std", subtotalSatang, totalGram, zip: v.value.zip });
+    shippingMethod = q.method;
+    shippingSatang = q.shippingSatang;
+    remoteFeeSatang = q.remoteSatang;
+    shippingName = q.method === "express" ? "ส่งด่วน" : "ส่งธรรมดา";
   }
   const source = ADMIN_SOURCES.includes(p.source) ? p.source : "อื่นๆ";
   const payMethod = ["โอนเงินผ่านธนาคาร", "QR PromptPay", "เงินสด", "อื่นๆ"].includes(String(p.payMethod)) ? String(p.payMethod) : "โอนเงินผ่านธนาคาร";
@@ -457,19 +478,20 @@ export async function createManualOrder(_prev: OrderFormState, f: FormData): Pro
   const data = {
     customerName: a.name, phone: phoneDigits(a.phone), email: a.email || null, addressLine: a.addr, subdistrict: a.sub, district: a.dist,
     province: a.prov, postalCode: a.zip, note: a.note || null,
-    subtotalSatang, shippingMethod, shippingName, shippingSatang, totalSatang: subtotalSatang + shippingSatang,
+    subtotalSatang, shippingMethod, shippingName, shippingSatang, remoteFeeSatang, totalSatang: subtotalSatang + shippingSatang,
     channel: "ADMIN", taxInvoice: tax.value ?? Prisma.DbNull,
   };
 
   let orderNo = "";
-  let moves: StockResult[] = [];
+  let confirmed: ConfirmResult | null = null;
   for (let attempt = 0; attempt < 10 && !orderNo; attempt++) {
     const no = makeOrderNo();
     try {
-      moves = await prisma.$transaction(async (tx) => {
+      confirmed = await prisma.$transaction(async (tx) => {
         const o = await tx.order.create({
           data: {
-            ...data, orderNo: no, status: "AWAITING_SLIP", items: { create: items },
+            // โทเคนลับสำหรับลิงก์ดู/พิมพ์ใบสั่งซื้อ (U24) เหมือนคำสั่งซื้อจากหน้าเว็บ
+            ...data, orderNo: no, publicToken: newPublicToken(), status: "AWAITING_SLIP", items: { create: items },
             events: { create: { type: "CREATED", note: `สร้างโดยแอดมิน · ลูกค้าสั่งทาง${source}`, adminId: admin.id } },
           },
         });
@@ -477,8 +499,8 @@ export async function createManualOrder(_prev: OrderFormState, f: FormData): Pro
         const chosen = p.customerId ? await tx.customer.findUnique({ where: { id: String(p.customerId) } }) : null;
         const c = chosen ?? (await customerFromOrder(tx, { ...o, customerId: null }));
         await tx.order.update({ where: { id: o.id }, data: { customerId: c.id } });
-        if (!p.paid) return [];
-        return (await confirmPaid(tx, no, ["AWAITING_SLIP"], admin.id, `ชำระแล้ว (${payMethod})${p.payNote ? ` — ${String(p.payNote).slice(0, 200)}` : ""}`)) ?? [];
+        if (!p.paid) return null;
+        return confirmPaid(tx, no, ["AWAITING_SLIP"], admin.id, `ชำระแล้ว (${payMethod})${p.payNote ? ` — ${String(p.payNote).slice(0, 200)}` : ""}`);
       });
       orderNo = no;
     } catch (e) {
@@ -487,7 +509,7 @@ export async function createManualOrder(_prev: OrderFormState, f: FormData): Pro
     }
   }
   if (!orderNo) return { error: "สร้างเลขที่คำสั่งซื้อไม่สำเร็จ กรุณาลองใหม่" };
-  afterStock(moves, orderNo);
+  afterOrderPaid(confirmed, { email: false });
   await logAdmin(admin.id, "ORDER", `สร้างคำสั่งซื้อ ${orderNo} (ทาง${source}) ยอด ${bahtText(data.totalSatang)}${p.paid ? " · ชำระแล้ว" : " · รอชำระ"}`);
   redirect(`/admin?tab=ALL&open=${encodeURIComponent(orderNo)}&created=1`);
 }

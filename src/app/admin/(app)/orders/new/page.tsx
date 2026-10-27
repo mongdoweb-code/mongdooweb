@@ -2,9 +2,9 @@
 import Link from "next/link";
 import { ADMIN_SOURCES } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/auth";
-import { unitPriceSatang } from "@/lib/pricing";
+import { parseTiers, unitPriceSatang } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
-import { getSettings, parseShippingTiers } from "@/lib/settings";
+import { getSettings, shipConfig } from "@/lib/settings";
 import { ManualOrderForm } from "../OrderForms";
 import "../../../lot3.css";
 
@@ -15,7 +15,7 @@ export default async function NewOrderPage() {
     prisma.product.findMany({
       where: { isService: false },
       orderBy: [{ isActive: "desc" }, { name: "asc" }],
-      select: { id: true, sku: true, name: true, priceSatang: true, compareAtSatang: true, salePriceSatang: true, saleStartsAt: true, saleEndsAt: true, trackStock: true, stock: true, inStock: true, isActive: true },
+      select: { id: true, sku: true, name: true, priceSatang: true, compareAtSatang: true, salePriceSatang: true, saleStartsAt: true, saleEndsAt: true, tierPrices: true, weightGram: true, trackStock: true, stock: true, inStock: true, isActive: true },
     }),
   ]);
   return (
@@ -28,14 +28,16 @@ export default async function NewOrderPage() {
         </div>
       </div>
       <ManualOrderForm
-        // ราคาตั้งต้น = ราคาขายปัจจุบัน (รวมราคาลดตามช่วงเวลา) — แอดมินแก้ได้ในฟอร์ม
-        products={products.map(({ compareAtSatang: _c, salePriceSatang: _s, saleStartsAt: _a, saleEndsAt: _e, ...p }) => {
-          void [_c, _s, _a, _e];
-          return { ...p, priceSatang: unitPriceSatang({ priceSatang: p.priceSatang, salePriceSatang: _s, saleStartsAt: _a, saleEndsAt: _e }) };
+        // ราคาตั้งต้น = ราคาขายจริง (ราคาลดตามช่วงเวลา) + ราคาขายส่งตามจำนวน — แอดมินแก้ได้ในฟอร์ม
+        products={products.map(({ compareAtSatang: _c, salePriceSatang: _s, saleStartsAt: _a, saleEndsAt: _e, tierPrices, weightGram, ...p }) => {
+          void _c;
+          const tiers = parseTiers(tierPrices);
+          return {
+            ...p, priceSatang: unitPriceSatang({ priceSatang: p.priceSatang, salePriceSatang: _s, saleStartsAt: _a, saleEndsAt: _e }),
+            weightGram: Math.max(0, weightGram ?? 0), ...(tiers.length ? { tiers } : {}),
+          };
         })}
-        tiers={parseShippingTiers(s.shippingTiers)}
-        expressEnabled={s.expressEnabled}
-        expressExtraSatang={s.expressExtraSatang}
+        ship={shipConfig(s)}
         sources={ADMIN_SOURCES}
       />
     </main>

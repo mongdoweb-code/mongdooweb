@@ -5,6 +5,7 @@ import { docDateTime, fromYmd, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
 import { DOC_INCLUDE, PAY_METHODS, UNITS, asSnap, custSnapshot, defaultTerms, docPath, isDocType, refLine, shopHead, todayYmd, ymdOf } from "@/lib/docs";
 import { CARRIERS } from "@/lib/admin-orders";
+import { parseTiers, unitPriceSatang } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { DocEditor, type EditorInit } from "../../../DocEditor";
@@ -46,7 +47,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
   }
   const [customers, products] = await Promise.all([
     prisma.customer.findMany({ orderBy: { code: "desc" }, take: 3000 }),
-    prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { isService: "desc" }, { name: "asc" }], select: { id: true, sku: true, name: true, unit: true, priceSatang: true, isService: true, isActive: true }, take: 5000 }),
+    prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { isService: "desc" }, { name: "asc" }], select: { id: true, sku: true, name: true, unit: true, priceSatang: true, salePriceSatang: true, saleStartsAt: true, saleEndsAt: true, tierPrices: true, isService: true, isActive: true }, take: 5000 }),
   ]);
   return (
     <DocEditor
@@ -54,7 +55,11 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       title={id === "new" ? `สร้าง${DOC_META[type].th.split(" /")[0]}` : `แก้ไข${DOC_META[type].th.split(" /")[0]} (ฉบับร่าง)`}
       back={id === "new" ? `/admin/docs/${type}` : `/admin/docs/${type}/${id}`}
       customers={customers.map((c) => ({ id: c.id, snap: custSnapshot(c) }))}
-      products={products.map((p) => ({ id: p.id, sku: p.sku, name: p.name, unit: p.unit, price: p.priceSatang, service: p.isService, off: !p.isActive }))}
+      // ราคาตั้งต้น = ราคาขายจริง (ราคาลดตามช่วงเวลา) + ราคาขายส่งตามจำนวน — แก้ได้ในตัวแก้ไข
+      products={products.map((p) => {
+        const tiers = parseTiers(p.tierPrices);
+        return { id: p.id, sku: p.sku, name: p.name, unit: p.unit, price: unitPriceSatang(p), service: p.isService, off: !p.isActive, ...(tiers.length ? { tiers } : {}) };
+      })}
       shop={shopHead(s)}
       vatEnabled={s.vatEnabled}
       vatRateBp={s.vatRateBp}

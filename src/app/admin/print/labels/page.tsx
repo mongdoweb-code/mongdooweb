@@ -1,5 +1,7 @@
 // /admin/print/labels — ใบปะหน้าส่งของจากคำสั่งซื้อ (?orders=MDW-…,MDW-… หรือ ?status=PAID = ทุกออเดอร์ที่รอจัดส่ง) หรือจากเอกสาร (?doc=id)
-// ตัวเลือก: size=A6|A4, boxes=จำนวนกล่อง, cod=บาท, marks=fragile,noThrow,upright, items=1
+// ตัวเลือก: size=A6|A4, boxes=จำนวนกล่อง, cod=บาท (เฉพาะ ?doc=), marks=fragile,noThrow,upright, items=1
+// เก็บเงินปลายทางของใบปะหน้าจากคำสั่งซื้อ = ยอดของคำสั่งซื้อนั้น (เฉพาะ COD) แยกทีละใบ — ไม่ใช้ค่า ?cod= ร่วมกัน
+// คำสั่งซื้อรับที่ร้านไม่มีใบปะหน้า (ไม่ต้องส่งพัสดุ)
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { addrText } from "@/lib/doc-calc";
@@ -34,7 +36,8 @@ export default async function PrintLabelsPage({ searchParams }: PageProps<"/admi
     }
   } else {
     const nos = one(sp.orders).split(",").map((x) => x.trim()).filter(Boolean).slice(0, 200);
-    const where = nos.length ? { orderNo: { in: nos } } : one(sp.status) === "PAID" ? { status: "PAID" as const } : null;
+    const noPickup = { shippingMethod: { not: "pickup" } };
+    const where = nos.length ? { orderNo: { in: nos }, ...noPickup } : one(sp.status) === "PAID" ? { status: "PAID" as const, ...noPickup } : null;
     if (where) {
       const orders = await prisma.order.findMany({ where, include: { items: true }, orderBy: { createdAt: "asc" }, take: 200 });
       for (const o of orders)
@@ -42,6 +45,7 @@ export default async function PrintLabelsPage({ searchParams }: PageProps<"/admi
           ref: o.orderNo, name: o.customerName, phone: formatPhone(o.phone),
           addr: addrText({ line: o.addressLine, sub: o.subdistrict, dist: o.district, prov: o.province }, { noZip: true }), zip: o.postalCode,
           carrier: o.trackingNo ? `${o.carrier ?? ""} · ${o.trackingNo}` : o.shippingName, items: o.items.map((i) => ({ name: i.nameSnapshot, qtyMilli: i.qty * 1000 })),
+          codSatang: o.paymentMethod === "COD" ? o.totalSatang : 0,
         });
       back = nos.length === 1 ? `/admin?tab=ALL&open=${nos[0]}` : "/admin?tab=PAID";
     }

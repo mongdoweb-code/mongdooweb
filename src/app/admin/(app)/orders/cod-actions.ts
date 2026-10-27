@@ -2,12 +2,10 @@
 // เก็บเงินปลายทาง (A17): ร้านโทรยืนยันแล้วกด "ยืนยัน COD" → พร้อมจัดส่ง (ตัดสต็อกเหมือนอนุมัติสลิป)
 // กระทบยอด: เมื่อขนส่งโอนเงิน COD คืน → ทำเครื่องหมาย "รับเงินแล้ว" (codSettledAt) ทีละรายการหรือหลายรายการ
 import { redirect } from "next/navigation";
-import { after } from "next/server";
-import { logAdmin, refreshStorefront } from "@/lib/admin-log";
+import { logAdmin } from "@/lib/admin-log";
 import { requireAdmin } from "@/lib/auth";
-import { sendOrderEmail } from "@/lib/email";
+import { afterOrderPaid, confirmOrderPaidTx } from "@/lib/order-confirm";
 import { prisma } from "@/lib/prisma";
-import { alertLowStock, moveStock } from "@/lib/stock";
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").trim().slice(0, max);
 /** กลับหน้าเดิม — รับเฉพาะ query string ?a=b กัน redirect ไปเว็บอื่น */
@@ -24,21 +22,14 @@ export async function confirmCodOrder(f: FormData) {
   const admin = await requireAdmin();
   const orderNo = str(f, "orderNo", 40);
   const note = str(f, "note", 200);
-  const moves = await prisma.$transaction(async (tx) => {
-    const o = await tx.order.findUnique({ where: { orderNo }, select: { id: true } });
-    if (!o) return null;
-    const r = await tx.order.updateMany({ where: { id: o.id, status: "PENDING_VERIFICATION", paymentMethod: "COD" }, data: { status: "PAID", paidAt: new Date() } });
-    if (r.count !== 1) return null;
-    await tx.orderEvent.create({ data: { orderId: o.id, type: "COD_CONFIRMED", note: `ยืนยันคำสั่งซื้อเก็บเงินปลายทาง${note ? ` — ${note}` : ""}`, adminId: admin.id } });
-    const items = await tx.orderItem.findMany({ where: { orderId: o.id, productId: { not: null } }, select: { productId: true, qty: true } });
-    return moveStock(tx, items.map((i) => ({ productId: i.productId!, delta: -i.qty })), { reason: "SALE", ref: orderNo, adminId: admin.id, note: "ตัดสต็อกเมื่อยืนยันคำสั่งซื้อ COD" });
-  });
-  if (moves) {
-    if (moves.length) refreshStorefront();
-    after(async () => {
-      await alertLowStock(moves, orderNo);
-      await sendOrderEmail(orderNo, "PAID");
-    });
+  const done = await prisma.$transaction((tx) =>
+    confirmOrderPaidTx(tx, {
+      orderNo, from: ["PENDING_VERIFICATION"], where: { paymentMethod: "COD" }, adminId: admin.id, event: "COD_CONFIRMED",
+      note: `ยืนยันคำสั่งซื้อเก็บเงินปลายทาง${note ? ` — ${note}` : ""}`, stockNote: "ตัดสต็อกเมื่อยืนยันคำสั่งซื้อ COD",
+    }),
+  );
+  if (done) {
+    afterOrderPaid(done);
     await logAdmin(admin.id, "ORDER", `ยืนยันคำสั่งซื้อ COD ${orderNo}${note ? ` (${note})` : ""}`);
   }
   // ไปคำสั่งซื้อ COD ที่รอยืนยันถัดไป

@@ -213,7 +213,11 @@ export async function orderStats() {
   ]);
   const count = Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])) as Partial<Record<OrderStatus | "COD", number>>;
   // แท็บ "รอตรวจสลิป" ไม่รวม COD ที่รอยืนยัน
-  const cod = await prisma.order.count({ where: { status: "PENDING_VERIFICATION", paymentMethod: "COD" } });
+  const [cod, toShip] = await Promise.all([
+    prisma.order.count({ where: { status: "PENDING_VERIFICATION", paymentMethod: "COD" } }),
+    // รอจัดส่งที่ต้องพิมพ์ใบปะหน้า (ไม่รวมรับที่ร้าน)
+    prisma.order.count({ where: { status: "PAID", shippingMethod: { not: "pickup" } } }),
+  ]);
   count.COD = cod;
   count.PENDING_VERIFICATION = (count.PENDING_VERIFICATION ?? 0) - cod;
   // ยอดขาย 7 วัน (ยืนยันแล้ว) ตามวันที่สั่งซื้อ เวลาไทย
@@ -223,7 +227,7 @@ export async function orderStats() {
     const list = week.filter((o) => o.createdAt >= start && o.createdAt < end);
     return { start, satang: list.reduce((s, o) => s + o.totalSatang, 0), orders: list.length };
   });
-  return { count, todayOrders: todayAll, todaySalesSatang: todaySales._sum.totalSatang ?? 0, days };
+  return { count, toShip, todayOrders: todayAll, todaySalesSatang: todaySales._sum.totalSatang ?? 0, days };
 }
 
 // ---------- รายละเอียด ----------
@@ -347,15 +351,6 @@ export async function customerForTaxInvoice(
       addressLine: t.address, note: `สร้างจากข้อมูลใบกำกับภาษีในคำสั่งซื้อ ${o.orderNo}`,
     },
   });
-}
-
-// ---------- เลขที่คำสั่งซื้อ (รูปแบบเดียวกับหน้าเว็บ: MDW-YYMMDD-NNNN เวลาไทย) ----------
-
-export function makeOrderNo(now = new Date()) {
-  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "2-digit", month: "2-digit", day: "2-digit" })
-    .format(now)
-    .replace(/-/g, "");
-  return `MDW-${ymd}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 // ---------- ขนส่ง / เลขพัสดุ ----------

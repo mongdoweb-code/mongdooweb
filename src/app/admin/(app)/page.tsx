@@ -30,7 +30,7 @@ import { formatPhone } from "@/lib/orders";
 import { AutoRefresh, ConfirmSubmit, CopyButton, DrawerKeys, SlipViewer } from "../_components/AdminClient";
 import { LabelOptions } from "../_components/LabelOptions";
 import { docFromOrder } from "./docs/actions";
-import { addOrderNote, approveOrder, cancelOrder, markPaid, refundOrder, rejectOrder, reopenOrder, shipOrder } from "./order-actions";
+import { addOrderNote, approveOrder, cancelOrder, markPaid, pickupOrder, refundOrder, rejectOrder, reopenOrder, shipOrder } from "./order-actions";
 import { BulkLabels, EditOrderForm } from "./orders/OrderForms";
 import { confirmCodOrder, settleCod } from "./orders/cod-actions";
 import "../lot3.css";
@@ -92,9 +92,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 4v12M7 11l5 5 5-5" /><path d="M4 20h16" /></svg>
             ส่งออก CSV
           </a>
-          {count("PAID") > 0 && (
-            <a className="btn btn-outline" href="/admin/print/labels?status=PAID&auto=1" target="_blank" rel="noopener" title="ใบปะหน้า A6 ของทุกคำสั่งซื้อที่ชำระแล้วรอจัดส่ง (ตั้งขนาด/จำนวนกล่องรายออเดอร์ได้ในรายละเอียดคำสั่งซื้อ)">
-              พิมพ์ใบปะหน้ารอส่ง ({count("PAID")})
+          {stats.toShip > 0 && (
+            <a className="btn btn-outline" id="bulkLabels" href="/admin/print/labels?status=PAID&auto=1" target="_blank" rel="noopener" title="ใบปะหน้า A6 ของทุกคำสั่งซื้อที่ชำระแล้วรอจัดส่ง (ไม่รวมรับที่ร้าน · คำสั่งซื้อ COD แสดงยอดเก็บเงินของแต่ละใบ)">
+              พิมพ์ใบปะหน้ารอส่ง ({stats.toShip})
             </a>
           )}
           {count("PAID") > 0 && (
@@ -637,7 +637,24 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                 </form>
               </div>
             )}
-            {o.status === "PAID" && (
+            {o.status === "PAID" && o.shippingMethod === "pickup" && (
+              <div className="act" id="pickupBox">
+                <h3>ลูกค้ารับสินค้าที่ร้าน</h3>
+                <p className="l3-note">ไม่ต้องส่งพัสดุ — เมื่อลูกค้ามารับสินค้าแล้ว กดปุ่มด้านล่างเพื่อปิดคำสั่งซื้อ (สถานะ &quot;จัดส่งแล้ว&quot; · ไม่มีเลขพัสดุ)</p>
+                <form action={pickupOrder} className="ship-form">
+                  <input type="hidden" name="orderNo" value={o.orderNo} />
+                  <input type="hidden" name="ret" value={ret} />
+                  <div className="field">
+                    <label htmlFor="pickupNote">บันทึก (ไม่บังคับ)</label>
+                    <input id="pickupNote" name="note" maxLength={200} placeholder="เช่น ลูกค้ามารับเอง 15:30 / ฝากคุณสมชายมารับ" />
+                  </div>
+                  <div className="act-row">
+                    <button className="btn btn-dark" type="submit" id="pickupDone">ลูกค้ารับสินค้าแล้ว</button>
+                  </div>
+                </form>
+              </div>
+            )}
+            {o.status === "PAID" && o.shippingMethod !== "pickup" && (
               <div className="act">
                 <h3>จัดส่งสินค้า</h3>
                 <form action={shipOrder} className="ship-form">
@@ -661,12 +678,11 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
               </div>
             )}
             {o.status === "SHIPPED" && (
-              <div className="box">
+              <div className="box" id="shippedBox">
                 <h3>การจัดส่ง</h3>
                 <div className="track">
                   {o.carrier}
-                  <br />
-                  <b className="num">{o.trackingNo}</b>
+                  {o.trackingNo ? <><br /><b className="num">{o.trackingNo}</b></> : null}
                 </div>
               </div>
             )}
@@ -804,7 +820,7 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
               </div>
             )}
 
-            {(o.status === "PAID" || o.status === "SHIPPED" || o.documents.length > 0) && (
+            {o.status !== "CANCELLED" || o.documents.length > 0 ? (
               <div className="box">
                 <h3>เอกสารขายและใบปะหน้า</h3>
                 {o.documents.length > 0 && (
@@ -837,11 +853,22 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                     )}
                   </div>
                 )}
-                {o.status !== "CANCELLED" && (
-                  <LabelOptions target={`orders=${encodeURIComponent(o.orderNo)}`} idKey={o.orderNo} cod={o.paymentMethod === "COD" ? (o.totalSatang / 100).toFixed(2) : undefined} />
+                {/* ยังไม่ชำระ: ออกใบแจ้งหนี้ให้ลูกค้า (เช่น บริษัทที่ต้องการใบแจ้งหนี้ก่อนโอน) — รับชำระครบแล้วคำสั่งซื้อเป็น "ชำระแล้ว" อัตโนมัติ */}
+                {(o.status === "AWAITING_SLIP" || o.status === "PENDING_VERIFICATION" || o.status === "REJECTED") && !o.documents.some((d) => d.type === "INVOICE" && d.status !== "VOID") && (
+                  <div className="act-row" style={{ marginBottom: 12 }}>
+                    <form action={docFromOrder}>
+                      <input type="hidden" name="orderNo" value={o.orderNo} />
+                      <input type="hidden" name="type" value="INVOICE" />
+                      <button className="btn btn-ghost" type="submit" id="ivFromOrder">สร้างใบแจ้งหนี้ (ฉบับร่าง)</button>
+                    </form>
+                  </div>
+                )}
+                {o.status !== "CANCELLED" && o.shippingMethod !== "pickup" && (o.status === "PAID" || o.status === "SHIPPED" || o.documents.length > 0) && (
+                  // ยอดเก็บเงินปลายทาง = ยอดคำสั่งซื้อ COD (กำหนดตามคำสั่งซื้อ แก้ในใบปะหน้าไม่ได้)
+                  <LabelOptions target={`orders=${encodeURIComponent(o.orderNo)}`} idKey={o.orderNo} codFixed={o.paymentMethod === "COD" ? o.totalSatang : 0} />
                 )}
               </div>
-            )}
+            ) : null}
 
             <div className="box">
               <h3>

@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { bahtText, calcTotals, lineSatang, money, type DocTypeT, type VatModeT } from "@/lib/doc-calc";
 import type { CustSnap, DocView, ShopHead } from "@/lib/doc-render";
 import { isValidThaiTaxId } from "@/lib/format";
+import { unitPriceSatang, type Tier } from "@/lib/pricing";
 import { DocSheets } from "../../_components/DocSheets";
 import { useFormAction } from "../../_components/useFormAction";
 import { saveCustomer, type CustomerState } from "../customers/actions";
@@ -18,7 +19,10 @@ export type EditorInit = {
   items: LineIn[]; discount: string; vatMode: VatModeT; paymentMethod: string; paymentTerms: string; carrier: string; note: string; internalNote: string;
 };
 type Cust = { id: string; snap: CustSnap };
-type Prod = { id: string; sku: string; name: string; unit: string; price: number; service: boolean; off: boolean };
+/** price = ราคาขายจริง 1 ชิ้น (รวมราคาลดตามช่วงเวลา) · tiers = ราคาขายส่งตามจำนวน */
+type Prod = { id: string; sku: string; name: string; unit: string; price: number; service: boolean; off: boolean; tiers?: Tier[] };
+/** ราคาตั้งต้นของสินค้าตามจำนวน (unitPriceSatang แบบเดียวกับหน้าร้าน) เป็นบาท "0.00" */
+const priceFor = (p: Prod, qty: string) => (unitPriceSatang({ priceSatang: p.price, tierPrices: p.tiers }, Math.max(1, Math.floor(num(qty)) || 1)) / 100).toFixed(2);
 
 const num = (s: string) => {
   const n = Number(String(s).replace(/[,\s฿]/g, ""));
@@ -167,7 +171,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                     <span className="ln-no">{i + 1}</span>
                     <div className="ln-main">
                       <ProductInput value={l.name} products={products} onText={(name) => setLine(l.key, { name, productId: "" })}
-                        onPick={(p) => setLine(l.key, { productId: p.id, sku: p.sku, name: p.name, unit: p.unit || "ชิ้น", price: (p.price / 100).toFixed(2) })} label={`ชื่อรายการที่ ${i + 1}`} />
+                        onPick={(p) => setLine(l.key, { productId: p.id, sku: p.sku, name: p.name, unit: p.unit || "ชิ้น", price: priceFor(p, l.qty) })} label={`ชื่อรายการที่ ${i + 1}`} />
                       <div className="ln-sub">
                         <input aria-label="รหัสสินค้า" placeholder="รหัสสินค้า" value={l.sku} maxLength={60} onChange={(e) => setLine(l.key, { sku: e.target.value })} />
                         <input aria-label="รายละเอียด" placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)" value={l.detail} maxLength={300} onChange={(e) => setLine(l.key, { detail: e.target.value })} />
@@ -179,7 +183,11 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                       <button className="icon-btn sm" type="button" onClick={() => set("items", v.items.length > 1 ? v.items.filter((x) => x.key !== l.key) : [blank()])} aria-label={`ลบรายการที่ ${i + 1}`}>✕</button>
                     </div>
                     <div className="ln-nums">
-                      <label><span>จำนวน</span><input inputMode="decimal" value={l.qty} onChange={(e) => setLine(l.key, { qty: e.target.value })} /></label>
+                      <label><span>จำนวน</span><input inputMode="decimal" value={l.qty} onChange={(e) => {
+                        // ราคายังเป็นราคาตั้งต้นของสินค้า → ปรับตามจำนวนใหม่ (ราคาขายส่ง) · ราคาที่แก้เองไม่แตะ
+                        const p = l.productId ? products.find((x) => x.id === l.productId) : undefined;
+                        setLine(l.key, { qty: e.target.value, ...(p && l.price === priceFor(p, l.qty) ? { price: priceFor(p, e.target.value) } : {}) });
+                      }} /></label>
                       <label><span>หน่วย</span><input list="units" value={l.unit} maxLength={20} onChange={(e) => setLine(l.key, { unit: e.target.value })} /></label>
                       <label><span>ราคา/หน่วย</span><input inputMode="decimal" value={l.price} placeholder="0.00" onChange={(e) => setLine(l.key, { price: e.target.value })} /></label>
                       <label><span>ส่วนลด (บาท)</span><input inputMode="decimal" value={l.discount} placeholder="0" onChange={(e) => setLine(l.key, { discount: e.target.value })} /></label>

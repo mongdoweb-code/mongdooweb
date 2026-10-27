@@ -83,11 +83,12 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin", label: "คำสั่งซื้อ", icon: <Ico k="orders" />, badge: pending },
             { href: "/admin/inquiries", label: "คำขอจากลูกค้า", icon: <Ico k="inbox" />, badge: inquiries },
             { href: "/admin/claims", label: "เคลม / คืนสินค้า", icon: <Ico k="claim" />, badge: claims },
-            { href: "/admin/coupons", label: "คูปองส่วนลด", icon: <Ico k="coupon" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/tasks", label: "งานที่ต้องทำ", icon: <Ico k="task" />, badge: myOverdue },
+            // ทุกรายการที่มี group ต้องอยู่ต่อกันใต้หัวข้อนั้น (รายการที่ไม่มี group จะแสดงใต้หัวข้อก่อนหน้า)
             { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/stock", label: "สต็อก", icon: <Ico k="stock" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/purchase-orders", label: "ใบสั่งซื้อ (PO)", icon: <Ico k="po" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/coupons", label: "คูปองส่วนลด", icon: <Ico k="coupon" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/specs", label: "สเปกสินค้าต่อหมวด", icon: <Ico k="specs" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/slides", label: "สไลด์หน้าแรก", icon: <Ico k="slides" />, group: "สินค้าและหน้าร้าน" },

@@ -4,6 +4,7 @@ import "server-only";
 import type { ShopSetting, VatMode } from "../../generated/prisma/client";
 import { fromYmd, money, ymdBkk } from "@/lib/doc-calc";
 import { allocDocNo, prefixOf, todayYmd, totalsFor, type Tx } from "@/lib/docs";
+import { UNPAID_STATUSES, confirmOrderPaidTx, type ConfirmResult } from "@/lib/order-confirm";
 
 /** ข้อผิดพลาดที่แสดงให้ผู้ใช้เห็นได้ (ข้อความภาษาไทย) */
 export class DocUserError extends Error {}
@@ -18,6 +19,12 @@ export async function issueDocTx(tx: Tx, id: string, adminId: string | null, s: 
   const r = await tx.salesDocument.updateMany({ where: { id, status: "DRAFT" }, data: { docNo: no, status: "ISSUED", issueDate: fromYmd(ymd) } });
   if (r.count !== 1) throw new DocUserError("เอกสารนี้ถูกออกเลขที่ไปแล้ว");
   await tx.salesDocumentEvent.create({ data: { documentId: id, type: "ISSUED", adminId, note: `ออกเลขที่ ${no}` } });
+  // ใบเสร็จ: บันทึกต้นทุนต่อหน่วย ณ วันที่ออก (รายงานกำไรของใบเสร็จที่ไม่ผูกคำสั่งซื้อ ไม่เปลี่ยนตามต้นทุนใหม่)
+  if (d.type === "RECEIPT")
+    await tx.$executeRaw`
+      UPDATE "SalesDocumentItem" AS i SET "costSatang" = p."costSatang"
+      FROM "Product" AS p
+      WHERE i."documentId" = ${id} AND i."productId" = p."id" AND i."costSatang" IS NULL AND p."costSatang" IS NOT NULL`;
   // ฉบับแก้ไขของใบเสนอราคา → ยกเลิกฉบับเดิม (เลขเดิมยังเก็บไว้)
   if (d.type === "QUOTATION" && d.source?.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.source.status)) {
     await tx.salesDocument.update({ where: { id: d.source.id }, data: { status: "VOID", voidReason: `มีฉบับแก้ไข ${no}` } });
@@ -45,6 +52,9 @@ export async function recordInvoicePaymentTx(
   const outstanding = iv.grandSatang - iv.paidSatang;
   if (amount > outstanding) throw new DocUserError(`ยอดรับชำระเกินยอดค้าง (คงค้าง ${money(outstanding)} บาท)`);
   if (paidYmd < ymdBkk(iv.issueDate ?? iv.createdAt)) throw new DocUserError("วันที่รับชำระต้องไม่ก่อนวันที่ออกใบแจ้งหนี้");
+  // ใบแจ้งหนี้จากคำสั่งซื้อ: คำสั่งซื้อที่ถูกยกเลิกแล้วห้ามรับชำระ (ยกเลิกใบแจ้งหนี้ หรือสร้างคำสั่งซื้อใหม่)
+  const order = iv.orderId ? await tx.order.findUnique({ where: { id: iv.orderId }, select: { id: true, orderNo: true, status: true } }) : null;
+  if (order?.status === "CANCELLED") throw new DocUserError(`คำสั่งซื้อ ${order.orderNo} ถูกยกเลิกแล้ว — รับชำระใบแจ้งหนี้นี้ไม่ได้`);
   const seq = iv.payments.length + 1;
   const full = !iv.payments.length && amount === iv.grandSatang;
   const items = full
@@ -68,5 +78,10 @@ export async function recordInvoicePaymentTx(
   await tx.salesDocumentEvent.create({
     data: { documentId: iv.id, type: "PAYMENT", adminId, note: `รับชำระ ${money(amount)} บาท (${method}${reference ? ` · ${reference}` : ""}) → ${rcNo}`.slice(0, 500) },
   });
-  return { rcId: rc.id, rcNo, ivNo: iv.docNo!, paymentId: payment.id, fullyPaid: paid >= iv.grandSatang };
+  // ชำระครบ + ผูกคำสั่งซื้อที่ยังไม่ได้รับเงิน → คำสั่งซื้อเป็น "ชำระแล้ว" (ตัดสต็อก/นับยอดขาย/ไม่ถูกยกเลิกอัตโนมัติ) ใน transaction เดียวกัน
+  // ยอดขายนับจากคำสั่งซื้อ — ใบเสร็จที่ผูกคำสั่งซื้อไม่นับซ้ำในรายงาน (src/lib/sales-report.ts)
+  let orderPaid: ConfirmResult | null = null;
+  if (paid >= iv.grandSatang && order && UNPAID_STATUSES.includes(order.status))
+    orderPaid = await confirmOrderPaidTx(tx, { orderId: order.id, from: UNPAID_STATUSES, adminId, note: `ชำระครบตามใบแจ้งหนี้ ${iv.docNo} (ใบเสร็จ ${rcNo})` });
+  return { rcId: rc.id, rcNo, ivNo: iv.docNo!, paymentId: payment.id, fullyPaid: paid >= iv.grandSatang, orderPaid };
 }
