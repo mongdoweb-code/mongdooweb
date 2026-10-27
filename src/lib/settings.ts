@@ -100,5 +100,7 @@ export async function getPublicShopInfo() {
     freeShipMinSatang: freeShipFrom(tiers),
     tiers,
     openingHours: parseOpeningHours(s.openingHours), // เวลาทำการแบบมีโครงสร้าง → สถานะ "ร้านเปิดอยู่/ปิดแล้ว" (U27)
+    codEnabled: s.codEnabled, // ช่องทางชำระเงินบนหน้าแรก (แสดงเฉพาะที่เปิดใช้)
+    pickupEnabled: s.pickupEnabled,
   };
 }
