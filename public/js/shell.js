@@ -989,7 +989,10 @@ const MdwLists = (() => {
 window.mdwLists = MdwLists;
 /* หน้าออฟไลน์เมื่อเน็ตหลุด (U29) — public/sw.js เก็บเฉพาะไฟล์ static + offline.html ไม่เก็บหน้าที่มีข้อมูลส่วนตัว */
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
-  const reg = () => navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+  // รุ่นของสคริปต์ (?v= จาก URL ของ shell.js เอง) → ส่งต่อให้ service worker ตั้งชื่อแคชใหม่ทุกครั้งที่ deploy (แคชเก่าถูกลบ)
+  const tag = document.querySelector('script[src*="/js/shell.js"]');
+  const ver = (tag && new URL(tag.src, location.href).searchParams.get('v')) || 'dev';
+  const reg = () => navigator.serviceWorker.register('/sw.js?v=' + encodeURIComponent(ver), { scope: '/' }).catch(() => {});
   if (document.readyState === 'complete') reg(); else addEventListener('load', reg);
 }
 

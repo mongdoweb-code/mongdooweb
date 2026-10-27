@@ -408,7 +408,9 @@ let qrLib;
 function loadQRLib(){
   return qrLib ||= new Promise((res, rej) => {
     const s = document.createElement('script');
-    s.src = '/js/vendor/qrcode.min.js'; // qrcodejs 1.0.0 (MIT)
+    const me = document.querySelector('script[src*="/js/checkout.js"]');
+    const v = (me && new URL(me.src, location.href).searchParams.get('v')) || '';
+    s.src = '/js/vendor/qrcode.min.js' + (v ? '?v=' + encodeURIComponent(v) : ''); // qrcodejs 1.0.0 (MIT)
     s.onload = res; s.onerror = rej; document.head.appendChild(s);
   });
 }

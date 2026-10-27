@@ -2,6 +2,7 @@
 // ลำดับส่วน/ซ่อนส่วน + ความน่าเชื่อถือ ผลงาน บทความ ตั้งได้ที่ /admin/home (_lot10/HomeSections.tsx)
 import type { Metadata } from "next";
 import Script from "next/script";
+import { assetUrl } from "@/lib/asset-version";
 import { preload } from "react-dom";
 import { getPublicShopInfo } from "@/lib/settings";
 import { getHomeSlides, jsonForScript } from "@/lib/storefront";
@@ -98,7 +99,7 @@ export default async function Home() {
       </main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonForScript(orgLd(info)) }} />
       <script id="mdw-slides" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(slides) }} />
-      <Script src="/js/home.js" strategy="afterInteractive" />
+      <Script src={assetUrl("/js/home.js")} strategy="afterInteractive" />
     </>
   );
 }

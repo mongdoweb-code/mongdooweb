@@ -2,6 +2,7 @@
 // ค่าร้านและราคาสินค้ามาจากฐานข้อมูล; คำสั่งซื้อ/สลิปส่งไปที่ /api/orders
 import type { Metadata } from "next";
 import Script from "next/script";
+import { assetUrl } from "@/lib/asset-version";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getCheckoutConfig } from "@/lib/orders";
@@ -37,8 +38,8 @@ async function CheckoutData() {
     <>
       <script id="mdw-checkout" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(boot) }} />
       <script id="mdw-analytics" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript({ ga4: extras.ga4Id, pixel: extras.metaPixelId }) }} />
-      <Script src="/js/analytics.js" strategy="afterInteractive" />
-      <Script src="/js/checkout.js" strategy="afterInteractive" />
+      <Script src={assetUrl("/js/analytics.js")} strategy="afterInteractive" />
+      <Script src={assetUrl("/js/checkout.js")} strategy="afterInteractive" />
     </>
   );
 }

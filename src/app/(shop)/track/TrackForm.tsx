@@ -3,7 +3,7 @@
 // ไทม์ไลน์สถานะ, เลขพัสดุ + ลิงก์ติดตามของขนส่ง, ใบเสร็จ (ลิงก์ลับ) และแนบสลิป (ใหม่) พร้อมย่อรูปก่อนส่ง
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { IMAGE_TYPES, compressImage, fmtSize, uploadWithProgress } from "../_lot2/compress";
+import { IMAGE_TYPES, compressImage, fmtSize, uploadWithRetry } from "../_lot2/compress";
 import { CUSTOMER_CANCEL_REASONS } from "@/lib/order-labels";
 import { cancelMyOrder, trackOrder, type CancelState, type TrackState, type TrackedOrder } from "./actions";
 
@@ -272,6 +272,7 @@ export function TrackForm() {
 /* แนบสลิป (ใหม่) — ใช้ API เดียวกับหน้าชำระเงิน ต้องใช้เบอร์โทรที่สั่งซื้อ · ย่อรูปใหญ่ก่อนส่ง + แถบความคืบหน้า */
 function SlipUpload({ orderNo, phone, totalBaht, onDone, extra = false }: { orderNo: string; phone: string; totalBaht: number; onDone: () => void; extra?: boolean }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [retry, setRetry] = useState("");
   const [busy, setBusy] = useState(false);
   const [file, setFile] = useState<{ f: File; url: string; orig: number } | null>(null);
   const [prep, setPrep] = useState(false);
@@ -308,7 +309,10 @@ function SlipUpload({ orderNo, phone, totalBaht, onDone, extra = false }: { orde
         fd.append("amount", String(f.get("amount")));
         setBusy(true);
         setProgress(0);
-        const res = await uploadWithProgress(`/api/orders/${encodeURIComponent(orderNo)}/slip`, fd, setProgress);
+        // เน็ตหลุด/ไม่เสถียร → ลองส่งใหม่เอง (เหมือนหน้าชำระเงิน) · ไฟล์เดิมที่ถึงเซิร์ฟเวอร์แล้ว = สำเร็จ ไม่ซ้ำ
+        const res = await uploadWithRetry(`/api/orders/${encodeURIComponent(orderNo)}/slip`, fd, setProgress, (r) =>
+          setRetry(r ? (r.offline ? "ไม่มีอินเทอร์เน็ต — จะส่งสลิปให้อัตโนมัติเมื่อเน็ตกลับมา…" : `เน็ตไม่เสถียร กำลังลองส่งใหม่ (ครั้งที่ ${r.attempt}/${r.max}) ใน ${r.waitSec} วินาที…`) : ""),
+        );
         setBusy(false);
         setProgress(null);
         if (res.ok) {
@@ -353,6 +357,11 @@ function SlipUpload({ orderNo, phone, totalBaht, onDone, extra = false }: { orde
             <div className="up-bar full" role="progressbar" aria-label="กำลังส่งสลิป" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
               <i style={{ width: `${Math.round(progress * 100)}%` }} />
             </div>
+          )}
+          {retry && (
+            <p className="sec-sub full trk-retry" role="status" style={{ fontSize: 13 }}>
+              {retry}
+            </p>
           )}
           {msg && !msg.ok && (
             <p className="form-error full" role="alert">

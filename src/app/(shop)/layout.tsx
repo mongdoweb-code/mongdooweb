@@ -1,6 +1,7 @@
 // โครงหน้าร้าน: แถบประกาศ + ส่วนหัว + ตะกร้า (บน) และท้ายเว็บ + ปุ่มลอย + แบนเนอร์คุกกี้ (ล่าง)
 // HTML/CSS/JS ย้ายมาจากต้นแบบแบบตรงๆ ก่อน (ขั้นต่อไปค่อยแยกเป็น React component)
 import Script from "next/script";
+import { assetUrl } from "@/lib/asset-version";
 import { getPublicShopInfo } from "@/lib/settings";
 import { getStorefrontExtras } from "@/lib/shop-public";
 import { getShopData, jsonForScript } from "@/lib/storefront";
@@ -32,8 +33,8 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
         type="application/json"
         dangerouslySetInnerHTML={{ __html: jsonForScript({ ga4: extras.ga4Id, pixel: extras.metaPixelId }) }}
       />
-      <Script src="/js/analytics.js" strategy="afterInteractive" />
-      <Script src="/js/shell.js" strategy="afterInteractive" />
+      <Script src={assetUrl("/js/analytics.js")} strategy="afterInteractive" />
+      <Script src={assetUrl("/js/shell.js")} strategy="afterInteractive" />
     </>
   );
 }
