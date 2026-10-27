@@ -271,6 +271,7 @@ test("U12/A9 ผลงานติดตั้ง: เพิ่มในหล�
   await ad.fill("#slug", `${slug}-v2`);
   await ad.click("#saveProject");
   await expect.poll(async () => (await one<{ slug: string }>(`SELECT slug FROM "Project" WHERE id = $1`, [pr.id])).slug).toBe(`${slug}-v2`);
+  await expect.poll(async () => (await one(`SELECT 1 FROM "Redirect" WHERE "fromPath" = $1`, [`/projects/${slug}`])) ?? null).not.toBeNull();
   const old = await request.get(`/projects/${slug}`, { maxRedirects: 0 });
   expect(old.status()).toBe(301);
   expect(old.headers().location).toContain(`/projects/${slug}-v2`);
@@ -430,6 +431,7 @@ test("A13/A14 เปลี่ยน slug สินค้า → 301 อัตโ
     await ad.fill("#slug" + V, s);
     await ad.click("button[type=submit]:has-text('บันทึกสินค้า')" + V);
     await expect.poll(async () => (await one<{ slug: string }>(`SELECT slug FROM "Product" WHERE id = $1`, [A.id])).slug).toBe(s);
+    await expect.poll(async () => (await one(`SELECT 1 FROM "Redirect" WHERE "toPath" = $1`, [`/product/${s}`])) ?? null).not.toBeNull();
   }
   // ลิงก์เดิมทั้งสองอันชี้ไปลิงก์ล่าสุดตรงๆ (ไม่เด้งสองทอด)
   for (const s of [A.slug, s1]) {

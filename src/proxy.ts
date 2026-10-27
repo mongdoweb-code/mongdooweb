@@ -52,8 +52,8 @@ const decode = (s: string) => {
 };
 
 /** redirect จากตาราง (ถ้ามี) — นับครั้งหลังตอบ */
-async function tableRedirect(req: NextRequest, event: NextFetchEvent) {
-  const r = await findRedirect(req.nextUrl.pathname);
+async function tableRedirect(req: NextRequest, event: NextFetchEvent, fresh = false) {
+  const r = await findRedirect(req.nextUrl.pathname, { fresh });
   if (!r) return null;
   event.waitUntil(countRedirectHit(r.id));
   return moved(req, r.to);
@@ -62,7 +62,7 @@ async function tableRedirect(req: NextRequest, event: NextFetchEvent) {
 /** หน้ารายละเอียดที่ตรวจกับฐานข้อมูลแล้ว: ok = แสดงหน้า · ไม่มี = redirect จากตาราง (เช่น slug เดิม) หรือ 404 จริง */
 async function detail(req: NextRequest, event: NextFetchEvent, r: RouteCheck) {
   if (r.kind === "redirect") return moved(req, r.to);
-  if (r.kind === "missing") return (await tableRedirect(req, event)) ?? shop404(req);
+  if (r.kind === "missing") return (await tableRedirect(req, event, true)) ?? shop404(req);
   return pass(req);
 }
 
@@ -81,7 +81,7 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
     const slug = decode(pathname.slice("/category/".length).split("/")[0]);
     const to = slug ? await categoryRedirect(slug) : "/products";
     if (!to) return pass(req);
-    return (await tableRedirect(req, event)) ?? moved(req, to);
+    return (await tableRedirect(req, event, true)) ?? moved(req, to);
   }
   // ใบเสร็จฝั่งลูกค้า: ไม่มีโทเคนหรือรูปแบบผิด → 404 จริง (ตรวจโทเคนกับฐานข้อมูลอีกครั้งในหน้าเพจ)
   if (pathname.startsWith("/track/receipt/")) {

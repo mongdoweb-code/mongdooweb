@@ -52,9 +52,14 @@ async function load() {
 }
 
 /** redirect ที่ตรงกับ path (ไม่มี = null) — ใช้ใน proxy */
-export async function findRedirect(pathname: string): Promise<Entry | null> {
+export async function findRedirect(pathname: string, opts: { fresh?: boolean } = {}): Promise<Entry | null> {
   await load();
-  return cache().map.get(normalizePath(pathname)) ?? null;
+  const p = normalizePath(pathname);
+  const hit = cache().map.get(p);
+  if (hit || !opts.fresh) return hit ?? null;
+  // หน้ารายละเอียดที่ไม่มีแล้ว (เช่น slug เพิ่งเปลี่ยน) — ถามฐานข้อมูลตรง ไม่รอแคชหมดอายุ (เกิดไม่บ่อย)
+  const r = await prisma.redirect.findUnique({ where: { fromPath: p }, select: { id: true, toPath: true } }).catch(() => null);
+  return r ? { id: r.id, to: r.toPath } : null;
 }
 
 /** URL เดิมของบทความ WordPress (Post.legacyPath) → /blog/<slug> */
