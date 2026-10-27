@@ -9,6 +9,9 @@ import { readFileSync } from "node:fs";
 import { Client } from "pg";
 import { readZip } from "../src/lib/zip";
 
+/** ตารางที่ migration ใส่ข้อมูลเริ่มต้นให้เอง (ฐานข้อมูลใหม่จึงไม่ว่าง) — ไฟล์สำรองมีชุดที่ร้านใช้จริงอยู่แล้ว */
+const MIGRATION_SEEDED = new Set(["SearchSynonym"]);
+
 async function main() {
   const args = process.argv.slice(2);
   const file = args.find((a) => !a.startsWith("--"));
@@ -50,6 +53,7 @@ async function main() {
 
     if (!wipe) {
       for (const t of order) {
+        if (MIGRATION_SEEDED.has(t)) continue; // ข้อมูลเริ่มต้นจาก migration — ล้างแล้วใช้ของไฟล์สำรองแทน (ด้านล่าง)
         const n = Number((await db.query(`SELECT COUNT(*)::int AS n FROM "${t}"`)).rows[0].n);
         if (n > 0) {
           const msg = `ตาราง ${t} มีข้อมูลอยู่แล้ว ${n} แถว — ใช้ฐานข้อมูลใหม่ หรือเพิ่ม --wipe เพื่อล้างก่อน (ระวัง: ลบข้อมูลเดิมทั้งหมด)`;
@@ -65,6 +69,7 @@ async function main() {
 
     await db.query("BEGIN");
     if (wipe) await db.query(`TRUNCATE ${[...existing].filter((t) => t !== "_prisma_migrations").map((t) => `"${t}"`).join(", ")} CASCADE`);
+    else for (const t of order) if (MIGRATION_SEEDED.has(t)) await db.query(`DELETE FROM "${t}"`);
     for (const t of order) {
       const raw = files.get(`tables/${t}.json`);
       if (!raw) throw new Error(`ไม่มีไฟล์ tables/${t}.json ในไฟล์สำรอง`);
