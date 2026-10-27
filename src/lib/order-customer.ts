@@ -23,7 +23,7 @@ export async function matchCustomer(db: Db, o: Pick<OrderForCustomer, "phone" | 
   if (digits.length >= 9) {
     // เบอร์ในฐานข้อมูลอาจเก็บแบบมีขีด (ข้อมูลเก่า/นำเข้า) → เทียบเฉพาะตัวเลข
     const rows = await db.$queryRaw<{ id: string }[]>`
-      SELECT "id" FROM "Customer" WHERE regexp_replace(COALESCE("phone", ''), '\D', '', 'g') = ${digits}
+      SELECT "id" FROM "Customer" WHERE regexp_replace(COALESCE("phone", ''), '[^0-9]', '', 'g') = ${digits}
       ORDER BY "createdAt" ASC LIMIT 1`;
     if (rows[0]) return db.customer.findUnique({ where: { id: rows[0].id } });
   }
