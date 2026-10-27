@@ -7,7 +7,7 @@ import { DR_KIND, DR_STATUS, personSummary } from "@/lib/pdpa";
 import { prisma } from "@/lib/prisma";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
 import { HistoryLink } from "../../../_components/HistoryLink";
-import { eraseAction, reopenAction, resolveAction } from "../actions";
+import { eraseAction, objectMarketingAction, reopenAction, resolveAction } from "../actions";
 import "../../../lot12.css";
 
 export const instant = false;
@@ -16,6 +16,7 @@ const when = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeS
 const LABEL: Record<string, string> = {
   customers: "ลูกค้า (เอกสารขาย)", orders: "คำสั่งซื้อ", salesDocuments: "เอกสารขายที่ออกแล้ว", inquiries: "คำขอ/ติดต่อ", reviews: "รีวิว",
   claims: "เคลม/คืนสินค้า", stockAlerts: "แจ้งเมื่อมีของ", couponRedemptions: "การใช้คูปอง", dataRequests: "คำขอ PDPA",
+  docSlips: "สลิปของใบแจ้งหนี้", emailLogs: "อีเมลที่ส่งถึง", internalNotes: "โน้ตภายใน", adminTasks: "งานที่เกี่ยวข้อง",
 };
 
 export default async function DataRequestPage({ params, searchParams }: PageProps<"/admin/data-requests/[id]">) {
@@ -39,6 +40,7 @@ export default async function DataRequestPage({ params, searchParams }: PageProp
         </div>
       </div>
       {sp.erased === "1" && <div className="ok-box" role="status" style={{ marginBottom: 12 }} id="drErased">ลบ/ทำให้ไม่ระบุตัวตนแล้ว — ผลอยู่ในช่อง “ผลการดำเนินการ”</div>}
+      {typeof sp.optout === "string" && <div className="ok-box" role="status" style={{ marginBottom: 12 }} id="drOptOut">บันทึกการคัดค้านการตลาดแล้ว — {Number(sp.optout) ? `ลูกค้า ${Number(sp.optout)} รายถูกตั้ง “ไม่รับข่าวสาร”` : "ไม่พบลูกค้าในรายชื่อ (เบอร์/อีเมลนี้จะไม่อยู่ในไฟล์บรอดแคสต์)"}</div>}
       {sp.saved === "1" && <div className="ok-box" role="status" style={{ marginBottom: 12 }}>บันทึกแล้ว</div>}
       {sp.err === "result" && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>กรอกผลการดำเนินการที่จะแจ้งผู้ขอ</div>}
       <div className="pform-grid">
@@ -66,12 +68,21 @@ export default async function DataRequestPage({ params, searchParams }: PageProp
             <h3>ลบ / ทำให้ไม่ระบุตัวตน</h3>
             <input type="hidden" name="id" value={r.id} />
             <ul className="l3-note dr-policy">
-              <li>ลบ: คำขอ/ติดต่อ, แจ้งเมื่อมีของ, รีวิว (รวมรูป), ลูกค้าที่ยังไม่มีเอกสาร, สลิปของคำสั่งซื้อที่ไม่ได้ชำระ</li>
-              <li>ลบเฉพาะส่วนที่ไม่บังคับ: คำสั่งซื้อที่ชำระแล้ว (คงยอด/รายการไว้เป็นหลักฐานบัญชี), ลูกค้าที่มีเอกสาร, เคลม, เบอร์/อีเมลในเอกสาร</li>
+              <li>ลบ: คำขอ/ติดต่อ, แจ้งเมื่อมีของ, รีวิว (รวมรูป), ลูกค้าที่ยังไม่มีเอกสาร, สลิปของคำสั่งซื้อที่ไม่ได้ชำระ, สลิปใบแจ้งหนี้ที่ยังไม่ยอมรับ, โน้ตภายใน</li>
+              <li>ลบเฉพาะส่วนที่ไม่บังคับ: คำสั่งซื้อที่ชำระแล้ว (คงยอด/รายการไว้เป็นหลักฐานบัญชี), ลูกค้าที่มีเอกสาร, เคลม, เบอร์/อีเมลในเอกสาร, การใช้คูปอง, ประวัติอีเมล</li>
+              <li>ปิดบังข้อความ: ประวัติคำสั่งซื้อ (ค่าเก่า/ใหม่ของที่อยู่, เหตุผลยกเลิก, โน้ต), บันทึกการใช้งาน (ค่าก่อน/หลัง), งานที่เกี่ยวข้อง</li>
               <li>เก็บไว้ตามกฎหมาย 5 ปี: ชื่อ ที่อยู่ เลขผู้เสียภาษี ที่พิมพ์บนใบเสร็จ/ใบกำกับภาษี/ใบแจ้งหนี้</li>
             </ul>
             <ConfirmSubmit className="btn btn-danger" title={`ลบข้อมูลของ ${r.name}?`} body="ข้อมูลที่ไม่บังคับตามกฎหมายจะถูกลบถาวร ย้อนกลับไม่ได้ — ควรส่งออก ZIP เก็บเป็นหลักฐานก่อน (ถ้าผู้ขอต้องการสำเนา)" confirmLabel="ลบข้อมูล">ลบข้อมูลตามคำขอ</ConfirmSubmit>
           </form>
+          {r.kind === "OBJECT" && (
+            <form className="box" action={objectMarketingAction} id="drObject">
+              <h3>บันทึกการคัดค้านการตลาด</h3>
+              <input type="hidden" name="id" value={r.id} />
+              <p className="l3-note">ตั้ง “ไม่รับข่าวสาร/การตลาด” ให้ลูกค้าที่เบอร์{r.email ? "หรืออีเมล" : ""}ตรงกับผู้ขอ — ไม่อยู่ในไฟล์รายชื่อบรอดแคสต์อีก (ยังติดต่อเรื่องคำสั่งซื้อ/เอกสารได้ตามปกติ)</p>
+              <button className="btn btn-primary btn-sm" type="submit">บันทึกการคัดค้านการตลาด</button>
+            </form>
+          )}
           {r.status === "NEW" ? (
             <form className="box" action={resolveAction} id="drResolve">
               <h3>ปิดคำขอ</h3>

@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     const ev = await prisma.orderEvent.findMany({ where: orderEventWhere(f), orderBy: { createdAt: "desc" }, take: MAX, include: { admin: { select: { username: true } }, order: { select: { orderNo: true } } } });
     rows = ev.map((e) => [csvTime(e.createdAt), e.type, ORDER_EVENT[e.type] ?? e.type, `${e.order.orderNo}${e.note ? ` · ${e.note}` : ""}`, e.admin?.username ?? "ลูกค้า/ระบบ"]);
   } else {
-    const logs = await prisma.adminLog.findMany({ where: adminLogWhere(f), orderBy: { createdAt: "desc" }, take: MAX, include: { admin: { select: { username: true } } } });
+    const logs = await prisma.adminLog.findMany({ where: adminLogWhere(f, admin.role === "OWNER"), orderBy: { createdAt: "desc" }, take: MAX, include: { admin: { select: { username: true } } } });
     rows = logs.map((l) => [csvTime(l.createdAt), l.type, ALL_LOG_TYPES[l.type] ?? l.type, l.note ?? "", l.admin?.username ?? ""]);
   }
   await prisma.adminLog.create({

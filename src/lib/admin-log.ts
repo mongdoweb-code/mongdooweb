@@ -63,6 +63,14 @@ export async function logAdmin(adminId: string | null, type: keyof typeof LOG_TY
   });
 }
 
+/** บันทึกหลายรายการในครั้งเดียว (เช่น แก้สินค้าหลายรายการ: หนึ่งแถวต่อสินค้า พร้อม entity + diff ของแต่ละตัว) */
+export async function logAdminMany(adminId: string | null, type: keyof typeof LOG_TYPES | string, rows: { note: string; entity?: string | null; diff?: Diff | null }[]) {
+  if (!rows.length) return;
+  await prisma.adminLog.createMany({
+    data: rows.map((r) => ({ adminId, type, note: r.note.slice(0, 1000), entity: r.entity?.slice(0, 120) || null, diff: cleanDiff(r.diff) })),
+  });
+}
+
 /** เรียกหลังแก้สินค้า/หมวด/สไลด์/ตั้งค่า ให้หน้าร้านเห็นข้อมูลใหม่ทันที */
 export function refreshStorefront() {
   updateTag(STOREFRONT_TAG);

@@ -21,6 +21,13 @@ export const ALL_LOG_TYPES: Record<string, string> = {
   CRON_DAILY: "งานอัตโนมัติรายวัน",
 };
 
+/**
+ * ชนิดบันทึกที่เจ้าของร้านเท่านั้นเห็น (D13) — พนักงานไม่เห็นทั้งในหน้า /admin/log และไฟล์ CSV
+ * PDPA = ชื่อ/ผลคำขอข้อมูลส่วนบุคคล · PURCHASE = ต้นทุน/ผู้ขาย · BACKUP/DATA_EXPORT = การสำรอง/ส่งออกทั้งร้าน · SYSTEM = ทดสอบระบบ
+ * (หน้าที่ทำรายการเหล่านี้ใช้ requireOwner อยู่แล้ว)
+ */
+export const OWNER_ONLY_LOG_TYPES = ["PDPA", "PURCHASE", "BACKUP", "DATA_EXPORT", "SYSTEM"] as const;
+
 export const LOG_TABS = {
   all: { label: "ทั้งหมด", types: null },
   auth: { label: "เข้าสู่ระบบ/ความปลอดภัย", types: ["LOGIN", "LOGIN_FAIL", "LOCKOUT", "LOGOUT", "IDLE_LOGOUT", "PASSWORD", "ADMIN_USER", "DENIED", "SESSION_REVOKE", "TWO_FACTOR"] },
@@ -61,8 +68,9 @@ export function dateWhere(f: LogFilter) {
   };
 }
 
-export function adminLogWhere(f: LogFilter): Prisma.AdminLogWhereInput {
+export function adminLogWhere(f: LogFilter, owner: boolean): Prisma.AdminLogWhereInput {
   const types = LOG_TABS[f.tab].types;
+  const hidden: Prisma.AdminLogWhereInput | null = owner ? null : { type: { notIn: [...OWNER_ONLY_LOG_TYPES] } };
   const at = dateWhere(f);
   // ประวัติของรายการเดียว: บันทึกที่ผูก entity นี้ + บันทึกเก่าที่อ้างเลขคำสั่งซื้อในข้อความ
   const ent: Prisma.AdminLogWhereInput | null = f.entity
@@ -71,7 +79,7 @@ export function adminLogWhere(f: LogFilter): Prisma.AdminLogWhereInput {
       : { entity: f.entity }
     : null;
   return {
-    ...(ent ? { AND: [ent] } : {}),
+    ...(ent || hidden ? { AND: [ent, hidden].filter((x): x is Prisma.AdminLogWhereInput => !!x) } : {}),
     ...(types ? { type: { in: [...types] } } : {}),
     ...(f.q ? { note: { contains: f.q, mode: "insensitive" } } : {}),
     ...(f.user === "none" ? { adminId: null } : f.user ? { adminId: f.user } : {}),

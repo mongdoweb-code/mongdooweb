@@ -4,6 +4,7 @@ import "server-only";
 import type { Prisma } from "../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { setStock } from "@/lib/stock";
+import { queueRestockIfAvailableNow } from "@/lib/stock-alerts";
 
 export const CSV_COLUMNS = ["sku", "name", "category", "price", "compare_at", "stock", "track_stock", "in_stock", "active", "unit"] as const;
 export const CSV_HELP: Record<(typeof CSV_COLUMNS)[number], string> = {
@@ -134,11 +135,15 @@ export async function applyImport(updates: Update[], adminId: string) {
     async (tx) => {
       for (const u of updates) {
         // ปิดการนับสต็อก → ล้างยอดผ่านประวัติก่อน
+        const before = await tx.product.findUniqueOrThrow({ where: { id: u.productId }, select: { trackStock: true, stock: true, inStock: true, isActive: true } });
         if (u.data.trackStock === false) await setStock(tx, u.productId, 0, { reason: "IMPORT", adminId, note: "เลิกนับสต็อก (นำเข้า CSV)" });
         if (Object.keys(u.data).length) await tx.product.update({ where: { id: u.productId }, data: u.data });
         if (u.stock !== null) await setStock(tx, u.productId, u.stock, { reason: "IMPORT", adminId, note: "นำเข้า CSV" });
         const p = await tx.product.findUniqueOrThrow({ where: { id: u.productId }, select: { trackStock: true, stock: true } });
         if (p.trackStock) await tx.product.update({ where: { id: u.productId }, data: { inStock: p.stock > 0 } });
+        const after = await tx.product.findUniqueOrThrow({ where: { id: u.productId }, select: { id: true, trackStock: true, stock: true, inStock: true, isActive: true } });
+        // U9: in_stock 0 → 1 (ไม่นับสต็อก) หรือ active 0 → 1 — ตรวจซ้ำหลัง transaction จบ (rollback = ไม่แจ้ง)
+        queueRestockIfAvailableNow(before, after);
       }
       return updates.length;
     },

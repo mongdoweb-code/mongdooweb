@@ -1,6 +1,7 @@
 // แจ้งเมื่อมีของ (U9/A7)
 // - ลูกค้าฝากเบอร์ / LINE ID / อีเมล ไว้ที่หน้าสินค้าที่หมด → ร้านเห็นรายชื่อใน /admin/stock-alerts
-// - สต็อกเปลี่ยนจาก 0 เป็น > 0 (src/lib/stock.ts) → แจ้ง LINE ร้านพร้อมจำนวนลูกค้าที่รอ (ร้านติดต่อลูกค้าเอง แล้วกด "แจ้งแล้ว")
+// - สต็อกเปลี่ยนจาก 0 เป็น > 0 (src/lib/stock.ts) หรือสินค้าไม่นับสต็อกถูกติ๊ก "มีของ" อีกครั้ง/กลับมาเปิดขาย
+//   (แก้สินค้า, เปิดขาย, แก้หลายรายการ, นำเข้า CSV) → แจ้ง LINE ร้านพร้อมจำนวนลูกค้าที่รอ (ร้านติดต่อลูกค้าเอง แล้วกด "แจ้งแล้ว")
 import "server-only";
 import { phoneDigits } from "@/lib/format";
 import { notifyShop, siteUrl } from "@/lib/line";
@@ -59,14 +60,22 @@ export function queueRestockAlert(productId: string) {
   }, 1500);
 }
 
+/** สินค้า "กลับมามีของ" ของสินค้าที่ไม่นับสต็อก (inStock false → true) หรือกลับมาเปิดขาย — เรียกหลังบันทึกแล้ว */
+export function queueRestockIfAvailableNow(before: { trackStock: boolean; stock: number; inStock: boolean; isActive?: boolean }, after: { id: string; trackStock: boolean; stock: number; inStock: boolean; isActive?: boolean }) {
+  const was = available(before) && before.isActive !== false;
+  const now = available(after) && after.isActive !== false;
+  if (!was && now) queueRestockAlert(after.id);
+}
+
 export async function notifyRestock(productIds: string[]) {
   if (!productIds.length) return;
   const rows = await prisma.product.findMany({
-    where: { id: { in: productIds }, stock: { gt: 0 } },
-    select: { id: true, sku: true, name: true, stock: true, _count: { select: { stockAlerts: { where: { notifiedAt: null } } } } },
+    where: { id: { in: productIds }, isActive: true },
+    select: { id: true, sku: true, name: true, stock: true, trackStock: true, inStock: true, _count: { select: { stockAlerts: { where: { notifiedAt: null } } } } },
   });
-  const waiting = rows.filter((r) => r._count.stockAlerts > 0);
+  // นับสต็อก = stock > 0 · ไม่นับสต็อก = inStock (ติ๊ก "มีสินค้าพร้อมขาย")
+  const waiting = rows.filter((r) => available(r) && r._count.stockAlerts > 0);
   if (!waiting.length) return;
-  const lines = waiting.slice(0, 10).map((r) => `• ${r.name} (${r.sku}) — เข้ามา ${r.stock} · ลูกค้ารอ ${r._count.stockAlerts} คน`);
+  const lines = waiting.slice(0, 10).map((r) => `• ${r.name} (${r.sku}) — ${r.trackStock ? `เข้ามา ${r.stock}` : "มีของแล้ว"} · ลูกค้ารอ ${r._count.stockAlerts} คน`);
   await notifyShop(["🔔 สินค้ากลับมามีของ — มีลูกค้าฝากให้แจ้ง", ...lines, "", `ดูรายชื่อและกด "แจ้งแล้ว": ${siteUrl()}/admin/stock-alerts`].join("\n"));
 }

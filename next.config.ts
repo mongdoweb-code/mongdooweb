@@ -1,7 +1,34 @@
+import { createHash } from "node:crypto";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import type { NextConfig } from "next";
+
+/**
+ * รุ่นของสคริปต์หน้าร้าน (public/js/*.js + service worker) = hash ของเนื้อไฟล์ ตอน build (U29/D6)
+ * ใช้ต่อท้าย URL (/js/shell.js?v=…) และชื่อแคชของ service worker → deploy ใหม่ที่แก้สคริปต์ = URL ใหม่ ไม่ใช้ไฟล์เก่าในเครื่องลูกค้า
+ * คำนวณจากเนื้อไฟล์จึงได้ค่าเดียวกันทุกครั้งที่ build โค้ดชุดเดียวกัน (Railway ไม่ต้องตั้ง env เพิ่ม)
+ */
+function assetVersion() {
+  const h = createHash("sha256");
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (/\.js$/.test(e.name)) h.update(p).update(readFileSync(p));
+    }
+  };
+  try {
+    walk(join(process.cwd(), "public", "js"));
+    h.update(readFileSync(join(process.cwd(), "public", "sw.js")));
+  } catch {
+    h.update(String(Date.now()));
+  }
+  return h.digest("hex").slice(0, 10);
+}
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  env: { MDW_ASSET_V: assetVersion() },
   partialPrefetching: true,
   experimental: {
     // อัปโหลดรูปสินค้า/สไลด์/โลโก้จากหลังบ้าน (หลายรูปต่อครั้ง รูปละไม่เกิน 10 MB)

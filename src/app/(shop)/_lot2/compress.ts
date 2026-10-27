@@ -65,3 +65,44 @@ export function uploadWithProgress(url: string, fd: FormData, onProgress: (p: nu
     x.send(fd);
   });
 }
+
+export type UploadResult = { ok: boolean; status: number; data: Record<string, unknown> };
+
+/**
+ * ส่งสลิปแบบลองใหม่เองเมื่อเน็ตไม่ดี (เหมือน uploadWithProgress ใน public/js/checkout.js — U29)
+ * - เชื่อมต่อไม่ได้/เซิร์ฟเวอร์ผิดพลาด (5xx) → รอ 2, 4, 8, 16 วินาที (และรอเน็ตกลับมาถ้าออฟไลน์) แล้วส่งใหม่ สูงสุด 4 ครั้ง
+ * - ครั้งก่อนอาจถึงเซิร์ฟเวอร์แล้วแต่คำตอบหาย: เซิร์ฟเวอร์ตอบ 200 {repeated:true} สำหรับไฟล์เดิม หรือ 409 (สถานะเปลี่ยนแล้ว) = ถือว่าสำเร็จ
+ * - ข้อผิดพลาดจากข้อมูล (4xx อื่น) → คืนทันทีให้ผู้ใช้แก้
+ */
+export async function uploadWithRetry(
+  url: string,
+  fd: FormData,
+  onProgress: (p: number) => void,
+  onRetry: (info: { attempt: number; max: number; waitSec: number; offline: boolean } | null) => void = () => {},
+  opts: { retries?: number; baseMs?: number } = {},
+): Promise<UploadResult> {
+  const max = opts.retries ?? 4;
+  const base = opts.baseMs ?? 1000;
+  const waitOnline = () => (navigator.onLine === false ? new Promise<void>((r) => addEventListener("online", () => r(), { once: true })) : Promise.resolve());
+  let res: UploadResult = { ok: false, status: 0, data: {} };
+  let lost = false;
+  for (let attempt = 0; attempt <= max; attempt++) {
+    if (attempt) {
+      const waitSec = 2 ** attempt;
+      onRetry({ attempt, max, waitSec: (waitSec * base) / 1000, offline: navigator.onLine === false });
+      await new Promise((r) => setTimeout(r, waitSec * base));
+      await waitOnline();
+      onProgress(0);
+    }
+    res = await uploadWithProgress(url, fd, onProgress);
+    if (res.ok) break;
+    if (lost && res.status === 409) {
+      res = { ok: true, status: 200, data: { repeated: true } };
+      break;
+    }
+    if (res.status !== 0 && res.status < 500) break;
+    lost = true;
+  }
+  onRetry(null);
+  return res;
+}

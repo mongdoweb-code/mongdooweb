@@ -245,7 +245,7 @@ test("A22 ต้นทุน + รายงานกำไร (สินค้�
   const exp = await s.request.get("/admin/products/export");
   if (exp.status() === 200) expect(await exp.text()).not.toMatch(/cost|ต้นทุน/i);
   await s.goto(`/admin/log?entity=Product:${ids.a}`);
-  await expect(s.locator("main" + V)).toContainText("แก้ต้นทุนสินค้า"); // เห็นว่ามีการแก้ แต่ไม่เห็นตัวเลข
+  await expect(s.locator("main" + V)).not.toContainText("แก้ต้นทุนสินค้า"); // บันทึกต้นทุน (PURCHASE) เป็นของเจ้าของร้านเท่านั้น (ตรวจซ้ำรอบ 3 D13)
   await expect(s.locator(".lg-diff" + V)).toHaveCount(0);
   await s.goto("/admin/reports");
   await expect(s.locator('a:has-text("รายงานกำไร")' + V)).toHaveCount(0);
@@ -625,7 +625,9 @@ test("U28/A24 คำขอ PDPA: ฟอร์ม → คิวเจ้าขอ
   const data = JSON.parse(unzip(await zip.body())["data.json"].toString());
   expect(data.orders.some((o: { orderNo: string }) => o.orderNo === ids.orderNo)).toBe(true);
   expect(data.inquiries.length).toBeGreaterThanOrEqual(2);
-  expect(data.customers[0].note).toBeUndefined();
+  // ตรวจซ้ำรอบ 3 (D7): ข้อมูลที่ร้านบันทึกเกี่ยวกับบุคคล (หมายเหตุลูกค้า โน้ตภายใน งาน) อยู่ในสำเนาด้วย — แต่ไม่มี ipHash/token
+  expect("note" in data.customers[0]).toBe(true);
+  expect(Array.isArray(data.internalNotes) && Array.isArray(data.adminTasks)).toBe(true);
   expect(JSON.stringify(data)).not.toContain("ipHash");
 
   // ใบเสร็จที่ออกแล้ว (เอกสารภาษี) ของลูกค้ารายนี้ → ต้องเก็บชื่อ/เลขผู้เสียภาษีไว้

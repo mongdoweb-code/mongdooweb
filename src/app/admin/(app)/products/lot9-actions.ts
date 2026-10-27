@@ -4,18 +4,38 @@
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { Prisma } from "../../../../../generated/prisma/client";
-import { logAdmin, refreshStorefront } from "@/lib/admin-log";
+import { diffOf, logAdmin, logAdminMany, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin } from "@/lib/auth";
 import { DownloadError, MAX_DOWNLOADS, deletePdf, parseDownloads, savePdf } from "@/lib/product-downloads";
 import { parseBkk } from "@/lib/product-extras";
 import { parseTiers, priceAfterPercent } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { queueRestockIfAvailableNow } from "@/lib/stock-alerts";
 import { MAX_OPTIONS, parseOptionNames, suggestGroups, validateGroup } from "@/lib/variants";
 
 export type Lot9State = { error?: string; ok?: string; fields?: string[] };
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").trim().slice(0, max);
 const baht = (s: number) => (s / 100).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+
+// A29: ค่าก่อน/หลังของสินค้าแต่ละตัวที่ถูกแก้แบบกลุ่ม (หนึ่งบันทึกต่อสินค้า → ดูได้ที่ /admin/log?entity=Product:<id>)
+const AUDIT = {
+  id: true, sku: true, categoryId: true, isActive: true, priceSatang: true, compareAtSatang: true, salePriceSatang: true,
+  saleStartsAt: true, saleEndsAt: true, tierPrices: true, trackStock: true, stock: true, inStock: true,
+} as const;
+const AUDIT_FIELDS = ["categoryId", "isActive", "priceSatang", "compareAtSatang", "salePriceSatang", "saleStartsAt", "saleEndsAt", "tierPrices"];
+const snapshot = (ids: string[]) => prisma.product.findMany({ where: { id: { in: ids } }, select: AUDIT });
+
+async function logProductDiffs(adminId: string, label: string, before: Awaited<ReturnType<typeof snapshot>>) {
+  const after = new Map((await snapshot(before.map((b) => b.id))).map((a) => [a.id, a]));
+  const rows = before.flatMap((b) => {
+    const a = after.get(b.id);
+    const diff = a ? diffOf(b, a, AUDIT_FIELDS) : null;
+    if (a) queueRestockIfAvailableNow(b, a); // เปิดขายอีกครั้ง → แจ้งลูกค้าที่รอของ (U9)
+    return diff ? [{ note: `${label} — ${b.sku}`, entity: `Product:${b.id}`, diff }] : [];
+  });
+  await logAdminMany(adminId, "PRODUCT", rows);
+}
 
 // ---------------------------------------------------------------------------
 // ไฟล์ดาวน์โหลด (PDF ≤ 20 MB, ไม่เกิน 10 ไฟล์ต่อสินค้า)
@@ -96,6 +116,7 @@ export async function bulkEditProducts(_prev: Lot9State, f: FormData): Promise<L
   });
   if (!rows.length) return { error: "ไม่พบสินค้าที่เลือก" };
   const skus = rows.map((r) => r.sku).join(", ");
+  const before = await snapshot(rows.map((r) => r.id));
   let note = "";
   let skipped = 0;
 
@@ -152,6 +173,7 @@ export async function bulkEditProducts(_prev: Lot9State, f: FormData): Promise<L
 
   const n = rows.length - skipped;
   await logAdmin(admin.id, "PRODUCT", `แก้หลายรายการ (${n} รายการ): ${note} — ${skus}`);
+  await logProductDiffs(admin.id, `แก้หลายรายการ: ${note}`, before);
   refreshStorefront();
   refresh();
   return { ok: `${note} แล้ว ${n} รายการ${skipped ? ` · ข้าม ${skipped} รายการที่เป็น "สอบถามราคา"` : ""}` };
@@ -169,9 +191,11 @@ export async function categorySale(_prev: Lot9State, f: FormData): Promise<Lot9S
     where: { categoryId: cat.id, isService: false, ...(f.get("activeOnly") === "on" ? { isActive: true } : {}) },
     select: { id: true, priceSatang: true },
   });
+  const before = await snapshot(products.map((p) => p.id));
   if (str(f, "mode", 10) === "clear") {
     const r = await prisma.product.updateMany({ where: { id: { in: products.map((p) => p.id) }, salePriceSatang: { not: null } }, data: { salePriceSatang: null, saleStartsAt: null, saleEndsAt: null } });
     await logAdmin(admin.id, "PRODUCT", `ยกเลิกลดราคาทั้งหมวด "${cat.nameTh}" (${r.count} รายการ)`);
+    await logProductDiffs(admin.id, `ยกเลิกลดราคาทั้งหมวด "${cat.nameTh}"`, before);
     refreshStorefront();
     refresh();
     return { ok: `ยกเลิกลดราคาหมวด "${cat.nameTh}" แล้ว ${r.count} รายการ` };
@@ -192,6 +216,7 @@ export async function categorySale(_prev: Lot9State, f: FormData): Promise<Lot9S
     }
   });
   await logAdmin(admin.id, "PRODUCT", `ตั้งลดราคาทั้งหมวด "${cat.nameTh}" ${pct}% (${n} รายการ) ${str(f, "saleStartsAt", 30) || "ทันที"} → ${str(f, "saleEndsAt", 30)}`);
+  await logProductDiffs(admin.id, `ตั้งลดราคาทั้งหมวด "${cat.nameTh}" ${pct}%`, before);
   refreshStorefront();
   refresh();
   return { ok: `ตั้งลดราคา ${pct}% ให้หมวด "${cat.nameTh}" แล้ว ${n} รายการ` };

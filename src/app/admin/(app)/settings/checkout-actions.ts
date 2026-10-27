@@ -2,7 +2,7 @@
 // ตั้งค่ารอบ 3 (A18/A19): เก็บเงินปลายทาง · ค่าส่งพื้นที่ห่างไกล/ตามน้ำหนัก · รับที่ร้าน · อีเมลลูกค้า (แม่แบบ + ส่งทดสอบ)
 // ค่าเชื่อมต่อ SMTP อยู่ใน env เท่านั้น — หน้านี้แสดงสถานะ ไม่รับ/ไม่เก็บรหัสผ่าน
 import { refresh } from "next/cache";
-import { logAdmin, refreshStorefront } from "@/lib/admin-log";
+import { diffOf, logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireOwner } from "@/lib/auth";
 import { EMAIL_TEMPLATES, TEMPLATE_LABEL, parseTemplates, sendTestEmail, type EmailTemplate } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
@@ -54,7 +54,7 @@ export async function saveCheckoutSettings(_prev: CheckoutSettingsState, f: Form
   if (bad.length) return { error: `กรุณาตรวจช่องที่มีกรอบสีแดง${msgs.length ? ` — ${msgs.join(" · ")}` : ""}`, fields: bad };
 
   const before = await getSettings();
-  await prisma.shopSetting.update({
+  const after = await prisma.shopSetting.update({
     where: { id: "shop" },
     data: {
       codEnabled: f.get("codEnabled") === "on", codFeeSatang: codFee, codMaxSatang: codMax,
@@ -68,7 +68,10 @@ export async function saveCheckoutSettings(_prev: CheckoutSettingsState, f: Form
     before.pickupEnabled !== (f.get("pickupEnabled") === "on") ? `รับที่ร้าน ${f.get("pickupEnabled") === "on" ? "เปิด" : "ปิด"}` : "",
     before.emailEnabled !== (f.get("emailEnabled") === "on") ? `อีเมลลูกค้า ${f.get("emailEnabled") === "on" ? "เปิด" : "ปิด"}` : "",
   ].filter(Boolean);
-  await logAdmin(admin.id, "SETTINGS", `บันทึกตั้งค่าการชำระเงิน/จัดส่ง/อีเมล${changed.length ? ` (${changed.join(", ")})` : ""} · ห่างไกล ${zips.length} รหัส · ขั้นน้ำหนัก ${weightTiers.length} ขั้น`);
+  await logAdmin(admin.id, "SETTINGS", `บันทึกตั้งค่าการชำระเงิน/จัดส่ง/อีเมล${changed.length ? ` (${changed.join(", ")})` : ""} · ห่างไกล ${zips.length} รหัส · ขั้นน้ำหนัก ${weightTiers.length} ขั้น`, {
+    entity: "ShopSetting",
+    diff: diffOf(before, after, ["codEnabled", "codFeeSatang", "codMaxSatang", "remoteZips", "remoteFeeSatang", "weightTiers", "pickupEnabled", "pickupNote", "emailEnabled", "emailTemplates"]),
+  });
   refreshStorefront();
   refresh();
   return { ok: "บันทึกแล้ว — หน้าชำระเงินใช้ค่าใหม่ทันที" };

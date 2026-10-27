@@ -66,6 +66,20 @@ export async function saveCustomer(_prev: CustomerState, f: FormData): Promise<C
   return { ok: "บันทึกข้อมูลลูกค้าแล้ว — เอกสารที่ออกไปแล้วยังใช้ข้อมูล ณ วันที่ออก" };
 }
 
+/** ตั้ง/ยกเลิก "ไม่รับข่าวสาร/การตลาด" (PDPA — สิทธิ์คัดค้าน) · ไม่อยู่ในไฟล์บรอดแคสต์ */
+export async function setMarketingOptOut(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const on = f.get("optOut") === "1";
+  const c = await prisma.customer.findUnique({ where: { id }, select: { code: true, name: true, marketingOptOut: true } });
+  if (!c) redirect("/admin/customers");
+  if (c.marketingOptOut !== on) {
+    await prisma.customer.update({ where: { id }, data: { marketingOptOut: on } });
+    await logAdmin(admin.id, "CUSTOMER", `${on ? "ตั้ง" : "ยกเลิก"} "ไม่รับข่าวสาร" ลูกค้า ${c.code}`, { entity: `Customer:${id}`, diff: { marketingOptOut: [c.marketingOptOut, on] } });
+  }
+  refresh();
+}
+
 export async function deleteCustomer(f: FormData) {
   const admin = await requireOwner();
   const c = await prisma.customer.findUnique({ where: { id: str(f, "id", 40) }, include: { _count: { select: { documents: true, orders: true } } } });
@@ -95,6 +109,9 @@ export async function mergeCustomer(f: FormData) {
     const docs = await tx.salesDocument.updateMany({ where: { customerId: src.id }, data: { customerId: target.id } });
     const orders = await tx.order.updateMany({ where: { customerId: src.id }, data: { customerId: target.id } });
     const inq = await tx.inquiry.updateMany({ where: { customerId: src.id }, data: { customerId: target.id } });
+    // โน้ตภายใน/งานของรายนี้ย้ายไปด้วย (ไม่อย่างนั้นโน้ตถูกลบตามลูกค้า)
+    await tx.internalNote.updateMany({ where: { customerId: src.id }, data: { customerId: target.id } });
+    await tx.adminTask.updateMany({ where: { customerId: src.id }, data: { customerId: target.id } });
     const shipEmpty = !target.shipTo || (typeof target.shipTo === "object" && !Array.isArray(target.shipTo) && !Object.keys(target.shipTo).length);
     await tx.customer.update({
       where: { id: target.id },
@@ -102,6 +119,7 @@ export async function mergeCustomer(f: FormData) {
         taxId: fill("taxId"), branch: fill("branch"), contactName: fill("contactName"), phone: fill("phone"), email: fill("email"),
         addressLine: fill("addressLine"), subdistrict: fill("subdistrict"), district: fill("district"), province: fill("province"), postalCode: fill("postalCode"),
         ...(shipEmpty && src.shipTo ? { shipTo: src.shipTo } : {}),
+        ...(src.marketingOptOut ? { marketingOptOut: true } : {}), // คัดค้านการตลาดของรายใดรายหนึ่ง = ยังมีผล
         note: [target.note, `รวมจากลูกค้า ${src.code} ${src.name}${src.note ? ` (โน้ตเดิม: ${src.note})` : ""}`].filter(Boolean).join("\n").slice(0, 2000),
       },
     });

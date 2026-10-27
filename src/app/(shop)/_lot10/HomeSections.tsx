@@ -7,8 +7,10 @@ import { getProjects, getPublishedPosts, thaiDay, visibleNow } from "@/lib/blog"
 import type { HomeSectionKey } from "@/lib/home";
 import { getHomeConfig } from "@/lib/home-data";
 import { getShopRating } from "@/lib/reviews";
+import { getPublicShopInfo } from "@/lib/settings";
 import { HOME_MAIN } from "../_markup/home";
 import { Stars } from "../product/_reviews/ProductReviews";
+import { withFeatureProject, withPayOptions } from "./home-chunks";
 
 type Legacy = Exclude<HomeSectionKey, "trust" | "projects" | "posts">;
 const MARKERS: [Legacy, string][] = [
@@ -168,7 +170,13 @@ async function PostsSection() {
 
 /** เนื้อหาหน้าแรกทั้งหมดตามลำดับที่ตั้งไว้ */
 export async function HomeSections() {
-  const { sections } = await getHomeConfig();
+  const [{ sections }, projects, info] = await Promise.all([getHomeConfig(), getProjects(), getPublicShopInfo()]);
+  // ส่วนเดิมที่ปรับตามข้อมูลจริง: รูปผลงานติดตั้ง (ทำไมต้องมองดูเว็บ) · ชิปเก็บเงินปลายทาง/รับที่ร้าน (วิธีสั่งซื้อ)
+  const live: Partial<Record<Legacy, string>> = {
+    ...CHUNKS,
+    ...(CHUNKS.why ? { why: withFeatureProject(CHUNKS.why, projects) } : {}),
+    ...(CHUNKS.how ? { how: withPayOptions(CHUNKS.how, info) } : {}),
+  };
   return (
     <>
       {sections.map(({ key, show }) => {
@@ -180,7 +188,7 @@ export async function HomeSections() {
               <PostsSection />
             </Suspense>
           ) : null;
-        const html = CHUNKS[key];
+        const html = live[key];
         if (!html) return null;
         return show ? (
           <div key={key} data-home={key} style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: html }} />
