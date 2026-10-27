@@ -25,7 +25,7 @@ export default async function LogPage({ searchParams }: PageProps<"/admin/log">)
     const ev = await prisma.orderEvent.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * PER, take: PER, include: { admin: { select: { displayName: true } }, order: { select: { orderNo: true } } } });
     rows = ev.map((e) => ({ id: e.id, at: e.createdAt, type: e.type, label: ORDER_EVENT[e.type] ?? e.type, note: `${e.order.orderNo}${e.note ? ` · ${e.note}` : ""}`, by: e.admin?.displayName ?? "ลูกค้า/ระบบ", link: `/admin?tab=ALL&open=${e.order.orderNo}` }));
   } else {
-    const where = adminLogWhere(f);
+    const where = adminLogWhere(f, owner); // พนักงานไม่เห็น PDPA/ต้นทุน/สำรองข้อมูล (D13)
     total = await prisma.adminLog.count({ where });
     const logs = await prisma.adminLog.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * PER, take: PER, include: { admin: { select: { displayName: true } } } });
     rows = logs.map((l) => ({

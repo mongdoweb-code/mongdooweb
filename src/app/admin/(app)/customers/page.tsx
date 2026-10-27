@@ -98,6 +98,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
                   <td>
                     <Link className="row-link" href={`/admin/customers/${c.id}`}><b>{c.name}</b>
                       <span className="sub">{c.kind === "COMPANY" ? `นิติบุคคล · ${c.branch ?? "สำนักงานใหญ่"}` : "บุคคลธรรมดา"}{c.taxId ? ` · ${c.taxId}` : ""}</span></Link>
+                    {c.marketingOptOut && <span className="dst dst-bad cu-optout" title="คัดค้านการตลาด (PDPA) — ไม่อยู่ในไฟล์บรอดแคสต์">ไม่รับข่าวสาร</span>}
                     {c.tags.length > 0 && <span className="cu-tags">{c.tags.map((t) => <span key={t} className="tag-chip sm">{t}</span>)}</span>}
                   </td>
                   <td className="sub" style={{ fontSize: 13.5 }}>{c.phone ? formatPhone(c.phone) : "—"}{c.province ? ` · ${c.province}` : ""}</td>

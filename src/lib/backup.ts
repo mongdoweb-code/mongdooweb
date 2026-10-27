@@ -19,10 +19,19 @@ const LOCK_KEY = 4825012;
 const bkkDay = (d = new Date()) => new Date(d.getTime() + 7 * 3600e3).toISOString().slice(0, 10);
 export const backupKeyFor = (d = new Date()) => `backups/${bkkDay(d)}.zip`;
 
-async function tables() {
+/** ทุกตารางในฐานข้อมูล (ยกเว้นข้อมูลชั่วคราว) — ใช้ร่วมกับไฟล์ส่งออก CSV (src/lib/data-export.ts) */
+export async function tables() {
   const rows = await prisma.$queryRaw<{ t: string }[]>`
     SELECT table_name AS t FROM information_schema.tables WHERE table_schema = current_schema() AND table_type = 'BASE TABLE' ORDER BY table_name`;
   return rows.map((r) => r.t).filter((t) => !SKIP_TABLES.has(t) && /^[A-Za-z_][A-Za-z0-9_]*$/.test(t));
+}
+
+/** ทุกแถวของตาราง (ชื่อต้องมาจาก tables()) ตามค่าคอลัมน์จริง */
+export async function tableRows(t: string) {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(t)) throw new Error("ชื่อตารางไม่ถูกต้อง");
+  // ::text — driver adapter ของ Prisma อ่านชนิด json จาก queryRaw ไม่ได้ จึงรับเป็นข้อความแล้ว parse เอง
+  const rows = await prisma.$queryRawUnsafe<{ r: string }[]>(`SELECT row_to_json(x)::text AS r FROM "${t}" x`);
+  return rows.map((x) => JSON.parse(x.r) as Record<string, unknown>);
 }
 
 /** ZIP ของทุกตาราง (JSON) + manifest.json + README.txt */
@@ -32,9 +41,7 @@ export async function buildBackupZip(by: string) {
   const counts: Record<string, number> = {};
   for (const t of await tables()) {
     // ชื่อตารางมาจาก information_schema และผ่าน regex แล้ว — ใส่ใน "..." ได้ปลอดภัย
-    // ::text — driver adapter ของ Prisma อ่านชนิด json จาก queryRaw ไม่ได้ จึงรับเป็นข้อความแล้ว parse เอง
-    const rows = await prisma.$queryRawUnsafe<{ r: string }[]>(`SELECT row_to_json(x)::text AS r FROM "${t}" x`);
-    let data = rows.map((x) => JSON.parse(x.r) as Record<string, unknown>);
+    let data = await tableRows(t);
     if (t === "Admin") data = data.map((a) => ({ ...a, totpSecret: null, totpEnabled: false, backupCodes: [] }));
     counts[t] = data.length;
     entries.push({ name: `tables/${t}.json`, data: JSON.stringify(data), date: now });

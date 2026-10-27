@@ -1,9 +1,11 @@
 // สำรองข้อมูลทั้งร้านเป็น ZIP ของไฟล์ CSV (หนึ่งตาราง = หนึ่งไฟล์) — ใช้กับ /admin/export.zip (เจ้าของร้านเท่านั้น)
-// คอลัมน์สร้างจากข้อมูลจริงของแต่ละตาราง จึงไม่ตกหล่นเมื่อเพิ่มฟิลด์ใหม่ภายหลัง
-// ไม่รวมข้อมูลลับ: รหัสผ่าน/secret 2 ขั้นของผู้ใช้, session, ตัวจำกัดการล็อกอิน, ผู้รับ LINE
+// - รายชื่อตารางอ่านจากฐานข้อมูลจริง (ชุดเดียวกับระบบสำรองข้อมูลอัตโนมัติ src/lib/backup.ts) → ตารางใหม่ที่เพิ่มภายหลังอยู่ในไฟล์เอง
+// - คอลัมน์สร้างจากข้อมูลจริงของแต่ละตาราง จึงไม่ตกหล่นเมื่อเพิ่มฟิลด์ใหม่ภายหลัง
+// ไม่รวมข้อมูลลับ: รหัสผ่าน (hash)/secret 2 ขั้น/รหัสสำรองของผู้ใช้, token ลิงก์ลูกค้า, session, ตัวจำกัดการล็อกอิน, ผู้รับ LINE
 import "server-only";
+import { tableRows, tables } from "@/lib/backup";
 import { toCsv } from "@/lib/csv";
-import { prisma } from "@/lib/prisma";
+import { csvName, stripSecrets } from "@/lib/export-rules";
 import { createZip, type ZipEntry } from "@/lib/zip";
 
 type Row = Record<string, unknown>;
@@ -21,37 +23,30 @@ function tableCsv(rows: Row[], fallbackHead: string[] = ["id"]) {
   return toCsv(head, rows.map((r) => head.map((k) => cell(r[k]))));
 }
 
-const TABLES: [file: string, label: string, load: () => Promise<Row[]>][] = [
-  ["orders.csv", "คำสั่งซื้อหน้าเว็บ", () => prisma.order.findMany({ orderBy: { createdAt: "asc" } })],
-  ["order_items.csv", "รายการสินค้าในคำสั่งซื้อ", () => prisma.orderItem.findMany({ orderBy: { orderId: "asc" } })],
-  ["payment_slips.csv", "ข้อมูลสลิป (ไม่รวมไฟล์ภาพ)", () => prisma.paymentSlip.findMany({ orderBy: { uploadedAt: "asc" } })],
-  ["order_events.csv", "ประวัติคำสั่งซื้อ", () => prisma.orderEvent.findMany({ orderBy: { createdAt: "asc" } })],
-  ["customers.csv", "ลูกค้า", () => prisma.customer.findMany({ orderBy: { code: "asc" } })],
-  ["sales_documents.csv", "เอกสารขาย (ใบเสนอราคา/ใบแจ้งหนี้/ใบเสร็จ)", () => prisma.salesDocument.findMany({ orderBy: { createdAt: "asc" } })],
-  ["sales_document_items.csv", "รายการในเอกสารขาย", () => prisma.salesDocumentItem.findMany({ orderBy: [{ documentId: "asc" }, { sortOrder: "asc" }] })],
-  ["doc_payments.csv", "การรับชำระของใบแจ้งหนี้", () => prisma.docPayment.findMany({ orderBy: { paidAt: "asc" } })],
-  ["doc_events.csv", "ประวัติเอกสารขาย", () => prisma.salesDocumentEvent.findMany({ orderBy: { createdAt: "asc" } })],
-  ["doc_sequences.csv", "ตัวนับเลขที่เอกสาร", () => prisma.docSequence.findMany()],
-  ["products.csv", "สินค้า", () => prisma.product.findMany({ orderBy: { sku: "asc" } })],
-  ["stock_movements.csv", "ความเคลื่อนไหวสต็อก", () => prisma.stockMovement.findMany()],
-  ["categories.csv", "หมวดหมู่", () => prisma.category.findMany({ orderBy: { sortOrder: "asc" } })],
-  ["inquiries.csv", "คำขอจากลูกค้า", () => prisma.inquiry.findMany({ orderBy: { createdAt: "asc" } })],
-  ["hero_slides.csv", "สไลด์หน้าแรก", () => prisma.heroSlide.findMany({ orderBy: { sortOrder: "asc" } })],
-  ["pages.csv", "หน้าเนื้อหา", () => prisma.page.findMany({ orderBy: { slug: "asc" } })],
-  ["shop_settings.csv", "ตั้งค่าร้าน", () => prisma.shopSetting.findMany()],
-  ["admin_users.csv", "ผู้ใช้หลังบ้าน (ไม่รวมรหัสผ่าน)", () =>
-    prisma.admin.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, username: true, displayName: true, role: true, isActive: true, totpEnabled: true, mustChangePassword: true, lastLoginAt: true, createdAt: true } })],
-  ["admin_log.csv", "บันทึกการใช้งาน", () => prisma.adminLog.findMany({ orderBy: { createdAt: "asc" } })],
-];
+/** ตารางที่ไม่ส่งออก (ข้อมูลชั่วคราว/ข้อมูลยืนยันตัวตน) — นอกเหนือจากที่ backup.ts ข้ามอยู่แล้ว */
+export const EXPORT_SKIP_TABLES = new Set(["AdminSession", "LoginThrottle", "LineRecipient"]);
+const LABEL: Record<string, string> = {
+  Order: "คำสั่งซื้อหน้าเว็บ", OrderItem: "รายการสินค้าในคำสั่งซื้อ", PaymentSlip: "ข้อมูลสลิป (ไม่รวมไฟล์ภาพ)", OrderEvent: "ประวัติคำสั่งซื้อ",
+  Customer: "ลูกค้า", SalesDocument: "เอกสารขาย (ใบเสนอราคา/ใบแจ้งหนี้/ใบเสร็จ)", SalesDocumentItem: "รายการในเอกสารขาย", DocPayment: "การรับชำระของใบแจ้งหนี้",
+  SalesDocumentEvent: "ประวัติเอกสารขาย", DocSequence: "ตัวนับเลขที่เอกสาร", DocSlip: "สลิปของใบแจ้งหนี้ (ไม่รวมไฟล์ภาพ)", Product: "สินค้า",
+  StockMovement: "ความเคลื่อนไหวสต็อก", Category: "หมวดหมู่", Inquiry: "คำขอจากลูกค้า", HeroSlide: "สไลด์หน้าแรก", Page: "หน้าเนื้อหา",
+  ShopSetting: "ตั้งค่าร้าน", Admin: "ผู้ใช้หลังบ้าน (ไม่รวมรหัสผ่าน/2 ขั้น)", AdminLog: "บันทึกการใช้งาน", AdminTask: "งานที่ต้องทำ",
+  InternalNote: "โน้ตภายใน", BackupRun: "ประวัติสำรองข้อมูล", Claim: "เคลม/คืนสินค้า", Review: "รีวิวสินค้า", StockAlert: "แจ้งเมื่อมีของ",
+  Coupon: "คูปอง", CouponRedemption: "การใช้คูปอง", DataRequest: "คำขอข้อมูลส่วนบุคคล (PDPA)", EmailLog: "ประวัติอีเมลถึงลูกค้า",
+  PurchaseOrder: "ใบสั่งซื้อ (ต้นทุน)", PurchaseOrderItem: "รายการในใบสั่งซื้อ", Project: "ผลงานติดตั้ง", Post: "บทความ",
+  Redirect: "Redirect", NotFoundLog: "ลิงก์เสีย (404)", SearchLog: "คำค้นหา", SearchSynonym: "คำพ้องค้นหา", SpecAttribute: "สเปกสินค้า",
+  VariantGroup: "กลุ่มตัวเลือกสินค้า", ContentVersion: "เวอร์ชันเนื้อหา (ย้อนกลับ)", Sequence: "ตัวนับเลขที่",
+};
 
 export async function buildDataExport(by: string) {
   const now = new Date();
   const entries: ZipEntry[] = [];
   const counts: string[] = [];
-  for (const [file, label, load] of TABLES) {
-    const rows = await load();
+  for (const t of (await tables()).filter((t) => !EXPORT_SKIP_TABLES.has(t))) {
+    const rows = stripSecrets(await tableRows(t));
+    const file = csvName(t);
     entries.push({ name: file, data: tableCsv(rows), date: now });
-    counts.push(`${file.padEnd(28)} ${String(rows.length).padStart(7)} แถว  — ${label}`);
+    counts.push(`${file.padEnd(28)} ${String(rows.length).padStart(7)} แถว  — ${LABEL[t] ?? t}`);
   }
   const readme = [
     "สำรองข้อมูลร้านมองดูเว็บ",
@@ -61,7 +56,7 @@ export async function buildDataExport(by: string) {
     "- จำนวนเงินทุกคอลัมน์ที่ลงท้ายด้วย Satang เป็น \"สตางค์\" (หาร 100 = บาท)",
     "- จำนวนสินค้าที่ลงท้ายด้วย Milli เป็นหน่วย 1/1000 (หาร 1000 = จำนวนจริง)",
     "- เวลาเป็นมาตรฐาน UTC (ISO 8601) — เวลาไทย = UTC + 7 ชั่วโมง",
-    "- ไม่รวมไฟล์ภาพ (สลิป รูปสินค้า) และข้อมูลลับ (รหัสผ่าน, รหัสยืนยัน 2 ขั้น, session)",
+    "- ไม่รวมไฟล์ภาพ (สลิป รูปสินค้า) และข้อมูลลับ (รหัสผ่าน, รหัสยืนยัน 2 ขั้น, token ลิงก์ลูกค้า, session)",
     "- เก็บไฟล์นี้ในที่ปลอดภัย เพราะมีข้อมูลส่วนบุคคลของลูกค้า (PDPA)",
     "",
     ...counts,

@@ -1,9 +1,11 @@
 // กลุ่มลูกค้า (A23): แท็ก + ยอดซื้อรวม + ซื้อล่าสุด + ตัวกรอง สำหรับหน้า /admin/customers และไฟล์บรอดแคสต์
 // ยอดซื้อรวม = คำสั่งซื้อที่ชำระแล้ว/จัดส่งแล้วของลูกค้า (ผูก customerId) + ใบเสร็จที่ออกแล้วไม่ยกเลิกที่ไม่ได้มาจากคำสั่งซื้อ (ไม่นับซ้ำ)
 // ซื้อล่าสุด = วันที่ชำระของคำสั่งซื้อ / วันที่ในใบเสร็จ ล่าสุด
+// รายชื่อสำหรับการตลาด (marketingOnly) ไม่รวม: ลูกค้าที่ตั้ง "ไม่รับข่าวสาร" (marketingOptOut) และเบอร์/อีเมลที่ยื่นคำขอคัดค้าน (PDPA OBJECT) ที่ไม่ถูกปฏิเสธ
 import "server-only";
 import type { Prisma } from "../../generated/prisma/client";
 import { phoneDigits } from "@/lib/format";
+import { marketingAllowed } from "@/lib/pdpa-rules";
 import { prisma } from "@/lib/prisma";
 
 export type SegmentFilter = {
@@ -92,12 +94,22 @@ function baseWhere(f: SegmentFilter): Prisma.CustomerWhereInput {
   return and.length ? { AND: and } : {};
 }
 
+/** เบอร์/อีเมลที่ยื่นคำขอคัดค้านการตลาด (ไม่นับคำขอที่ถูกปฏิเสธ) */
+async function objectedContacts() {
+  const reqs = await prisma.dataRequest.findMany({ where: { kind: "OBJECT", status: { not: "REJECTED" } }, select: { phone: true, email: true } });
+  return { phones: new Set(reqs.map((r) => phoneDigits(r.phone)).filter(Boolean)), emails: new Set(reqs.map((r) => r.email?.toLowerCase()).filter((e): e is string => !!e)) };
+}
+
 /** ลูกค้าตามตัวกรองทั้งหมด (คำนวณยอดแล้ว) — ใช้ทั้งหน้ารายการ (แบ่งหน้าเอง) และไฟล์ CSV */
-export async function segmentCustomers(f: SegmentFilter) {
-  const rows = await prisma.customer.findMany({
-    where: baseWhere(f), orderBy: { code: "desc" }, take: 20000,
+export async function segmentCustomers(f: SegmentFilter, opts: { marketingOnly?: boolean } = {}) {
+  let rows = await prisma.customer.findMany({
+    where: { ...baseWhere(f), ...(opts.marketingOnly ? { marketingOptOut: false } : {}) }, orderBy: { code: "desc" }, take: 20000,
     include: { _count: { select: { documents: true, orders: true } } },
   });
+  if (opts.marketingOnly) {
+    const blocked = await objectedContacts();
+    rows = rows.filter((c) => marketingAllowed(c, blocked));
+  }
   const stats = await statsFor(rows.map((r) => r.id));
   const min = f.minSpend ? Math.round(Number(f.minSpend) * 100) : null;
   const max = f.maxSpend ? Math.round(Number(f.maxSpend) * 100) : null;

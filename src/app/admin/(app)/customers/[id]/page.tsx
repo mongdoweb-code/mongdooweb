@@ -9,7 +9,7 @@ import { docPath, statusOf } from "@/lib/docs";
 import { formatPhone } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
-import { deleteCustomer, mergeCustomer } from "../actions";
+import { deleteCustomer, mergeCustomer, setMarketingOptOut } from "../actions";
 import { CustomerForm, type CustomerValues } from "../CustomerForm";
 import { CustomerExtras } from "../CustomerExtras";
 import "../../../lot12.css";
@@ -51,7 +51,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
         <div>
           <p><Link className="link" href="/admin/customers">← ลูกค้าทั้งหมด</Link></p>
           <h1>{c ? `${c.code} · ${c.name}` : "เพิ่มลูกค้า"}</h1>
-          {c && <p>สร้างเมื่อ {docDate(ymdBkk(c.createdAt), "AD")}{c.note ? ` · ${c.note}` : ""}</p>}
+          {c && <p>สร้างเมื่อ {docDate(ymdBkk(c.createdAt), "AD")}{c.note ? ` · ${c.note}` : ""}{c.marketingOptOut && <> · <span className="dst dst-bad" id="cuOptOutBadge">ไม่รับข่าวสาร (คัดค้านการตลาด)</span></>}</p>}
         </div>
         {c && (
           <div className="head-actions">
@@ -68,6 +68,19 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
       <div className="pform-grid">
         <div className="d-col">
           <div className="box"><h3>ข้อมูลลูกค้า</h3><CustomerForm v={v} saved={sp.saved === "1"} /></div>
+          {c && (
+            <form action={setMarketingOptOut} className="box" id="optOutBox">
+              <h3>การรับข่าวสาร/การตลาด</h3>
+              <input type="hidden" name="id" value={c.id} />
+              <input type="hidden" name="optOut" value={c.marketingOptOut ? "0" : "1"} />
+              <p className="sub">
+                {c.marketingOptOut
+                  ? "ลูกค้ารายนี้คัดค้านการตลาด (PDPA) — ไม่อยู่ในไฟล์รายชื่อบรอดแคสต์ ยังติดต่อเรื่องคำสั่งซื้อ/เอกสารได้ตามปกติ"
+                  : "รับข่าวสาร/โปรโมชันได้ (อยู่ในไฟล์รายชื่อบรอดแคสต์) — ถ้าลูกค้าขอไม่รับ ให้กดปุ่มด้านล่าง"}
+              </p>
+              <button className="btn btn-outline btn-sm" type="submit">{c.marketingOptOut ? "ยกเลิก “ไม่รับข่าวสาร”" : "ตั้งเป็น “ไม่รับข่าวสาร”"}</button>
+            </form>
+          )}
           {c && owner && (
             <form action={mergeCustomer} className="box cu-merge" id="mergeBox">
               <h3>รวมรายการซ้ำ</h3>
