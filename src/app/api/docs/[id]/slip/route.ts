@@ -25,6 +25,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/docs/[id]/slip"
       paidAt: String(form.get("paidAt") ?? ""),
       amount: String(form.get("amount") ?? ""),
     });
+    if ("repeated" in r && r.repeated) return Response.json({ ok: true, amountSatang: r.amountSatang, repeated: true }, { status: 200 });
     after(() => notifySafe(`สลิปใบแจ้งหนี้ ${r.docNo}`, () => docSlipMessage(r)));
     return Response.json({ ok: true, amountSatang: r.amountSatang }, { status: 201 });
   } catch (e) {

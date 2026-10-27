@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import type { DocView } from "@/lib/doc-render";
 import { DocSheets } from "@/app/admin/_components/DocSheets";
-import { IMAGE_TYPES, compressImage, fmtSize, uploadWithProgress } from "@/app/(shop)/_lot2/compress";
+import { IMAGE_TYPES, compressImage, fmtSize, uploadWithRetry } from "@/app/(shop)/_lot2/compress";
 import { acceptQuoteAction, type AcceptState } from "./actions";
 import "./doc-online.css";
 
@@ -129,7 +129,10 @@ function InvoicePanel(p: Props) {
             fd.append("paidAt", `${f.get("date")}T${f.get("time")}`);
             fd.append("amount", String(f.get("amount")));
             setBusy(true);
-            const res = await uploadWithProgress(`/api/docs/${encodeURIComponent(p.id)}/slip`, fd, () => {});
+            // เน็ตหลุด/ไม่เสถียร → ลองส่งใหม่เอง · ไฟล์เดิมที่ถึงเซิร์ฟเวอร์แล้ว = สำเร็จ ไม่ซ้ำ
+            const res = await uploadWithRetry(`/api/docs/${encodeURIComponent(p.id)}/slip`, fd, () => {}, (r) =>
+              setMsg(r ? { ok: false, text: r.offline ? "ไม่มีอินเทอร์เน็ต — จะส่งสลิปให้อัตโนมัติเมื่อเน็ตกลับมา…" : `เน็ตไม่เสถียร กำลังลองส่งใหม่ (ครั้งที่ ${r.attempt}/${r.max}) ใน ${r.waitSec} วินาที…` } : null),
+            );
             setBusy(false);
             if (res.ok) {
               setMsg({ ok: true, text: "ได้รับสลิปแล้ว ร้านจะตรวจสอบและออกใบเสร็จรับเงินให้" });

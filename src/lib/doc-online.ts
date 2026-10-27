@@ -79,6 +79,9 @@ export async function attachDocSlip(input: { id: string; token: string; file: Fi
   if (amountSatang > outstanding) throw new DocOnlineError(`ยอดที่โอนมากกว่ายอดค้างชำระ (คงค้าง ${money(outstanding)} บาท)`, 400, ["amount"]);
 
   const sha256 = createHash("sha256").update(buf).digest("hex");
+  // ส่งซ้ำไฟล์เดิมกับใบแจ้งหนี้เดิมที่ยังรอตรวจ (ลองใหม่หลังเน็ตหลุด) = สำเร็จแล้ว ไม่สร้างสลิปซ้ำ
+  const same = await prisma.docSlip.findFirst({ where: { documentId: d.id, sha256, status: "PENDING" }, select: { id: true, amountSatang: true } });
+  if (same) return { slipId: same.id, docNo: d.docNo!, amountSatang: same.amountSatang, outstanding, customer: asSnap(d.customerSnapshot).name ?? "", invoiceId: d.id, repeated: true };
   const now = new Date();
   const key = `slips/docs/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${(d.docNo ?? d.id).toLowerCase()}-${sha256.slice(0, 16)}-${Date.now()}.${kind.ext}`;
   await storage().put(key, buf);
