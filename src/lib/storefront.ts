@@ -59,6 +59,8 @@ export type ShopCategory = {
   count: number;
   /** รูปตัวแทนหมวด = รูปสินค้าขายดี/ยอดเข้าชมสูงสุดในหมวด (ขนาดย่อ) */
   img?: string;
+  /** ชิปยอดนิยมบนการ์ดหมวด { t: ข้อความ, h: ลิงก์ } — ตัวกรองหน้าหมวด (สีแสง/การใช้งาน) หรือผลค้นหา */
+  tags?: { t: string; h: string }[];
 };
 
 /** specs ในฐานข้อมูลเป็น [{label, value}] — การ์ดสินค้าแสดงแค่ value */
@@ -138,6 +140,29 @@ export async function getShopData() {
     if (!c) continue;
     c.count++;
     if (!c.img && p.img) c.img = p.img;
+  }
+  // ชิปยอดนิยมบนการ์ดหมวด: แสดงเฉพาะคำที่มีสินค้าในหมวดตรงจริง (กดแล้วต้องเจอสินค้า) สูงสุด 3 คำ
+  // คำที่ตรงกับตัวกรองหน้าหมวด (แสงขาว / RGB / การใช้งาน) → ลิงก์ตัวกรองซึ่งแม่นกว่า · คำอื่น → ผลค้นหา
+  const norm = (t: string) => t.toLowerCase().replace(/\s+/g, "");
+  for (const c of shopCategories) {
+    const items = catalog.filter((p) => p.catId === c.slug);
+    const texts = items.map((p) => norm([p.name, p.kw ?? "", ...p.specs].join(" ")));
+    const base = `/category/${encodeURIComponent(c.slug)}`;
+    const tags: { t: string; h: string }[] = [];
+    for (const term of c.popular) {
+      if (tags.length >= 3) break;
+      const color = /แสงขาว|white|warm/i.test(term) ? "white" : /rgb|เปลี่ยนสี/i.test(term) ? "rgb" : null;
+      const use = (Object.keys(USE_FILTERS) as (keyof typeof USE_FILTERS)[]).find((k) => norm(USE_FILTERS[k]).includes(norm(term)) || norm(term).includes(norm(USE_FILTERS[k])));
+      // ใช้เฉพาะคำที่ช่วยคัดสินค้า: เจออย่างน้อย 1 ชิ้น แต่ไม่ใช่ทุกชิ้นในหมวด (ไม่งั้นก็เหมือนกดเข้าหมวดเฉยๆ)
+      const useful = (n: number) => n > 0 && n < items.length;
+      if (color && useful(items.filter((p) => p.color === color).length)) tags.push({ t: term, h: `${base}?color=${color}` });
+      else if (use && useful(items.filter((p) => p.use.includes(use)).length)) tags.push({ t: term, h: `${base}?use=${use}` });
+      else if (!color && !use && !norm(c.th).includes(norm(term))) { // คำที่อยู่ในชื่อหมวดอยู่แล้ว (เช่น "ฝังฝ้า") ค้นแล้วได้ทั้งหมวด = ไม่แสดง
+        const words = term.split(/\s+/).map(norm).filter(Boolean);
+        if (words.length && useful(texts.filter((t) => words.every((w) => t.includes(w))).length)) tags.push({ t: term, h: `/search?q=${encodeURIComponent(`${c.th} ${term}`)}` });
+      }
+    }
+    if (tags.length) c.tags = tags;
   }
 
   // อุปกรณ์ที่ตัวช่วยเลือกไฟแนะนำคู่กัน: หม้อแปลง DC12V และท่อหดกันน้ำ (ถ้ามีขาย)

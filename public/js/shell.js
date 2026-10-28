@@ -200,6 +200,8 @@ function normCat(c, i){
     popular: Array.isArray(c.popular) ? c.popular.map(p => str(p, 40)).filter(Boolean).slice(0, 4) : [],
     visible: !!c.visible, order: num(c.order, i), _i: i,
     count: Math.max(0, Math.floor(num(c.count, 0))),
+    // ชิปยอดนิยม: ลิงก์ภายในเว็บเท่านั้น
+    tags: Array.isArray(c.tags) ? c.tags.filter(t => t && typeof t.h === 'string' && /^\/(category|search)[/?]/.test(t.h)).map(t => ({ t: str(t.t, 40), h: t.h.slice(0, 300) })).filter(t => t.t).slice(0, 3) : [],
     img: typeof c.img === 'string' && /^\/media\/[\w./-]+$/.test(c.img) ? c.img : ''
   };
 }
@@ -216,19 +218,24 @@ function renderCats(){
   if ($('#catCount')) $('#catCount').textContent = n;
   const groups = Object.keys(CATEGORY_GROUPS).map(g => ({ g, label: CATEGORY_GROUPS[g], items: CATS.filter(c => c.group === g) })).filter(x => x.items.length);
 
-  // การ์ดหมวด: รูปสินค้าจริงของหมวด + ชื่อ + จำนวนสินค้า — ทั้งการ์ดเป็นลิงก์เดียวไปหน้าหมวด
+  // การ์ดหมวด: รูปสินค้าจริงของหมวด + ชื่อ + คำค้นยอดนิยม + จำนวนสินค้า
+  // ทั้งการ์ดคลิกไปหน้าหมวด (ลิงก์หลักขยายเต็มการ์ด) · ชิปยอดนิยมเป็นลิงก์แยก (ตัวกรองหน้าหมวด หรือผลค้นหา)
   if ($('#catGrid')) $('#catGrid').innerHTML = CATS.map((c, i) => {
     const media = c.img
       ? `<img src="${esc(c.img)}"${srcsetOf(c.img) ? ` srcset="${esc(srcsetOf(c.img))}" sizes="(max-width: 640px) 46vw, (max-width: 900px) 46vw, 160px"` : ''} alt="" width="480" height="480" loading="${i < 4 ? 'eager' : 'lazy'}" decoding="async">`
       : `<span class="cat-ph" aria-hidden="true">${svg(c.icon)}</span>`;
     const meta = c.count ? `${c.count.toLocaleString('th-TH')} รายการ` : 'สอบถามทางร้าน';
-    return `<a class="cat-card reveal in" data-cat="${esc(c.id)}" href="${esc(catHref(c))}">
-      <span class="cat-media">${media}<span class="cat-badge" aria-hidden="true">${svg(c.icon)}</span></span>
+    const chips = c.tags.length
+      ? `<span class="cat-tags" aria-label="ยอดนิยมใน${esc(c.th)}">${c.tags.map(t => `<a class="cat-tag" href="${esc(t.h)}">${esc(t.t)}</a>`).join('')}</span>`
+      : '';
+    return `<article class="cat-card reveal in" data-cat="${esc(c.id)}">
+      <span class="cat-media">${media}</span>
       <span class="cat-body">
-        <span class="cat-name"><b>${esc(c.th)}</b><span class="cat-en">${esc(c.en)}</span></span>
+        <span class="cat-name"><a class="cat-link" href="${esc(catHref(c))}"><b>${esc(c.th)}</b></a><span class="cat-en">${esc(c.en)}</span></span>
+        ${chips}
         <span class="cat-foot"><span class="cat-count">${meta}</span><span class="cat-arrow" aria-hidden="true">${ARROW}</span></span>
       </span>
-    </a>`;
+    </article>`;
   }).join('') || '<p class="sec-sub">ยังไม่มีหมวดสินค้าที่เปิดแสดง</p>';
 
   // Mega panel

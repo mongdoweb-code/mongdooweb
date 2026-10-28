@@ -292,26 +292,33 @@ section{padding:96px 0}
 .cats{background:linear-gradient(180deg,#fff 0%,#FAF9F6 100%)}
 .cat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 /* การ์ดหมวด: รูปสินค้าจริงของหมวด (จัตุรัส ไม่ตัดภาพ) + ชื่อ + จำนวนสินค้า — ทั้งการ์ดเป็นลิงก์เดียว */
-.cat-card{position:relative;display:flex;align-items:stretch;background:var(--c-white);border:1px solid var(--c-line);color:var(--c-ink);text-decoration:none;
+.cat-card{position:relative;display:flex;align-items:stretch;cursor:pointer;background:var(--c-white);border:1px solid var(--c-line);color:var(--c-ink);text-decoration:none;
   overflow:hidden;transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s}
-.cat-media{position:relative;flex:0 0 128px;aspect-ratio:1/1;background:#fff;border-right:1px solid var(--c-line);overflow:hidden}
+.cat-media{position:relative;flex:0 0 132px;min-height:132px;background:#fff;border-right:1px solid var(--c-line);overflow:hidden}
 .cat-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:transform .5s var(--ease)}
 .cat-ph{position:absolute;inset:0;display:grid;place-items:center;color:#B9B2A3}
 .cat-ph svg{width:44px;height:44px}
 .cat-badge{display:none}
-.cat-body{display:flex;flex-direction:column;justify-content:space-between;gap:10px;flex:1;min-width:0;padding:18px 18px 16px 20px}
+.cat-body{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;padding:16px 16px 14px 18px}
+/* ลิงก์หลักขยายเต็มการ์ด (คลิกตรงไหนก็ไปหน้าหมวด) · ชิปยอดนิยมอยู่เหนือชั้นนี้จึงกดแยกได้ */
+.cat-link{color:inherit;text-decoration:none}
+.cat-link::after{content:"";position:absolute;inset:0;z-index:1}
+.cat-link:focus-visible{outline:none}
+.cat-card:has(.cat-link:focus-visible){outline:2px solid var(--c-orange);outline-offset:3px}
+.cat-tags{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:6px}
+.cat-tag{display:inline-flex;align-items:center;min-height:28px;padding:3px 10px;font-size:12.5px;line-height:1.3;color:var(--c-ink);background:var(--c-cream);border:1px solid transparent;text-decoration:none;transition:background .2s,border-color .2s,color .2s}
+.cat-tag:hover,.cat-tag:focus-visible{background:#fff;border-color:var(--c-orange);color:var(--c-orange-dk)}
 .cat-name b{display:block;font-size:17px;font-weight:600;line-height:1.35}
 .cat-en{display:block;margin-top:2px;font-size:13px;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cat-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13.5px;color:var(--c-muted)}
+.cat-foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13.5px;color:var(--c-muted)}
 .cat-count{display:inline-flex;align-items:center;gap:6px}
 .cat-count::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c-orange)}
 .cat-arrow{width:32px;height:32px;flex:none;display:grid;place-items:center;border:1px solid var(--c-line);color:var(--c-ink);transition:background .25s,border-color .25s,color .25s,transform .25s var(--ease)}
 .cat-arrow svg{width:16px;height:16px}
-.cat-card:hover,.cat-card:focus-visible{border-color:#d9d4c8;box-shadow:0 2px 4px rgba(20,20,20,.04),0 12px 28px rgba(20,20,20,.09);transform:translateY(-3px)}
-.cat-card:hover .cat-media img,.cat-card:focus-visible .cat-media img{transform:scale(1.06)}
-.cat-card:hover .cat-name b,.cat-card:focus-visible .cat-name b{color:var(--c-orange-dk)}
-.cat-card:hover .cat-arrow,.cat-card:focus-visible .cat-arrow{background:var(--c-orange);border-color:var(--c-orange);color:#fff;transform:translateX(2px)}
-.cat-card:focus-visible{outline:2px solid var(--c-orange);outline-offset:3px}
+.cat-card:hover,.cat-card:focus-within{border-color:#d9d4c8;box-shadow:0 2px 4px rgba(20,20,20,.04),0 12px 28px rgba(20,20,20,.09);transform:translateY(-3px)}
+.cat-card:hover .cat-media img,.cat-card:focus-within .cat-media img{transform:scale(1.06)}
+.cat-card:hover .cat-name b,.cat-card:has(.cat-link:focus-visible) .cat-name b{color:var(--c-orange-dk)}
+.cat-card:hover .cat-arrow,.cat-card:has(.cat-link:focus-visible) .cat-arrow{background:var(--c-orange);border-color:var(--c-orange);color:#fff;transform:translateX(2px)}
 @media (prefers-reduced-motion:reduce){.cat-card,.cat-media img,.cat-arrow{transition:none}.cat-card:hover,.cat-card:focus-visible{transform:none}.cat-card:hover .cat-media img{transform:none}}
 
 /* ---------- PRODUCTS ---------- */
@@ -571,7 +578,8 @@ body.locked{overflow:hidden}
   .trust-item:nth-child(n+3){border-top:1px solid var(--c-line)}
   .cat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .cat-card{flex-direction:column}
-  .cat-media{flex:none;width:100%;border-right:0;border-bottom:1px solid var(--c-line)}
+  .cat-media{flex:none;width:100%;min-height:0;aspect-ratio:1/1;border-right:0;border-bottom:1px solid var(--c-line)}
+  .cat-tag{font-size:12px;min-height:26px;padding:2px 8px}
   .cat-body{padding:12px 12px 14px;gap:10px}
   .cat-name b{font-size:15px}
   .cat-en{font-size:12px}
