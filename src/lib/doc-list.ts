@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const ymdRe = /^\d{4}-\d{2}-\d{2}$/;
-export type DocFilter = { tab: DocSt | "all"; q: string; from: string; to: string; page: number };
+export type DocFilter = { tab: DocSt | "all"; q: string; from: string; to: string; page: number; per: number };
 
 export function parseDocFilter(type: DocTypeT, sp: Record<string, string | string[] | undefined>): DocFilter {
   const tab = one(sp.tab);
@@ -19,6 +19,7 @@ export function parseDocFilter(type: DocTypeT, sp: Record<string, string | strin
     from: ymdRe.test(one(sp.from)) ? one(sp.from) : "",
     to: ymdRe.test(one(sp.to)) ? one(sp.to) : "",
     page: Math.max(1, Number(one(sp.page)) || 1),
+    per: [10, 20, 30, 50, 100].includes(Number(one(sp.per))) ? Number(one(sp.per)) : 20,
   };
 }
 
@@ -47,7 +48,7 @@ export function docWhere(type: DocTypeT, f: DocFilter, withTab = true): Prisma.S
   return { AND: and };
 }
 
-export async function listDocs(type: DocTypeT, f: DocFilter, size = 20) {
+export async function listDocs(type: DocTypeT, f: DocFilter, size = f.per) {
   const where = docWhere(type, f);
   const total = await prisma.salesDocument.count({ where });
   const pages = Math.max(1, Math.ceil(total / size));

@@ -140,7 +140,8 @@ model Product {
   seoTitle         String?
   seoDescription   String?
   weightGram       Int?
-  sortOrder        Int      @default(0)
+  sortOrder        Int      @default(0) // ลำดับที่ร้านจัดเอง (ลากเรียงในหลังบ้าน) — น้อย = แสดงก่อน
+  isPinned         Boolean  @default(false) // ปักหมุด/ติดดาว: อยู่บนสุดของรายการหลังบ้านและลำดับ "แนะนำ" หน้าร้าน
   views            Int      @default(0) // ยอดเข้าชมจากเว็บเดิม (ใช้จัดอันดับขายดีเริ่มต้น)
   wooId            Int?     @unique // ID สินค้าในเว็บเดิม (นำเข้าซ้ำได้)
   legacyPath       String?  @unique // URL เดิม /product/... (redirect 301 มาหน้าใหม่)
@@ -191,6 +192,7 @@ model Product {
   @@index([categoryId, isActive])
   @@index([variantGroupId])
   @@index([isBestSeller, isActive])
+  @@index([isPinned, sortOrder])
 }
 
 // ---------- คำสั่งซื้อ ----------

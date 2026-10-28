@@ -1,6 +1,7 @@
 // /admin/customers — ลูกค้า: ค้นหา (ชื่อ/รหัส/เบอร์/เลขผู้เสียภาษี/แท็ก), ยอดค้างชำระ, จำนวนเอกสาร
 // รอบ 3 (A23): กลุ่มลูกค้า — แท็ก, ยอดซื้อรวม, ซื้อล่าสุด, ตัวกรอง (แท็ก/ยอดซื้อ/วันที่ซื้อล่าสุด/มีเลขผู้เสียภาษี) + ส่งออกสำหรับบรอดแคสต์
 import Link from "next/link";
+import { Pagination, readPer } from "../../_components/Pagination";
 import { requireAdmin } from "@/lib/auth";
 import { allTags, parseSegment, segmentActive, segmentCustomers, segmentQuery } from "@/lib/customer-segments";
 import { money } from "@/lib/doc-calc";
@@ -8,13 +9,13 @@ import { formatPhone } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import "../../lot12.css";
 
-const PER = 30;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const day = (d: Date | null) => (d ? d.toLocaleDateString("th-TH", { dateStyle: "medium", timeZone: "Asia/Bangkok" }) : "—");
 
 export default async function CustomersPage({ searchParams }: PageProps<"/admin/customers">) {
   await requireAdmin();
   const sp = await searchParams;
+  const PER = readPer(sp.per, 30);
   const f = parseSegment(sp);
   const [list, tags] = await Promise.all([segmentCustomers(f), allTags()]);
   const total = list.length;
@@ -25,7 +26,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
     ? await prisma.salesDocument.groupBy({ by: ["customerId"], where: { customerId: { in: rows.map((r) => r.id) }, type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } }, _sum: { grandSatang: true, paidSatang: true } })
     : [];
   const oweOf = (id: string) => { const o = owe.find((x) => x.customerId === id); return o ? (o._sum.grandSatang ?? 0) - (o._sum.paidSatang ?? 0) : 0; };
-  const qs = (patch: Record<string, string>) => `/admin/customers${segmentQuery(f, patch)}`;
+  const qs = (patch: Record<string, string>) => `/admin/customers${segmentQuery(f, { per: PER === 30 ? "" : String(PER), ...patch })}`;
   const spendSum = list.reduce((s, c) => s + c.stats.spendSatang, 0);
   const seg = segmentActive(f);
   return (
@@ -111,16 +112,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
           </tbody>
         </table>
         {!rows.length && <div className="empty"><b>{f.q || seg ? "ไม่พบลูกค้าตามตัวกรอง" : "ยังไม่มีลูกค้า"}</b><Link className="link" href="/admin/customers/new">เพิ่มลูกค้า</Link></div>}
-        {total > PER && (
-          <div className="tbl-foot">
-            <span>แสดง {(page - 1) * PER + 1}–{(page - 1) * PER + rows.length} จาก {total} ราย</span>
-            <div className="pager">
-              {page > 1 && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page - 1) })}>← ก่อนหน้า</Link>}
-              <span className="num">หน้า {page}/{pages}</span>
-              {page < pages && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page + 1) })}>ถัดไป →</Link>}
-            </div>
-          </div>
-        )}
+        <Pagination page={page} pages={pages} total={total} shown={rows.length} per={PER} unit="ราย" href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 30 ? "" : String(pp) })} />
       </section>
     </main>
   );

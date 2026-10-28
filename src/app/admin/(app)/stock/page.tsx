@@ -1,4 +1,5 @@
 // /admin/stock — สต็อก: สินค้าที่นับสต็อก, สินค้าใกล้หมด (เกณฑ์ตั้งได้), ประวัติการเคลื่อนไหวทั้งหมด
+import { Pagination, readPer } from "../../_components/Pagination";
 import Link from "next/link";
 import type { Prisma } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
@@ -11,7 +12,6 @@ import "../../lot3.css";
 
 const TABS = { all: "สินค้าที่นับสต็อก", low: "ใกล้หมด", moves: "ประวัติการเคลื่อนไหว" } as const;
 type Tab = keyof typeof TABS;
-const PER = 50;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const fmt = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
 const ymdRe = /^\d{4}-\d{2}-\d{2}$/;
@@ -22,6 +22,7 @@ export default async function StockPage({ searchParams }: PageProps<"/admin/stoc
   const tab: Tab = one(sp.tab) in TABS ? (one(sp.tab) as Tab) : "all";
   const q = one(sp.q).trim().slice(0, 80);
   const page = Math.max(1, Number(one(sp.page)) || 1);
+  const per = readPer(sp.per, 50);
   const s = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { lowStockThreshold: true, lineLowStock: true } });
   const T = s?.lowStockThreshold ?? 5;
   const qWhere: Prisma.ProductWhereInput = q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] } : {};
@@ -31,7 +32,7 @@ export default async function StockPage({ searchParams }: PageProps<"/admin/stoc
     prisma.product.count({ where: { ...base, isActive: true, stock: { lte: T } } }),
   ]);
   const qs = (patch: Record<string, string>) => {
-    const v = new URLSearchParams(Object.entries({ tab: tab === "all" ? "" : tab, q, reason: one(sp.reason), from: one(sp.from), to: one(sp.to), ...patch }).filter(([, x]) => x));
+    const v = new URLSearchParams(Object.entries({ tab: tab === "all" ? "" : tab, q, per: per === 50 ? "" : String(per), reason: one(sp.reason), from: one(sp.from), to: one(sp.to), ...patch }).filter(([, x]) => x));
     return `/admin/stock${v.size ? `?${v}` : ""}`;
   };
 
@@ -57,7 +58,7 @@ export default async function StockPage({ searchParams }: PageProps<"/admin/stoc
             </a>
           ))}
         </nav>
-        {tab === "all" && <ProductList where={{ ...base, ...qWhere }} q={q} page={page} T={T} qs={qs} />}
+        {tab === "all" && <ProductList where={{ ...base, ...qWhere }} q={q} page={page} per={per} T={T} qs={qs} />}
         {tab === "low" && (
           <>
             {admin.role === "OWNER" ? (
@@ -74,21 +75,21 @@ export default async function StockPage({ searchParams }: PageProps<"/admin/stoc
             ) : (
               <p className="l3-note" style={{ padding: "12px 16px" }}>เกณฑ์ใกล้หมด: คงเหลือ ≤ {T} (เจ้าของร้านเปลี่ยนได้)</p>
             )}
-            <ProductList where={{ ...base, isActive: true, stock: { lte: T }, ...qWhere }} q={q} page={page} T={T} qs={qs} low />
+            <ProductList where={{ ...base, isActive: true, stock: { lte: T }, ...qWhere }} q={q} page={page} per={per} T={T} qs={qs} low />
           </>
         )}
-        {tab === "moves" && <Moves sp={sp} qs={qs} page={page} />}
+        {tab === "moves" && <Moves sp={sp} qs={qs} page={page} per={per} />}
       </section>
     </main>
   );
 }
 
-async function ProductList({ where, q, page, T, qs, low }: { where: Prisma.ProductWhereInput; q: string; page: number; T: number; qs: (p: Record<string, string>) => string; low?: boolean }) {
+async function ProductList({ where, q, page, per, T, qs, low }: { where: Prisma.ProductWhereInput; per: number; q: string; page: number; T: number; qs: (p: Record<string, string>) => string; low?: boolean }) {
   const total = await prisma.product.count({ where });
-  const pages = Math.max(1, Math.ceil(total / PER));
+  const pages = Math.max(1, Math.ceil(total / per));
   const pg = Math.min(page, pages);
   const rows = await prisma.product.findMany({
-    where, orderBy: low ? [{ stock: "asc" }, { name: "asc" }] : [{ name: "asc" }], skip: (pg - 1) * PER, take: PER,
+    where, orderBy: low ? [{ stock: "asc" }, { name: "asc" }] : [{ name: "asc" }], skip: (pg - 1) * per, take: per,
     select: { id: true, sku: true, name: true, stock: true, isActive: true, category: { select: { nameTh: true } }, stockMoves: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true, reason: true } } },
   });
   return (
@@ -123,12 +124,12 @@ async function ProductList({ where, q, page, T, qs, low }: { where: Prisma.Produ
           <div className="empty"><b>{low ? "ไม่มีสินค้าใกล้หมด" : "ไม่พบสินค้าที่นับสต็อก"}</b>{low ? "สต็อกทุกรายการสูงกว่าเกณฑ์" : "เปิด \"นับสต็อก\" ได้ในหน้าแก้ไขสินค้า"}</div>
         )}
       </div>
-      <Pager total={total} page={pg} pages={pages} qs={qs} />
+      <Pagination page={pg} pages={pages} total={total} shown={rows.length} per={per} href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 50 ? "" : String(pp) })} />
     </>
   );
 }
 
-async function Moves({ sp, qs, page }: { sp: Record<string, string | string[] | undefined>; qs: (p: Record<string, string>) => string; page: number }) {
+async function Moves({ sp, qs, page, per }: { sp: Record<string, string | string[] | undefined>; per: number; qs: (p: Record<string, string>) => string; page: number }) {
   const q = one(sp.q).trim().slice(0, 80);
   const reason = isStockReason(one(sp.reason)) ? one(sp.reason) : "";
   const from = ymdRe.test(one(sp.from)) ? one(sp.from) : "";
@@ -139,10 +140,10 @@ async function Moves({ sp, qs, page }: { sp: Record<string, string | string[] | 
     ...(from || to ? { createdAt: { ...(from ? { gte: fromYmd(from) } : {}), ...(to ? { lt: new Date(fromYmd(to).getTime() + 864e5) } : {}) } } : {}),
   };
   const total = await prisma.stockMovement.count({ where });
-  const pages = Math.max(1, Math.ceil(total / PER));
+  const pages = Math.max(1, Math.ceil(total / per));
   const pg = Math.min(page, pages);
   const rows = await prisma.stockMovement.findMany({
-    where, orderBy: { createdAt: "desc" }, skip: (pg - 1) * PER, take: PER,
+    where, orderBy: { createdAt: "desc" }, skip: (pg - 1) * per, take: per,
     include: { product: { select: { id: true, name: true, sku: true } }, admin: { select: { displayName: true } } },
   });
   return (
@@ -167,21 +168,7 @@ async function Moves({ sp, qs, page }: { sp: Record<string, string | string[] | 
       <div className="l3-panel">
         {rows.length ? <MoveTable rows={rows} showProduct /> : <div className="empty"><b>ยังไม่มีประวัติการเคลื่อนไหว</b>การขาย ยกเลิก รับของเข้า และนับสต็อกจะแสดงที่นี่</div>}
       </div>
-      <Pager total={total} page={pg} pages={pages} qs={qs} />
+      <Pagination page={pg} pages={pages} total={total} shown={rows.length} per={per} href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 50 ? "" : String(pp) })} />
     </>
-  );
-}
-
-function Pager({ total, page, pages, qs }: { total: number; page: number; pages: number; qs: (p: Record<string, string>) => string }) {
-  if (pages <= 1) return null;
-  return (
-    <div className="tbl-foot">
-      <span>ทั้งหมด {total} รายการ</span>
-      <div className="pager">
-        {page > 1 && <a className="icon-btn" href={qs({ page: String(page - 1) })} aria-label="หน้าก่อนหน้า"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 6-6 6 6 6" /></svg></a>}
-        <span className="num">หน้า {page}/{pages}</span>
-        {page < pages && <a className="icon-btn" href={qs({ page: String(page + 1) })} aria-label="หน้าถัดไป"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 6 6 6-6 6" /></svg></a>}
-      </div>
-    </div>
   );
 }

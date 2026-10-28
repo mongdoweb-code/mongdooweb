@@ -1,5 +1,6 @@
 // /admin/reviews — ตรวจรีวิวสินค้า (A4): รออนุมัติ / แสดงอยู่ / ซ่อน — อนุมัติ ซ่อน ตอบกลับ ลบ (เจ้าของร้าน)
 import Link from "next/link";
+import { Pagination, readPer } from "../../_components/Pagination";
 import type { Prisma, ReviewStatus } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { formatPhone } from "@/lib/format";
@@ -10,7 +11,6 @@ import { ConfirmSubmit } from "../../_components/AdminClient";
 import { deleteReview, replyReview, setReviewStatus } from "./actions";
 import "../_lot10/lot10.css";
 
-const PER = 30;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const fmt = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
 const TABS = ["PENDING", "APPROVED", "HIDDEN", "ALL"] as const;
@@ -36,6 +36,7 @@ const stars = (n: number) => (
 export default async function ReviewsPage({ searchParams }: PageProps<"/admin/reviews">) {
   const admin = await requireAdmin();
   const sp = await searchParams;
+  const PER = readPer(sp.per, 30);
   const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab)) ? (one(sp.tab) as Tab) : "PENDING";
   const q = one(sp.q).trim().slice(0, 80);
   const base: Prisma.ReviewWhereInput = q
@@ -55,7 +56,7 @@ export default async function ReviewsPage({ searchParams }: PageProps<"/admin/re
   });
   const orders = await prisma.order.findMany({ where: { id: { in: rows.map((r) => r.orderId).filter((x): x is string => !!x) } }, select: { id: true, orderNo: true } });
   const qs = (patch: Record<string, string>) => {
-    const s = new URLSearchParams(Object.entries({ tab: tab === "PENDING" ? "" : tab, q, page: page > 1 ? String(page) : "", ...patch }).filter(([, v]) => v)).toString();
+    const s = new URLSearchParams(Object.entries({ per: PER === 30 ? "" : String(PER), tab: tab === "PENDING" ? "" : tab, q, page: page > 1 ? String(page) : "", ...patch }).filter(([, v]) => v)).toString();
     return `/admin/reviews${s ? `?${s}` : ""}`;
   };
   const self = qs({});
@@ -162,16 +163,7 @@ export default async function ReviewsPage({ searchParams }: PageProps<"/admin/re
             ลูกค้าเขียนรีวิวได้ที่หน้าสินค้า หลังร้านยืนยันการชำระเงินแล้ว
           </div>
         )}
-        {total > PER && (
-          <div className="tbl-foot">
-            <span>ทั้งหมด {total} รายการ</span>
-            <div className="pager">
-              {page > 1 && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page - 1) })}>← ก่อนหน้า</Link>}
-              <span className="num">หน้า {page}/{pages}</span>
-              {page < pages && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page + 1) })}>ถัดไป →</Link>}
-            </div>
-          </div>
-        )}
+        <Pagination page={page} pages={pages} total={total} shown={rows.length} per={PER} unit="รายการ" href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 30 ? "" : String(pp) })} />
       </section>
     </main>
   );

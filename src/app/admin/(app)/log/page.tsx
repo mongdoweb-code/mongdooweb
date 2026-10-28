@@ -1,12 +1,12 @@
 // /admin/log — บันทึกการใช้งาน: เข้าสู่ระบบ, แก้ข้อมูลร้าน/สินค้า/เนื้อหา, เอกสารขาย และประวัติคำสั่งซื้อ
 // กรองตามหมวด/ผู้ใช้/ช่วงวันที่/ข้อความ (อยู่ใน URL) · ส่งออก CSV ตามตัวกรองเดียวกัน (เจ้าของร้าน)
 import Link from "next/link";
+import { Pagination } from "../../_components/Pagination";
 import { requireAdmin } from "@/lib/auth";
 import { FIELD_LABEL, visibleDiff, type Diff } from "@/lib/log-diff";
 import { prisma } from "@/lib/prisma";
 import { ALL_LOG_TYPES, LOG_TABS, ORDER_EVENT, adminLogWhere, logQuery, orderEventWhere, parseLogFilter, type LogTab } from "./types";
 
-const PER = 50;
 const fmt = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Bangkok" });
 const WARN = new Set(["LOGIN_FAIL", "LOCKOUT", "REJECTED", "CANCELLED", "DENIED"]);
 
@@ -14,6 +14,7 @@ export default async function LogPage({ searchParams }: PageProps<"/admin/log">)
   const admin = await requireAdmin();
   const f = parseLogFilter(await searchParams);
   const page = f.page;
+  const PER = f.per;
   const users = await prisma.admin.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, username: true, displayName: true } });
 
   const owner = admin.role === "OWNER";
@@ -103,16 +104,7 @@ export default async function LogPage({ searchParams }: PageProps<"/admin/log">)
           </tbody>
         </table>
         {!rows.length && <div className="empty"><b>{filtered ? "ไม่พบบันทึกตามตัวกรอง" : "ยังไม่มีบันทึก"}</b></div>}
-        <div className="tbl-foot">
-          <span>ทั้งหมด {total.toLocaleString("th-TH")} รายการ</span>
-          {total > PER && (
-            <div className="pager">
-              {page > 1 && <Link className="btn btn-outline btn-sm" href={`/admin/log${logQuery(f, { page: String(page - 1) })}`}>← ใหม่กว่า</Link>}
-              <span className="num">หน้า {page}/{pages}</span>
-              {page < pages && <Link className="btn btn-outline btn-sm" href={`/admin/log${logQuery(f, { page: String(page + 1) })}`}>เก่ากว่า →</Link>}
-            </div>
-          )}
-        </div>
+        <Pagination page={page} pages={pages} total={total} shown={rows.length} per={PER} href={(n, pp) => `/admin/log${logQuery(f, { page: n > 1 ? String(n) : "", per: pp === 50 ? "" : String(pp) })}`} />
       </section>
     </main>
   );

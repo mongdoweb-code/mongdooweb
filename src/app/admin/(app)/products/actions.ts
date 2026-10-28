@@ -14,6 +14,7 @@ import { recordSlugChange } from "@/lib/redirects";
 import { parseCsv } from "@/lib/csv";
 import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
 import { readProductExtras } from "@/lib/product-extras";
+import { moveProductToEdge, reorderProducts, topSortOrder } from "@/lib/product-order";
 
 export type ProductFormState = { error?: string; fields?: string[]; ok?: string };
 
@@ -141,8 +142,9 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     await logAdmin(admin.id, "PRODUCT", `แก้ไขสินค้า ${sku} — ${name}`, { entity: `Product:${id}`, diff });
     if (old.slug !== slug) await recordSlugChange(`/product/${old.slug}`, `/product/${slug}`); // ลิงก์เดิม → 301 อัตโนมัติ (A13)
   } else {
+    const sortOrder = await topSortOrder(); // สินค้าใหม่อยู่บนสุด ลากย้ายได้ในหน้ารายการ
     saved = await prisma.$transaction(async (tx) => {
-      const c = await tx.product.create({ data: { ...rest, stock: 0, inStock: trackStock ? false : inStock } });
+      const c = await tx.product.create({ data: { ...rest, sortOrder, stock: 0, inStock: trackStock ? false : inStock } });
       if (trackStock && stock > 0) await setStock(tx, c.id, stock, { reason: "COUNT", adminId: admin.id, note: "สต็อกเริ่มต้นตอนเพิ่มสินค้า" });
       return c;
     });
@@ -186,6 +188,53 @@ export async function toggleProduct(f: FormData) {
 }
 
 // ---------------------------------------------------------------------------
+// จัดลำดับ (ลากวาง / ไปบนสุด-ล่างสุด) + ปักหมุด
+// ---------------------------------------------------------------------------
+
+export type ReorderResult = { ok?: string; error?: string };
+
+/** ลากวางในหน้ารายการ: ids = ลำดับใหม่ของแถวที่เห็นในหน้านั้น */
+export async function saveProductOrder(ids: string[]): Promise<ReorderResult> {
+  const admin = await requireAdmin();
+  if (!Array.isArray(ids) || !ids.every((x) => typeof x === "string" && x.length <= 40)) return { error: "ข้อมูลไม่ถูกต้อง" };
+  try {
+    const n = await reorderProducts(ids);
+    if (n) {
+      await logAdmin(admin.id, "PRODUCT", `จัดลำดับสินค้าใหม่ (ลากวาง ${n} รายการ)`);
+      refreshStorefront();
+    }
+    return { ok: "บันทึกลำดับแล้ว — หน้าร้านเรียงตามนี้" };
+  } catch {
+    return { error: "บันทึกลำดับไม่สำเร็จ (สินค้าบางรายการอาจถูกลบไปแล้ว) — รีเฟรชหน้าแล้วลองใหม่" };
+  }
+}
+
+/** ไปบนสุด / ล่างสุดของทั้งร้าน */
+export async function moveProduct(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const edge = str(f, "edge", 6) === "bottom" ? "bottom" : "top";
+  const p = await prisma.product.findUnique({ where: { id }, select: { sku: true } });
+  if (!p) return;
+  await moveProductToEdge(id, edge);
+  await logAdmin(admin.id, "PRODUCT", `ย้ายสินค้า ${p.sku} ไป${edge === "top" ? "บนสุด" : "ล่างสุด"}`, { entity: `Product:${id}` });
+  refreshStorefront();
+  refresh();
+}
+
+/** ปักหมุด/เลิกปักหมุด (ติดดาว) — ปักหมุดแล้วอยู่บนสุดของรายการและของลำดับ "แนะนำ" หน้าร้าน */
+export async function togglePin(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const p = await prisma.product.findUnique({ where: { id }, select: { sku: true, isPinned: true } });
+  if (!p) return;
+  await prisma.product.update({ where: { id }, data: { isPinned: !p.isPinned } });
+  await logAdmin(admin.id, "PRODUCT", `${p.isPinned ? "เลิกปักหมุด" : "ปักหมุด"}สินค้า ${p.sku}`, { entity: `Product:${id}`, diff: { isPinned: [p.isPinned, !p.isPinned] } });
+  refreshStorefront();
+  refresh();
+}
+
+// ---------------------------------------------------------------------------
 // ทำสำเนาสินค้า / นำเข้า CSV
 // ---------------------------------------------------------------------------
 
@@ -208,7 +257,7 @@ export async function duplicateProduct(f: FormData) {
   void [_id, _c, _u, _w, _l, _v, _s, _ra, _rc, _vg, _vo];
   const json = (v: Prisma.JsonValue) => (v === null ? Prisma.DbNull : (v as Prisma.InputJsonValue));
   const copy = await prisma.product.create({
-    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), downloads: downloads as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
+    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), downloads: downloads as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), sortOrder: await topSortOrder(), isPinned: false, isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
   });
   await logAdmin(admin.id, "PRODUCT", `ทำสำเนาสินค้า ${p.sku} → ${sku}`);
   redirect(`/admin/products/${copy.id}?copied=1`);

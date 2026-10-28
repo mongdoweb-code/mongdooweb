@@ -1,6 +1,7 @@
 // หน้ารายละเอียดสินค้า — แกลเลอรี, ราคา/สต็อก, เลือกจำนวน, ซื้อคู่กัน, สเปก, คำอธิบาย, สินค้าในหมวด, ดูล่าสุด
 // ล็อต 9: ปุ่มเลือกตัวเลือก (U1), ราคาลดตามเวลา + นับถอยหลัง (U3), รายการโปรด/เปรียบเทียบ (U5/U7),
 // ตารางสเปกแบบมีโครงสร้าง (U6), ลิงก์คำนวณหม้อแปลง (U8), ราคาขายส่ง (U10), ไฟล์ดาวน์โหลด (U11)
+import { autoParagraph } from "@/lib/autop";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { htmlToText } from "@/lib/html";
@@ -48,7 +49,8 @@ const decode = (s: string) => {
  * (ลิงก์รูปจากเว็บเดิมที่รูปถูกตัดทิ้งไป เหลือ <a> ไม่มีข้อความ — โปรแกรมอ่านหน้าจออ่านไม่ได้)
  */
 function descriptionHtml(html: string) {
-  let out = html
+  let out = autoParagraph(html) // ข้อความจากเว็บเดิมที่ขึ้นบรรทัดด้วย Enter → ย่อหน้าจริง
+
     // ลิงก์ที่ครอบรูปเดียว (ชี้ไปไฟล์รูปบนเว็บเดิมที่ไม่มีแล้ว) → เหลือแต่รูป
     .replace(/<a\b[^>]*>\s*(<img\b[^>]*>)\s*<\/a>/gi, "$1")
     .replace(/<img (?![^>]*decoding=)/g, '<img decoding="async" ');

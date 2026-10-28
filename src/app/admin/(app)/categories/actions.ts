@@ -78,6 +78,21 @@ export async function moveCategory(f: FormData) {
   refresh();
 }
 
+/** ลากวางในตาราง: ids = ลำดับใหม่ของหมวดทั้งหมด */
+export async function saveCategoryOrder(ids: string[]): Promise<{ ok?: string; error?: string }> {
+  const admin = await requireAdmin();
+  const all = await prisma.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true } });
+  if (!Array.isArray(ids) || ids.length !== all.length || new Set(ids).size !== ids.length || !all.every((c) => ids.includes(c.id)))
+    return { error: "รายการหมวดเปลี่ยนไประหว่างลาก — รีเฟรชหน้าแล้วลองใหม่" };
+  if (ids.join() === all.map((c) => c.id).join()) return { ok: "บันทึกลำดับแล้ว" };
+  await baseline("CATEGORIES", admin.displayName);
+  await prisma.$transaction(ids.map((id, k) => prisma.category.update({ where: { id }, data: { sortOrder: k + 1 } })));
+  await snapshot("CATEGORIES", admin.displayName);
+  await logAdmin(admin.id, "CATEGORY", "จัดลำดับหมวดหมู่ใหม่ (ลากวาง)");
+  refreshStorefront();
+  return { ok: "บันทึกลำดับแล้ว — เมนูและการ์ดหมวดหน้าแรกเรียงตามนี้" };
+}
+
 /** ใช้ลำดับที่เรียงไว้ในตาราง (ชื่อ / กลุ่ม / จำนวนสินค้า) เป็นลำดับหน้าร้าน — คำนวณลำดับใหม่ที่เซิร์ฟเวอร์ด้วยกติกาเดียวกับตาราง */
 export async function applyCategorySort(f: FormData) {
   const admin = await requireAdmin();

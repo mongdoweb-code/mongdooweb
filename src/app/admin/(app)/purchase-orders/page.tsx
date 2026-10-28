@@ -1,13 +1,13 @@
 // /admin/purchase-orders — ใบสั่งซื้อถึงผู้ขาย (A21): รายการตามสถานะ + ค้นหา (เลขที่ ผู้ขาย สินค้า)
 // พนักงานเห็นรายการเพื่อรับของ แต่ไม่เห็นยอดเงิน/ต้นทุน
 import Link from "next/link";
+import { Pagination, readPer } from "../../_components/Pagination";
 import type { PoStatus } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PO_STATUS, poWhere } from "@/lib/purchase";
 import "../../lot3.css";
 
-const PER = 30;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const baht = (s: number) => "฿" + (s / 100).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const day = (d: Date | null) => (d ? d.toLocaleDateString("th-TH", { dateStyle: "medium", timeZone: "Asia/Bangkok" }) : "—");
@@ -16,6 +16,7 @@ export default async function PurchaseOrdersPage({ searchParams }: PageProps<"/a
   const admin = await requireAdmin();
   const owner = admin.role === "OWNER";
   const sp = await searchParams;
+  const PER = readPer(sp.per, 30);
   const status = (one(sp.status) in PO_STATUS ? one(sp.status) : "") as PoStatus | "";
   const q = one(sp.q).trim().slice(0, 80);
   const where = poWhere({ status, q });
@@ -28,7 +29,7 @@ export default async function PurchaseOrdersPage({ searchParams }: PageProps<"/a
   });
   const cnt = (s: PoStatus) => counts.find((c) => c.status === s)?._count._all ?? 0;
   const qs = (patch: Record<string, string>) => {
-    const s = new URLSearchParams(Object.entries({ status, q, ...patch }).filter(([, v]) => v)).toString();
+    const s = new URLSearchParams(Object.entries({ per: PER === 30 ? "" : String(PER), status, q, ...patch }).filter(([, v]) => v)).toString();
     return `/admin/purchase-orders${s ? `?${s}` : ""}`;
   };
   return (
@@ -85,16 +86,7 @@ export default async function PurchaseOrdersPage({ searchParams }: PageProps<"/a
           </tbody>
         </table>
         {!rows.length && <div className="empty"><b>{q || status ? "ไม่พบใบสั่งซื้อตามตัวกรอง" : "ยังไม่มีใบสั่งซื้อ"}</b>{owner && <Link className="link" href="/admin/purchase-orders/new">สร้างใบสั่งซื้อ</Link>}</div>}
-        {total > PER && (
-          <div className="tbl-foot">
-            <span>ทั้งหมด {total} ใบ</span>
-            <div className="pager">
-              {page > 1 && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page - 1) })}>← ก่อนหน้า</Link>}
-              <span className="num">หน้า {page}/{pages}</span>
-              {page < pages && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page + 1) })}>ถัดไป →</Link>}
-            </div>
-          </div>
-        )}
+        <Pagination page={page} pages={pages} total={total} shown={rows.length} per={PER} unit="ใบ" href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 30 ? "" : String(pp) })} />
       </section>
     </main>
   );

@@ -45,7 +45,7 @@ export const ORDER_EVENT: Record<string, string> = { CREATED: "สร้าง�
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const ymd = /^\d{4}-\d{2}-\d{2}$/;
 
-export type LogFilter = { tab: LogTab; q: string; user: string; from: string; to: string; page: number; entity: string };
+export type LogFilter = { tab: LogTab; q: string; user: string; from: string; to: string; page: number; entity: string; per: number };
 
 /** entity ที่กรองได้: "Product:<id>" · "Order:<orderNo>" · "Customer:<id>" · "PurchaseOrder:<id>" · "ShopSetting" */
 const ENTITY_RE = /^(?:(?:Product|Order|Customer|PurchaseOrder|DataRequest|Task):[\w-]{1,60}|ShopSetting)$/;
@@ -56,7 +56,7 @@ export function parseLogFilter(sp: Record<string, string | string[] | undefined>
   let to = ymd.test(one(sp.to)) ? one(sp.to) : "";
   if (from && to && to < from) to = from;
   const entity = ENTITY_RE.test(one(sp.entity)) ? one(sp.entity) : "";
-  return { tab, q: one(sp.q).trim().slice(0, 80), user: one(sp.user).slice(0, 40), from, to, page: Math.max(1, Math.floor(Number(one(sp.page))) || 1), entity };
+  return { tab, q: one(sp.q).trim().slice(0, 80), user: one(sp.user).slice(0, 40), from, to, page: Math.max(1, Math.floor(Number(one(sp.page))) || 1), entity, per: [10, 20, 30, 50, 100].includes(Number(one(sp.per))) ? Number(one(sp.per)) : 50 };
 }
 
 /** ช่วงวันที่ตามเวลาไทย → เงื่อนไข createdAt */
@@ -97,7 +97,7 @@ export function orderEventWhere(f: LogFilter): Prisma.OrderEventWhereInput {
 }
 
 export const logQuery = (f: LogFilter, patch: Partial<Record<keyof LogFilter, string>> = {}) => {
-  const base: Record<string, string> = { tab: f.tab === "all" ? "" : f.tab, q: f.q, user: f.user, from: f.from, to: f.to, page: f.page > 1 ? String(f.page) : "", entity: f.entity };
+  const base: Record<string, string> = { tab: f.tab === "all" ? "" : f.tab, q: f.q, user: f.user, from: f.from, to: f.to, page: f.page > 1 ? String(f.page) : "", entity: f.entity, per: f.per === 50 ? "" : String(f.per) };
   const s = new URLSearchParams(Object.entries({ ...base, ...patch }).filter(([, v]) => v)).toString();
   return s ? `?${s}` : "";
 };
