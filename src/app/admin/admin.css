@@ -1111,7 +1111,20 @@ button.kpi:hover{border-top-color:var(--c-line)}
 @media (max-width:1100px){.pform-grid{grid-template-columns:1fr}}
 
 /* ---------- หมวดหมู่/สไลด์ (ระบบจริง) ---------- */
-.mv{display:flex;gap:2px}
+.mv{display:flex;align-items:center;gap:2px}
+.mv-no{min-width:22px;margin-right:4px;font-size:12px;color:var(--c-muted,#6b6b6b);text-align:right}
+/* หัวตารางที่กดเรียงได้ */
+.th-sort{display:inline-flex;align-items:center;gap:6px;color:inherit;text-decoration:none;white-space:nowrap}
+.th-sort:hover{color:var(--c-orange-dk,#B5461C)}
+.th-sort:focus-visible{outline:2px solid var(--c-orange,#F26B38);outline-offset:2px}
+.th-arrows{display:inline-flex;flex-direction:column;line-height:.8;font-size:8px;color:#c9c3b6}
+.th-arrows i{font-style:normal}
+.th-arrows i.on{color:var(--c-orange,#F26B38)}
+.th-sort.on{color:var(--c-ink,#141414)}
+th.r .th-sort{justify-content:flex-end}
+.col-order{width:150px}
+.sort-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:10px 14px;background:#FFF6EF;border:1px solid #F7D6C6;font-size:14px}
+.sort-bar-acts{display:flex;gap:8px;flex-wrap:wrap}
 .cat-cell{display:flex;gap:12px;align-items:center}
 .cat-ico{width:28px;height:28px;color:var(--c-orange);flex-shrink:0}
 .cat-form{display:grid;gap:12px}

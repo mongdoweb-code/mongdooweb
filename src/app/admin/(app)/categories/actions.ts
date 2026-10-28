@@ -9,6 +9,7 @@ import { baseline, snapshot } from "@/lib/content-version";
 import { ICON_KEYS } from "@/lib/icons";
 import { prisma } from "@/lib/prisma";
 import { recordSlugChange } from "@/lib/redirects";
+import { CAT_SORT_LABEL, isCatSortKey, sortCategories } from "./sort";
 
 export type CatState = { error?: string; fields?: string[]; ok?: string };
 const GROUPS: CategoryGroup[] = ["WATER", "OUTDOOR", "BUILDING", "DECO"];
@@ -62,16 +63,35 @@ export async function moveCategory(f: FormData) {
   const admin = await requireAdmin();
   await baseline("CATEGORIES", admin.displayName);
   const id = str(f, "id", 40);
-  const dir = f.get("dir") === "up" ? -1 : 1;
+  const dir = str(f, "dir", 10);
   const list = await prisma.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true } });
   const i = list.findIndex((c) => c.id === id);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= list.length) return;
-  [list[i], list[j]] = [list[j], list[i]];
+  if (i < 0) return;
+  // ขึ้น/ลง 1 ตำแหน่ง · ไปบนสุด/ล่างสุด
+  const j = dir === "top" ? 0 : dir === "bottom" ? list.length - 1 : i + (dir === "up" ? -1 : 1);
+  if (j < 0 || j >= list.length || j === i) return;
+  const [moved] = list.splice(i, 1);
+  list.splice(j, 0, moved);
   await prisma.$transaction(list.map((c, k) => prisma.category.update({ where: { id: c.id }, data: { sortOrder: k + 1 } })));
   await snapshot("CATEGORIES", admin.displayName);
   refreshStorefront();
   refresh();
+}
+
+/** ใช้ลำดับที่เรียงไว้ในตาราง (ชื่อ / กลุ่ม / จำนวนสินค้า) เป็นลำดับหน้าร้าน — คำนวณลำดับใหม่ที่เซิร์ฟเวอร์ด้วยกติกาเดียวกับตาราง */
+export async function applyCategorySort(f: FormData) {
+  const admin = await requireAdmin();
+  const key = str(f, "sort", 10);
+  const desc = str(f, "dir", 4) === "desc";
+  if (!isCatSortKey(key) || key === "order") redirect("/admin/categories");
+  await baseline("CATEGORIES", admin.displayName);
+  const cats = await prisma.category.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { products: { where: { isActive: true } } } } } });
+  const sorted = sortCategories(cats, key, desc);
+  await prisma.$transaction(sorted.map((c, k) => prisma.category.update({ where: { id: c.id }, data: { sortOrder: k + 1 } })));
+  await snapshot("CATEGORIES", admin.displayName);
+  await logAdmin(admin.id, "CATEGORY", `เรียงหมวดหมู่ใหม่ตาม${CAT_SORT_LABEL[key]} (${desc ? "มาก→น้อย" : "น้อย→มาก"})`);
+  refreshStorefront();
+  redirect("/admin/categories?sorted=1");
 }
 
 export async function deleteCategory(f: FormData) {
