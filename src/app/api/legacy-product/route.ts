@@ -2,7 +2,6 @@
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
   // proxy ส่ง path เดิมมาทาง header (query ของ rewrite ไม่ถูกส่งต่อ)
   let path = "";
   try {
@@ -10,5 +9,6 @@ export async function GET(req: Request) {
   } catch {}
   const p = path ? await prisma.product.findUnique({ where: { legacyPath: path }, select: { slug: true, isActive: true } }) : null;
   const to = p?.isActive ? `/product/${encodeURIComponent(p.slug)}` : "/products";
-  return Response.redirect(new URL(to, url), 301);
+  // Location แบบ path (ไม่ผูกกับ host ภายในของเซิร์ฟเวอร์ที่อยู่หลัง proxy เช่น localhost:8080 บน Railway)
+  return new Response(null, { status: 301, headers: { Location: to, "Cache-Control": "public, max-age=3600" } });
 }

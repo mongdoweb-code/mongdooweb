@@ -24,5 +24,6 @@ export async function GET(req: Request, ctx: RouteContext<"/product-category/[..
     const c = await prisma.category.findFirst({ where: { ...legacySlugWhere(last), isActive: true }, select: { slug: true } });
     if (c) to = `/category/${encodeURIComponent(c.slug)}`;
   }
-  return Response.redirect(new URL(to ?? "/products", req.url), 301);
+  // Location แบบ path (ไม่ผูกกับ host ภายในของเซิร์ฟเวอร์ที่อยู่หลัง proxy เช่น localhost:8080 บน Railway)
+  return new Response(null, { status: 301, headers: { Location: to ?? "/products", "Cache-Control": "public, max-age=3600" } });
 }

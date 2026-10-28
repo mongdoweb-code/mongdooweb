@@ -472,6 +472,13 @@ test.describe("U13 redirect URL เดิมของ WordPress", () => {
       expect(r.headers()["location"], from).toMatch(to);
     }
   });
+  test("redirect จาก route handler ใช้ Location แบบ path (ไม่หลุด host ภายในของเซิร์ฟเวอร์ เช่น localhost:8080 หลัง proxy)", async ({ request }) => {
+    for (const from of ["/product/" + encodeURIComponent("led-strip-ไฟเส้นแอลอีดีเส้นสีแดง-5050"), "/product-category/" + encodeURIComponent("ไฟใต้น้ำ"), "/api/legacy-wp?p=27"]) {
+      const r = await request.get(from, { maxRedirects: 0, headers: { host: "internal-host:8080" } });
+      expect(r.status(), from).toBe(301);
+      expect(r.headers()["location"], from).toMatch(/^\//);
+    }
+  });
   test("query เดิม (?p= ?product= ?s= ?product_cat=) จบที่หน้าจริง ไม่ใช่ 404", async ({ request, page }) => {
     const items = await catalog(page);
     const finals: [string, RegExp][] = [
