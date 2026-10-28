@@ -11,6 +11,10 @@ import { getSynonymGroups } from "@/lib/search";
 import { STOREFRONT_TAG, getPublicShopInfo } from "@/lib/settings";
 import { defsFor, formatAttr, parseAttrs } from "@/lib/specs";
 import { readOptions, type VariantGroupView } from "@/lib/variants";
+import type { Prisma } from "../../generated/prisma/client";
+
+/** ลำดับ "แนะนำ" ของหน้าร้าน = ปักหมุดก่อน แล้วตามลำดับที่ร้านลากจัดในหลังบ้าน */
+export const PRODUCT_ORDER: Prisma.ProductOrderByWithRelationInput[] = [{ isPinned: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }];
 
 /** tag ของข้อมูลหน้าร้าน — หลังบ้านเรียก updateTag(STOREFRONT_TAG) หลังแก้สินค้า/หมวด/สไลด์/ตั้งค่า */
 export { STOREFRONT_TAG };
@@ -81,7 +85,7 @@ export async function getShopData() {
     prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.product.findMany({
       where: { isActive: true, isService: false, category: { isActive: true } },
-      orderBy: [{ isBestSeller: "desc" }, { views: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+      orderBy: PRODUCT_ORDER,
       include: { category: { select: { slug: true, nameTh: true } } },
     }),
     getPublicShopInfo(),
@@ -230,7 +234,7 @@ export async function getCategory(slug: string) {
   // รูปแชร์ (Open Graph) = รูปสินค้าแรกของหมวด ตามลำดับเดียวกับหน้าหมวด
   const first = await prisma.product.findFirst({
     where: { categoryId: c.id, isActive: true, isService: false, images: { isEmpty: false } },
-    orderBy: [{ isBestSeller: "desc" }, { views: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: PRODUCT_ORDER,
     select: { images: true, name: true },
   });
   return {

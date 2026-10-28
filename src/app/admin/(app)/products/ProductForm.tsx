@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ConfirmSubmit } from "../../_components/AdminClient";
+import { RichEditor } from "../../_components/RichEditor";
 import { useFormAction } from "../../_components/useFormAction";
 import type { SpecDef } from "@/lib/specs";
 import { deleteProduct, duplicateProduct, saveProduct, type ProductFormState } from "./actions";
@@ -39,8 +40,6 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
   const [track, setTrack] = useState(v.trackStock);
   const [slug, setSlug] = useState(v.slug);
   const [slugTouched, setSlugTouched] = useState(!!v.id);
-  const [preview, setPreview] = useState(false);
-  const [desc, setDesc] = useState(v.description);
   const [cat, setCat] = useState(v.categoryId);
   const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
   const move = (i: number, d: number) => {
@@ -147,16 +146,13 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
 
             <div className="box">
               <h3>คำอธิบาย</h3>
-              <div className="field"><label htmlFor="shortDescription">คำอธิบายย่อ (แสดงใต้ราคา)</label><textarea id="shortDescription" name="shortDescription" defaultValue={v.shortDescription} rows={3} maxLength={5000} /></div>
               <div className="field">
-                <label htmlFor="description">รายละเอียดสินค้า <span className="sub">รองรับ HTML พื้นฐาน เช่น &lt;h2&gt; &lt;p&gt; &lt;ul&gt; &lt;img&gt; &lt;table&gt;</span></label>
-                <div className="seg" role="group" style={{ width: "max-content" }}>
-                  <button type="button" aria-pressed={!preview} onClick={() => setPreview(false)}>แก้ไข</button>
-                  <button type="button" aria-pressed={preview} onClick={() => setPreview(true)}>ตัวอย่าง</button>
-                </div>
-                <textarea id="description" name="description" value={desc} onChange={(e) => setDesc(e.target.value)} rows={14} hidden={preview} style={{ fontFamily: "ui-monospace,monospace", fontSize: 13 }} />
-                {/* ตัวอย่างแสดงในกล่องแยก — ระบบล้าง HTML อันตรายอีกครั้งตอนบันทึก */}
-                {preview && <iframe className="desc-preview" sandbox="" title="ตัวอย่างคำอธิบาย" srcDoc={`<meta charset="utf-8"><style>body{font-family:sans-serif;font-size:15px;line-height:1.6;padding:12px}img{max-width:100%;height:auto}</style>${desc}`} />}
+                <span className="lbl">คำอธิบายย่อ (แสดงใต้ราคา)</span>
+                <RichEditor name="shortDescription" defaultValue={v.shortDescription} label="คำอธิบายย่อ" minHeight={110} maxLength={5000} />
+              </div>
+              <div className="field">
+                <span className="lbl">รายละเอียดสินค้า <span className="sub">พิมพ์และจัดรูปแบบได้เหมือนเอกสาร · ใส่ลิงก์ แนบรูป ตาราง · ปุ่ม &lt;/&gt; = แก้เป็น HTML</span></span>
+                <RichEditor name="description" defaultValue={v.description} label="รายละเอียดสินค้า" minHeight={360} />
               </div>
             </div>
           </div>

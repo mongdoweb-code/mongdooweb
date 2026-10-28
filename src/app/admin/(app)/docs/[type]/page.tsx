@@ -1,5 +1,6 @@
 // /admin/docs/QUOTATION|INVOICE|RECEIPT — รายการเอกสารขาย: KPI, แท็บสถานะ, ค้นหา, ช่วงวันที่, แบ่งหน้า, ส่งออก CSV
 import Link from "next/link";
+import { Pagination } from "../../../_components/Pagination";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { docDate, fromYmd, money, ymdBkk } from "@/lib/doc-calc";
@@ -55,7 +56,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   }
 
   const qs = (patch: Record<string, string | number>) => {
-    const v = new URLSearchParams(Object.entries({ tab: f.tab === "all" ? "" : f.tab, q: f.q, from: f.from, to: f.to, page: "", ...patch }).map(([k, x]) => [k, String(x)]).filter(([, x]) => x));
+    const v = new URLSearchParams(Object.entries({ tab: f.tab === "all" ? "" : f.tab, q: f.q, from: f.from, to: f.to, per: f.per === 20 ? "" : f.per, page: "", ...patch }).map(([k, x]) => [k, String(x)]).filter(([, x]) => x));
     const s = v.toString();
     return s ? `?${s}` : "";
   };
@@ -157,16 +158,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
             {type === "RECEIPT" ? "ใบเสร็จจะออกอัตโนมัติเมื่อบันทึกรับชำระในใบแจ้งหนี้ หรือกด “ออกใบเสร็จ” ในคำสั่งซื้อ" : <Link className="link" href={`${base}/new/edit`}>สร้างฉบับแรก</Link>}
           </div>
         )}
-        {total > 0 && (
-          <div className="tbl-foot">
-            <span>แสดง {(page - 1) * 20 + 1}–{(page - 1) * 20 + rows.length} จาก {total} รายการ</span>
-            <div className="pager">
-              {page > 1 && <Link className="btn btn-outline btn-sm" href={`${base}${qs({ page: page - 1 })}`}>← ก่อนหน้า</Link>}
-              <span className="num">หน้า {page}/{pages}</span>
-              {page < pages && <Link className="btn btn-outline btn-sm" href={`${base}${qs({ page: page + 1 })}`}>ถัดไป →</Link>}
-            </div>
-          </div>
-        )}
+        <Pagination page={page} pages={pages} total={total} shown={rows.length} per={f.per} unit="ฉบับ" href={(n, pp) => `${base}${qs({ page: n > 1 ? n : "", per: pp === 20 ? "" : pp })}`} />
       </section>
     </main>
   );

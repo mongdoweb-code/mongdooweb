@@ -5,7 +5,9 @@ import { listVersions } from "@/lib/content-version";
 import { CATEGORY_ICONS } from "@/lib/icons";
 import { prisma } from "@/lib/prisma";
 import { ConfirmSubmit } from "../../_components/AdminClient";
-import { applyCategorySort, deleteCategory, moveCategory, rollbackCategories } from "./actions";
+import { DragHandle, RowActions } from "../../_components/RowActions";
+import { SortableRows } from "../../_components/SortableRows";
+import { applyCategorySort, deleteCategory, moveCategory, rollbackCategories, saveCategoryOrder } from "./actions";
 import { CAT_SORT_LABEL, isCatSortKey, sortCategories, type CatSortKey } from "./sort";
 import { CategoryForm, type CatValues } from "./CategoryForm";
 
@@ -22,6 +24,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
     prisma.category.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { products: { where: { isActive: true } } } } } }),
     listVersions("CATEGORIES", 8),
   ]);
+  const allCounts = new Map((await prisma.product.groupBy({ by: ["categoryId"], _count: { _all: true } })).map((g) => [g.categoryId, g._count._all]));
   // เรียงตาราง: ?sort=order|name|group|count&dir=asc|desc — "order" = ลำดับหน้าร้าน (ปุ่มเลื่อนใช้ได้เฉพาะมุมมองนี้)
   const sortKey: CatSortKey = typeof sp.sort === "string" && isCatSortKey(sp.sort) ? sp.sort : "order";
   const desc = sp.dir === "desc";
@@ -55,6 +58,54 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
       <button className="icon-btn sm" disabled={disabled} aria-label={`${label} ${c.nameTh}`} title={label}>{sym}</button>
     </form>
   );
+  const row = (c: (typeof cats)[number], i: number) => {
+    const n = allCounts.get(c.id) ?? 0;
+    return (
+      <tr key={c.id} data-id={c.id} className={`${c.id === edit ? "sel" : ""} ${c.isActive ? "" : "row-off"}`}>
+        <td>
+          {byOrder ? (
+            <div className="mv">
+              <DragHandle label={c.nameTh} />
+              <span className="mv-no num" aria-hidden="true">{i + 1}</span>
+              {mv(c, "top", "ไปบนสุด", "⤒", i === 0)}
+              {mv(c, "up", "เลื่อนขึ้น", "↑", i === 0)}
+              {mv(c, "down", "เลื่อนลง", "↓", i === rows.length - 1)}
+              {mv(c, "bottom", "ไปล่างสุด", "⤓", i === rows.length - 1)}
+            </div>
+          ) : (
+            <span className="mv-no num" title="ลำดับหน้าร้านปัจจุบัน">#{cats.indexOf(c) + 1}</span>
+          )}
+        </td>
+        <td>
+          <Link className="row-link cat-cell" href={`/admin/categories?edit=${c.id}`}>
+            <Ico k={c.icon} />
+            <span><b>{c.nameTh}</b><span className="sub">{c.nameEn} · /category/{c.slug}</span></span>
+          </Link>
+        </td>
+        <td className="sub" style={{ fontSize: 13 }}>{GROUP[c.group]}</td>
+        <td className="r num">{c._count.products}</td>
+        <td>
+          {!c.isActive ? <span className="st st-CANCELLED">ปิดหมวด</span> : c.showOnHome ? <span className="st st-SHIPPED">หน้าแรก</span> : <span className="st st-AWAITING_SLIP">เฉพาะหน้าหมวด</span>}
+        </td>
+        <td className="r">
+          <RowActions
+            name={c.nameTh}
+            viewHref={`/category/${c.slug}`}
+            viewDisabled={c.isActive ? undefined : "ปิดหมวดอยู่ — ไม่แสดงหน้าร้าน"}
+            editHref={`/admin/categories?edit=${c.id}`}
+            del={{
+              action: deleteCategory,
+              id: c.id,
+              title: "ลบหมวดนี้?",
+              body: `${c.nameTh} · หมวดนี้ไม่มีสินค้าแล้ว ลบถาวร`,
+              label: "ลบหมวด",
+              disabled: !owner ? "ลบได้เฉพาะเจ้าของร้าน" : n ? `มีสินค้า ${n} รายการ — ย้ายสินค้าออกก่อน` : undefined,
+            }}
+          />
+        </td>
+      </tr>
+    );
+  };
   const cur = edit && edit !== "new" ? cats.find((c) => c.id === edit) : null;
   const v: CatValues | null = cur
     ? { id: cur.id, nameTh: cur.nameTh, nameEn: cur.nameEn, slug: cur.slug, legacySlug: cur.legacySlug ?? "", icon: cur.icon ?? "deco", group: cur.group, popular: cur.popular.join(", "), description: cur.description ?? "", showOnHome: cur.showOnHome, isActive: cur.isActive }
@@ -102,40 +153,16 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
                 {head("group", "กลุ่ม")}
                 {head("count", "สินค้า", "r")}
                 <th>แสดงผล</th>
-                <th />
+                <th className="r col-acts">การดำเนินการ</th>
               </tr>
             </thead>
-            <tbody>
-              {rows.map((c, i) => (
-                <tr key={c.id} className={`${c.id === edit ? "sel" : ""} ${c.isActive ? "" : "row-off"}`}>
-                  <td>
-                    {byOrder ? (
-                      <div className="mv">
-                        <span className="mv-no num" aria-hidden="true">{i + 1}</span>
-                        {mv(c, "top", "ไปบนสุด", "⤒", i === 0)}
-                        {mv(c, "up", "เลื่อนขึ้น", "↑", i === 0)}
-                        {mv(c, "down", "เลื่อนลง", "↓", i === rows.length - 1)}
-                        {mv(c, "bottom", "ไปล่างสุด", "⤓", i === rows.length - 1)}
-                      </div>
-                    ) : (
-                      <span className="mv-no num" title="ลำดับหน้าร้านปัจจุบัน">#{cats.indexOf(c) + 1}</span>
-                    )}
-                  </td>
-                  <td>
-                    <Link className="row-link cat-cell" href={`/admin/categories?edit=${c.id}`}>
-                      <Ico k={c.icon} />
-                      <span><b>{c.nameTh}</b><span className="sub">{c.nameEn} · /category/{c.slug}</span></span>
-                    </Link>
-                  </td>
-                  <td className="sub" style={{ fontSize: 13 }}>{GROUP[c.group]}</td>
-                  <td className="r num">{c._count.products}</td>
-                  <td>
-                    {!c.isActive ? <span className="st st-CANCELLED">ปิดหมวด</span> : c.showOnHome ? <span className="st st-SHIPPED">หน้าแรก</span> : <span className="st st-AWAITING_SLIP">เฉพาะหน้าหมวด</span>}
-                  </td>
-                  <td className="r"><a className="link" href={`/category/${c.slug}`} target="_blank" rel="noopener">ดู</a></td>
-                </tr>
-              ))}
-            </tbody>
+            {byOrder ? (
+              <SortableRows ids={rows.map((c) => c.id)} action={saveCategoryOrder}>
+                {rows.map((c, i) => row(c, i))}
+              </SortableRows>
+            ) : (
+              <tbody>{rows.map((c, i) => row(c, i))}</tbody>
+            )}
           </table>
         </section>
         {v && (

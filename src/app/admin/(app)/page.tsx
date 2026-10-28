@@ -1,5 +1,6 @@
 // หน้าคำสั่งซื้อ (หน้าแรกของหลังบ้าน) — โครงและ CSS ตามต้นแบบ, ข้อมูลจากฐานข้อมูล
 // ตัวกรองทั้งหมดอยู่ใน URL (?tab=&q=&range=&page=&open=) จึงรีเฟรช/แชร์ลิงก์ได้
+import { Pagination } from "../_components/Pagination";
 import {
   CANCEL_REASONS,
   CANCELLABLE,
@@ -75,7 +76,6 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
   const pend = count("PENDING_VERIFICATION");
   const firstPending = pend ? await nextPending() : null;
   const href = (patch: Parameters<typeof filterQuery>[1]) => `/admin${filterQuery(f, patch)}`;
-  const startI = (list.page - 1) * f.size;
 
   return (
     <main className="main" id="page-orders">
@@ -296,35 +296,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
             )}
           </div>
         )}
-        {list.total > 0 && (
-          <div className="tbl-foot">
-            <span>
-              แสดง {startI + 1}–{startI + list.rows.length} จาก {list.total} รายการ
-              {f.tab === "PENDING_VERIFICATION" ? " · เรียงจากเก่าสุด" : ""}
-            </span>
-            <div className="pager">
-              <span className="pg-info">ต่อหน้า</span>
-              {[10, 20, 50, 100].map((n) => (
-                <a key={n} className="pg-size" href={href({ size: n, page: 1 })} aria-current={n === f.size ? "true" : undefined}>
-                  {n}
-                </a>
-              ))}
-              {list.page > 1 ? (
-                <a className="icon-btn" href={href({ page: list.page - 1 })} aria-label="หน้าก่อนหน้า">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 6-6 6 6 6" /></svg>
-                </a>
-              ) : null}
-              <span className="num">
-                หน้า {list.page}/{list.pages}
-              </span>
-              {list.page < list.pages ? (
-                <a className="icon-btn" href={href({ page: list.page + 1 })} aria-label="หน้าถัดไป">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 6 6 6-6 6" /></svg>
-                </a>
-              ) : null}
-            </div>
-          </div>
-        )}
+        <Pagination page={list.page} pages={list.pages} total={list.total} shown={list.rows.length} per={f.size} href={(page, size) => href({ page, size })} note={f.tab === "PENDING_VERIFICATION" ? " · เรียงจากเก่าสุด" : undefined} />
       </section>
 
       {open && (

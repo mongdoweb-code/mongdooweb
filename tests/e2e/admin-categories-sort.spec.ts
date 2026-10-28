@@ -84,3 +84,23 @@ test("ไปบนสุด / ไปล่างสุด", async ({ page }) => 
   await expect.poll(async () => (await cats()).at(-1)!.id).toBe(last.id);
   expect((await cats()).map((r) => r.id)).toEqual(before.map((r) => r.id));
 });
+
+test("ลากวางเรียงหมวด + ปุ่มดู/แก้ไข/ลบ", async ({ page }) => {
+  await login(page);
+  await page.goto("/admin/categories");
+  const before = await cats();
+  const [a, b] = before;
+  const h = page.locator(`tr[data-id="${a.id}"] [data-drag-handle]` + V);
+  const t = (await page.locator(`tr[data-id="${b.id}"]` + V).boundingBox())!;
+  const hb = (await h.boundingBox())!;
+  await page.mouse.move(hb.x + 5, hb.y + 5);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + 5, t.y + t.height - 3, { steps: 10 });
+  await page.mouse.up();
+  await expect(page.locator(".sort-msg.ok" + V)).toContainText("บันทึกลำดับแล้ว");
+  await expect.poll(async () => (await cats()).slice(0, 2).map((r) => r.id)).toEqual([b.id, a.id]);
+  const row = page.locator(`tr[data-id="${a.id}"]` + V);
+  await expect(row.locator("a.ra-edit")).toHaveAttribute("href", `/admin/categories?edit=${a.id}`);
+  // หมวดที่มีสินค้า ลบไม่ได้ (ปุ่มจางพร้อมเหตุผล)
+  if (a.n) await expect(row.locator('.ra-del[aria-disabled="true"]')).toHaveAttribute("data-tip", /มีสินค้า/);
+});

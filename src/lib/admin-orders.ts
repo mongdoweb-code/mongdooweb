@@ -44,7 +44,7 @@ const ymdRe = /^\d{4}-\d{2}-\d{2}$/;
 export function parseFilter(sp: Record<string, string | string[] | undefined>): OrderFilter {
   const tab = TABS.some(([k]) => k === one(sp.tab)) ? (one(sp.tab) as Tab) : "PENDING_VERIFICATION";
   const range = one(sp.range) in RANGES ? (one(sp.range) as Range) : "all";
-  const size = [10, 20, 50, 100].includes(Number(one(sp.size))) ? Number(one(sp.size)) : 20;
+  const size = [10, 20, 30, 50, 100].includes(Number(one(sp.size))) ? Number(one(sp.size)) : 20;
   return {
     tab,
     q: one(sp.q).trim().slice(0, 60),

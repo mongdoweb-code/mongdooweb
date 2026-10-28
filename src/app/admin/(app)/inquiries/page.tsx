@@ -1,12 +1,12 @@
 // /admin/inquiries — กล่องคำขอจากลูกค้า (ขอใบเสนอราคา/ติดต่อ/เคลม) แยกตามสถานะ + ค้นหา
 import Link from "next/link";
+import { Pagination, readPer } from "../../_components/Pagination";
 import type { Prisma } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { formatPhone, phoneDigits } from "@/lib/format";
 import { INQ_KIND, INQ_STATUS, INQ_STATUS_CLS, isInqKind, isInqStatus, parseAttachments, parseInqItems } from "@/lib/inquiries";
 import { prisma } from "@/lib/prisma";
 
-const PER = 30;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const fmt = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
 const TABS = ["OPEN", "NEW", "IN_PROGRESS", "DONE", "SPAM", "ALL"] as const;
@@ -16,6 +16,7 @@ const TAB_LABEL: Record<Tab, string> = { OPEN: "ต้องดำเนิน�
 export default async function InquiriesPage({ searchParams }: PageProps<"/admin/inquiries">) {
   await requireAdmin();
   const sp = await searchParams;
+  const PER = readPer(sp.per, 30);
   const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab)) ? (one(sp.tab) as Tab) : "OPEN";
   const kind = isInqKind(one(sp.kind)) ? one(sp.kind) : "";
   const q = one(sp.q).trim().slice(0, 80);
@@ -32,7 +33,7 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/admin/
   const page = Math.min(pages, Math.max(1, Number(one(sp.page)) || 1));
   const rows = await prisma.inquiry.findMany({ where, orderBy: [{ createdAt: "desc" }], skip: (page - 1) * PER, take: PER });
   const qs = (patch: Record<string, string>) => {
-    const s = new URLSearchParams(Object.entries({ tab: tab === "OPEN" ? "" : tab, kind, q, ...patch }).filter(([, v]) => v)).toString();
+    const s = new URLSearchParams(Object.entries({ per: PER === 30 ? "" : String(PER), tab: tab === "OPEN" ? "" : tab, kind, q, ...patch }).filter(([, v]) => v)).toString();
     return `/admin/inquiries${s ? `?${s}` : ""}`;
   };
 
@@ -91,16 +92,7 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/admin/
           })}
         </ul>
         {!rows.length && <div className="empty"><b>{q || kind ? "ไม่พบคำขอตามที่ค้นหา" : tab === "OPEN" ? "ไม่มีคำขอค้าง" : "ยังไม่มีคำขอ"}</b>คำขอจากแบบฟอร์มหน้าเว็บจะขึ้นที่นี่</div>}
-        {total > PER && (
-          <div className="tbl-foot">
-            <span>ทั้งหมด {total} รายการ</span>
-            <div className="pager">
-              {page > 1 && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page - 1) })}>← ใหม่กว่า</Link>}
-              <span className="num">หน้า {page}/{pages}</span>
-              {page < pages && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page + 1) })}>เก่ากว่า →</Link>}
-            </div>
-          </div>
-        )}
+        <Pagination page={page} pages={pages} total={total} shown={rows.length} per={PER} unit="รายการ" href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 30 ? "" : String(pp) })} />
       </section>
     </main>
   );

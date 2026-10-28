@@ -1,6 +1,6 @@
 // /admin/redirects — redirect 301 (A13/A14) + หน้า 404 ที่ถูกเรียกบ่อย (สร้าง redirect ได้ในคลิกเดียว)
 // เปลี่ยน slug สินค้า/หมวด/บทความ/ผลงาน → ระบบสร้าง redirect ให้อัตโนมัติ (ที่มา "เปลี่ยนลิงก์")
-import Link from "next/link";
+import { Pagination, readPer } from "../../_components/Pagination";
 import type { Prisma, RedirectSource } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +13,6 @@ export const instant = false;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const fmt = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
 const SOURCE: Record<RedirectSource, string> = { MANUAL: "ตั้งเอง", SLUG: "เปลี่ยนลิงก์", NOT_FOUND: "จากหน้า 404" };
-const PER = 50;
 
 /** เดาปลายทางของหน้า 404: สินค้า/หมวด/บทความ slug เดียวกัน → ไม่เจอ = ค้นหาด้วยคำในลิงก์ */
 async function suggest(paths: string[]) {
@@ -36,6 +35,7 @@ async function suggest(paths: string[]) {
 export default async function RedirectsPage({ searchParams }: PageProps<"/admin/redirects">) {
   const admin = await requireAdmin();
   const sp = await searchParams;
+  const PER = readPer(sp.per, 50);
   const q = one(sp.q).trim().slice(0, 100);
   const where: Prisma.RedirectWhereInput = q ? { OR: [{ fromPath: { contains: q, mode: "insensitive" } }, { toPath: { contains: q, mode: "insensitive" } }] } : {};
   const page = Math.max(1, Number(one(sp.page)) || 1);
@@ -176,16 +176,7 @@ export default async function RedirectsPage({ searchParams }: PageProps<"/admin/
           ))}
         </ul>
         {!rows.length && <div className="empty"><b>{q ? "ไม่พบ redirect ตามที่ค้นหา" : "ยังไม่มี redirect"}</b>เปลี่ยน slug สินค้า/หมวด/บทความ แล้วระบบสร้างให้อัตโนมัติ</div>}
-        {total > PER && (
-          <div className="tbl-foot">
-            <span>ทั้งหมด {total} รายการ</span>
-            <div className="pager">
-              {page > 1 && <Link className="btn btn-outline btn-sm" href={`/admin/redirects?${new URLSearchParams({ ...(q ? { q } : {}), page: String(page - 1) })}`}>← ก่อนหน้า</Link>}
-              <span className="num">หน้า {page}/{pages}</span>
-              {page < pages && <Link className="btn btn-outline btn-sm" href={`/admin/redirects?${new URLSearchParams({ ...(q ? { q } : {}), page: String(page + 1) })}`}>ถัดไป →</Link>}
-            </div>
-          </div>
-        )}
+        <Pagination page={page} pages={pages} total={total} shown={rows.length} per={PER} unit="รายการ" href={(n, pp) => `/admin/redirects?${new URLSearchParams({ ...(q ? { q } : {}), ...(n > 1 ? { page: String(n) } : {}), ...(pp !== 50 ? { per: String(pp) } : {}) })}`} />
       </section>
     </main>
   );

@@ -1,19 +1,20 @@
 // /admin/purchase-orders/costs — ต้นทุนสินค้า (A22, เจ้าของร้านเท่านั้น): ดู/แก้ต้นทุนล่าสุด, กำไรต่อชิ้น, สินค้าที่ยังไม่มีต้นทุน
 // ต้นทุนอัปเดตอัตโนมัติเมื่อรับของตามใบสั่งซื้อ (ต้นทุนล่าสุด) — หน้านี้ใช้ตั้งค่าเริ่มต้นหรือแก้ไขเอง
 import Link from "next/link";
+import { Pagination, readPer } from "../../../_components/Pagination";
 import type { Prisma } from "../../../../../../generated/prisma/client";
 import { requireOwner } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saveCost } from "../actions";
 import "../../../lot3.css";
 
-const PER = 50;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const baht = (s: number) => "฿" + (s / 100).toLocaleString("th-TH", { minimumFractionDigits: s % 100 ? 2 : 0, maximumFractionDigits: 2 });
 
 export default async function CostsPage({ searchParams }: PageProps<"/admin/purchase-orders/costs">) {
   await requireOwner();
   const sp = await searchParams;
+  const PER = readPer(sp.per, 50);
   const q = one(sp.q).trim().slice(0, 80);
   const missing = one(sp.missing) === "1";
   const where: Prisma.ProductWhereInput = {
@@ -26,7 +27,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/admin/purc
   const page = Math.min(pages, Math.max(1, Number(one(sp.page)) || 1));
   const rows = await prisma.product.findMany({ where, orderBy: [{ isActive: "desc" }, { sku: "asc" }], skip: (page - 1) * PER, take: PER, select: { id: true, sku: true, name: true, priceSatang: true, costSatang: true, isActive: true } });
   const qs = (patch: Record<string, string>) => {
-    const s = new URLSearchParams(Object.entries({ q, missing: missing ? "1" : "", ...patch }).filter(([, v]) => v)).toString();
+    const s = new URLSearchParams(Object.entries({ per: PER === 50 ? "" : String(PER), q, missing: missing ? "1" : "", ...patch }).filter(([, v]) => v)).toString();
     return `/admin/purchase-orders/costs${s ? `?${s}` : ""}`;
   };
   return (
@@ -78,16 +79,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/admin/purc
           </tbody>
         </table>
         {!rows.length && <div className="empty"><b>ไม่พบสินค้า</b></div>}
-        {total > PER && (
-          <div className="tbl-foot">
-            <span>ทั้งหมด {total} รายการ</span>
-            <div className="pager">
-              {page > 1 && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page - 1) })}>← ก่อนหน้า</Link>}
-              <span className="num">หน้า {page}/{pages}</span>
-              {page < pages && <Link className="btn btn-outline btn-sm" href={qs({ page: String(page + 1) })}>ถัดไป →</Link>}
-            </div>
-          </div>
-        )}
+        <Pagination page={page} pages={pages} total={total} shown={rows.length} per={PER} unit="รายการ" href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 50 ? "" : String(pp) })} />
       </section>
     </main>
   );
