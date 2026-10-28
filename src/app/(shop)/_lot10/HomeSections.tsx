@@ -191,9 +191,9 @@ export async function HomeSections() {
         const html = live[key];
         if (!html) return null;
         return show ? (
-          <div key={key} data-home={key} style={{ display: "contents" }} dangerouslySetInnerHTML={{ __html: html }} />
+          <div key={key} data-home={key} style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: html }} />
         ) : (
-          <div key={key} data-home={key} hidden dangerouslySetInnerHTML={{ __html: html }} />
+          <div key={key} data-home={key} hidden suppressHydrationWarning dangerouslySetInnerHTML={{ __html: html }} />
         );
       })}
     </>
