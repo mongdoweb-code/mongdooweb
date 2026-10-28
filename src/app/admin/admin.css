@@ -1450,9 +1450,13 @@ th.r .th-sort{justify-content:flex-end}
 
 /* ---------- ป้ายชื่อเมื่อชี้ (data-tip) — กล่องเขียวเหนือปุ่ม ---------- */
 [data-tip]{position:relative}
-[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translate(-50%,4px);background:#16A37B;color:#fff;font-size:12px;font-weight:600;line-height:1.3;padding:5px 9px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s,transform .12s;z-index:30}
-[data-tip]::before{content:"";position:absolute;left:50%;bottom:calc(100% + 3px);transform:translate(-50%,4px);border:5px solid transparent;border-top-color:#16A37B;border-bottom:0;pointer-events:none;opacity:0;transition:opacity .12s,transform .12s;z-index:30}
-[data-tip]:hover::after,[data-tip]:hover::before,[data-tip]:focus-visible::after,[data-tip]:focus-visible::before{opacity:1;transform:translate(-50%,0)}
+[data-tip]::after,[data-tip]::before{display:none;position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;z-index:30}
+[data-tip]::after{content:attr(data-tip);bottom:calc(100% + 8px);background:#16A37B;color:#fff;font-size:12px;font-weight:600;line-height:1.3;padding:5px 9px;border-radius:6px;white-space:nowrap}
+[data-tip]::before{content:"";bottom:calc(100% + 3px);border:5px solid transparent;border-top-color:#16A37B;border-bottom:0}
+/* แสดงเฉพาะตอนชี้/โฟกัส (ซ่อนแบบ display:none จึงไม่ทำให้หน้ากว้างเกินจอ) */
+[data-tip]:hover::after,[data-tip]:hover::before,[data-tip]:focus-visible::after,[data-tip]:focus-visible::before{display:block}
+.row-acts > :last-child[data-tip]::after,.row-acts > form:last-child [data-tip]::after{left:auto;right:0;transform:none}
+@media (hover:none){[data-tip]:hover::after,[data-tip]:hover::before{display:none}}
 body.is-dragging [data-tip]::after,body.is-dragging [data-tip]::before{display:none}
 
 /* ---------- ปุ่มไอคอน ดู / แก้ไข / ลบ ---------- */
