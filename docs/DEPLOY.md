@@ -55,7 +55,14 @@
    - **Railway Cron service** (แนะนำ): New › Empty Service › Settings › Cron Schedule `0 0 * * *` (= 07:00 ไทย เพราะ Railway ใช้เวลา UTC)
      Start Command: `curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://<โดเมน>/api/cron/daily`
      และใส่ตัวแปร `CRON_SECRET=${{mongdoweb-next.CRON_SECRET}}` ในบริการนี้
-   - **บริการ ping ภายนอก** (เช่น cron-job.org): เรียก `https://<โดเมน>/api/cron/daily?key=<CRON_SECRET>` ทุกวัน 07:00 Asia/Bangkok
+   - **บริการ ping ภายนอก (ฟรี — ร้านเลือกใช้วิธีนี้)** cron-job.org:
+     1. สมัครที่ https://console.cron-job.org/signup แล้วยืนยันอีเมล
+     2. Create cronjob › Title `มองดูเว็บ งานประจำวัน`
+     3. URL: `https://<โดเมน>/api/cron/daily?key=<CRON_SECRET>` (ใช้โดเมนจริง เช่น `https://mongdoweb-next-production.up.railway.app` จนกว่าจะย้าย DNS เป็น `https://www.mongdooweb.com`)
+     4. Execution schedule › Every day at **07:00** · Time zone **Asia/Bangkok**
+     5. Advanced › Request timeout 30 วินาที · เปิด "Notify me when the cronjob fails" (แจ้งอีเมลเมื่อเรียกไม่สำเร็จ)
+     6. Save แล้วกด "Run now" หนึ่งครั้ง → History ต้องได้ 200 และหลังบ้าน › บันทึกการใช้งาน มีรายการ "งานประจำวัน"
+     - ห้ามแชร์ URL นี้ (มีรหัสลับ) · ถ้าหลุด: เปลี่ยน `CRON_SECRET` ใน Railway แล้วแก้ URL ใน cron-job.org
 3. ทดสอบ: เปิด URL ข้างบนในเบราว์เซอร์ → ได้ JSON `{"ok":true,...}` (ไม่มี key = 401)
 - เรียกซ้ำในวันเดียวกันได้ ไม่ยกเลิกซ้ำ และ LINE ส่งวันละครั้ง (`"summary":"already-sent-today"`) · ทุกครั้งบันทึกใน หลังบ้าน › บันทึกการใช้งาน
 
