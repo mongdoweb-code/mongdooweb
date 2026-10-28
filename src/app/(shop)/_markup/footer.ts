@@ -17,7 +17,15 @@ const ICON = {
   tiktok: '<path d="M16.5 3c.4 2.2 1.8 3.6 4 3.8v3.1c-1.5 0-2.8-.4-4-1.2v6.1c0 3.4-2.5 5.7-5.6 5.7S5.3 18.3 5.3 15c0-3.4 2.9-5.9 6.4-5.4v3.2c-1.6-.4-3.2.6-3.2 2.2 0 1.3 1 2.3 2.4 2.3 1.5 0 2.4-1 2.4-2.6V3z"/>',
 };
 
-export function renderFooter(s: ShopInfo, opts: { hasFaq?: boolean } = {}) {
+/** ลิงก์เพิ่มเพื่อน LINE: ใช้ลิงก์จากหน้าตั้งค่าร้าน ถ้าไม่มีสร้างจาก LINE ID (เช่น @mongdoweb) */
+export function lineAddUrl(s: Pick<ShopInfo, "lineId" | "lineUrl">) {
+  const url = safeUrl(s.lineUrl);
+  if (url) return url;
+  const id = s.lineId?.trim();
+  return id && /^@?[\w.-]{2,40}$/.test(id) ? `https://line.me/R/ti/p/~${id}` : null;
+}
+
+export function renderFooter(s: ShopInfo, opts: { hasFaq?: boolean; lineQrSvg?: string | null } = {}) {
   const tel = s.phone.replace(/[^\d+]/g, "");
   const rows = [
     s.lineId && `<li><span>LINE</span><a href="#" data-line target="_blank" rel="noopener">${esc(s.lineId)}</a></li>`,
@@ -28,7 +36,8 @@ export function renderFooter(s: ShopInfo, opts: { hasFaq?: boolean } = {}) {
     s.taxId && `<li><span>เลขผู้เสียภาษี</span>${esc(s.taxId)}</li>`,
   ].filter(Boolean);
   const social = [
-    ["line", s.lineUrl, "LINE Official Account มองดูเว็บ"],
+    // LINE แสดงเป็น QR ด้านบนแทนไอคอน (ถ้าสร้าง QR ได้)
+    ["line", opts.lineQrSvg ? null : s.lineUrl, "LINE Official Account มองดูเว็บ"],
     ["facebook", safeUrl(s.facebookUrl), "Facebook มองดูเว็บ"],
     ["youtube", safeUrl(s.youtubeUrl), "YouTube มองดูเว็บ"],
     ["tiktok", safeUrl(s.tiktokUrl), "TikTok มองดูเว็บ"],
@@ -37,7 +46,15 @@ export function renderFooter(s: ShopInfo, opts: { hasFaq?: boolean } = {}) {
     .map(([k, url, label]) => `<a href="${k === "line" ? "#" : esc(url)}"${k === "line" ? " data-line" : ""} target="_blank" rel="noopener" aria-label="${esc(label)}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICON[k as keyof typeof ICON]}</svg></a>`)
     .join("");
   const site = safeUrl(s.website)?.replace(/^https?:\/\//, "").replace(/\/$/, "") ?? "มองดูเว็บ.com";
+  // QR เพิ่มเพื่อน LINE — svg สร้างจากไลบรารี qrcode ฝั่งเซิร์ฟเวอร์ (ไม่มีข้อความจากผู้ใช้ปนอยู่)
+  const lineQr = opts.lineQrSvg
+    ? `<a class="f-qr" href="#" data-line target="_blank" rel="noopener" aria-label="สแกนหรือกดเพื่อเพิ่มเพื่อน LINE ${esc(s.lineId ?? "")}">
+          <span class="f-qr-img" aria-hidden="true">${opts.lineQrSvg}</span>
+          <span class="f-qr-txt"><span class="f-qr-badge" aria-hidden="true">LINE</span><b>สแกนเพิ่มเพื่อน</b>${s.lineId ? `<span class="f-qr-id">${esc(s.lineId)}</span>` : ""}<small>สอบถามสินค้า ขอใบเสนอราคา ตอบไว</small></span>
+        </a>`
+    : "";
   return SHELL_BOTTOM.replace("{{CONTACT}}", `<ul class="contact">${rows.join("")}</ul>`)
+    .replace("{{LINE_QR}}", lineQr)
     .replace("{{SOCIAL}}", social ? `<div class="social">${social}</div>` : "")
     .replace("{{SITE}}", esc(site))
     .replace("{{FAQ_LI}}", opts.hasFaq ? '\n          <li><a href="/faq">คำถามที่พบบ่อย</a></li>' : "");
