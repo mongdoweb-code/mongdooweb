@@ -43,7 +43,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
       <th className={cls} aria-sort={on ? (desc ? "descending" : "ascending") : "none"}>
         <Link className={`th-sort${on ? " on" : ""}`} href={qs(k, nextDesc)} title={`เรียงตาม${CAT_SORT_LABEL[k]}`}>
           {label}
-          <span className="th-arrows" aria-hidden="true"><i className={on && !desc ? "on" : ""}>▲</i><i className={on && desc ? "on" : ""}>▼</i></span>
+          <span className="th-arrows" aria-hidden="true"><i className={on && !desc ? "on" : ""} /><i className={on && desc ? "on" : ""} /></span>
         </Link>
       </th>
     );

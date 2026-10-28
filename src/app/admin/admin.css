@@ -1117,9 +1117,13 @@ button.kpi:hover{border-top-color:var(--c-line)}
 .th-sort{display:inline-flex;align-items:center;gap:6px;color:inherit;text-decoration:none;white-space:nowrap}
 .th-sort:hover{color:var(--c-orange-dk,#B5461C)}
 .th-sort:focus-visible{outline:2px solid var(--c-orange,#F26B38);outline-offset:2px}
-.th-arrows{display:inline-flex;flex-direction:column;line-height:.8;font-size:8px;color:#c9c3b6}
-.th-arrows i{font-style:normal}
+/* ▲▼ วาดด้วย border (คมทุกขนาดจอ) · เว้นช่องระหว่างสามเหลี่ยม 3px */
+.th-arrows{display:inline-flex;flex-direction:column;align-items:center;gap:3px;font-size:0;line-height:0;color:#b9b2a3}
+.th-arrows i{display:block;width:0;height:0;border-left:4.5px solid transparent;border-right:4.5px solid transparent}
+.th-arrows i:first-child{border-bottom:5px solid currentColor}
+.th-arrows i:last-child{border-top:5px solid currentColor}
 .th-arrows i.on{color:var(--c-orange,#F26B38)}
+.th-sort:hover .th-arrows i:not(.on){color:#8f8878}
 .th-sort.on{color:var(--c-ink,#141414)}
 th.r .th-sort{justify-content:flex-end}
 .col-order{width:150px}
