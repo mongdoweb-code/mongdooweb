@@ -30,7 +30,7 @@ test.beforeAll(async () => {
     ]);
 });
 test.afterAll(async () => {
-  await q(`DELETE FROM "Product" WHERE sku LIKE $1`, [`E2E-ORD-%-${TAG}`]);
+  await q(`DELETE FROM "Product" WHERE sku LIKE $1`, [`E2E-ORD-%-${TAG}%`]);
 });
 
 test("ลากวางสลับตำแหน่ง → บันทึกทันที (ฐานข้อมูล + หลังรีเฟรช)", async ({ page }) => {
@@ -162,4 +162,17 @@ test("ตัวแก้ไขข้อความ: ข้อความเด
   const d = page.locator(".prose-desc");
   await expect(d.locator('[style*="text-align"]', { hasText: "ข้อความสำคัญ" }).first()).toHaveCSS("text-align", "center");
   await expect(d.locator('a[href="/products"]')).toHaveText("ดูสเปก");
+});
+
+test("ทำสำเนาสินค้า: ไอคอนในหน้ารายการ และปุ่มด้านบนหน้าแก้ไข", async ({ page }) => {
+  await login(page);
+  await list(page);
+  await page.getByRole("button", { name: `ทำสำเนา ${P[1].sku}` }).first().click();
+  await expect(page).toHaveURL(/\/admin\/products\/[^/?]+\?copied=1/);
+  await expect.poll(async () => (await q(`SELECT 1 FROM "Product" WHERE sku = $1`, [`${P[1].sku}-copy`])).length).toBe(1);
+  // ปุ่มด้านบนของหน้าแก้ไข
+  await page.goto(`/admin/products/${P[1].id}`);
+  await page.locator("#dupTop" + V).click();
+  await expect(page).toHaveURL(/copied=1/);
+  await expect.poll(async () => (await q(`SELECT 1 FROM "Product" WHERE sku = $1`, [`${P[1].sku}-copy2`])).length).toBe(1);
 });

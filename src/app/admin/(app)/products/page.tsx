@@ -11,7 +11,7 @@ import { Pagination, readPer } from "../../_components/Pagination";
 import { DragHandle, Icons, RowActions } from "../../_components/RowActions";
 import { SortableRows } from "../../_components/SortableRows";
 import { SortTh } from "../../_components/SortTh";
-import { deleteProduct, moveProduct, saveProductOrder, toggleProduct, togglePin } from "./actions";
+import { deleteProduct, duplicateProduct, moveProduct, saveProductOrder, toggleProduct, togglePin } from "./actions";
 import { BulkBar } from "./BulkBar";
 import "../../lot3.css";
 
@@ -148,6 +148,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
         <td className="r">
           <RowActions
             name={p.sku}
+            dup={{ action: duplicateProduct, id: p.id, tip: "ทำสำเนาสินค้า" }}
             viewHref={`/product/${p.slug}`}
             viewDisabled={p.isActive ? undefined : "ปิดขายอยู่ — ไม่แสดงหน้าร้าน"}
             editHref={`/admin/products/${p.id}`}
