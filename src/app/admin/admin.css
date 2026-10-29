@@ -1464,6 +1464,8 @@ body.is-dragging [data-tip]::after,body.is-dragging [data-tip]::before{display:n
 .row-acts form{display:contents}
 .ra{width:34px;height:34px;display:inline-grid;place-items:center;border-radius:8px;transition:background .15s,color .15s}
 .ra svg{width:18px;height:18px}
+.ra-dup{color:#7C5CD6}
+.ra-dup:hover{background:#F1ECFC}
 .ra-view{color:#2F80ED}
 .ra-edit{color:#E8A317}
 .ra-del{color:#E5484D}
@@ -1592,3 +1594,7 @@ a.pg-btn:hover{border-color:var(--c-orange);color:var(--c-orange-dk)}
 .rte .rte-bar [data-tip]::after{bottom:auto;top:calc(100% + 8px)}
 .rte .rte-bar [data-tip]::before{bottom:auto;top:calc(100% + 3px);border-top-color:transparent;border-bottom:5px solid #16A37B}
 @media (max-width:860px){.rte-g{padding:0 3px}.rte-end{margin-left:0}.rte-body{padding:14px}}
+
+/* ปุ่มหัวหน้า (ดูหน้าร้าน / ทำสำเนาสินค้า) มีไอคอน */
+.head-actions form{display:contents}
+.head-actions .btn svg{width:18px;height:18px}

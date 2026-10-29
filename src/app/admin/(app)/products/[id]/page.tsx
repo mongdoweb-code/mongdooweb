@@ -14,6 +14,8 @@ import "../../../lot3.css";
 import { DownloadsBox } from "../DownloadsBox";
 import { ProductForm, type ProductValues } from "../ProductForm";
 import { HistoryLink } from "../../../_components/HistoryLink";
+import { Icons } from "../../../_components/RowActions";
+import { duplicateProduct } from "../actions";
 
 const baht = (s: number | null) => (s ? String(s / 100) : "");
 
@@ -70,6 +72,15 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
           <h1>{v.id ? v.name : "เพิ่มสินค้าใหม่"}</h1>
           {v.id && <p><HistoryLink entity={`Product:${v.id}`} /></p>}
         </div>
+        {v.id && (
+          <div className="head-actions">
+            {v.isActive && <a className="btn btn-outline" href={`/product/${v.slug}`} target="_blank" rel="noopener">{Icons.eye}ดูหน้าร้าน</a>}
+            <form action={duplicateProduct}>
+              <input type="hidden" name="id" value={v.id} />
+              <button className="btn btn-outline" type="submit" id="dupTop" title="สร้างสินค้าใหม่จากข้อมูลนี้ — สำเนาปิดขายไว้ก่อน สต็อก 0">{Icons.copy}ทำสำเนาสินค้า</button>
+            </form>
+          </div>
+        )}
       </div>
       <ProductForm
         key={v.id || "new"} v={v} categories={categories} saved={sp.saved === "1"} copied={sp.copied === "1"} owner={admin.role === "OWNER"}

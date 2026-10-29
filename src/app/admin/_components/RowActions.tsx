@@ -1,4 +1,4 @@
-// ปุ่มไอคอนในคอลัมน์ "การดำเนินการ": ดู (ฟ้า) · แก้ไข (ส้ม) · ลบ (แดง) + ปุ่มจับลาก/ปักหมุด — มีป้ายชื่อเมื่อชี้ (data-tip)
+// ปุ่มไอคอนในคอลัมน์ "การดำเนินการ": ทำสำเนา (ม่วง) · ดู (ฟ้า) · แก้ไข (ส้ม) · ลบ (แดง) + ปุ่มจับลาก/ปักหมุด — มีป้ายชื่อเมื่อชี้ (data-tip)
 import Link from "next/link";
 import { ConfirmSubmit } from "./AdminClient";
 
@@ -12,6 +12,9 @@ export const Icons = {
   ),
   trash: (
     <svg viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M10 11v6M14 11v6" /></svg>
+  ),
+  copy: (
+    <svg viewBox="0 0 24 24" {...P} aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
   ),
   grip: (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5.5" r="1.6" /><circle cx="15" cy="5.5" r="1.6" /><circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" /><circle cx="9" cy="18.5" r="1.6" /><circle cx="15" cy="18.5" r="1.6" /></svg>
@@ -36,15 +39,17 @@ export function DragHandle({ label }: { label: string }) {
   );
 }
 
-/** ดู / แก้ไข / ลบ — ไม่ส่ง prop ไหน = ไม่แสดงปุ่มนั้น · disabled* = แสดงจางพร้อมเหตุผล */
+/** ทำสำเนา / ดู / แก้ไข / ลบ — ไม่ส่ง prop ไหน = ไม่แสดงปุ่มนั้น · disabled* = แสดงจางพร้อมเหตุผล */
 export function RowActions({
   name,
+  dup,
   viewHref,
   viewDisabled,
   editHref,
   del,
 }: {
   name: string;
+  dup?: { action: (f: FormData) => Promise<void>; id: string; tip?: string };
   viewHref?: string;
   viewDisabled?: string;
   editHref?: string;
@@ -52,6 +57,12 @@ export function RowActions({
 }) {
   return (
     <div className="row-acts">
+      {dup && (
+        <form action={dup.action}>
+          <input type="hidden" name="id" value={dup.id} />
+          <button type="submit" className="ra ra-dup" data-tip={dup.tip ?? "ทำสำเนา"} aria-label={`ทำสำเนา ${name}`}>{Icons.copy}</button>
+        </form>
+      )}
       {viewHref !== undefined &&
         (viewDisabled ? (
           <span className="ra ra-view" aria-disabled="true" data-tip={viewDisabled}>{Icons.eye}<span className="sr-only">ดู {name} ({viewDisabled})</span></span>
