@@ -7,7 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { ConfirmSubmit } from "../../_components/AdminClient";
 import { DragHandle, RowActions } from "../../_components/RowActions";
 import { SortableRows } from "../../_components/SortableRows";
-import { applyCategorySort, deleteCategory, moveCategory, rollbackCategories, saveCategoryOrder } from "./actions";
+import { applyCategorySort, deleteCategory, moveCategory, quickSaveCategory, rollbackCategories, saveCategoryOrder, toggleCategoryFlag } from "./actions";
+import { QuickEditCategory, type QuickCategory } from "./QuickEditCategory";
 import { CAT_SORT_LABEL, isCatSortKey, sortCategories, type CatSortKey } from "./sort";
 import { CategoryForm, type CatValues } from "./CategoryForm";
 
@@ -58,6 +59,19 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
       <button className="icon-btn sm" disabled={disabled} aria-label={`${label} ${c.nameTh}`} title={label}>{sym}</button>
     </form>
   );
+  const quick = (c: (typeof cats)[number]): QuickCategory => ({
+    kind: "category", id: c.id, nameTh: c.nameTh, nameEn: c.nameEn, slug: c.slug, group: c.group, popular: c.popular.join(", "), showOnHome: c.showOnHome, isActive: c.isActive, count: c._count.products,
+  });
+  const flag = (c: (typeof cats)[number], k: "isActive" | "showOnHome", label: string, on: boolean) => (
+    <form action={toggleCategoryFlag} className="sw-row">
+      <input type="hidden" name="id" value={c.id} />
+      <input type="hidden" name="flag" value={k} />
+      <button className={`sw sw-sm${on ? " on" : ""}`} type="submit" role="switch" aria-checked={on} aria-label={`${label} ${c.nameTh}`}>
+        <span className="sw-knob" aria-hidden="true" />
+      </button>
+      <span className={`sw-lbl${on ? " on" : ""}`} aria-hidden="true">{label}</span>
+    </form>
+  );
   const row = (c: (typeof cats)[number], i: number) => {
     const n = allCounts.get(c.id) ?? 0;
     return (
@@ -76,16 +90,29 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
             <span className="mv-no num" title="ลำดับหน้าร้านปัจจุบัน">#{cats.indexOf(c) + 1}</span>
           )}
         </td>
-        <td>
+        <td className="p-name">
           <Link className="row-link cat-cell" href={`/admin/categories?edit=${c.id}`}>
             <Ico k={c.icon} />
             <span><b>{c.nameTh}</b><span className="sub">{c.nameEn} · /category/{c.slug}</span></span>
           </Link>
+          {/* เมนูจัดการรวดเร็ว (แสดงเมื่อชี้แถว) */}
+          <div className="row-quick cat-quick">
+            <span className="rq-links">
+              <button type="button" className="rq rq-main" data-qe-open={JSON.stringify(quick(c))}>⚡ แก้ไขด่วน</button>
+              <Link className="rq" href={`/admin/categories?edit=${c.id}`}>แก้ไขทั้งหมด</Link>
+              <Link className="rq" href={`/admin/products?cat=${c.id}`}>ดูสินค้าในหมวด</Link>
+              {c.isActive && <a className="rq" href={`/category/${c.slug}`} target="_blank" rel="noopener">ดูหน้าร้าน</a>}
+            </span>
+          </div>
         </td>
         <td className="sub" style={{ fontSize: 13 }}>{GROUP[c.group]}</td>
         <td className="r num">{c._count.products}</td>
         <td>
-          {!c.isActive ? <span className="st st-CANCELLED">ปิดหมวด</span> : c.showOnHome ? <span className="st st-SHIPPED">หน้าแรก</span> : <span className="st st-AWAITING_SLIP">เฉพาะหน้าหมวด</span>}
+          {/* สวิตช์กดได้ทันที: เปิดหมวด / แสดงหน้าแรก */}
+          <div className="sw-stack">
+            {flag(c, "isActive", "เปิดหมวด", c.isActive)}
+            {flag(c, "showOnHome", "หน้าแรก", c.showOnHome)}
+          </div>
         </td>
         <td className="r">
           <RowActions
@@ -196,6 +223,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
           </ul>
         </section>
       )}
+      <QuickEditCategory action={quickSaveCategory} />
     </main>
   );
 }

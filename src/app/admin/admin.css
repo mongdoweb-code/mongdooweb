@@ -1613,3 +1613,67 @@ a.pg-btn:hover{border-color:var(--c-orange);color:var(--c-orange-dk)}
 /* ปุ่มหัวหน้า (ดูหน้าร้าน / ทำสำเนาสินค้า) มีไอคอน */
 .head-actions form{display:contents}
 .head-actions .btn svg{width:18px;height:18px}
+
+/* ---------- จัดการรวดเร็วใต้ชื่อ (แสดงเมื่อชี้แถว) ---------- */
+.p-name .row-link{display:block}
+.row-quick{display:flex;align-items:center;flex-wrap:wrap;gap:2px 10px;margin-top:2px;min-height:22px}
+.rq-links{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px;opacity:0;transform:translateY(-2px);transition:opacity .15s,transform .15s}
+tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
+.rq{font-size:12.5px;font-weight:600;color:#2F6FD6;padding:1px 6px;border-radius:4px;line-height:1.5}
+.rq:hover{background:#EAF2FE}
+.rq + .rq{position:relative}
+.rq + .rq::before{content:"";position:absolute;left:-2px;top:25%;bottom:25%;width:1px;background:var(--c-line)}
+.rq-main{color:#fff;background:var(--c-orange);padding:1px 9px}
+.rq-main:hover{background:var(--c-orange-dk)}
+.cat-quick{padding-left:34px}
+@media (hover:none){.rq-links{opacity:1;transform:none}}
+
+/* ---------- ช่องแก้ในตาราง (ราคา/สต็อก) ---------- */
+.ic{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;margin:-4px -8px;border:1px dashed transparent;border-radius:6px;font:inherit;color:inherit;cursor:text;transition:border-color .15s,background .15s}
+.ic:hover{border-color:#B9C7DD;background:#F5F8FD}
+.ic-pen{width:13px;height:13px;color:#8aa0c2;opacity:0;transition:opacity .15s}
+.ic:hover .ic-pen,.ic:focus-visible .ic-pen{opacity:1}
+.ic-ok{background:#E8F7EF;border-color:#9ED8B8}
+.ic-warn .ic-v{background:var(--st-pending-bg,#FFF1EA);color:var(--st-pending,#C24E1F);padding:1px 7px;font-weight:700}
+.ic-on{display:inline-flex;flex-direction:column;align-items:flex-end;gap:3px;position:relative}
+.ic-in{width:92px;height:34px;border:2px solid #2F80ED;border-radius:6px;padding:0 8px;text-align:right;font:inherit;font-weight:600;outline:none;box-shadow:0 0 0 3px rgba(47,128,237,.15);background:#fff}
+.ic-in.bad{border-color:var(--c-err);box-shadow:0 0 0 3px rgba(192,57,43,.15)}
+.ic-msg{font-size:11.5px;color:var(--c-muted);white-space:nowrap;font-weight:500}
+.ic-msg.err{color:var(--c-err);font-weight:600;white-space:normal;max-width:220px;text-align:right}
+
+/* ---------- สวิตช์เล็กในหน้าหมวด ---------- */
+.sw-stack{display:grid;gap:6px}
+.sw-row{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.sw-sm{width:34px;height:20px}
+.sw-sm .sw-knob{width:14px;height:14px}
+.sw-sm.on .sw-knob{transform:translateX(14px)}
+
+/* ---------- แผงแก้ไขด่วน (เลื่อนจากขวา) ---------- */
+.qd{position:fixed;inset:0;z-index:300}
+.qd-bg{position:absolute;inset:0;background:rgba(20,20,20,.42);animation:qdFade .18s ease}
+.qd-panel{position:absolute;top:0;right:0;bottom:0;width:min(520px,100vw);background:#fff;display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.18);animation:qdIn .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes qdIn{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes qdFade{from{opacity:0}}
+.qd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px 14px;border-bottom:1px solid var(--c-line);background:linear-gradient(180deg,#FFF6F1,#fff)}
+.qd-head h2{font-size:17px;line-height:1.35;margin-top:4px}
+.qd-kicker{display:inline-block;font-size:11.5px;font-weight:700;color:var(--c-orange-dk);background:#FFE7DC;padding:2px 8px;border-radius:999px}
+.qd-sub{font-size:12.5px;color:var(--c-muted);margin-top:4px}
+.qd-body{flex:1;overflow-y:auto;padding:18px 20px}
+.qd-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--c-line);background:#FCFBF9}
+.qd-form{display:grid;gap:14px}
+.qd-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.qd-prod{display:flex;gap:12px;align-items:flex-start}
+.qd-prod > img,.qd-prod > span{width:64px;height:64px;object-fit:contain;border:1px solid var(--c-line);background:#fff;flex-shrink:0}
+.qd-prod .grow{flex:1}
+.qd-sec{border:1px solid var(--c-line);border-radius:8px;padding:12px 14px 14px;display:grid;gap:10px}
+.qd-sec legend{font-size:13px;font-weight:700;padding:0 6px}
+.qd-form .field small{font-size:12px;color:var(--c-muted)}
+.qd-form .qd-big{font-size:18px;font-weight:700;height:46px}
+.qd-form .bad{border-color:var(--c-err)!important}
+@media (max-width:560px){.qd-two{grid-template-columns:1fr}}
+/* ตารางสินค้าจอ 1280–1440: ให้คอลัมน์ชื่อสินค้ากว้างพอ — ปุ่มบนสุด/ล่างสุดเรียงแนวตั้ง, ตัวเลขไม่ตัดบรรทัด */
+.prod-tbl td.p-name{min-width:240px}
+.prod-tbl .edge-acts{flex-direction:column;gap:0}
+.prod-tbl .edge-acts .mini-btn{width:22px;height:18px}
+.ic{white-space:nowrap}
+.prod-tbl th,.prod-tbl td{padding-left:10px;padding-right:10px}

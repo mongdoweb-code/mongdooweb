@@ -13,6 +13,9 @@ import { SortableRows } from "../../_components/SortableRows";
 import { SortTh } from "../../_components/SortTh";
 import { deleteProduct, duplicateProduct, moveProduct, saveProductOrder, toggleProduct, togglePin } from "./actions";
 import { BulkBar } from "./BulkBar";
+import { InlineCell } from "../../_components/InlineCell";
+import { QuickEditProduct, type QuickProduct } from "./QuickEditProduct";
+import { quickField, quickSaveProduct } from "./quick-actions";
 import "../../lot3.css";
 
 const STATUS = { all: "ทั้งหมด", pinned: "ปักหมุด", active: "เปิดขาย", inactive: "ปิดขาย", out: "สินค้าหมด", inquire: "สอบถามราคา", low: "สต็อกใกล้หมด" } as const;
@@ -91,6 +94,12 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
     </form>
   );
 
+  // ข้อมูลสำหรับแผงแก้ไขด่วน (ส่งผ่าน data-qe-open — ไม่ต้องมี client component ทุกแถว)
+  const quick = (p: (typeof rows)[number], img: string | null): QuickProduct => ({
+    kind: "product", id: p.id, name: p.name, sku: p.sku, categoryId: p.categoryId, slug: p.slug, img,
+    price: p.priceSatang ? String(p.priceSatang / 100) : "", compareAt: p.compareAtSatang ? String(p.compareAtSatang / 100) : "",
+    trackStock: p.trackStock, stock: p.stock, inStock: p.inStock, isActive: p.isActive, isBestSeller: p.isBestSeller, badge: p.badge ?? "",
+  });
   const body = rows.map((p) => {
     const img = mediaUrl(p.images[0], "sm");
     const out = p.trackStock ? p.stock <= 0 : !p.inStock;
@@ -118,15 +127,27 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {img ? <img className="pthumb" src={img} alt="" loading="lazy" /> : <span className="pthumb" />}
         </td>
-        <td>
+        <td className="p-name">
           <a className="row-link" href={`/admin/products/${p.id}`}>
             <b>{p.name}</b>
-            <span className="sub">{p.sku}{p.isBestSeller ? " · ขายดี" : ""}</span>
           </a>
+          <div className="row-quick">
+            <span className="sub">{p.sku}{p.isBestSeller ? " · ขายดี" : ""}</span>
+            {/* เมนูจัดการรวดเร็ว (แสดงเมื่อชี้แถว / แสดงตลอดบนจอสัมผัส) */}
+            <span className="rq-links">
+              <button type="button" className="rq rq-main" data-qe-open={JSON.stringify(quick(p, img))}>⚡ แก้ไขด่วน</button>
+              <a className="rq" href={`/admin/products/${p.id}`}>แก้ไข</a>
+              {p.isActive && <a className="rq" href={`/product/${p.slug}`} target="_blank" rel="noopener">ดูหน้าร้าน</a>}
+              {p.trackStock && <a className="rq" href={`/admin/stock/${p.id}`}>ประวัติสต็อก</a>}
+            </span>
+          </div>
         </td>
         <td className="sub p-cat" style={{ fontSize: 13 }}>{p.category.nameTh}</td>
         <td className="r num">
-          {p.priceSatang ? bahtText(p.priceSatang) : <span className="chip warn">สอบถามราคา</span>}
+          <InlineCell
+            id={p.id} field="price" action={quickField} label={`ราคาขาย ${p.sku}`} value={p.priceSatang ? String(p.priceSatang / 100) : ""} placeholder="0 = สอบถามราคา"
+            display={p.priceSatang ? bahtText(p.priceSatang) : <span className="chip warn">สอบถามราคา</span>}
+          />
           {p.compareAtSatang ? <span className="sub"><s>{bahtText(p.compareAtSatang)}</s></span> : null}
           {p.salePriceSatang ? (
             <span className={`chip ${saleActive(p) ? "ok" : "warn"}`} title={p.saleEndsAt ? `ถึง ${p.saleEndsAt.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}` : undefined}>
@@ -134,7 +155,13 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
             </span>
           ) : null}
         </td>
-        <td className="r num">{p.trackStock ? <Link href={`/admin/stock/${p.id}`} className={p.stock <= T ? "chip warn" : "link"} title="ประวัติ/ปรับสต็อก">{p.stock}</Link> : <span className="sub">ไม่นับ</span>}</td>
+        <td className="r num">
+          {p.trackStock ? (
+            <InlineCell id={p.id} field="stock" action={quickField} label={`สต็อก ${p.sku}`} value={String(p.stock)} inputMode="numeric" className={p.stock <= T ? "ic-warn" : ""} display={p.stock} />
+          ) : (
+            <InlineCell id={p.id} field="stock" action={quickField} label={`สต็อก ${p.sku}`} value="" inputMode="numeric" placeholder="จำนวน" hint="ใส่ตัวเลข = เริ่มนับสต็อก" display={<span className="sub">ไม่นับ</span>} />
+          )}
+        </td>
         <td>
           <div className="st-cell">
             {/* สวิตช์เปิด/ปิดขาย — กดแล้วบันทึกทันที */}
@@ -253,6 +280,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           </table>
         </div>
         {!rows.length && <div className="empty"><b>ไม่พบสินค้า</b>ลองเปลี่ยนคำค้นหรือตัวกรอง</div>}
+        <QuickEditProduct categories={cats.map((c) => ({ id: c.id, name: c.nameTh }))} action={quickSaveProduct} />
         <Pagination page={page} pages={pages} total={total} shown={rows.length} per={per} href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 20 ? "" : String(pp) })} />
       </section>
     </main>

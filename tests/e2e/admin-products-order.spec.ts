@@ -20,7 +20,7 @@ async function q<T = Record<string, unknown>>(sql: string, args: unknown[] = [])
 }
 const orderOf = async () => (await q<{ sku: string }>(`SELECT sku FROM "Product" WHERE sku LIKE $1 ORDER BY "isPinned" DESC, "sortOrder", "createdAt"`, [`E2E-ORD-%-${TAG}`])).map((r) => r.sku.split("-")[2]);
 const list = (page: Page) => page.goto(`/admin/products?q=E2E-ORD-&per=10`);
-const skus = async (page: Page) => (await page.locator("tbody tr[data-id] .row-link .sub" + V).allTextContents()).map((t) => t.split("-")[2]);
+const skus = async (page: Page) => (await page.locator("tbody tr[data-id] .row-quick > .sub" + V).allTextContents()).map((t) => t.split("-")[2]);
 
 test.beforeAll(async () => {
   const [cat] = await q<{ id: string }>(`SELECT id FROM "Category" ORDER BY "sortOrder" LIMIT 1`);
@@ -34,6 +34,7 @@ test.afterAll(async () => {
 });
 
 test("ลากวางสลับตำแหน่ง → บันทึกทันที (ฐานข้อมูล + หลังรีเฟรช)", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1100 });
   await login(page);
   await list(page);
   expect(await skus(page)).toEqual(["A", "B", "C"]);
@@ -71,7 +72,9 @@ test("ไปบนสุด / ไปล่างสุด และปักห�
   expect(await skus(page)).toEqual(["C"]);
   // ลากข้ามกลุ่มปักหมุดไม่ได้: ลาก B ขึ้นบนสุด → อยู่ใต้ C เสมอ
   await list(page);
+  await page.setViewportSize({ width: 1440, height: 1100 }); // ให้ทั้ง 3 แถวอยู่ในจอ (ลากต้องเห็นทั้งต้นทางและปลายทาง)
   const h = page.locator(`tr[data-id="${P[1].id}"] [data-drag-handle]` + V);
+  await page.locator("tbody tr[data-id]" + V).first().scrollIntoViewIfNeeded();
   const top = (await page.locator("tbody tr[data-id]" + V).first().boundingBox())!;
   const b = (await h.boundingBox())!;
   await page.mouse.move(b.x + 5, b.y + 5);
@@ -187,4 +190,48 @@ test("สวิตช์เปิด/ปิดขายในหน้ารา�
   await expect(page.getByRole("switch", { name: `เปิดขายบนหน้าร้าน ${P[0].sku}` }).first()).toHaveAttribute("aria-checked", "false");
   await page.getByRole("switch", { name: `เปิดขายบนหน้าร้าน ${P[0].sku}` }).first().click();
   await expect.poll(async () => (await q<{ a: boolean }>(`SELECT "isActive" a FROM "Product" WHERE id=$1`, [P[0].id]))[0].a).toBe(true);
+});
+
+test("จัดการรวดเร็ว: แก้ราคา/สต็อกในช่องตาราง + แผงแก้ไขด่วน", async ({ page }) => {
+  await login(page);
+  await list(page);
+  const row = page.locator(`tr[data-id="${P[0].id}"]` + V);
+  // ราคา: คลิก → พิมพ์ → Enter
+  await row.getByRole("button", { name: `ราคาขาย ${P[0].sku} (กดเพื่อแก้)` }).click();
+  await row.getByRole("textbox", { name: `ราคาขาย ${P[0].sku}` }).fill("1,290");
+  await page.keyboard.press("Enter");
+  await expect.poll(async () => (await q<{ p: number }>(`SELECT "priceSatang" p FROM "Product" WHERE id=$1`, [P[0].id]))[0].p).toBe(129000);
+  await expect(row.locator(".ic").first()).toContainText("฿1,290");
+  // ราคาผิด → แจ้งในช่อง ไม่บันทึก · Esc ยกเลิก
+  await row.getByRole("button", { name: `ราคาขาย ${P[0].sku} (กดเพื่อแก้)` }).click();
+  await row.getByRole("textbox", { name: `ราคาขาย ${P[0].sku}` }).fill("abc");
+  await page.keyboard.press("Enter");
+  await expect(row.locator(".ic-msg.err")).toBeVisible();
+  await page.keyboard.press("Escape");
+  // สต็อก: ยังไม่นับ → ใส่ตัวเลข = เริ่มนับ (มีประวัติ)
+  await row.getByRole("button", { name: `สต็อก ${P[0].sku} (กดเพื่อแก้)` }).click();
+  await row.getByRole("textbox", { name: `สต็อก ${P[0].sku}` }).fill("12");
+  await page.keyboard.press("Enter");
+  await expect.poll(async () => (await q<{ t: boolean; s: number }>(`SELECT "trackStock" t, stock s FROM "Product" WHERE id=$1`, [P[0].id]))[0]).toEqual({ t: true, s: 12 });
+  expect((await q(`SELECT 1 FROM "StockMovement" WHERE "productId"=$1`, [P[0].id])).length).toBeGreaterThan(0);
+
+  // แผงแก้ไขด่วน
+  await row.hover();
+  await row.locator("button.rq-main").click();
+  const dlg = page.getByRole("dialog", { name: P[0].name });
+  await expect(dlg).toBeVisible();
+  await dlg.locator("#qePrice").fill("990");
+  await dlg.locator("#qeCmp").fill("1200");
+  await dlg.locator("#qeStock").fill("7");
+  await dlg.locator("#qeBadge").fill("ใหม่");
+  await dlg.getByRole("button", { name: "บันทึก" }).click();
+  await expect(dlg).toHaveCount(0);
+  await expect.poll(async () => (await q(`SELECT "priceSatang" p, "compareAtSatang" c, stock s, badge b FROM "Product" WHERE id=$1`, [P[0].id]))[0]).toEqual({ p: 99000, c: 120000, s: 7, b: "ใหม่" });
+  // ราคาก่อนลดต่ำกว่าราคาขาย → error ในแผง
+  await row.locator("button.rq-main").click({ force: true });
+  await dlg.locator("#qeCmp").fill("100");
+  await dlg.getByRole("button", { name: "บันทึก" }).click();
+  await expect(dlg.locator(".login-err")).toContainText("ราคาก่อนลด");
+  await page.keyboard.press("Escape");
+  await expect(dlg).toHaveCount(0);
 });
