@@ -124,7 +124,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
             <span className="sub">{p.sku}{p.isBestSeller ? " · ขายดี" : ""}</span>
           </a>
         </td>
-        <td className="sub" style={{ fontSize: 13 }}>{p.category.nameTh}</td>
+        <td className="sub p-cat" style={{ fontSize: 13 }}>{p.category.nameTh}</td>
         <td className="r num">
           {p.priceSatang ? bahtText(p.priceSatang) : <span className="chip warn">สอบถามราคา</span>}
           {p.compareAtSatang ? <span className="sub"><s>{bahtText(p.compareAtSatang)}</s></span> : null}
@@ -137,12 +137,15 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
         <td className="r num">{p.trackStock ? <Link href={`/admin/stock/${p.id}`} className={p.stock <= T ? "chip warn" : "link"} title="ประวัติ/ปรับสต็อก">{p.stock}</Link> : <span className="sub">ไม่นับ</span>}</td>
         <td>
           <div className="st-cell">
-            {p.isActive ? <span className="st st-SHIPPED">เปิดขาย</span> : <span className="st st-CANCELLED">ปิดขาย</span>}
-            {out && <span className="chip bad">หมด</span>}
+            {/* สวิตช์เปิด/ปิดขาย — กดแล้วบันทึกทันที */}
             <form action={toggleProduct}>
               <input type="hidden" name="id" value={p.id} />
-              <button className="st-toggle" type="submit">{p.isActive ? "ปิดขาย" : "เปิดขาย"}</button>
+              <button className={`sw${p.isActive ? " on" : ""}`} type="submit" role="switch" aria-checked={p.isActive} aria-label={`เปิดขายบนหน้าร้าน ${p.sku}`} data-tip={p.isActive ? "เปิดขายอยู่ — กดเพื่อปิดขาย" : "ปิดขายอยู่ — กดเพื่อเปิดขาย"}>
+                <span className="sw-knob" aria-hidden="true" />
+              </button>
             </form>
+            <span className={`sw-lbl${p.isActive ? " on" : ""}`} aria-hidden="true">{p.isActive ? "เปิดขาย" : "ปิดขาย"}</span>
+            {out && <span className="chip bad">หมด</span>}
           </div>
         </td>
         <td className="r">

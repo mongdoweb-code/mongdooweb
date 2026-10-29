@@ -176,3 +176,15 @@ test("ทำสำเนาสินค้า: ไอคอนในหน้า
   await expect(page).toHaveURL(/copied=1/);
   await expect.poll(async () => (await q(`SELECT 1 FROM "Product" WHERE sku = $1`, [`${P[1].sku}-copy2`])).length).toBe(1);
 });
+
+test("สวิตช์เปิด/ปิดขายในหน้ารายการ", async ({ page }) => {
+  await login(page);
+  await list(page);
+  const sw = page.getByRole("switch", { name: `เปิดขายบนหน้าร้าน ${P[0].sku}` }).first();
+  await expect(sw).toHaveAttribute("aria-checked", "true");
+  await sw.click();
+  await expect.poll(async () => (await q<{ a: boolean }>(`SELECT "isActive" a FROM "Product" WHERE id=$1`, [P[0].id]))[0].a).toBe(false);
+  await expect(page.getByRole("switch", { name: `เปิดขายบนหน้าร้าน ${P[0].sku}` }).first()).toHaveAttribute("aria-checked", "false");
+  await page.getByRole("switch", { name: `เปิดขายบนหน้าร้าน ${P[0].sku}` }).first().click();
+  await expect.poll(async () => (await q<{ a: boolean }>(`SELECT "isActive" a FROM "Product" WHERE id=$1`, [P[0].id]))[0].a).toBe(true);
+});
