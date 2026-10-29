@@ -104,3 +104,24 @@ test("ลากวางเรียงหมวด + ปุ่มดู/แก�
   // หมวดที่มีสินค้า ลบไม่ได้ (ปุ่มจางพร้อมเหตุผล)
   if (a.n) await expect(row.locator('.ra-del[aria-disabled="true"]')).toHaveAttribute("data-tip", /มีสินค้า/);
 });
+
+test("หมวด: สวิตช์ หน้าแรก + แผงแก้ไขด่วน", async ({ page }) => {
+  await login(page);
+  await page.goto("/admin/categories");
+  const [c] = await cats();
+  const before = (await (async () => { const x = db(); await x.connect(); try { return (await x.query(`SELECT "showOnHome", popular, "nameEn" FROM "Category" WHERE id=$1`, [c.id])).rows[0]; } finally { await x.end(); } })());
+  const read = async () => { const x = db(); await x.connect(); try { return (await x.query(`SELECT "showOnHome" h, popular p, "nameEn" e FROM "Category" WHERE id=$1`, [c.id])).rows[0]; } finally { await x.end(); } };
+  try {
+    await page.getByRole("switch", { name: `หน้าแรก ${c.nameTh}` }).click();
+    await expect.poll(async () => (await read()).h).toBe(!before.showOnHome);
+    await page.locator(`tr[data-id="${c.id}"] button.rq-main` + V).click({ force: true });
+    const dlg = page.getByRole("dialog", { name: c.nameTh });
+    await dlg.locator("#qcPop").fill("แสงขาว, RGB");
+    await dlg.getByRole("button", { name: "บันทึก" }).click();
+    await expect(dlg).toHaveCount(0);
+    await expect.poll(async () => (await read()).p).toEqual(["แสงขาว", "RGB"]);
+  } finally {
+    const x = db(); await x.connect();
+    try { await x.query(`UPDATE "Category" SET "showOnHome"=$1, popular=$2, "nameEn"=$3 WHERE id=$4`, [before.showOnHome, before.popular, before.nameEn, c.id]); } finally { await x.end(); }
+  }
+});

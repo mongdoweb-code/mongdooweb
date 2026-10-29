@@ -143,3 +143,51 @@ export async function rollbackCategories(f: FormData) {
   refreshStorefront();
   redirect("/admin/categories?rolledback=1");
 }
+
+// ---------------------------------------------------------------------------
+// จัดการรวดเร็วจากตาราง: สวิตช์ เปิดหมวด / แสดงหน้าแรก และแผงแก้ไขด่วน
+// ---------------------------------------------------------------------------
+
+/** สวิตช์ในตาราง: flag = isActive (เปิดหมวด) | showOnHome (แสดงหน้าแรก) */
+export async function toggleCategoryFlag(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const flag = str(f, "flag", 20) === "showOnHome" ? "showOnHome" : "isActive";
+  const c = await prisma.category.findUnique({ where: { id }, select: { nameTh: true, isActive: true, showOnHome: true } });
+  if (!c) return;
+  await baseline("CATEGORIES", admin.displayName);
+  await prisma.category.update({ where: { id }, data: { [flag]: !c[flag] } });
+  await snapshot("CATEGORIES", admin.displayName);
+  await logAdmin(admin.id, "CATEGORY", `${flag === "isActive" ? (c.isActive ? "ปิดหมวด" : "เปิดหมวด") : c.showOnHome ? "เอาออกจากหน้าแรก" : "แสดงที่หน้าแรก"} ${c.nameTh}`);
+  refreshStorefront();
+  refresh();
+}
+
+/** แผงแก้ไขด่วน: ชื่อไทย/อังกฤษ กลุ่ม คำยอดนิยม การแสดงผล (ลิงก์ slug แก้ที่ฟอร์มเต็ม) */
+export async function quickSaveCategory(f: FormData): Promise<CatState> {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const old = await prisma.category.findUnique({ where: { id } });
+  if (!old) return { error: "ไม่พบหมวด (อาจถูกลบไปแล้ว)" };
+  const nameTh = str(f, "nameTh", 80);
+  const nameEn = str(f, "nameEn", 80);
+  const bad = [...(nameTh.length < 2 ? ["nameTh"] : []), ...(!nameEn ? ["nameEn"] : [])];
+  if (bad.length) return { error: "กรุณาตรวจช่องที่มีกรอบสีแดง", fields: bad };
+  await baseline("CATEGORIES", admin.displayName);
+  await prisma.category.update({
+    where: { id },
+    data: {
+      nameTh,
+      nameEn,
+      group: GROUPS.includes(str(f, "group") as CategoryGroup) ? (str(f, "group") as CategoryGroup) : old.group,
+      popular: str(f, "popular", 400).split(/[,\n]/).map((s) => s.trim().slice(0, 40)).filter(Boolean).slice(0, 4),
+      showOnHome: f.get("showOnHome") === "on",
+      isActive: f.get("isActive") === "on",
+    },
+  });
+  await snapshot("CATEGORIES", admin.displayName);
+  await logAdmin(admin.id, "CATEGORY", `แก้ไขด่วนหมวด ${nameTh}`);
+  refreshStorefront();
+  refresh();
+  return { ok: "บันทึกแล้ว" };
+}
