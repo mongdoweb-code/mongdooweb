@@ -140,7 +140,7 @@ test("D4/A28 สินค้าไม่นับสต็อกกลับม�
   await db.query(`UPDATE "Product" SET "isActive"=false WHERE id=$1`, [U.id]);
   const from2 = lineLen();
   await ad.goto(`/admin/products?q=${U.sku}`);
-  await ad.locator(`tr:has-text("${U.sku}") button:has-text("เปิดขาย")` + V).first().click();
+  await ad.getByRole("switch", { name: `เปิดขายบนหน้าร้าน ${U.sku}` }).first().click();
   await expect.poll(async () => (await one<{ a: boolean }>(`SELECT "isActive" a FROM "Product" WHERE id=$1`, [U.id])).a).toBe(true);
   if (lineLog) await expect.poll(() => lineText(from2), { timeout: 15_000 }).toContain(U.sku);
   // ร้านแจ้งลูกค้าแล้ว → หายจากศูนย์แจ้งเตือน
