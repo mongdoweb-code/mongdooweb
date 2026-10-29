@@ -1677,3 +1677,18 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .prod-tbl .edge-acts .mini-btn{width:22px;height:18px}
 .ic{white-space:nowrap}
 .prod-tbl th,.prod-tbl td{padding-left:10px;padding-right:10px}
+
+/* ---------- ปุ่มเลื่อนลำดับหมวด: กลุ่มปุ่มไอคอน ---------- */
+.mv{gap:8px}
+.mv-no{min-width:26px;height:26px;margin:0;display:inline-grid;place-items:center;border-radius:999px;background:var(--c-cream);color:var(--c-ink);font-weight:700;font-size:12.5px;text-align:center}
+.mv-grp{display:inline-flex;align-items:center;border:1px solid var(--c-line);border-radius:8px;background:#fff;overflow:visible;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.mv-grp form{display:contents}
+.mv-btn{width:30px;height:30px;display:grid;place-items:center;color:#5B6B82;transition:background .15s,color .15s}
+.mv-btn svg{width:17px;height:17px}
+.mv-grp form + form .mv-btn{border-left:1px solid var(--c-line)}
+.mv-grp form:first-child .mv-btn{border-radius:7px 0 0 7px}
+.mv-grp form:last-child .mv-btn{border-radius:0 7px 7px 0}
+.mv-btn:hover:not(:disabled){background:#EAF2FE;color:#2F6FD6}
+.mv-btn:active:not(:disabled){background:#D6E6FD}
+.mv-btn:disabled{color:#CFCAC0;cursor:not-allowed}
+.col-order{width:220px}
