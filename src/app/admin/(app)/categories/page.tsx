@@ -52,11 +52,15 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
       </th>
     );
   };
-  const mv = (c: (typeof cats)[number], dir: string, label: string, sym: string, disabled: boolean) => (
+  // ปุ่มเลื่อนลำดับ: กลุ่มปุ่มไอคอน (บนสุด · ขึ้น · ลง · ล่างสุด) — ปุ่มที่ใช้ไม่ได้จะจาง
+  const MV_ICON: Record<string, string> = { top: "M6 5h12M8 14l4-4 4 4M12 10v9", up: "m7 14 5-5 5 5", down: "m7 10 5 5 5-5", bottom: "M6 19h12M8 10l4 4 4-4M12 14V5" };
+  const mv = (c: (typeof cats)[number], dir: string, label: string, disabled: boolean) => (
     <form action={moveCategory}>
       <input type="hidden" name="id" value={c.id} />
       <input type="hidden" name="dir" value={dir} />
-      <button className="icon-btn sm" disabled={disabled} aria-label={`${label} ${c.nameTh}`} title={label}>{sym}</button>
+      <button className="mv-btn" disabled={disabled} aria-label={`${label} ${c.nameTh}`} data-tip={disabled ? undefined : label}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={MV_ICON[dir]} /></svg>
+      </button>
     </form>
   );
   const quick = (c: (typeof cats)[number]): QuickCategory => ({
@@ -81,10 +85,12 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
             <div className="mv">
               <DragHandle label={c.nameTh} />
               <span className="mv-no num" aria-hidden="true">{i + 1}</span>
-              {mv(c, "top", "ไปบนสุด", "⤒", i === 0)}
-              {mv(c, "up", "เลื่อนขึ้น", "↑", i === 0)}
-              {mv(c, "down", "เลื่อนลง", "↓", i === rows.length - 1)}
-              {mv(c, "bottom", "ไปล่างสุด", "⤓", i === rows.length - 1)}
+              <span className="mv-grp" role="group" aria-label={`เลื่อนลำดับ ${c.nameTh}`}>
+                {mv(c, "top", "ไปบนสุด", i === 0)}
+                {mv(c, "up", "เลื่อนขึ้น", i === 0)}
+                {mv(c, "down", "เลื่อนลง", i === rows.length - 1)}
+                {mv(c, "bottom", "ไปล่างสุด", i === rows.length - 1)}
+              </span>
             </div>
           ) : (
             <span className="mv-no num" title="ลำดับหน้าร้านปัจจุบัน">#{cats.indexOf(c) + 1}</span>
