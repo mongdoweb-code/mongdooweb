@@ -111,7 +111,9 @@ function Bell() {
     const t = setInterval(() => { if (document.visibilityState === "visible") void poll(); }, 60_000);
     const vis = () => { if (document.visibilityState === "visible") void poll(); };
     document.addEventListener("visibilitychange", vis);
-    return () => { clearInterval(t); document.removeEventListener("visibilitychange", vis); };
+    // หน้าอื่นสั่งให้นับใหม่ทันที (NotifPing) เช่น หลังบันทึกงานใหม่
+    window.addEventListener("mdw:notif", vis);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", vis); window.removeEventListener("mdw:notif", vis); };
   }, [poll, path]);
   useEffect(() => {
     if (!open) return;

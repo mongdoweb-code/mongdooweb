@@ -1,6 +1,7 @@
 // ศูนย์แจ้งเตือนหลังบ้าน (A28) — ไม่มีตารางแจ้งเตือนแยก: สร้างจากข้อมูลจริงที่เกิดหลังเวลาที่ผู้ใช้กด "อ่านแล้ว" (Admin.notifSeenAt)
 // ชนิด: คำสั่งซื้อใหม่ · สลิปรอตรวจ (คำสั่งซื้อ + ลิงก์ใบแจ้งหนี้) · คำขอจากลูกค้า · เคลม/คืนสินค้า · รีวิวรออนุมัติ · สินค้าใกล้หมด
-//       · งานที่ได้รับมอบหมาย · คำขอข้อมูลส่วนบุคคล (เจ้าของร้านเท่านั้น)
+//       · งานใหม่ (มอบหมายให้ฉัน หรืองานรวมที่ไม่ได้มอบหมายใคร — รวมงานที่ฉันสร้างเอง) · งานเกินกำหนด
+//       · คำขอข้อมูลส่วนบุคคล (เจ้าของร้านเท่านั้น)
 //       · สินค้ากลับมามีของแต่ยังมีลูกค้าฝากแจ้งที่ร้านยังไม่ได้แจ้ง (RESTOCK — แสดงจนกว่าจะกด "แจ้งแล้ว" ที่ /admin/stock-alerts;
 //         นับเป็น "ยังไม่อ่าน" เมื่อสินค้าถูกแก้/เติมสต็อกหลังเวลาที่กดอ่าน)
 // unreadCount ใช้แค่ COUNT (เรียกทุก 60 วินาทีจากกระดิ่ง) · feed ดึงรายการล่าสุดของแต่ละชนิดมารวมกัน
@@ -8,10 +9,10 @@ import "server-only";
 import type { CurrentAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export type NotifKind = "ORDER" | "SLIP" | "DOC_SLIP" | "INQUIRY" | "CLAIM" | "REVIEW" | "LOW_STOCK" | "RESTOCK" | "TASK" | "PDPA";
+export type NotifKind = "ORDER" | "SLIP" | "DOC_SLIP" | "INQUIRY" | "CLAIM" | "REVIEW" | "LOW_STOCK" | "RESTOCK" | "TASK" | "TASK_DUE" | "PDPA";
 export const NOTIF_LABEL: Record<NotifKind, string> = {
   ORDER: "คำสั่งซื้อใหม่", SLIP: "สลิปรอตรวจ", DOC_SLIP: "สลิปจากใบแจ้งหนี้", INQUIRY: "คำขอจากลูกค้า", CLAIM: "เคลม/คืนสินค้า",
-  REVIEW: "รีวิวรออนุมัติ", LOW_STOCK: "สินค้าใกล้หมด", RESTOCK: "สินค้ากลับมามีของ — ลูกค้ารอ", TASK: "งานที่ได้รับมอบหมาย", PDPA: "คำขอข้อมูลส่วนบุคคล",
+  REVIEW: "รีวิวรออนุมัติ", LOW_STOCK: "สินค้าใกล้หมด", RESTOCK: "สินค้ากลับมามีของ — ลูกค้ารอ", TASK: "งานใหม่", TASK_DUE: "งานเกินกำหนด", PDPA: "คำขอข้อมูลส่วนบุคคล",
 };
 export type NotifItem = { id: string; kind: NotifKind; title: string; detail: string; at: string; href: string; unread: boolean };
 
@@ -22,6 +23,10 @@ async function sinceOf(adminId: string) {
   const a = await prisma.admin.findUnique({ where: { id: adminId }, select: { notifSeenAt: true } });
   return a?.notifSeenAt ?? new Date(Date.now() - DEFAULT_WINDOW);
 }
+
+/** งานของฉัน = มอบหมายให้ฉัน หรือยังไม่ได้มอบหมายใคร (งานรวมของร้าน) และยังไม่เสร็จ */
+const myOpenTasks = (adminId: string) => ({ done: false, OR: [{ assigneeId: adminId }, { assigneeId: null }] });
+const bkk = (d: Date) => d.toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" });
 
 async function threshold() {
   return (await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { lowStockThreshold: true } }))?.lowStockThreshold ?? 5;
@@ -53,7 +58,8 @@ export async function unreadCount(admin: CurrentAdmin) {
   const since = await sinceOf(admin.id);
   const T = await threshold();
   const after = { gt: since };
-  const [orders, slips, docSlips, inquiries, claims, reviews, low, tasks, pdpa, restock] = await Promise.all([
+  const now = new Date();
+  const [orders, slips, docSlips, inquiries, claims, reviews, low, tasks, due, pdpa, restock] = await Promise.all([
     prisma.order.count({ where: { createdAt: after } }),
     prisma.paymentSlip.count({ where: { uploadedAt: after, status: "PENDING" } }),
     prisma.docSlip.count({ where: { createdAt: after, status: "PENDING" } }),
@@ -63,11 +69,12 @@ export async function unreadCount(admin: CurrentAdmin) {
     prisma.$queryRaw<{ n: bigint }[]>`
       SELECT COUNT(DISTINCT m."productId") AS n FROM "StockMovement" m JOIN "Product" p ON p."id" = m."productId"
       WHERE m."createdAt" > ${since} AND m."balance" <= ${T} AND m."balance" - m."change" > ${T} AND p."trackStock" AND p."isActive"`,
-    prisma.adminTask.count({ where: { createdAt: after, assigneeId: admin.id, done: false, NOT: { createdById: admin.id } } }),
+    prisma.adminTask.count({ where: { createdAt: after, ...myOpenTasks(admin.id) } }),
+    prisma.adminTask.count({ where: { dueAt: { gt: since, lte: now }, ...myOpenTasks(admin.id) } }),
     admin.role === "OWNER" ? prisma.dataRequest.count({ where: { createdAt: after, status: "NEW" } }) : 0,
     waitingRestock(200),
   ]);
-  return orders + slips + docSlips + inquiries + claims + reviews + Number(low[0]?.n ?? 0) + tasks + pdpa + restock.filter((r) => r.updatedAt > since).length;
+  return orders + slips + docSlips + inquiries + claims + reviews + Number(low[0]?.n ?? 0) + tasks + due + pdpa + restock.filter((r) => r.updatedAt > since).length;
 }
 
 const baht = (s: number) => `฿${(s / 100).toLocaleString("th-TH", { maximumFractionDigits: 2 })}`;
@@ -78,7 +85,8 @@ export async function notificationFeed(admin: CurrentAdmin, limit = 40): Promise
   const from = new Date(Math.min(since.getTime(), Date.now() - 14 * 864e5));
   const take = Math.min(limit, 30);
   const after = { gt: from };
-  const [orders, slips, docSlips, inquiries, claims, reviews, low, tasks, pdpa, restock] = await Promise.all([
+  const now = new Date();
+  const [orders, slips, docSlips, inquiries, claims, reviews, low, tasks, due, pdpa, restock] = await Promise.all([
     prisma.order.findMany({ where: { createdAt: after }, orderBy: { createdAt: "desc" }, take, select: { id: true, orderNo: true, customerName: true, totalSatang: true, createdAt: true, paymentMethod: true } }),
     prisma.paymentSlip.findMany({ where: { uploadedAt: after, status: "PENDING" }, orderBy: { uploadedAt: "desc" }, take, select: { id: true, uploadedAt: true, declaredAmountSatang: true, order: { select: { orderNo: true, customerName: true } } } }),
     prisma.docSlip.findMany({ where: { createdAt: after, status: "PENDING" }, orderBy: { createdAt: "desc" }, take, select: { id: true, createdAt: true, amountSatang: true, document: { select: { id: true, docNo: true, type: true } } } }),
@@ -86,7 +94,8 @@ export async function notificationFeed(admin: CurrentAdmin, limit = 40): Promise
     prisma.claim.findMany({ where: { createdAt: after }, orderBy: { createdAt: "desc" }, take, select: { id: true, claimNo: true, name: true, kind: true, createdAt: true } }),
     prisma.review.findMany({ where: { createdAt: after, status: "PENDING" }, orderBy: { createdAt: "desc" }, take, select: { id: true, name: true, rating: true, createdAt: true, product: { select: { name: true } } } }),
     lowStockSince(from, take),
-    prisma.adminTask.findMany({ where: { createdAt: after, assigneeId: admin.id, done: false, NOT: { createdById: admin.id } }, orderBy: { createdAt: "desc" }, take, select: { id: true, title: true, createdAt: true, createdBy: { select: { displayName: true } } } }),
+    prisma.adminTask.findMany({ where: { createdAt: after, ...myOpenTasks(admin.id) }, orderBy: { createdAt: "desc" }, take, select: { id: true, title: true, createdAt: true, dueAt: true, assigneeId: true, createdById: true, createdBy: { select: { displayName: true } } } }),
+    prisma.adminTask.findMany({ where: { dueAt: { gt: from, lte: now }, ...myOpenTasks(admin.id) }, orderBy: { dueAt: "desc" }, take, select: { id: true, title: true, dueAt: true } }),
     admin.role === "OWNER" ? prisma.dataRequest.findMany({ where: { createdAt: after, status: "NEW" }, orderBy: { createdAt: "desc" }, take, select: { id: true, kind: true, name: true, createdAt: true } }) : [],
     waitingRestock(take),
   ]);
@@ -99,7 +108,12 @@ export async function notificationFeed(admin: CurrentAdmin, limit = 40): Promise
     ...reviews.map((r) => ({ id: `r-${r.id}`, kind: "REVIEW" as const, title: `${NOTIF_LABEL.REVIEW} ${"★".repeat(Math.max(1, Math.min(5, r.rating)))}`, detail: `${r.product.name} · ${r.name}`, atDate: r.createdAt, href: "/admin/reviews" })),
     ...low.map((m) => ({ id: `l-${m.id}`, kind: "LOW_STOCK" as const, title: `${NOTIF_LABEL.LOW_STOCK}: ${m.name}`, detail: `${m.sku} · ${Number(m.balance) <= 0 ? "หมดแล้ว" : `เหลือ ${m.balance}`}`, atDate: m.createdAt, href: `/admin/stock/${m.productId}` })),
     ...restock.map((r) => ({ id: `rs-${r.id}`, kind: "RESTOCK" as const, title: `${NOTIF_LABEL.RESTOCK}: ${r.name}`, detail: `${r.sku} · ลูกค้ารอ ${Number(r.n)} คน — ติดต่อแล้วกด "แจ้งแล้ว"`, atDate: r.updatedAt, href: "/admin/stock-alerts" })),
-    ...tasks.map((t) => ({ id: `t-${t.id}`, kind: "TASK" as const, title: `${NOTIF_LABEL.TASK}: ${t.title}`, detail: `จาก ${t.createdBy?.displayName ?? "—"}`, atDate: t.createdAt, href: "/admin/tasks" })),
+    ...tasks.map((t) => ({
+      id: `t-${t.id}`, kind: "TASK" as const, title: `${NOTIF_LABEL.TASK}: ${t.title}`,
+      detail: [t.createdById === admin.id ? "คุณสร้างไว้" : `จาก ${t.createdBy?.displayName ?? "—"}`, t.assigneeId ? null : "งานรวมของร้าน", t.dueAt ? `ครบกำหนด ${bkk(t.dueAt)}` : null].filter(Boolean).join(" · "),
+      atDate: t.createdAt, href: t.assigneeId ? "/admin/tasks" : "/admin/tasks?tab=open",
+    })),
+    ...due.map((t) => ({ id: `td-${t.id}`, kind: "TASK_DUE" as const, title: `${NOTIF_LABEL.TASK_DUE}: ${t.title}`, detail: `ครบกำหนด ${bkk(t.dueAt!)} — ยังไม่เสร็จ`, atDate: t.dueAt!, href: "/admin/tasks?tab=overdue" })),
     ...pdpa.map((d) => ({ id: `p-${d.id}`, kind: "PDPA" as const, title: NOTIF_LABEL.PDPA, detail: d.name, atDate: d.createdAt, href: `/admin/data-requests/${d.id}` })),
   ];
   items.sort((a, b) => b.atDate.getTime() - a.atDate.getTime());

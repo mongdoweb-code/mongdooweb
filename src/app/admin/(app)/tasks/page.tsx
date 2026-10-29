@@ -1,4 +1,5 @@
 // /admin/tasks — งานที่ต้องทำ (A25): "งานของฉัน", งานค้างทั้งหมด, เกินกำหนด, เสร็จแล้ว · สร้างงาน (มอบหมาย/วันครบ/ผูกคำสั่งซื้อหรือลูกค้า)
+import { NotifPing } from "../../_components/NotifPing";
 import Link from "next/link";
 import type { Prisma } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
@@ -40,7 +41,7 @@ export default async function TasksPage({ searchParams }: PageProps<"/admin/task
       <div className="page-head">
         <div><h1>งานที่ต้องทำ</h1><p>มอบหมายงานให้ทีม ผูกกับคำสั่งซื้อหรือลูกค้า และติดตามงานที่เกินกำหนด</p></div>
       </div>
-      {sp.taskSaved === "1" && <div className="ok-box" role="status" style={{ marginBottom: 12 }}>บันทึกงานแล้ว</div>}
+      {sp.taskSaved === "1" && <div className="ok-box" role="status" style={{ marginBottom: 12 }}>บันทึกงานแล้ว — แสดงในการแจ้งเตือน (กระดิ่งมุมขวาบน) ของผู้รับงาน<NotifPing /></div>}
       {err && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>{err}</div>}
       <div className="pform-grid">
         <section className="panel">
