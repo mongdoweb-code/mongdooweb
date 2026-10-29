@@ -79,11 +79,11 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
         <AdminNav
           locked={admin.mustChangePassword}
           items={[
-            { href: "/admin/dashboard", label: "ภาพรวม", icon: <Ico k="dash" /> },
-            { href: "/admin", label: "คำสั่งซื้อ", icon: <Ico k="orders" />, badge: pending },
-            { href: "/admin/inquiries", label: "คำขอจากลูกค้า", icon: <Ico k="inbox" />, badge: inquiries },
-            { href: "/admin/claims", label: "เคลม / คืนสินค้า", icon: <Ico k="claim" />, badge: claims },
-            { href: "/admin/tasks", label: "งานที่ต้องทำ", icon: <Ico k="task" />, badge: myOverdue },
+            { href: "/admin/dashboard", label: "ภาพรวม", icon: <Ico k="dash" />, group: "งานประจำวัน" },
+            { href: "/admin", label: "คำสั่งซื้อ", icon: <Ico k="orders" />, badge: pending, group: "งานประจำวัน" },
+            { href: "/admin/inquiries", label: "คำขอจากลูกค้า", icon: <Ico k="inbox" />, badge: inquiries, group: "งานประจำวัน" },
+            { href: "/admin/claims", label: "เคลม / คืนสินค้า", icon: <Ico k="claim" />, badge: claims, group: "งานประจำวัน" },
+            { href: "/admin/tasks", label: "งานที่ต้องทำ", icon: <Ico k="task" />, badge: myOverdue, group: "งานประจำวัน" },
             // ทุกรายการที่มี group ต้องอยู่ต่อกันใต้หัวข้อนั้น (รายการที่ไม่มี group จะแสดงใต้หัวข้อก่อนหน้า)
             { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" />, group: "สินค้าและหน้าร้าน" },

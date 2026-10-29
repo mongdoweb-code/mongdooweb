@@ -321,14 +321,16 @@ test("D11 ตะกร้า: สต็อกไม่พอ → ลดจำน
   expect(line).toMatchObject({ id: P.q.slug, qty: 3, wanted: 6, status: "qty", price: 400 }); // ไม่ใช่ราคาของ 6 ชิ้น (350)
 });
 
-test("D12 เมนูหลังบ้าน: งานที่ต้องทำอยู่ก่อนหัวข้อแรก และคูปองอยู่ใต้ 'สินค้าและหน้าร้าน'", async ({ page }) => {
+test("D12 เมนูหลังบ้าน: งานที่ต้องทำอยู่ใต้ 'งานประจำวัน' (กลุ่มแรก) และคูปองอยู่ใต้ 'สินค้าและหน้าร้าน'", async ({ page }) => {
   await login(page);
   const seqText = await page.evaluate(() =>
     [...document.querySelectorAll("#side .nav-grp, #side .nav-i")].map((e) => (e.classList.contains("nav-grp") ? `#${e.textContent}` : e.getAttribute("href"))),
   );
-  const firstGroup = seqText.findIndex((x) => x?.startsWith("#"));
+  expect(seqText[0]).toBe("#งานประจำวัน");
+  const firstGroup = seqText.indexOf("#สินค้าและหน้าร้าน");
+  expect(seqText.indexOf("/admin/tasks")).toBeGreaterThan(0);
   expect(seqText.indexOf("/admin/tasks")).toBeLessThan(firstGroup);
-  expect(seqText[firstGroup]).toBe("#สินค้าและหน้าร้าน");
+  expect(seqText.slice(1, firstGroup).some((x) => x?.startsWith("#"))).toBe(false);
   const coupon = seqText.indexOf("/admin/coupons");
   expect(coupon).toBeGreaterThan(firstGroup);
   expect(seqText.slice(firstGroup + 1, coupon).some((x) => x?.startsWith("#"))).toBe(false);
