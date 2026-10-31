@@ -1,5 +1,9 @@
 // /admin/docs/QUOTATION|INVOICE|RECEIPT — รายการเอกสารขาย: KPI, แท็บสถานะ, ค้นหา, ช่วงวันที่, แบ่งหน้า, ส่งออก CSV
 import Link from "next/link";
+import { ConfirmSubmit } from "../../../_components/AdminClient";
+import { Icons } from "../../../_components/RowActions";
+import { deleteDraft, reviseQuote } from "../actions";
+import { VoidIcon } from "../DocForms";
 import { Pagination } from "../../../_components/Pagination";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
@@ -117,7 +121,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
             <tr>
               <th>เลขที่ / วันที่</th><th>ลูกค้า</th>
               <th>{type === "QUOTATION" ? "ยืนราคาถึง" : type === "INVOICE" ? "ครบกำหนด / ค้างชำระ" : "ชำระโดย / อ้างอิง"}</th>
-              <th className="r">ยอดรวม</th><th>สถานะ</th><th />
+              <th className="r">ยอดรวม</th><th>สถานะ</th><th className="r col-acts">การดำเนินการ</th>
             </tr>
           </thead>
           <tbody>
@@ -144,8 +148,8 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                   <td className="num" style={{ fontSize: 13.5 }}>{c4}</td>
                   <td className="r num"><b style={st === "void" ? { textDecoration: "line-through" } : undefined}>{money(d.grandSatang)}</b></td>
                   <td><span className={`dst dst-${stc}`}>{stl}</span></td>
-                  <td className="r" style={{ whiteSpace: "nowrap" }}>
-                    {d.status === "DRAFT" ? <Link className="btn btn-ghost btn-sm" href={`${href}/edit`}>แก้ไข</Link> : <a className="btn btn-ghost btn-sm" href={`/admin/print/doc/${d.id}?auto=1`} target="_blank" rel="noopener">พิมพ์</a>}
+                  <td className="r">
+                    <DocActions d={d} href={href} label={`${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} />
                   </td>
                 </tr>
               );
@@ -163,3 +167,46 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
     </main>
   );
 }
+
+const PRINT = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="7" /></svg>
+);
+
+/** ดู · แก้ไข · พิมพ์ · ยกเลิก · ลบ — ปุ่มที่ใช้ไม่ได้ตามสถานะจะจางพร้อมบอกเหตุผลเมื่อชี้ */
+function DocActions({ d, href, label }: { d: { id: string; type: string; status: string; docNo: string | null }; href: string; label: string }) {
+  const draft = d.status === "DRAFT", voided = d.status === "VOID";
+  const off = (cls: string, icon: React.ReactNode, tip: string, name: string) => (
+    <span className={`ra ${cls}`} aria-disabled="true" data-tip={tip}>{icon}<span className="sr-only">{name} ({tip})</span></span>
+  );
+  const revisable = d.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.status);
+  return (
+    <div className="row-acts">
+      <Link className="ra ra-view" href={href} data-tip="ดู" aria-label={`ดู ${label}`}>{Icons.eye}</Link>
+      {draft ? (
+        <Link className="ra ra-edit" href={`${href}/edit`} data-tip="แก้ไข" aria-label={`แก้ไข ${label}`}>{Icons.edit}</Link>
+      ) : revisable ? (
+        <form action={reviseQuote}>
+          <input type="hidden" name="id" value={d.id} />
+          <button type="submit" className="ra ra-edit" data-tip="แก้ไข (สร้างฉบับแก้ไข)" aria-label={`แก้ไข ${label} (สร้างฉบับแก้ไข)`}>{Icons.edit}</button>
+        </form>
+      ) : (
+        off("ra-edit", Icons.edit, voided ? "ยกเลิกแล้ว" : d.status === "ACCEPTED" ? "ลูกค้าตอบรับแล้ว — แก้ไม่ได้" : "ออกเลขแล้ว แก้ไม่ได้ — ยกเลิกแล้วออกใหม่", "แก้ไข")
+      )}
+      {draft ? off("ra-print", PRINT, "ออกเอกสารก่อนจึงพิมพ์ได้", "พิมพ์") : <a className="ra ra-print" href={`/admin/print/doc/${d.id}?auto=1`} target="_blank" rel="noopener" data-tip="พิมพ์ / PDF" aria-label={`พิมพ์ ${label}`}>{PRINT}</a>}
+      {draft || voided ? off("ra-void", VOID_ICON, voided ? "ยกเลิกแล้ว" : "ฉบับร่าง — ใช้ลบแทน", "ยกเลิก") : <VoidIcon id={d.id} label={label} />}
+      {draft ? (
+        <form action={deleteDraft}>
+          <input type="hidden" name="id" value={d.id} />
+          <ConfirmSubmit className="ra ra-del" title="ลบฉบับร่างนี้?" body={`${label} — ยังไม่ได้ออกเลขที่ ลบแล้วกู้คืนไม่ได้`} confirmLabel="ลบฉบับร่าง" tip="ลบ" ariaLabel={`ลบ ${label}`}>
+            {Icons.trash}
+          </ConfirmSubmit>
+        </form>
+      ) : (
+        off("ra-del", Icons.trash, "ออกเลขแล้วลบไม่ได้ (เลขที่ห้ามซ้ำ) — ใช้ยกเลิก", "ลบ")
+      )}
+    </div>
+  );
+}
+const VOID_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m5.7 5.7 12.6 12.6" /></svg>
+);

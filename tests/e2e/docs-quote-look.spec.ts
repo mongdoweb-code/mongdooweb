@@ -74,3 +74,30 @@ test("ตัวแก้ไข: เปลี่ยนรูปหน้ารา
   await page.locator('button[name=intent][value=save]' + V).click();
   await expect.poll(async () => (await q<{ image: string | null }>(`SELECT image FROM "SalesDocumentItem" WHERE "documentId"=$1 AND "sortOrder"=1`, [DOC]))[0]?.image).toBe("");
 });
+
+test("รายการใบเสนอราคา: ไอคอน ดู/แก้ไข/พิมพ์/ยกเลิก/ลบ ตามสถานะ + เมนูเอกสารขายอยู่ก่อนเนื้อหาและ SEO", async ({ page }) => {
+  await login(page);
+  // เมนู: กลุ่มเอกสารขายต่อจากสินค้าและหน้าร้าน ก่อนเนื้อหาและ SEO
+  const groups = await page.locator("#side .nav-grp" + V).allTextContents();
+  expect(groups.indexOf("เอกสารขาย")).toBe(groups.indexOf("สินค้าและหน้าร้าน") + 1);
+  expect(groups.indexOf("เอกสารขาย")).toBeLessThan(groups.indexOf("เนื้อหาและ SEO"));
+
+  await page.goto(`/admin/docs/QUOTATION?q=${encodeURIComponent("ลูกค้าทดสอบรูปสินค้า")}`);
+  const row = page.locator("tbody tr", { hasText: "ฉบับร่าง" }).first();
+  await expect(row.locator("a.ra-view")).toHaveAttribute("href", `/admin/docs/QUOTATION/${DOC}`);
+  await expect(row.locator("a.ra-edit")).toHaveAttribute("href", `/admin/docs/QUOTATION/${DOC}/edit`);
+  await expect(row.locator('.ra-void[aria-disabled="true"]')).toHaveCount(1); // ฉบับร่างยกเลิกไม่ได้ (ใช้ลบ)
+
+  // ออกเลขแล้ว → ลบไม่ได้ · ยกเลิกได้ (ต้องมีเหตุผล)
+  await q(`UPDATE "SalesDocument" SET status='ISSUED', "docNo"=$2 WHERE id=$1`, [DOC, `QTE2E-${TAG}`]);
+  await page.reload();
+  const r2 = page.locator("tbody tr", { hasText: `QTE2E-${TAG}` });
+  await expect(r2.locator('.ra-del[aria-disabled="true"]')).toHaveCount(1);
+  await expect(r2.locator("a.ra-print")).toHaveCount(1);
+  await r2.getByRole("button", { name: `ยกเลิก ใบเสนอราคา QTE2E-${TAG}` }).click();
+  const dlg = page.getByRole("alertdialog", { name: `ยกเลิก ใบเสนอราคา QTE2E-${TAG}` });
+  await dlg.locator('input[name="reason"]').fill("ทดสอบยกเลิกจากรายการ");
+  await dlg.getByRole("button", { name: "ยืนยันยกเลิก" }).click();
+  await expect(page).toHaveURL(new RegExp(`/admin/docs/QUOTATION/${DOC}\\?voided=1`));
+  expect((await q<{ s: string }>(`SELECT status s FROM "SalesDocument" WHERE id=$1`, [DOC]))[0].s).toBe("VOID");
+});

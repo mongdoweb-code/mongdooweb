@@ -1491,7 +1491,8 @@ body.is-dragging [data-tip]::after,body.is-dragging [data-tip]::before{display:n
 .ra-view:hover{background:#EAF2FE}
 .ra-edit:hover{background:#FDF4E1}
 .ra-del:hover{background:#FDECEC}
-.ra[aria-disabled="true"]{opacity:.32;cursor:not-allowed}
+.ra[aria-disabled="true"]{cursor:not-allowed}
+.ra[aria-disabled="true"] > svg{opacity:.32} /* จางเฉพาะไอคอน — ป้ายเหตุผลยังอ่านชัด */
 .ra[aria-disabled="true"]:hover{background:none}
 th.col-acts{width:1%}
 
@@ -1727,3 +1728,10 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 @media (max-width:860px){
   .de-line{grid-template-columns:22px 56px minmax(0,1fr)!important;grid-template-areas:"n i m" "n i a" "n x x" "n e e"!important}
 }
+
+/* รายการเอกสาร: พิมพ์ (เทา) · ยกเลิก (ส้มเข้ม) */
+.ra-print{color:#5B6B82}
+.ra-print:hover{background:#EEF1F5}
+.ra-void{color:#D9822B}
+.ra-void:hover{background:#FDF0E2}
+.doc-tbl .row-acts{flex-wrap:nowrap}
