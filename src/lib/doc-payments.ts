@@ -58,7 +58,7 @@ export async function recordInvoicePaymentTx(
   const seq = iv.payments.length + 1;
   const full = !iv.payments.length && amount === iv.grandSatang;
   const items = full
-    ? iv.items.map(({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder }) => ({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder }))
+    ? iv.items.map(({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder, image }) => ({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder, image }))
     : [{ sortOrder: 1, productId: null, sku: null, name: `รับชำระตามใบแจ้งหนี้ ${iv.docNo} (งวดที่ ${seq})`, detail: `ยอดตามใบแจ้งหนี้ ${money(iv.grandSatang)} บาท`, unit: "งวด", qtyMilli: 1000, priceSatang: amount, discountSatang: 0 }];
   const vatMode: VatMode = full ? iv.vatMode : iv.vatMode === "NONE" ? "NONE" : "INCLUSIVE";
   const discount = full ? iv.discountSatang : 0;

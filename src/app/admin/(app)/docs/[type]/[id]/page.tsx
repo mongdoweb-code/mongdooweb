@@ -10,11 +10,13 @@ import { getSettings } from "@/lib/settings";
 import { ConfirmSubmit } from "../../../../_components/AdminClient";
 import { DocSheets } from "../../../../_components/DocSheets";
 import { LabelOptions } from "../../../../_components/LabelOptions";
-import { acceptQuote, convertQuote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, reviseQuote } from "../../actions";
+import { acceptQuote, convertQuote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, reviseQuote, setSignDate } from "../../actions";
 import { PaymentForm, VoidForm } from "../../DocForms";
 import { DocOnline } from "../../DocOnline";
 
 export const instant = false;
+
+const SIGNER = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน" } as const;
 
 const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป" };
 
@@ -106,6 +108,18 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
           </div>
 
           <DocOnline doc={d} era={era} />
+
+          {s.showSignature && d.status !== "VOID" && (
+            <section className="dv-sec">
+              <h3>วันที่ลงนาม{SIGNER[d.type]}</h3>
+              <form action={setSignDate} className="sign-form">
+                <input type="hidden" name="id" value={d.id} />
+                <input type="date" name="signDate" defaultValue={ymdOf(d.signDate) || ymdOf(d.issueDate) || today} aria-label={`วันที่ลงนาม${SIGNER[d.type]}`} />
+                <button className="btn btn-outline btn-sm" type="submit">บันทึกวันที่</button>
+              </form>
+              <small className="sub">แสดงใต้ช่องลงนาม{SIGNER[d.type]}บนเอกสาร · ค่าเริ่มต้น = วันที่เอกสาร</small>
+            </section>
+          )}
 
           {d.type === "INVOICE" && ["ISSUED", "PARTIAL"].includes(d.status) && (
             <section className="dv-sec">

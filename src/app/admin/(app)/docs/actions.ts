@@ -8,7 +8,7 @@ import { logAdmin } from "@/lib/admin-log";
 import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
-import { custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, type Tx } from "@/lib/docs";
+import { custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, ymdOf, type Tx } from "@/lib/docs";
 import { DocUserError, issueDocTx, recordInvoicePaymentTx } from "@/lib/doc-payments";
 import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";
@@ -31,10 +31,27 @@ async function event(tx: Tx, documentId: string, type: DocEventType, adminId: st
 // ---------------------------------------------------------------------------
 type Payload = {
   id?: string; type: DocTypeT; customerId: string; issueDate: string; validUntil: string; dueDate: string;
-  items: { productId?: string | null; sku: string; name: string; detail: string; unit: string; qtyMilli: number; priceSatang: number; discountSatang: number }[];
+  items: { productId?: string | null; sku: string; name: string; detail: string; unit: string; qtyMilli: number; priceSatang: number; discountSatang: number; image?: string | null }[];
+  signDate?: string;
   discountSatang: number; vatMode: VatMode; paymentMethod: string; paymentTerms: string; carrier: string; note: string; internalNote: string;
   sourceId?: string | null; orderId?: string | null;
 };
+
+/** รูปหน้ารายการจากตัวแก้ไข: null = ใช้รูปสินค้า · "" = ไม่แสดง · key ของรูปที่อัปโหลดในร้านเท่านั้น */
+const docImage = (v: unknown): string | null => (v === "" ? "" : typeof v === "string" && /^products\/[\w/.-]+\.webp$/.test(v) && !v.includes("..") ? v : null);
+
+/** แก้วันที่ในช่องลงนามฝั่งร้าน (ใช้ได้ทั้งฉบับร่างและเอกสารที่ออกแล้ว — ไม่กระทบยอด/เลขที่) */
+export async function setSignDate(f: FormData) {
+  const admin = await requireAdmin();
+  const id = String(f.get("id") ?? "").slice(0, 40);
+  const ymd = String(f.get("signDate") ?? "");
+  const d = await prisma.salesDocument.findUnique({ where: { id }, select: { id: true, type: true, docNo: true, issueDate: true } });
+  if (!d) return;
+  const v = ymdRe.test(ymd) ? fromYmd(ymd) : null;
+  await prisma.salesDocument.update({ where: { id }, data: { signDate: v && ymd !== ymdOf(d.issueDate) ? v : null } });
+  await logAdmin(admin.id, "DOC", `แก้วันที่ลงนาม ${d.docNo ?? "ฉบับร่าง"} → ${ymd || "ใช้วันที่เอกสาร"}`);
+  refresh();
+}
 
 export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
   const admin = await requireAdmin();
@@ -62,6 +79,7 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
       sortOrder: i + 1, productId: it.productId ? String(it.productId) : null, sku: String(it.sku ?? "").trim().slice(0, 60) || null, name,
       detail: String(it.detail ?? "").trim().slice(0, 300) || null, unit: String(it.unit ?? "").trim().slice(0, 20) || "ชิ้น",
       qtyMilli: Number(it.qtyMilli) || 0, priceSatang: Number(it.priceSatang) || 0, discountSatang: Number(it.discountSatang) || 0,
+      image: docImage(it.image),
     };
   });
   if (bad.some((b) => b.startsWith("line"))) msgs.push("ตรวจรายการที่มีกรอบสีแดง: ต้องมีชื่อ จำนวนมากกว่า 0 ราคาไม่ติดลบ และส่วนลดไม่เกินราคารวม");
@@ -88,9 +106,10 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
   if (issue && p.type !== "QUOTATION" && totals.grandSatang <= 0) { bad.push("items"); msgs.push("ยอดรวมต้องมากกว่า 0 บาท"); }
   if (bad.length) return { error: msgs.join(" · ") || "กรุณาตรวจข้อมูล", fields: bad };
 
+  const signYmd = typeof p.signDate === "string" && ymdRe.test(p.signDate) ? p.signDate : "";
   const data = {
     customerId: customer!.id, customerSnapshot: custSnapshot(customer!),
-    issueDate: fromYmd(issueYmd), validUntil: validUntil ? fromYmd(validUntil) : null, dueDate: dueDate ? fromYmd(dueDate) : null,
+    issueDate: fromYmd(issueYmd), signDate: signYmd && signYmd !== issueYmd ? fromYmd(signYmd) : null, validUntil: validUntil ? fromYmd(validUntil) : null, dueDate: dueDate ? fromYmd(dueDate) : null,
     ...totals, vatMode, vatRateBp: vatMode === "NONE" ? 0 : s.vatRateBp,
     paymentMethod: String(p.paymentMethod ?? "").trim().slice(0, 60) || null, paymentTerms: String(p.paymentTerms ?? "").trim().slice(0, 2000) || null,
     carrier: String(p.carrier ?? "").trim().slice(0, 60) || null, note: String(p.note ?? "").trim().slice(0, 2000) || null,
@@ -182,7 +201,7 @@ async function copyToDraft(srcId: string, type: DocTypeT, adminId: string, link:
   const days = type === "QUOTATION" ? s.quoteValidDays : type === "INVOICE" ? s.invoiceDueDays : 0;
   const plus = (n: number) => ymdBkk(new Date(fromYmd(today).getTime() + n * 864e5));
   const vatMode = s.vatEnabled ? src.vatMode : "NONE";
-  const items = src.items.map(({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder }) => ({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder }));
+  const items = src.items.map(({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder, image }) => ({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder, image }));
   const doc = await prisma.$transaction(async (tx) => {
     const d = await tx.salesDocument.create({
       data: {

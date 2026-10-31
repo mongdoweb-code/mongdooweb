@@ -48,7 +48,7 @@ export function renderFooter(s: ShopInfo, opts: { hasFaq?: boolean; lineQrSvg?: 
   const site = safeUrl(s.website)?.replace(/^https?:\/\//, "").replace(/\/$/, "") ?? "มองดูเว็บ.com";
   // QR เพิ่มเพื่อน LINE — svg สร้างจากไลบรารี qrcode ฝั่งเซิร์ฟเวอร์ (ไม่มีข้อความจากผู้ใช้ปนอยู่)
   const lineQr = opts.lineQrSvg
-    ? `<a class="f-qr" href="#" data-line target="_blank" rel="noopener" aria-label="สแกนหรือกดเพื่อเพิ่มเพื่อน LINE ${esc(s.lineId ?? "")}">
+    ? `<a class="f-qr" href="#" data-line target="_blank" rel="noopener">
           <span class="f-qr-img" aria-hidden="true">${opts.lineQrSvg}</span>
           <span class="f-qr-txt"><span class="f-qr-badge" aria-hidden="true">LINE</span><b>สแกนเพิ่มเพื่อน</b>${s.lineId ? `<span class="f-qr-id">${esc(s.lineId)}</span>` : ""}<small>สอบถามสินค้า ขอใบเสนอราคา ตอบไว</small></span>
         </a>`
