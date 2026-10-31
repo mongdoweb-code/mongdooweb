@@ -24,11 +24,15 @@ test.beforeAll(async () => {
     [prod] = await q(`SELECT id, sku, name, images FROM "Product" ORDER BY sku LIMIT 1`);
     prod.images = ["products/e2e/look.webp"];
   }
-  const [cust] = await q<{ id: string }>(`SELECT id FROM "Customer" ORDER BY "createdAt" LIMIT 1`);
+  // ลูกค้าของเทสต์นี้เอง (ฐานข้อมูลใหม่ใน CI ยังไม่มีลูกค้า — ฉบับร่างต้องมีลูกค้าถึงจะบันทึกได้)
+  const [cust] = await q<{ id: string }>(
+    `INSERT INTO "Customer" (id, code, kind, name, phone, "updatedAt") VALUES ($1, $2, 'PERSON', 'ลูกค้าทดสอบรูปสินค้า', '0811111111', now()) RETURNING id`,
+    [`${DOC}-c`, `Q${TAG.slice(-7)}`],
+  );
   await q(
     `INSERT INTO "SalesDocument"(id, type, status, "issueDate", "validUntil", "customerId", "customerSnapshot", "subtotalSatang", "grandSatang", "updatedAt")
      VALUES ($1, 'QUOTATION', 'DRAFT', '2026-10-30', '2026-11-29', $2, '{"name":"ลูกค้าทดสอบรูปสินค้า"}', 70000, 70000, now())`,
-    [DOC, cust?.id ?? null],
+    [DOC, cust.id],
   );
   await q(`INSERT INTO "SalesDocumentItem"(id, "documentId", "sortOrder", "productId", sku, name, unit, "qtyMilli", "priceSatang", image) VALUES ($1,$2,1,$3,$4,$5,'ชิ้น',1000,65000,$6)`, [
     `${DOC}-1`, DOC, prod.id, prod.sku, prod.name, prod.images[0] === "products/e2e/look.webp" ? prod.images[0] : null,
@@ -37,6 +41,7 @@ test.beforeAll(async () => {
 });
 test.afterAll(async () => {
   await q(`DELETE FROM "SalesDocument" WHERE id=$1`, [DOC]);
+  await q(`DELETE FROM "Customer" WHERE id=$1`, [`${DOC}-c`]);
 });
 
 test("ตัวอย่าง A4: รูปสินค้า · วันที่ลงนาม · ไอคอนติดต่อร้าน · กรอบโค้งมน แล้วแก้วันที่ลงนามได้", async ({ page }) => {
