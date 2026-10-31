@@ -28,7 +28,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
     init = {
       type, customerId: c?.id ?? "", customer: c ? custSnapshot(c) : null, issueDate: today,
       validUntil: type === "QUOTATION" ? plus(s.quoteValidDays) : "", dueDate: type === "INVOICE" ? plus(s.invoiceDueDays) : "",
-      items: [], discount: "", vatMode: s.vatEnabled ? s.vatMode : "NONE",
+      items: [], discount: "", vatMode: s.vatEnabled ? s.vatMode : "NONE", signDate: "",
       paymentMethod: type === "QUOTATION" ? "โอนเงินผ่านธนาคาร" : PAY_METHODS[0], paymentTerms: defaultTerms(s, type), carrier: "", note: "", internalNote: "",
     };
   } else {
@@ -40,14 +40,14 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
     init = {
       id: d.id, type, customerId: c?.id ?? "", customer: c ? custSnapshot(c) : asSnap(d.customerSnapshot).name ? asSnap(d.customerSnapshot) : null,
       issueDate: ymdOf(d.issueDate) || today, validUntil: ymdOf(d.validUntil), dueDate: ymdOf(d.dueDate),
-      items: d.items.map((i) => ({ productId: i.productId ?? "", sku: i.sku ?? "", name: i.name, detail: i.detail ?? "", unit: i.unit, qty: String(i.qtyMilli / 1000), price: (i.priceSatang / 100).toFixed(2), discount: i.discountSatang ? (i.discountSatang / 100).toFixed(2) : "" })),
-      discount: d.discountSatang ? (d.discountSatang / 100).toFixed(2) : "", vatMode: s.vatEnabled ? d.vatMode : "NONE",
+      items: d.items.map((i) => ({ productId: i.productId ?? "", sku: i.sku ?? "", name: i.name, detail: i.detail ?? "", unit: i.unit, qty: String(i.qtyMilli / 1000), price: (i.priceSatang / 100).toFixed(2), discount: i.discountSatang ? (i.discountSatang / 100).toFixed(2) : "", image: i.image })),
+      discount: d.discountSatang ? (d.discountSatang / 100).toFixed(2) : "", vatMode: s.vatEnabled ? d.vatMode : "NONE", signDate: ymdOf(d.signDate),
       paymentMethod: d.paymentMethod ?? "", paymentTerms: d.paymentTerms ?? "", carrier: d.carrier ?? "", note: d.note ?? "", internalNote: d.internalNote ?? "",
     };
   }
   const [customers, products] = await Promise.all([
     prisma.customer.findMany({ orderBy: { code: "desc" }, take: 3000 }),
-    prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { isService: "desc" }, { name: "asc" }], select: { id: true, sku: true, name: true, unit: true, priceSatang: true, salePriceSatang: true, saleStartsAt: true, saleEndsAt: true, tierPrices: true, isService: true, isActive: true }, take: 5000 }),
+    prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { isService: "desc" }, { name: "asc" }], select: { id: true, sku: true, name: true, unit: true, priceSatang: true, salePriceSatang: true, saleStartsAt: true, saleEndsAt: true, tierPrices: true, isService: true, isActive: true, images: true }, take: 5000 }),
   ]);
   return (
     <DocEditor
@@ -58,7 +58,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       // ราคาตั้งต้น = ราคาขายจริง (ราคาลดตามช่วงเวลา) + ราคาขายส่งตามจำนวน — แก้ได้ในตัวแก้ไข
       products={products.map((p) => {
         const tiers = parseTiers(p.tierPrices);
-        return { id: p.id, sku: p.sku, name: p.name, unit: p.unit, price: unitPriceSatang(p), service: p.isService, off: !p.isActive, ...(tiers.length ? { tiers } : {}) };
+        return { id: p.id, sku: p.sku, name: p.name, unit: p.unit, price: unitPriceSatang(p), service: p.isService, off: !p.isActive, ...(tiers.length ? { tiers } : {}), ...(p.images.length ? { imgs: p.images.slice(0, 8) } : {}) };
       })}
       shop={shopHead(s)}
       vatEnabled={s.vatEnabled}

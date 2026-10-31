@@ -71,7 +71,7 @@ export function shopHead(s: ShopSetting): ShopHead {
 export const senderOf = (s: ShopSetting): Sender => ({ name: s.legalName, phone: s.phone, address: s.addressText, logo: (s.logoKey && mediaUrl(s.logoKey)) || DEFAULT_LOGO });
 
 export const DOC_INCLUDE = {
-  items: { orderBy: { sortOrder: "asc" } },
+  items: { orderBy: { sortOrder: "asc" }, include: { product: { select: { images: true } } } },
   payments: { orderBy: { paidAt: "asc" }, include: { receipt: { select: { id: true, docNo: true, status: true } } } },
   receiptFor: { include: { invoice: { select: { id: true, docNo: true } } } },
   source: { select: { id: true, docNo: true, type: true, status: true } },
@@ -103,13 +103,20 @@ export async function toView(d: FullDoc, s: ShopSetting): Promise<DocView> {
   return {
     type: d.type, no: d.docNo, status: d.status, issueDate: ymdOf(d.issueDate) || todayYmd(), validUntil: ymdOf(d.validUntil), dueDate: ymdOf(d.dueDate),
     customer: asSnap(d.customerSnapshot),
-    items: d.items.map((i) => ({ sku: i.sku ?? "", name: i.name, detail: i.detail ?? "", unit: i.unit, qtyMilli: i.qtyMilli, priceSatang: i.priceSatang, discountSatang: i.discountSatang })),
+    items: d.items.map((i) => ({ sku: i.sku ?? "", name: i.name, detail: i.detail ?? "", unit: i.unit, qtyMilli: i.qtyMilli, priceSatang: i.priceSatang, discountSatang: i.discountSatang, img: docItemImg(i) })),
     discountSatang: d.discountSatang, vatMode: d.vatMode, vatRateBp: d.vatRateBp || s.vatRateBp,
     paymentMethod: d.paymentMethod ?? "", paymentTerms: d.paymentTerms ?? "", carrier: d.carrier ?? "", note: d.note ?? "", ref: refLine(d), voidReason: d.voidReason ?? "",
     paidSatang: d.paidSatang, payRef: pay?.reference ?? "",
     qr: d.type === "INVOICE" && d.status !== "VOID" && d.status !== "DRAFT" ? await invoiceQr(s, d.grandSatang - d.paidSatang) : null,
-    printedAt: docDateTime(new Date(), s.dateEra), shop: shopHead(s),
+    printedAt: docDateTime(new Date(), s.dateEra), shop: shopHead(s), signDate: ymdOf(d.signDate),
   };
+}
+
+/** รูปหน้ารายการ: "" = ไม่แสดง · key ที่เลือกเอง · ไม่ได้เลือก = รูปแรกของสินค้า (ขนาดย่อ) */
+export function docItemImg(i: { image: string | null; product?: { images: string[] } | null }) {
+  if (i.image === "") return "";
+  const key = i.image ?? i.product?.images[0];
+  return key ? (mediaUrl(key, "sm") ?? "") : "";
 }
 
 /** ใบปะหน้าจากเอกสาร (ส่งของที่ ถ้ามี ไม่งั้นที่อยู่ลูกค้า) — ไม่รวมค่าส่ง/ค่าบริการ */

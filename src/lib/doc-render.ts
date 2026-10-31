@@ -6,7 +6,8 @@ export type CustSnap = {
   code?: string; kind?: "COMPANY" | "PERSON"; name?: string; taxId?: string; branch?: string; contact?: string; phone?: string; email?: string;
   address?: Addr; shipTo?: { name?: string; phone?: string; address?: Addr } | null;
 };
-export type DocLine = { sku: string; name: string; detail: string; unit: string; qtyMilli: number; priceSatang: number; discountSatang: number };
+/** img = ลิงก์รูปหน้ารายการ (ว่าง = ไม่แสดง) */
+export type DocLine = { sku: string; name: string; detail: string; unit: string; qtyMilli: number; priceSatang: number; discountSatang: number; img?: string };
 export type ShopHead = {
   name: string; address: string; phone: string; line: string; email: string; taxId: string; branch: string; logo: string;
   era: "AD" | "BE"; showSignature: boolean; banks: { name: string; account: string; holder: string }[]; promptpayName: string;
@@ -16,6 +17,8 @@ export type DocView = {
   customer: CustSnap; items: DocLine[]; discountSatang: number; vatMode: VatModeT; vatRateBp: number;
   paymentMethod: string; paymentTerms: string; carrier: string; note: string; ref: string; voidReason: string;
   paidSatang: number; payRef: string; qr: string | null; printedAt: string; shop: ShopHead;
+  /** วันที่ในช่องลงนามฝั่งร้าน (YYYY-MM-DD) — ว่าง = ใช้วันที่เอกสาร */
+  signDate?: string;
 };
 
 export const DOC_META: Record<DocTypeT, { th: string; en: string; short: string; path: string }> = {
@@ -27,6 +30,13 @@ const SIGN: Record<DocTypeT, [string, string]> = { QUOTATION: ["ผู้เส�
 
 export const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const nl2br = (s: string) => esc(s).replace(/\n/g, "<br>");
+/** ไอคอนเล็กหน้าข้อมูลติดต่อร้าน (โทร · LINE · อีเมล) — เส้นสีเทา พิมพ์ขาวดำได้ชัด */
+const CT_ICON = {
+  phone: '<path d="M5 3h3.5l1.7 4.3-2.2 1.4a11 11 0 0 0 5.3 5.3l1.4-2.2L19 13.5V17a2 2 0 0 1-2 2A15 15 0 0 1 3 5a2 2 0 0 1 2-2Z"/>',
+  line: '<path d="M12 4C6.8 4 3 7.2 3 11.1c0 3.5 3 6.3 7.2 6.9.3.1.6.3.5.8l-.2 1.2c-.1.4.2.6.5.4 3.7-2.1 6.9-4.9 8-7.1.6-.7 1-1.5 1-2.3C20 7.2 17.2 4 12 4Z"/><path d="M7.5 9.5v3h1.8M11 9.5v3M13 12.5v-3l2 3v-3M17.6 9.5h-1.5v3h1.5M16.1 11h1.4"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/>',
+};
+const ct = (k: keyof typeof CT_ICON, text: string) => `<span class="sh-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${CT_ICON[k]}</svg>${text}</span>`;
 
 export const docTitle = (v: Pick<DocView, "type" | "vatMode">) => (v.type === "RECEIPT" && v.vatMode !== "NONE" ? "ใบเสร็จรับเงิน / ใบกำกับภาษี" : DOC_META[v.type].th);
 export const docTotals = (v: Pick<DocView, "items" | "discountSatang" | "vatMode" | "vatRateBp">) => calcTotals(v.items, v.discountSatang, v.vatMode, v.vatRateBp);
@@ -46,10 +56,12 @@ export function buildDocParts(d: DocView): DocParts {
   if (d.ref) meta.push(["อ้างอิง", esc(d.ref)]);
   if (d.type === "RECEIPT") meta.push(["วันที่พิมพ์", esc(d.printedAt)]);
   const shopTax = s.taxId ? `<div>เลขประจำตัวผู้เสียภาษี ${esc(fmtTaxId(s.taxId))}${s.branch ? ` <span class="nw">(${esc(s.branch)})</span>` : ""}</div>` : "";
-  const contact = [s.phone && `โทร ${esc(s.phone)}`, s.line && `ไอดีไลน์ ${esc(s.line)}`, s.email && esc(s.email)].filter(Boolean).join(" · ");
+  // ติดต่อร้าน: แถวแรก โทร + LINE · แถวสอง อีเมล (มีไอคอนนำหน้า)
+  const row1 = [s.phone && ct("phone", `โทร ${esc(s.phone)}`), s.line && ct("line", `ไอดีไลน์ ${esc(s.line)}`)].filter(Boolean).join("");
+  const contact = `${row1 ? `<div class="sh-cts">${row1}</div>` : ""}${s.email ? `<div class="sh-cts">${ct("mail", esc(s.email))}</div>` : ""}`;
   const head1 = `<header class="sh-head">
       <div class="sh-shop">${s.logo ? `<img class="sh-logo" src="${esc(s.logo)}" alt="">` : ""}
-        <div class="sh-shoptx"><b>${esc(s.name)}</b><div>${esc(s.address)}</div><div>${contact}</div>${shopTax}</div></div>
+        <div class="sh-shoptx"><b>${esc(s.name)}</b><div class="sh-addr">${esc(s.address)}</div>${contact}${shopTax}</div></div>
       <div class="sh-tbox"><div class="sh-title${title.length > 16 ? " long" : ""}">${esc(title)}<small>${en}</small></div>
         <dl class="sh-meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
         ${d.no ? code128Svg(d.no, "sh-bc") : ""}</div>
@@ -74,9 +86,12 @@ export function buildDocParts(d: DocView): DocParts {
       </div></section>`;
 
   const hasDisc = d.items.some((i) => i.discountSatang > 0);
+  // รูปสินค้าหน้ารายการ — มีรูปอย่างน้อย 1 รายการ = เว้นช่องรูปให้ทุกแถว (ชื่อรายการตรงกัน)
+  const hasImg = d.items.some((i) => i.img);
+  const imgCell = (it: DocLine) => (hasImg ? `<span class="it-img">${it.img ? `<img src="${esc(it.img)}" alt="">` : ""}</span>` : "");
   const thead = `<thead><tr><th class="c w-no">ลำดับ</th><th class="w-sku">รหัสสินค้า</th><th>รายการสินค้า</th><th class="w-unit">หน่วย</th><th class="n w-price">ราคาขาย/บาท</th><th class="n w-qty">จำนวน</th>${hasDisc ? '<th class="n w-disc">ส่วนลด</th>' : ""}<th class="n w-amt">ราคารวม/บาท</th></tr></thead>`;
   const rows = d.items.length
-    ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td><td class="nm">${esc(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${esc(it.detail)}</small>` : ""}</td><td>${esc(it.unit)}</td>
+    ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td><td class="nm"><div class="nm-row">${imgCell(it)}<div>${esc(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${esc(it.detail)}</small>` : ""}</div></div></td><td>${esc(it.unit)}</td>
       <td class="n">${money(it.priceSatang)}</td><td class="n">${qtyFmt(it.qtyMilli)}</td>${hasDisc ? `<td class="n">${it.discountSatang ? money(it.discountSatang) : ""}</td>` : ""}<td class="n">${money(lineSatang(it))}</td></tr>`)
     : [`<tr class="empty-row"><td colspan="${hasDisc ? 8 : 7}">ยังไม่มีรายการสินค้า</td></tr>`];
 
@@ -92,7 +107,11 @@ export function buildDocParts(d: DocView): DocParts {
   }
   if (d.type === "RECEIPT") payBox = `<div class="sh-paid"><b>ได้รับเงินถูกต้องแล้ว</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}</div>`;
   const terms = d.paymentTerms.trim(), note = d.note.trim();
-  const sign = s.showSignature ? `<section class="sh-sign">${SIGN[d.type].map((l) => `<div><div class="sg-line"></div><b>${l}</b><span>วันที่ ______/______/__________</span></div>`).join("")}</section>` : "";
+  // ช่องลงนาม: ฝั่งร้านใส่วันที่ให้ (วันที่ลงนามที่ตั้งไว้ หรือวันที่เอกสาร) · ฝั่งลูกค้าเว้นให้เขียนเอง
+  const signDay = d.signDate || d.issueDate;
+  const sign = s.showSignature
+    ? `<section class="sh-sign">${SIGN[d.type].map((l, i) => `<div><div class="sg-line"></div><b>${l}</b><span>วันที่ ${i === 0 && signDay ? `<b class="sg-date">${esc(docDate(signDay, era))}</b>` : "______/______/__________"}</span></div>`).join("")}</section>`
+    : "";
   const tail = `<div class="sh-end">
       <section class="sh-tail">
         <div class="sh-tl">

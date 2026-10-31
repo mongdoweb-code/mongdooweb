@@ -9,18 +9,26 @@ import { isValidThaiTaxId } from "@/lib/format";
 import { unitPriceSatang, type Tier } from "@/lib/pricing";
 import { DocSheets } from "../../_components/DocSheets";
 import { useFormAction } from "../../_components/useFormAction";
+import { uploadEditorImage } from "../../_components/editor-actions";
 import { saveCustomer, type CustomerState } from "../customers/actions";
 import { saveDoc, type DocState } from "./actions";
 
-type LineIn = { productId: string; sku: string; name: string; detail: string; unit: string; qty: string; price: string; discount: string };
+/** image: null = ใช้รูปแรกของสินค้า · "" = ไม่แสดงรูป · storage key = รูปที่เลือก/อัปโหลดเอง */
+type LineIn = { productId: string; sku: string; name: string; detail: string; unit: string; qty: string; price: string; discount: string; image?: string | null };
 type Line = LineIn & { key: number };
 export type EditorInit = {
   id?: string; type: DocTypeT; customerId: string; customer: CustSnap | null; issueDate: string; validUntil: string; dueDate: string;
   items: LineIn[]; discount: string; vatMode: VatModeT; paymentMethod: string; paymentTerms: string; carrier: string; note: string; internalNote: string;
+  /** วันที่ในช่องลงนามฝั่งร้าน — ว่าง = ใช้วันที่เอกสาร */
+  signDate: string;
 };
 type Cust = { id: string; snap: CustSnap };
 /** price = ราคาขายจริง 1 ชิ้น (รวมราคาลดตามช่วงเวลา) · tiers = ราคาขายส่งตามจำนวน */
-type Prod = { id: string; sku: string; name: string; unit: string; price: number; service: boolean; off: boolean; tiers?: Tier[] };
+type Prod = { id: string; sku: string; name: string; unit: string; price: number; service: boolean; off: boolean; tiers?: Tier[]; imgs?: string[] };
+/** storage key → ลิงก์รูปขนาดย่อ (เหมือน mediaUrl(key, "sm") ฝั่ง server) */
+const thumb = (key: string) => (/^https:\/\//i.test(key) ? key : `/media/${key.replace(/\.webp$/, "-sm.webp")}`);
+/** รูปที่จะแสดงของรายการ (key) — "" = ไม่แสดง */
+const lineImgKey = (l: LineIn, products: Prod[]) => (l.image === "" ? "" : (l.image ?? (l.productId ? products.find((p) => p.id === l.productId)?.imgs?.[0] : undefined) ?? ""));
 /** ราคาตั้งต้นของสินค้าตามจำนวน (unitPriceSatang แบบเดียวกับหน้าร้าน) เป็นบาท "0.00" */
 const priceFor = (p: Prod, qty: string) => (unitPriceSatang({ priceSatang: p.price, tierPrices: p.tiers }, Math.max(1, Math.floor(num(qty)) || 1)) / 100).toFixed(2);
 
@@ -33,7 +41,7 @@ const milli = (s: string) => Math.round(num(s) * 1000);
 let K = 1;
 const withKey = (l: LineIn): Line => ({ ...l, key: K++ });
 const strip = ({ key, ...l }: Line): LineIn => (void key, l);
-const blank = (): Line => withKey({ productId: "", sku: "", name: "", detail: "", unit: "ชิ้น", qty: "1", price: "", discount: "" });
+const blank = (): Line => withKey({ productId: "", sku: "", name: "", detail: "", unit: "ชิ้น", qty: "1", price: "", discount: "", image: null });
 
 export function DocEditor({ init, title, back, customers: cust0, products, shop, vatEnabled, vatRateBp, refText, printedAt, lists }: {
   init: EditorInit; title: string; back: string; customers: Cust[]; products: Prod[]; shop: ShopHead; vatEnabled: boolean; vatRateBp: number;
@@ -86,14 +94,18 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
 
   const view: DocView = {
     type: v.type, no: null, status: "DRAFT", issueDate: v.issueDate, validUntil: v.validUntil, dueDate: v.dueDate, customer: custSnap ?? {},
-    items: v.items.map((l, i) => ({ sku: l.sku, name: l.name, detail: l.detail, unit: l.unit, ...safeItems[i] })),
+    items: v.items.map((l, i) => {
+      const k = lineImgKey(l, products);
+      return { sku: l.sku, name: l.name, detail: l.detail, unit: l.unit, ...safeItems[i], img: k ? thumb(k) : "" };
+    }),
     discountSatang: discount, vatMode: v.vatMode, vatRateBp, paymentMethod: v.paymentMethod, paymentTerms: v.paymentTerms, carrier: v.carrier, note: v.note,
-    ref: refText, voidReason: "", paidSatang: 0, payRef: "", qr: null, printedAt, shop,
+    ref: refText, voidReason: "", paidSatang: 0, payRef: "", qr: null, printedAt, shop, signDate: v.signDate,
   };
 
   const payload = JSON.stringify({
     id: init.id, type: v.type, customerId: v.customerId, issueDate: v.issueDate, validUntil: v.validUntil, dueDate: v.dueDate,
-    items: v.items.map((l, i) => ({ productId: l.productId || null, sku: l.sku, name: l.name, detail: l.detail, unit: l.unit, ...items[i] })),
+    items: v.items.map((l, i) => ({ productId: l.productId || null, sku: l.sku, name: l.name, detail: l.detail, unit: l.unit, image: l.image ?? null, ...items[i] })),
+    signDate: v.signDate,
     discountSatang: sat(v.discount), vatMode: v.vatMode, paymentMethod: v.paymentMethod, paymentTerms: v.paymentTerms, carrier: v.carrier, note: v.note, internalNote: v.internalNote,
   });
   const serverBad = (k: string) => state.fields?.includes(k);
@@ -107,7 +119,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
   };
   const addShipping = () => {
     const p = products.find((x) => /^shipping$/i.test(x.sku));
-    set("items", [...v.items.filter((l) => l.name.trim() || l.price), withKey({ productId: p?.id ?? "", sku: "Shipping", name: p?.name ?? "ค่าส่งสินค้า", detail: v.carrier, unit: p?.unit ?? "กล่อง", qty: "1", price: ((p?.price ?? 6000) / 100).toFixed(2), discount: "" })]);
+    set("items", [...v.items.filter((l) => l.name.trim() || l.price), withKey({ productId: p?.id ?? "", sku: "Shipping", name: p?.name ?? "ค่าส่งสินค้า", detail: v.carrier, unit: p?.unit ?? "กล่อง", qty: "1", price: ((p?.price ?? 6000) / 100).toFixed(2), discount: "", image: null })]);
   };
 
   return (
@@ -158,6 +170,11 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                 {v.type !== "QUOTATION" && <div className="field"><label htmlFor="carrier">ขนส่ง (ถ้ามี)</label>
                   <input id="carrier" list="carriers" value={v.carrier} onChange={(e) => set("carrier", e.target.value)} maxLength={60} placeholder="เช่น EMS, Kerry" />
                   <datalist id="carriers">{lists.carriers.map((m) => <option key={m} value={m} />)}</datalist></div>}
+                <div className="field">
+                  <label htmlFor="signDate">วันที่ลงนาม{SIGNER[v.type]}</label>
+                  <input id="signDate" type="date" value={v.signDate || v.issueDate} onChange={(e) => set("signDate", e.target.value === v.issueDate ? "" : e.target.value)} />
+                  <small className="sub">ค่าเริ่มต้น = วันที่เอกสาร · แก้ได้ภายหลังที่หน้าเอกสาร</small>
+                </div>
               </div>
             </section>
 
@@ -169,9 +186,16 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                   <li key={l.key} className={`de-line ${lineBad[i] && (l.name || l.price) ? "has-err" : ""} ${serverBad(`line${i}`) ? "has-err" : ""}`}>
                     <span className="drag-h" aria-hidden="true" />
                     <span className="ln-no">{i + 1}</span>
+                    <ItemImage
+                      label={`รูปรายการที่ ${i + 1}`}
+                      current={lineImgKey(l, products)}
+                      isDefault={l.image == null}
+                      productImgs={(l.productId && products.find((p) => p.id === l.productId)?.imgs) || []}
+                      onChange={(image) => setLine(l.key, { image })}
+                    />
                     <div className="ln-main">
                       <ProductInput value={l.name} products={products} onText={(name) => setLine(l.key, { name, productId: "" })}
-                        onPick={(p) => setLine(l.key, { productId: p.id, sku: p.sku, name: p.name, unit: p.unit || "ชิ้น", price: priceFor(p, l.qty) })} label={`ชื่อรายการที่ ${i + 1}`} />
+                        onPick={(p) => setLine(l.key, { productId: p.id, sku: p.sku, name: p.name, unit: p.unit || "ชิ้น", price: priceFor(p, l.qty), image: null })} label={`ชื่อรายการที่ ${i + 1}`} />
                       <div className="ln-sub">
                         <input aria-label="รหัสสินค้า" placeholder="รหัสสินค้า" value={l.sku} maxLength={60} onChange={(e) => setLine(l.key, { sku: e.target.value })} />
                         <input aria-label="รายละเอียด" placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)" value={l.detail} maxLength={300} onChange={(e) => setLine(l.key, { detail: e.target.value })} />
@@ -246,6 +270,70 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
         </div>
       </form>
     </main>
+  );
+}
+
+const SIGNER: Record<DocTypeT, string> = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน" };
+
+// ---------------------------------------------------------------------------
+/** รูปหน้ารายการ: กดเพื่อเลือกรูปอื่นของสินค้า · อัปโหลดรูปใหม่ · ไม่แสดงรูป · กลับไปใช้รูปสินค้า */
+function ItemImage({ label, current, isDefault, productImgs, onChange }: { label: string; current: string; isDefault: boolean; productImgs: string[]; onChange: (image: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const box = useRef<HTMLDivElement>(null);
+  const file = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const upload = async (f: File) => {
+    setBusy(true);
+    setErr("");
+    const fd = new FormData();
+    fd.set("file", f);
+    const r = await uploadEditorImage(fd);
+    setBusy(false);
+    if (r.error || !r.url) return setErr(r.error ?? "อัปโหลดไม่สำเร็จ");
+    onChange(r.url.replace(/^\/media\//, ""));
+    setOpen(false);
+  };
+  return (
+    <div className="ln-img" ref={box}>
+      <button type="button" className={`ln-img-btn${current ? "" : " empty"}`} aria-label={`${label} (กดเพื่อเปลี่ยน)`} aria-expanded={open} onClick={() => setOpen((x) => !x)}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {current ? <img src={thumb(current)} alt="" /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="m3 16 5-5 4 4 3-3 6 6M15.5 9.5h.01" /></svg>}
+        <span className="ln-img-edit" aria-hidden="true">เปลี่ยน</span>
+      </button>
+      {open && (
+        <div className="ln-img-pop" role="dialog" aria-label={label}>
+          {productImgs.length > 0 && (
+            <>
+              <b>รูปของสินค้านี้</b>
+              <div className="ln-img-grid">
+                {productImgs.map((k, j) => (
+                  <button key={k} type="button" className={current === k ? "on" : ""} aria-label={`ใช้รูปที่ ${j + 1}`} onClick={() => { onChange(j === 0 ? null : k); setOpen(false); }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumb(k)} alt="" />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          <div className="ln-img-acts">
+            <button type="button" className="btn btn-outline btn-sm" disabled={busy} onClick={() => file.current?.click()}>{busy ? "กำลังอัปโหลด…" : "อัปโหลดรูปใหม่"}</button>
+            {current && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { onChange(""); setOpen(false); }}>ไม่แสดงรูป</button>}
+            {!isDefault && productImgs.length > 0 && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { onChange(null); setOpen(false); }}>ใช้รูปสินค้า</button>}
+          </div>
+          {err && <small className="err-msg">{err}</small>}
+          <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void upload(f); }} />
+        </div>
+      )}
+    </div>
   );
 }
 

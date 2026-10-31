@@ -591,6 +591,7 @@ model SalesDocument {
   status     DocStatus @default(DRAFT)
   issueDate  DateTime?
   validUntil DateTime? // QT: ยืนราคาถึง
+  signDate   DateTime? // วันที่ในช่องลงนามฝั่งร้าน (ผู้เสนอราคา/ผู้วางบิล/ผู้รับเงิน) — ว่าง = ใช้วันที่เอกสาร
   dueDate    DateTime? // IV: ครบกำหนดชำระ
 
   customerId       String?
@@ -652,6 +653,8 @@ model SalesDocumentItem {
   priceSatang    Int
   discountSatang Int           @default(0)
   costSatang     Int? // ต้นทุนต่อหน่วย ณ ตอนออกเอกสาร (ใบเสร็จที่ไม่ผูกคำสั่งซื้อ → รายงานกำไร)
+  /// รูปหน้ารายการบนเอกสาร: null = ใช้รูปแรกของสินค้า · "" = ไม่แสดงรูป · storage key (products/…webp) = รูปที่เลือกเอง
+  image          String?
 
   @@index([documentId, sortOrder])
 }
