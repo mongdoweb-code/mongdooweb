@@ -36,9 +36,9 @@ test("สร้างงานใหม่ → กระดิ่งเพิ่
   await expect(page.locator(".bell-pop" + V)).toContainText(`งานใหม่: ตรวจสต็อกไฟใต้น้ำ E2E-TN-${TAG}`);
   await page.keyboard.press("Escape");
 
-  // งานเกินกำหนด (ครบกำหนดเมื่อครู่ ยังไม่เสร็จ) → แจ้ง "งานเกินกำหนด"
+  // งานเกินกำหนด: ครบกำหนดหลังเวลาที่กดอ่าน (อีก 2 วินาที) แล้วยังไม่เสร็จ → แจ้ง "งานเกินกำหนด"
   const [me] = await q(`SELECT id FROM "Admin" WHERE username = $1`, [process.env.E2E_ADMIN_USER ?? "admin"]);
-  await q(`INSERT INTO "AdminTask" (id, title, "assigneeId", "dueAt", "createdAt") VALUES ($1, $2, $3, now() - interval '1 minute', now() - interval '30 days')`, [`e2e-tn-${TAG}`, `โทรตามลูกค้า E2E-TN-${TAG}`, me.id]);
+  await q(`INSERT INTO "AdminTask" (id, title, "assigneeId", "dueAt", "createdAt") VALUES ($1, $2, $3, now() + interval '2 seconds', now() - interval '30 days')`, [`e2e-tn-${TAG}`, `โทรตามลูกค้า E2E-TN-${TAG}`, me.id]);
   await expect.poll(async () => (await (await page.request.get("/admin/notifications/count")).json()).unread).toBe(2);
   await page.goto("/admin/notifications");
   await expect(page.locator(`#notifList li[data-kind=TASK_DUE]:has-text("E2E-TN-${TAG}")` + V)).toHaveCount(1);
