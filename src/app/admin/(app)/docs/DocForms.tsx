@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useFormAction } from "../../_components/useFormAction";
-import { recordPayment, voidDoc, type DocState } from "./actions";
+import { convertQuoteToReceipt, recordPayment, voidDoc, type DocState } from "./actions";
 
 export function PaymentForm({ id, outstanding, today, methods, minDate }: { id: string; outstanding: number; today: string; methods: string[]; minDate: string }) {
   const [state, onSubmit, pending] = useFormAction<DocState>(recordPayment, {});
@@ -85,5 +85,42 @@ export function VoidIcon({ id, label }: { id: string; label: string }) {
           document.body,
         )}
     </>
+  );
+}
+
+/** แปลงใบเสนอราคาเป็นใบเสร็จรับเงิน (ลูกค้าจ่ายเต็มจำนวนแล้ว): วันที่รับเงิน · วิธีชำระ · เลขอ้างอิง → ออกทันที หรือสร้างฉบับร่าง */
+export function QuoteToReceiptForm({ id, total, today, minDate, methods, defaultMethod }: { id: string; total: string; today: string; minDate: string; methods: string[]; defaultMethod: string }) {
+  const [state, onSubmit, pending] = useFormAction<DocState>(convertQuoteToReceipt, {});
+  const [open, setOpen] = useState(false);
+  const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
+  if (!open)
+    return (
+      <button className="btn btn-outline btn-rc" type="button" onClick={() => setOpen(true)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z" /><path d="m9 11 2 2 4-4" /></svg>
+        แปลงเป็นใบเสร็จรับเงิน
+      </button>
+    );
+  return (
+    <form onSubmit={onSubmit} className="qrc-form" aria-label="แปลงเป็นใบเสร็จรับเงิน">
+      <input type="hidden" name="id" value={id} />
+      <div className="qrc-head">
+        <b>แปลงเป็นใบเสร็จรับเงิน</b>
+        <small>ใช้เมื่อลูกค้าชำระเต็มจำนวน <b className="num">฿{total}</b> แล้ว (ไม่ต้องออกใบแจ้งหนี้)</small>
+      </div>
+      {state.error && <div className="login-err" role="alert">{state.error}</div>}
+      <div className="field"><label htmlFor="qrcDate">วันที่รับเงิน (= วันที่ใบเสร็จ)</label><input id="qrcDate" name="paidDate" type="date" defaultValue={today} min={minDate} max={today} required {...bad("paidDate")} /></div>
+      <div className="field">
+        <label htmlFor="qrcMethod">ชำระโดย</label>
+        <select id="qrcMethod" name="method" defaultValue={methods.includes(defaultMethod) ? defaultMethod : methods[0]} {...bad("method")}>
+          {methods.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+      <div className="field"><label htmlFor="qrcRef">เลขอ้างอิง (ไม่บังคับ)</label><input id="qrcRef" name="reference" maxLength={120} placeholder="เช่น เลขที่สลิป, เลขเช็ค" /></div>
+      <div className="qrc-acts">
+        <button className="btn btn-primary" type="submit" name="intent" value="issue" disabled={pending}>{pending ? "กำลังออกใบเสร็จ…" : "ออกใบเสร็จทันที"}</button>
+        <button className="btn btn-outline" type="submit" name="intent" value="draft" disabled={pending}>สร้างฉบับร่าง (ตรวจ/แก้ก่อนออก)</button>
+        <button className="btn btn-ghost" type="button" onClick={() => setOpen(false)}>ยกเลิก</button>
+      </div>
+    </form>
   );
 }

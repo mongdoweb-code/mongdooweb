@@ -11,7 +11,7 @@ import { ConfirmSubmit } from "../../../../_components/AdminClient";
 import { DocSheets } from "../../../../_components/DocSheets";
 import { LabelOptions } from "../../../../_components/LabelOptions";
 import { acceptQuote, convertQuote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, reviseQuote, setSignDate } from "../../actions";
-import { PaymentForm, VoidForm } from "../../DocForms";
+import { PaymentForm, QuoteToReceiptForm, VoidForm } from "../../DocForms";
 import { DocOnline } from "../../DocOnline";
 
 export const instant = false;
@@ -39,6 +39,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
   const outstanding = Math.max(0, d.grandSatang - d.paidSatang);
   const livePays = d.payments.filter((p) => !p.voided);
   const liveIv = d.derived.find((x) => x.type === "INVOICE" && x.status !== "VOID");
+  const liveRc = d.derived.find((x) => x.type === "RECEIPT" && x.status !== "VOID");
   const draftRevision = d.derived.find((x) => x.type === "QUOTATION" && x.status === "DRAFT");
   const label = meta.th.split(" /")[0];
   const flash =
@@ -99,9 +100,22 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
                   <form action={deleteDraft}>{idInput}<ConfirmSubmit className="btn btn-ghost" title="ลบฉบับร่างนี้?" body="ฉบับร่างยังไม่มีเลขที่ ลบได้โดยไม่กระทบเลขเอกสาร" confirmLabel="ลบฉบับร่าง">ลบฉบับร่าง</ConfirmSubmit></form>
                 </>
               )}
-              {d.type === "QUOTATION" && ["ISSUED", "ACCEPTED"].includes(d.status) && (liveIv ? <Link className="btn btn-primary" href={docPath(liveIv)}>ดูใบแจ้งหนี้ {liveIv.docNo ?? "(ฉบับร่าง)"}</Link> : act(convertQuote, "แปลงเป็นใบแจ้งหนี้", "btn btn-primary"))}
+              {d.type === "QUOTATION" && ["ISSUED", "ACCEPTED"].includes(d.status) &&
+                (liveRc ? (
+                  <Link className="btn btn-primary" href={liveRc.docNo ? docPath(liveRc) : `${docPath(liveRc)}/edit`}>ดูใบเสร็จรับเงิน {liveRc.docNo ?? "(ฉบับร่าง)"}</Link>
+                ) : liveIv ? (
+                  <>
+                    <Link className="btn btn-primary" href={docPath(liveIv)}>ดูใบแจ้งหนี้ {liveIv.docNo ?? "(ฉบับร่าง)"}</Link>
+                    <small className="sub dv-hint">ใบเสร็จออกจากใบแจ้งหนี้: บันทึกรับชำระที่ใบแจ้งหนี้ แล้วระบบออกใบเสร็จให้อัตโนมัติ</small>
+                  </>
+                ) : (
+                  <>
+                    {act(convertQuote, "แปลงเป็นใบแจ้งหนี้", "btn btn-primary")}
+                    <QuoteToReceiptForm id={d.id} total={money(d.grandSatang)} today={today} minDate={ymdOf(d.issueDate)} methods={PAY_METHODS} defaultMethod={d.paymentMethod ?? ""} />
+                  </>
+                ))}
               {d.type === "QUOTATION" && d.status === "ISSUED" && <>{act(acceptQuote, st === "expired" ? "ลูกค้าตอบรับ (หมดอายุแล้ว)" : "ลูกค้าตอบรับ")}{act(rejectQuote, "ลูกค้าไม่ตอบรับ")}</>}
-              {d.type === "QUOTATION" && ["ACCEPTED", "REJECTED"].includes(d.status) && !liveIv && act(reopenQuote, "กลับเป็นรอตอบรับ", "btn btn-ghost")}
+              {d.type === "QUOTATION" && ["ACCEPTED", "REJECTED"].includes(d.status) && !liveIv && !liveRc && act(reopenQuote, "กลับเป็นรอตอบรับ", "btn btn-ghost")}
               {d.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.status) && (draftRevision ? <Link className="btn btn-outline" href={`${docPath(draftRevision)}/edit`}>ฉบับแก้ไขที่ร่างไว้</Link> : act(reviseQuote, "สร้างฉบับแก้ไข"))}
               {d.status !== "DRAFT" && act(duplicateDoc, "ทำสำเนาเป็นฉบับใหม่", "btn btn-ghost")}
             </div>
