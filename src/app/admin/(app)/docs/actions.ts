@@ -221,7 +221,7 @@ async function copyToDraft(srcId: string, type: DocTypeT, adminId: string, link:
 
 export async function convertQuote(f: FormData) {
   const admin = await requireAdmin();
-  const q = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) }, include: { derived: { where: { type: "INVOICE", status: { not: "VOID" } } } } });
+  const q = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) }, include: { derived: { where: { type: { in: ["INVOICE", "RECEIPT"] }, status: { not: "VOID" } } } } });
   if (!q || q.type !== "QUOTATION" || !["ISSUED", "ACCEPTED"].includes(q.status)) redirect("/admin/docs/QUOTATION");
   if (q.derived[0]) redirect(`${docPath(q.derived[0])}?exists=1`);
   const iv = await copyToDraft(q.id, "INVOICE", admin.id, { sourceId: q.id, orderId: q.orderId }, `แปลงจาก ${q.docNo}`);
@@ -231,6 +231,66 @@ export async function convertQuote(f: FormData) {
   ]);
   await logAdmin(admin.id, "DOC", `แปลง ${q.docNo} เป็นใบแจ้งหนี้`);
   redirect(`${docPath(iv)}/edit`);
+}
+
+/**
+ * แปลงใบเสนอราคาเป็นใบเสร็จรับเงินโดยตรง (ลูกค้าจ่ายเต็มจำนวนแล้ว เช่น ขายเงินสด/โอนก่อนส่ง — ไม่ต้องผ่านใบแจ้งหนี้)
+ * คัดลอกรายการ/ส่วนลด/VAT · วันที่ใบเสร็จ = วันที่รับเงิน · ออกเลขที่ทันที หรือเก็บเป็นฉบับร่างให้ตรวจก่อน
+ * กันซ้ำ: ใบเสนอราคาที่มีใบแจ้งหนี้/ใบเสร็จ (ยังไม่ยกเลิก) อยู่แล้วแปลงซ้ำไม่ได้
+ */
+export async function convertQuoteToReceipt(_prev: DocState, f: FormData): Promise<DocState> {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const issue = f.get("intent") !== "draft";
+  const paidYmd = str(f, "paidDate", 10);
+  const method = str(f, "method", 60);
+  const reference = str(f, "reference", 120);
+  const s = await getSettings();
+  if (!ymdRe.test(paidYmd) || paidYmd > todayYmd()) return { error: "วันที่รับเงินไม่ถูกต้อง (ห้ามเป็นวันในอนาคต)", fields: ["paidDate"] };
+  if (!method) return { error: "กรุณาเลือกวิธีชำระเงิน", fields: ["method"] };
+  let rc: { id: string; type: DocTypeT } | null = null;
+  let no: string | null = null;
+  let qNo = "";
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${id} FOR UPDATE`;
+      const q = await tx.salesDocument.findUnique({
+        where: { id },
+        include: { items: { orderBy: { sortOrder: "asc" } }, customer: true, derived: { where: { type: { in: ["INVOICE", "RECEIPT"] }, status: { not: "VOID" } }, select: { docNo: true, type: true } } },
+      });
+      if (!q || q.type !== "QUOTATION") throw new UserError("ไม่พบใบเสนอราคา");
+      if (!["ISSUED", "ACCEPTED"].includes(q.status)) throw new UserError("แปลงได้เฉพาะใบเสนอราคาที่ออกแล้ว (รอตอบรับ/ตอบรับแล้ว)");
+      const done = q.derived[0];
+      if (done) throw new UserError(`ใบเสนอราคานี้แปลงเป็น${DOC_META[done.type].th.split(" /")[0]} ${done.docNo ?? "(ฉบับร่าง)"} แล้ว`);
+      if (paidYmd < ymdOf(q.issueDate)) throw new UserError("วันที่รับเงินต้องไม่ก่อนวันที่ใบเสนอราคา");
+      if (!q.customerId || !q.items.length) throw new UserError("ใบเสนอราคาต้องมีลูกค้าและรายการ");
+      const vatMode = s.vatEnabled ? q.vatMode : "NONE";
+      // ใบกำกับภาษีของนิติบุคคลต้องมีเลขผู้เสียภาษีที่ถูกต้อง (ออกทันทีเท่านั้น — ฉบับร่างแก้ลูกค้าก่อนออกได้)
+      if (issue && vatMode !== "NONE" && q.customer?.kind === "COMPANY" && !(q.customer.taxId && isValidThaiTaxId(q.customer.taxId)))
+        throw new UserError("ใบกำกับภาษีของนิติบุคคลต้องมีเลขประจำตัวผู้เสียภาษีของลูกค้า — แก้ข้อมูลลูกค้า หรือเลือก \"สร้างฉบับร่าง\" ก่อน");
+      const items = q.items.map(({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder, image }) => ({ productId, sku, name, detail, unit, qtyMilli, priceSatang, discountSatang, sortOrder, image }));
+      const d = await tx.salesDocument.create({
+        data: {
+          type: "RECEIPT", status: "DRAFT", customerId: q.customerId, customerSnapshot: q.customer ? custSnapshot(q.customer) : (q.customerSnapshot ?? {}),
+          issueDate: fromYmd(paidYmd), ...totalsFor(items, q.discountSatang, vatMode, s.vatRateBp), vatMode, vatRateBp: vatMode === "NONE" ? 0 : s.vatRateBp,
+          paymentMethod: method, paymentTerms: defaultTerms(s, "RECEIPT") || null, carrier: q.carrier,
+          note: reference ? `อ้างอิงการชำระเงิน: ${reference}` : null, internalNote: q.internalNote, sourceId: q.id, orderId: q.orderId,
+          items: { create: items },
+        },
+      });
+      await event(tx, d.id, "CREATED", admin.id, `แปลงจาก ${q.docNo} · รับเงิน ${method}${reference ? ` (${reference})` : ""}`);
+      if (issue) no = await issueDocTx(tx, d.id, admin.id, s);
+      await tx.salesDocument.update({ where: { id: q.id }, data: { status: "ACCEPTED" } });
+      await event(tx, q.id, "CONVERTED", admin.id, `แปลงเป็นใบเสร็จรับเงิน ${no ?? "(ฉบับร่าง)"}`);
+      rc = { id: d.id, type: "RECEIPT" };
+      qNo = q.docNo ?? "";
+    });
+  } catch (e) {
+    if (e instanceof UserError || e instanceof DocUserError) return { error: e.message };
+    throw e;
+  }
+  await logAdmin(admin.id, "DOC", `แปลง ${qNo} เป็นใบเสร็จรับเงิน ${no ?? "(ฉบับร่าง)"}`);
+  redirect(no ? `${docPath(rc!)}?issued=1` : `${docPath(rc!)}/edit`);
 }
 
 export async function reviseQuote(f: FormData) {
@@ -309,12 +369,16 @@ export async function voidDoc(_prev: DocState, f: FormData): Promise<DocState> {
   try {
     await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${id} FOR UPDATE`;
-      const d = await tx.salesDocument.findUnique({ where: { id }, include: { payments: { where: { voided: false } }, derived: { where: { status: { not: "VOID" }, type: "INVOICE" } }, receiptFor: true } });
+      const d = await tx.salesDocument.findUnique({ where: { id }, include: { payments: { where: { voided: false } }, derived: { where: { status: { not: "VOID" }, type: { in: ["INVOICE", "RECEIPT"] } } }, receiptFor: true } });
       if (!d) throw new UserError("ไม่พบเอกสาร");
       if (d.status === "DRAFT") throw new UserError("ฉบับร่างใช้ \"ลบฉบับร่าง\" แทน");
       if (d.status === "VOID") throw new UserError("เอกสารนี้ถูกยกเลิกแล้ว");
       if (d.type === "INVOICE" && d.payments.length) throw new UserError("ใบแจ้งหนี้นี้มีการรับชำระแล้ว — ยกเลิกใบเสร็จของทุกงวดก่อน");
-      if (d.type === "QUOTATION" && d.derived.length) throw new UserError(`ใบเสนอราคานี้แปลงเป็นใบแจ้งหนี้แล้ว — ยกเลิกใบแจ้งหนี้ก่อน`);
+      if (d.type === "QUOTATION" && d.derived.length) {
+        const x = d.derived[0];
+        const t = x.type === "RECEIPT" ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้";
+        throw new UserError(`ใบเสนอราคานี้แปลงเป็น${t} ${x.docNo ?? "(ฉบับร่าง)"} แล้ว — ยกเลิก${t}ก่อน`);
+      }
       if (d.type === "RECEIPT" && d.receiptFor && !d.receiptFor.voided) {
         const pay = d.receiptFor;
         await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${pay.invoiceId} FOR UPDATE`;

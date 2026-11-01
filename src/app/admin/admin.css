@@ -763,8 +763,8 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .dv-amt small{font-size:12px;color:var(--c-muted)}
 .dv-bar{height:8px;background:var(--c-cream)}
 .dv-bar i{display:block;height:100%;background:var(--c-ok)}
-.dv-kv{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13.5px}
-.dv-kv span{color:var(--c-muted)}
+.dv-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;font-size:13.5px}
+.dv-kv span{color:var(--c-muted);white-space:nowrap}
 .dv-kv b{text-align:right}
 .dv-acts{display:grid;gap:6px}
 .dv-acts .btn{width:100%}
@@ -1735,3 +1735,15 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .ra-void{color:#D9822B}
 .ra-void:hover{background:#FDF0E2}
 .doc-tbl .row-acts{flex-wrap:nowrap}
+
+/* แปลงใบเสนอราคา → ใบเสร็จรับเงิน */
+.btn-rc{gap:8px}
+.btn-rc svg{width:18px;height:18px;color:var(--c-ok)}
+.qrc-form{display:grid;gap:10px;border:1.5px solid #9ED8B8;background:#F4FBF7;border-radius:8px;padding:12px}
+.qrc-head{display:grid;gap:2px}
+.qrc-head b{font-size:14.5px}
+.qrc-head small{font-size:12.5px;color:var(--c-muted)}
+.qrc-form .field input,.qrc-form .field select{background:#fff}
+.qrc-acts{display:grid;gap:6px}
+.dv-hint{display:block;font-size:12px;line-height:1.5}
+.dv-acts form.qrc-form{display:grid;margin:4px 0}
