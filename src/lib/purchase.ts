@@ -47,13 +47,17 @@ export async function savePoDraft(id: string | null, input: PoInput, adminId: st
   const ids = [...new Set(input.items.map((l) => l.productId).filter((x): x is string => !!x))];
   const found = new Set((await prisma.product.findMany({ where: { id: { in: ids } }, select: { id: true } })).map((p) => p.id));
   const items = input.items.map((l) => ({ ...l, productId: l.productId && found.has(l.productId) ? l.productId : null, name: l.name.trim().slice(0, 250) }));
-  const data = {
+  const base = {
     supplierName: input.supplierName.trim().slice(0, 160),
     supplierContact: input.supplierContact?.trim().slice(0, 300) || null,
     note: input.note?.trim().slice(0, 2000) || null,
     totalSatang: totalOf(items),
   };
   return prisma.$transaction(async (tx) => {
+    // ผูกกับทะเบียนผู้ขาย: ชื่อตรงกัน (ไม่สนตัวพิมพ์) = รายเดิม · ชื่อใหม่ = เพิ่มผู้ขายให้อัตโนมัติ
+    const found = await tx.supplier.findFirst({ where: { name: { equals: base.supplierName, mode: "insensitive" } }, select: { id: true } });
+    const sup = found ?? (await tx.supplier.create({ data: { name: base.supplierName, contact: base.supplierContact }, select: { id: true } }));
+    const data = { ...base, supplierId: sup.id };
     if (id) {
       const r = await tx.purchaseOrder.updateMany({ where: { id, status: "DRAFT" }, data });
       if (r.count !== 1) throw new PoError("แก้ไขได้เฉพาะใบสั่งซื้อฉบับร่าง");
@@ -144,7 +148,7 @@ export function poWhere(f: PoListFilter): Prisma.PurchaseOrderWhereInput {
   return {
     ...(f.status ? { status: f.status } : {}),
     ...(f.q
-      ? { OR: [{ poNo: { contains: f.q, mode: "insensitive" } }, { supplierName: { contains: f.q, mode: "insensitive" } }, { items: { some: { name: { contains: f.q, mode: "insensitive" } } } }] }
+      ? { OR: [{ poNo: { contains: f.q, mode: "insensitive" } }, { supplierName: { contains: f.q, mode: "insensitive" } }, { supplier: { name: { contains: f.q, mode: "insensitive" } } }, { items: { some: { name: { contains: f.q, mode: "insensitive" } } } }] }
       : {}),
   };
 }

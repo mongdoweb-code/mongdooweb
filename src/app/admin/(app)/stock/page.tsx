@@ -48,6 +48,7 @@ export default async function StockPage({ searchParams }: PageProps<"/admin/stoc
         </div>
         <div className="head-actions">
           <Link className="btn btn-outline" href="/admin/products">สินค้าทั้งหมด</Link>
+          <Link className="btn btn-primary" href="/admin/stock/count">นับสต็อกทั้งร้าน</Link>
         </div>
       </div>
       {sp.saved === "1" && <div className="login-info" role="status" style={{ marginBottom: 12 }}>บันทึกเกณฑ์แล้ว</div>}

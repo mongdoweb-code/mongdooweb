@@ -56,6 +56,8 @@ model Admin {
   tasksCreated   AdminTask[]     @relation("TaskCreator")
   tasksAssigned  AdminTask[]     @relation("TaskAssignee")
   purchaseOrders PurchaseOrder[]
+  stockCounts    StockCount[]    @relation("StockCountCreated")
+  stockApplied   StockCount[]    @relation("StockCountApplied")
 }
 
 /// session หลังบ้าน — cookie เก็บ token สุ่ม, ฐานข้อมูลเก็บแค่ SHA-256 ของ token
@@ -182,6 +184,7 @@ model Product {
   orderItems  OrderItem[]
   docItems    SalesDocumentItem[]
   stockMoves  StockMovement[]
+  countLines  StockCountLine[]
   reviews     Review[]
   stockAlerts StockAlert[]
   poItems     PurchaseOrderItem[]
@@ -1141,8 +1144,10 @@ model PurchaseOrder {
   id              String              @id @default(cuid())
   poNo            String?             @unique // ออกเลขเมื่อสั่งซื้อ
   status          PoStatus            @default(DRAFT)
-  supplierName    String
+  supplierName    String // ชื่อ ณ วันที่สั่ง (เอกสารไม่เปลี่ยนตามทะเบียนผู้ขาย)
   supplierContact String?
+  supplierId      String?
+  supplier        Supplier?           @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   note            String?             @db.Text
   totalSatang     Int                 @default(0)
   orderedAt       DateTime?
@@ -1153,6 +1158,7 @@ model PurchaseOrder {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
+  @@index([supplierId])
   @@index([status, createdAt])
 }
 
@@ -1231,4 +1237,62 @@ model DailyClose {
   note          String?
   closedBy      String // ชื่อผู้ปิดยอด
   closedAt      DateTime @default(now())
+}
+
+// ทะเบียนผู้ขาย (ล็อต 15) — ผูกกับใบสั่งซื้อ ดูประวัติการสั่งและต้นทุนต่อผู้ขาย
+model Supplier {
+  id        String          @id @default(cuid())
+  name      String          @unique
+  contact   String? // ชื่อผู้ติดต่อ
+  phone     String?
+  lineId    String?
+  email     String?
+  address   String?         @db.Text
+  taxId     String?
+  terms     String? // เงื่อนไขชำระ เช่น "เครดิต 30 วัน"
+  note      String?         @db.Text
+  isActive  Boolean         @default(true)
+  orders    PurchaseOrder[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+// นับสต็อกทั้งร้าน (ล็อต 15) — เปิดรอบนับ → กรอกยอดนับหลายรายการ → ปรับสต็อกทีเดียว (StockMovement COUNT อ้างเลขรอบ)
+enum StockCountStatus {
+  OPEN
+  APPLIED
+  CANCELLED
+}
+
+model StockCount {
+  id          String           @id @default(cuid())
+  countNo     String           @unique // SC2611-00001
+  title       String
+  status      StockCountStatus @default(OPEN)
+  note        String?
+  createdById String?
+  createdBy   Admin?           @relation("StockCountCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  appliedById String?
+  appliedBy   Admin?           @relation("StockCountApplied", fields: [appliedById], references: [id], onDelete: SetNull)
+  appliedAt   DateTime?
+  lines       StockCountLine[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model StockCountLine {
+  id        String     @id @default(cuid())
+  countId   String
+  count     StockCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  expected  Int // สต็อกในระบบตอนเปิดรอบนับ
+  counted   Int? // ยอดที่นับได้ (ว่าง = ยังไม่นับ)
+  countedAt DateTime?
+  applied   Int? // จำนวนที่ปรับจริงตอนกดปรับ (+/−)
+
+  @@unique([countId, productId])
+  @@index([productId])
 }

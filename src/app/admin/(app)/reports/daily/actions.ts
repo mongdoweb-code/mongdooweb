@@ -22,7 +22,7 @@ export async function closeDay(f: FormData) {
   if (counted !== null && counted !== r.total && !note) redirect(`/admin/reports/daily?day=${day}&err=note`);
   const data = { totalSatang: r.total, countedSatang: counted === r.total ? null : counted, byMethod: r.byMethod, entryCount: r.entries.length, note, closedBy: admin.displayName, closedAt: new Date() };
   await prisma.dailyClose.upsert({ where: { day }, create: { day, ...data }, update: data });
-  await logAdmin(admin.id, "ORDER", `ปิดยอดวันที่ ${day} · ระบบ ฿${money(r.total)}${counted !== null && counted !== r.total ? ` · ตรวจจริง ฿${money(counted)} (ต่าง ฿${money(counted - r.total)})` : " · ตรงกัน"}`);
+  await logAdmin(admin.id, "FINANCE", `ปิดยอดวันที่ ${day} · ระบบ ฿${money(r.total)}${counted !== null && counted !== r.total ? ` · ตรวจจริง ฿${money(counted)} (ต่าง ฿${money(counted - r.total)})` : " · ตรงกัน"}`);
   redirect(`/admin/reports/daily?day=${day}&closed=1`);
 }
 
@@ -31,6 +31,6 @@ export async function reopenDay(f: FormData) {
   const day = str(f, "day", 10);
   if (!ymdRe.test(day)) redirect("/admin/reports/daily");
   await prisma.dailyClose.deleteMany({ where: { day } });
-  await logAdmin(admin.id, "ORDER", `เปิดปิดยอดวันที่ ${day} ใหม่`);
+  await logAdmin(admin.id, "FINANCE", `เปิดปิดยอดวันที่ ${day} ใหม่`);
   redirect(`/admin/reports/daily?day=${day}`);
 }
