@@ -44,6 +44,10 @@ export const LOG_TYPES: Record<string, string> = {
   BACKUP: "สำรองข้อมูล",
   PDPA: "คำขอข้อมูลส่วนบุคคล",
   MEDIA: "รูปภาพ",
+  FINANCE: "ปิดยอด/การเงิน",
+  SUPPLIER: "ผู้ขาย",
+  STOCK_COUNT: "นับสต็อก",
+  STOCK: "สต็อก",
 };
 
 export type LogOpts = { entity?: string | null; diff?: Diff | null };

@@ -14,7 +14,9 @@ const toSat = (s: string) => {
   return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
 };
 
-export function PoForm({ v, products, suppliers }: { v: PoValues; products: PoPick[]; suppliers: string[] }) {
+export type PoSupplier = { name: string; contact: string };
+
+export function PoForm({ v, products, suppliers }: { v: PoValues; products: PoPick[]; suppliers: PoSupplier[] }) {
   const [state, onSubmit, pending] = useFormAction<PoFormState>(savePo, {});
   const [supplierName, setSupplier] = useState(v.supplierName);
   const [supplierContact, setContact] = useState(v.supplierContact);
@@ -92,8 +94,16 @@ export function PoForm({ v, products, suppliers }: { v: PoValues; products: PoPi
             <h3>ผู้ขาย</h3>
             <div className="field">
               <label htmlFor="poSup">ชื่อผู้ขาย / บริษัท</label>
-              <input id="poSup" value={supplierName} onChange={(e) => setSupplier(e.target.value)} required maxLength={160} list="poSuppliers" className={bad("supplierName")} />
-              <datalist id="poSuppliers">{suppliers.map((s) => <option key={s} value={s} />)}</datalist>
+              <input id="poSup" value={supplierName} required maxLength={160} list="poSuppliers" className={bad("supplierName")}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setSupplier(name);
+                  // เลือกผู้ขายจากทะเบียน → เติมผู้ติดต่อให้ (ถ้ายังว่าง)
+                  const hit = suppliers.find((x) => x.name.toLowerCase() === name.trim().toLowerCase());
+                  if (hit?.contact && !supplierContact.trim()) setContact(hit.contact);
+                }} />
+              <datalist id="poSuppliers">{suppliers.map((s) => <option key={s.name} value={s.name} />)}</datalist>
+              <small className="sub">{supplierName.trim() && !suppliers.some((x) => x.name.toLowerCase() === supplierName.trim().toLowerCase()) ? "ผู้ขายรายใหม่ — จะเพิ่มในทะเบียนผู้ขายให้อัตโนมัติ" : "เลือกจากทะเบียนผู้ขาย หรือพิมพ์ชื่อใหม่"}</small>
             </div>
             <div className="field">
               <label htmlFor="poCon">ผู้ติดต่อ / เบอร์โทร / LINE</label>

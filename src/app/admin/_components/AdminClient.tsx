@@ -184,9 +184,10 @@ export function CopyButton({ text, label, done, className = "btn btn-outline btn
 }
 
 /* ---------- ปุ่มส่งฟอร์มที่ต้องยืนยันก่อน (แทน confirm ของเบราว์เซอร์) ---------- */
-export function ConfirmSubmit({ title, body, confirmLabel, className, children, tip, ariaLabel }: {
+export function ConfirmSubmit({ title, body, confirmLabel, className, children, tip, ariaLabel, name, value, disabled }: {
   title: string; body: string | null; confirmLabel: string; className: string; children: React.ReactNode;
   /** ป้ายชื่อเมื่อชี้ (ปุ่มไอคอน) */ tip?: string; ariaLabel?: string;
+  /** ส่งค่าปุ่ม (เช่น intent=apply) ไปกับฟอร์มเหมือนปุ่ม submit ปกติ */ name?: string; value?: string; disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
@@ -198,6 +199,9 @@ export function ConfirmSubmit({ title, body, confirmLabel, className, children, 
         className={className}
         data-tip={tip}
         aria-label={ariaLabel}
+        name={name}
+        value={value}
+        disabled={disabled}
         onClick={(e) => {
           if (body && !open) {
             e.preventDefault();
@@ -223,7 +227,7 @@ export function ConfirmSubmit({ title, body, confirmLabel, className, children, 
                 onClick={() => {
                   const form = ref.current?.form;
                   setOpen(false);
-                  form?.requestSubmit();
+                  form?.requestSubmit(ref.current);
                 }}
               >
                 {confirmLabel}

@@ -24,6 +24,8 @@ const ICON = {
   inbox: <path d="M3 13h5l2 3h4l2-3h5M5 5h14l2 8v6H3v-6z" />,
   report: <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />,
   debt: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2M3 12h2M19 12h2" /><path d="M15 16.5h3v3" /></>,
+  count: <><rect x="5" y="3" width="14" height="18" /><path d="M9 3v3h6V3M8.5 11l1.5 1.5 3-3M8.5 16.5h7" /></>,
+  truck: <><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></>,
   cash: <><rect x="2" y="6" width="20" height="12" /><circle cx="12" cy="12" r="2.6" /><path d="M6 9v.01M18 15v.01" /></>,
   stock: <path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10M7 5l9 4" />,
   pages: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4" />,
@@ -55,7 +57,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
   // หน้า "บัญชีของฉัน" ต้องเปิดได้แม้ยังต้องเปลี่ยนรหัสผ่าน — หน้าอื่นตรวจซ้ำด้วย requireAdmin() ของตัวเองและพามาที่นี่
   const admin = await requireAdmin({ allowPasswordChange: true });
   const owner = admin.role === "OWNER";
-  const [pending, unpaid, inquiries, claims, docSlips, reviews, waiting, myOverdue, pdpaNew] = await Promise.all([
+  const [pending, unpaid, inquiries, claims, docSlips, reviews, waiting, myOverdue, pdpaNew, countsOpen] = await Promise.all([
     prisma.order.count({ where: { status: "PENDING_VERIFICATION" } }), // รวม COD ที่รอยืนยัน
     prisma.salesDocument.count({ where: { type: "INVOICE", status: { in: ["ISSUED", "PARTIAL"] } } }),
     prisma.inquiry.count({ where: { status: "NEW" } }),
@@ -66,6 +68,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
     // A25: งานของฉันที่เกินกำหนด (ป้ายแดงที่เมนู "งานที่ต้องทำ")
     prisma.adminTask.count({ where: { done: false, assigneeId: admin.id, dueAt: { lt: new Date() } } }),
     owner ? prisma.dataRequest.count({ where: { status: "NEW" } }) : 0,
+    prisma.stockCount.count({ where: { status: "OPEN" } }),
   ]);
   return (
     <div className="shell">
@@ -90,7 +93,9 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/stock", label: "สต็อก", icon: <Ico k="stock" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/stock/count", label: "นับสต็อกทั้งร้าน", icon: <Ico k="count" />, badge: countsOpen, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/purchase-orders", label: "ใบสั่งซื้อ (PO)", icon: <Ico k="po" />, group: "สินค้าและหน้าร้าน" },
+            ...(owner ? [{ href: "/admin/suppliers", label: "ผู้ขาย", icon: <Ico k="truck" />, group: "สินค้าและหน้าร้าน" }] : []),
             { href: "/admin/coupons", label: "คูปองส่วนลด", icon: <Ico k="coupon" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/specs", label: "สเปกสินค้าต่อหมวด", icon: <Ico k="specs" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/slides", label: "สไลด์หน้าแรก", icon: <Ico k="slides" />, group: "สินค้าและหน้าร้าน" },
