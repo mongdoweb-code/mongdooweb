@@ -2,7 +2,7 @@
 import { pctChange } from "@/lib/sales-report";
 
 export const baht = (satang: number) =>
-  "฿" + (satang / 100).toLocaleString("th-TH", { minimumFractionDigits: satang % 100 ? 2 : 0, maximumFractionDigits: 2 });
+  (satang < 0 ? "−" : "") + "฿" + (Math.abs(satang) / 100).toLocaleString("th-TH", { minimumFractionDigits: satang % 100 ? 2 : 0, maximumFractionDigits: 2 });
 export const qtyText = (n: number) => n.toLocaleString("th-TH", { maximumFractionDigits: 3 });
 const TH_MONTH = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 /** "2026-10-05" → "5 ต.ค." · "2026-10" → "ต.ค. 69" */

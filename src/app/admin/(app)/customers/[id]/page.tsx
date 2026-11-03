@@ -44,7 +44,8 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
     : [[], []];
   const merged = typeof sp.merged === "string" ? sp.merged.split("|") : null;
   const owe = docs.filter((d) => d.type === "INVOICE" && ["ISSUED", "PARTIAL"].includes(d.status)).reduce((s, d) => s + d.grandSatang - d.paidSatang, 0);
-  const paidTotal = docs.filter((d) => d.type === "RECEIPT" && d.status === "ISSUED").reduce((s, d) => s + d.grandSatang, 0);
+  // ยอดซื้อสุทธิ = ใบเสร็จ − ใบลดหนี้ (ที่ยังไม่ยกเลิก)
+  const paidTotal = docs.filter((d) => (d.type === "RECEIPT" || d.type === "CREDIT_NOTE") && d.status === "ISSUED").reduce((s, d) => s + (d.type === "CREDIT_NOTE" ? -d.grandSatang : d.grandSatang), 0);
   return (
     <main className="main">
       <div className="page-head">

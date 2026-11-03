@@ -2,6 +2,7 @@
 // นับเฉพาะยอดที่ยืนยันแล้ว:
 // - คำสั่งซื้อ (เว็บ + หลังร้าน) สถานะ "ชำระแล้ว" หรือ "จัดส่งแล้ว" ตามวันที่ยืนยันชำระ (paidAt) — ยกเลิก/คืนเงินแล้วไม่นับ
 // - ใบเสร็จรับเงินที่ออกจากเอกสารขาย (ไม่ผูกกับคำสั่งซื้อ) ที่ไม่ถูกยกเลิก ตามวันที่ในใบเสร็จ — ใบเสร็จของคำสั่งซื้อไม่นับซ้ำ
+// - ใบลดหนี้ที่ออกแล้ว (ทุกใบ รวมของคำสั่งซื้อ) เป็นยอดติดลบตามวันที่ในใบลดหนี้ — ต้นทุนกลับคืนเฉพาะเมื่อรับสินค้าคืนเข้าสต็อกแล้ว
 import "server-only";
 import { addDaysYmd, ymdBkk } from "@/lib/doc-calc";
 import { prisma } from "@/lib/prisma";
@@ -13,7 +14,7 @@ const NO_CAT = "ไม่ระบุหมวด";
 
 /** ยอดขายในช่วง [from, to) */
 export async function salesBetween(from: Date, to: Date): Promise<Sale[]> {
-  const [orders, receipts] = await Promise.all([
+  const [orders, receipts, credits] = await Promise.all([
     prisma.order.findMany({
       where: { status: { in: ["PAID", "SHIPPED"] }, paidAt: { gte: from, lt: to } },
       select: {
@@ -25,6 +26,13 @@ export async function salesBetween(from: Date, to: Date): Promise<Sale[]> {
       where: { type: "RECEIPT", status: { notIn: ["VOID", "DRAFT"] }, docNo: { not: null }, orderId: null, issueDate: { gte: from, lt: to } },
       select: {
         docNo: true, issueDate: true, grandSatang: true, discountSatang: true,
+        items: { select: { productId: true, sku: true, name: true, unit: true, qtyMilli: true, priceSatang: true, discountSatang: true, costSatang: true, product: { select: { sku: true, isService: true, categoryId: true, category: { select: { nameTh: true } } } } } },
+      },
+    }),
+    prisma.salesDocument.findMany({
+      where: { type: "CREDIT_NOTE", status: "ISSUED", docNo: { not: null }, issueDate: { gte: from, lt: to } },
+      select: {
+        docNo: true, issueDate: true, grandSatang: true, discountSatang: true, stockReturnedAt: true,
         items: { select: { productId: true, sku: true, name: true, unit: true, qtyMilli: true, priceSatang: true, discountSatang: true, costSatang: true, product: { select: { sku: true, isService: true, categoryId: true, category: { select: { nameTh: true } } } } } },
       },
     }),
@@ -40,26 +48,29 @@ export async function salesBetween(from: Date, to: Date): Promise<Sale[]> {
       })),
     });
   }
-  for (const d of receipts) {
+  for (const d of [...receipts.map((r) => ({ ...r, sign: 1, stockReturnedAt: null as Date | null })), ...credits.map((c) => ({ ...c, sign: -1 }))]) {
     const day = ymdBkk(d.issueDate!);
+    const k = d.sign;
     let ship = 0;
     const lines: SaleLine[] = [];
     for (const i of d.items) {
       const amt = Math.round((i.qtyMilli * i.priceSatang) / 1000) - i.discountSatang;
       if (/^shipping$/i.test(i.sku ?? "")) {
-        ship += amt;
+        ship += k * amt;
         continue;
       }
       if (!i.productId && i.unit === "งวด") {
-        lines.push({ productId: null, sku: "", name: INSTALLMENT_LABEL, categoryId: INSTALLMENT_KEY, categoryName: INSTALLMENT_LABEL, qty: i.qtyMilli / 1000, amountSatang: amt, installment: true });
+        lines.push({ productId: null, sku: "", name: INSTALLMENT_LABEL, categoryId: INSTALLMENT_KEY, categoryName: INSTALLMENT_LABEL, qty: (k * i.qtyMilli) / 1000, amountSatang: k * amt, installment: true });
         continue;
       }
+      // ใบลดหนี้: ยังไม่รับของคืน = ลดราคาอย่างเดียว (ต้นทุนไม่เปลี่ยน → ต้นทุนบรรทัดนี้ 0)
+      const unitCost = k < 0 && !d.stockReturnedAt ? 0 : i.costSatang;
       lines.push({
         productId: i.productId, sku: i.product?.sku ?? i.sku ?? "", name: i.name, categoryId: i.product?.categoryId ?? null,
-        categoryName: i.product?.category.nameTh ?? NO_CAT, qty: i.qtyMilli / 1000, amountSatang: amt, unitCostSatang: i.costSatang,
+        categoryName: i.product?.category.nameTh ?? NO_CAT, qty: (k * i.qtyMilli) / 1000, amountSatang: k * amt, unitCostSatang: unitCost,
       });
     }
-    out.push({ at: d.issueDate!, day, month: day.slice(0, 7), channel: "DOC", ref: d.docNo!, totalSatang: d.grandSatang, shippingSatang: ship, lines, discountSatang: d.discountSatang });
+    out.push({ at: d.issueDate!, day, month: day.slice(0, 7), channel: "DOC", ref: d.docNo!, totalSatang: k * d.grandSatang, shippingSatang: ship, lines, discountSatang: k * d.discountSatang });
   }
   return out.sort((a, b) => a.at.getTime() - b.at.getTime());
 }
@@ -200,7 +211,7 @@ export async function vatReport(month: string) {
   const from = new Date(`${month}-01T00:00:00+07:00`);
   const [y, m] = month.split("-").map(Number);
   const to = new Date(`${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01T00:00:00+07:00`);
-  const base = { type: "RECEIPT" as const, docNo: { not: null }, vatMode: { not: "NONE" as const }, issueDate: { gte: from, lt: to } };
+  const base = { type: { in: ["RECEIPT" as const, "CREDIT_NOTE" as const] }, docNo: { not: null }, vatMode: { not: "NONE" as const }, issueDate: { gte: from, lt: to } };
   const [docs, voided] = await Promise.all([
     prisma.salesDocument.findMany({ where: { ...base, status: { notIn: ["VOID", "DRAFT"] } }, orderBy: [{ issueDate: "asc" }, { docNo: "asc" }] }),
     prisma.salesDocument.findMany({ where: { ...base, status: "VOID" }, select: { docNo: true } }),
@@ -211,7 +222,10 @@ export async function vatReport(month: string) {
     return {
       no: i + 1, date: ymdBkk(d.issueDate!), docNo: d.docNo!, buyer: c.name || "ลูกค้าทั่วไป", taxId,
       branch: taxId ? c.branch || (c.kind === "COMPANY" ? "สำนักงานใหญ่" : "") : "",
-      baseSatang: d.grandSatang - d.vatSatang, vatSatang: d.vatSatang, totalSatang: d.grandSatang,
+      // ใบลดหนี้ = ยอดติดลบ (ลดภาษีขายของเดือนที่ออกใบลดหนี้)
+      ...(d.type === "CREDIT_NOTE"
+        ? { baseSatang: -(d.grandSatang - d.vatSatang), vatSatang: -d.vatSatang, totalSatang: -d.grandSatang }
+        : { baseSatang: d.grandSatang - d.vatSatang, vatSatang: d.vatSatang, totalSatang: d.grandSatang }),
     };
   });
   const sum = rows.reduce((a, r) => ({ base: a.base + r.baseSatang, vat: a.vat + r.vatSatang, total: a.total + r.totalSatang }), { base: 0, vat: 0, total: 0 });

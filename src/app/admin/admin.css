@@ -874,6 +874,12 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .sh-pay .mut{color:#666;font-size:7.8pt}
 .sh-qr{width:25mm;height:25mm;flex-shrink:0;image-rendering:pixelated}
 .sh-paid{border:.3mm solid #a3a3a3;border-radius:2mm;padding:2mm 3mm;font-size:8.5pt}
+.sh-cn{border:.3mm solid #a3a3a3;border-radius:2mm;padding:2mm 3mm;font-size:8.5pt}
+.sh-cn h5{font-size:8.5pt;margin:0 0 .8mm}
+.sh-cn p{margin:0 0 1.5mm}
+.sh-cn dl{display:grid;grid-template-columns:1fr auto;gap:.6mm 4mm;margin:0;border-top:.2mm dashed #bbb;padding-top:1.2mm}
+.sh-cn dt{color:#555}.sh-cn dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.sh-cn dt:last-of-type,.sh-cn dd:last-of-type{font-weight:700;color:#111}
 .sh-tot{display:grid;grid-template-columns:1fr 30mm;gap:1.3mm 2mm;align-items:center;font-size:8.8pt}
 .sh-tot dt{text-align:right;color:#333;font-weight:600}
 .sh-tot dd{border:.3mm solid #a3a3a3;border-radius:1.5mm;padding:.5mm 2mm;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}

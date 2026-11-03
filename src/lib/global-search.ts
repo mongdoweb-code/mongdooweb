@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 export type SearchHit = { group: string; title: string; detail: string; href: string };
 
 const ORDER_ST: Record<string, string> = { AWAITING_SLIP: "รอโอน", PENDING_VERIFICATION: "รอตรวจสลิป", PAID: "ชำระแล้ว", SHIPPED: "จัดส่งแล้ว", REJECTED: "สลิปไม่ผ่าน", CANCELLED: "ยกเลิก" };
-const DOC_TH: Record<string, string> = { QUOTATION: "ใบเสนอราคา", INVOICE: "ใบแจ้งหนี้", RECEIPT: "ใบเสร็จ" };
+const DOC_TH: Record<string, string> = { QUOTATION: "ใบเสนอราคา", INVOICE: "ใบแจ้งหนี้", RECEIPT: "ใบเสร็จ", CREDIT_NOTE: "ใบลดหนี้" };
 
 /** หน้าหลังบ้านสำหรับ "ไปที่…" (ownerOnly = เฉพาะเจ้าของร้าน) */
 const PAGES: { label: string; href: string; words: string; ownerOnly?: boolean }[] = [
@@ -24,6 +24,12 @@ const PAGES: { label: string; href: string; words: string; ownerOnly?: boolean }
   { label: "ใบเสนอราคา", href: "/admin/docs/QUOTATION", words: "quotation ใบเสนอราคา qt" },
   { label: "ใบแจ้งหนี้", href: "/admin/docs/INVOICE", words: "invoice ใบแจ้งหนี้ iv" },
   { label: "ใบเสร็จรับเงิน", href: "/admin/docs/RECEIPT", words: "receipt ใบเสร็จ rc" },
+  { label: "ใบลดหนี้ / คืนเงิน", href: "/admin/docs/CREDIT_NOTE", words: "credit note ใบลดหนี้ คืนเงิน cn refund" },
+  { label: "ลูกหนี้ค้างชำระ", href: "/admin/reports/receivables", words: "receivable ลูกหนี้ ค้างชำระ ทวง aging" },
+  { label: "ปิดยอดประจำวัน", href: "/admin/reports/daily", words: "daily close ปิดยอด รับเงิน" },
+  { label: "ผู้ขาย (ซัพพลายเออร์)", href: "/admin/suppliers", words: "supplier vendor ผู้ขาย ซัพพลายเออร์", ownerOnly: true },
+  { label: "นับสต็อกทั้งร้าน", href: "/admin/stock/count", words: "stock count นับสต็อก ตรวจนับ" },
+  { label: "คู่มือการใช้งาน", href: "/admin/help", words: "help manual คู่มือ วิธีใช้" },
   { label: "รายงานยอดขาย", href: "/admin/reports", words: "reports รายงาน ยอดขาย" },
   { label: "รายงานกำไร", href: "/admin/reports/profit", words: "profit กำไร", ownerOnly: true },
   { label: "งานที่ต้องทำ", href: "/admin/tasks", words: "tasks งาน todo" },

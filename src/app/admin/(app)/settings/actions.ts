@@ -45,9 +45,9 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
   for (const [k, v] of Object.entries(urls)) if (v === "bad") bad.push(k);
   const expressExtra = baht(str(f, "expressExtra", 20) || "0");
   if (!Number.isFinite(expressExtra)) bad.push("expressExtra");
-  const prefixes = { prefixQuote: str(f, "prefixQuote", 6).toUpperCase(), prefixInvoice: str(f, "prefixInvoice", 6).toUpperCase(), prefixReceipt: str(f, "prefixReceipt", 6).toUpperCase() };
+  const prefixes = { prefixQuote: str(f, "prefixQuote", 6).toUpperCase(), prefixInvoice: str(f, "prefixInvoice", 6).toUpperCase(), prefixReceipt: str(f, "prefixReceipt", 6).toUpperCase(), prefixCredit: (str(f, "prefixCredit", 6) || "CN").toUpperCase() };
   for (const [k, v] of Object.entries(prefixes)) if (!/^[A-Z]{1,6}$/.test(v)) bad.push(k);
-  if (new Set(Object.values(prefixes)).size < 3) bad.push("prefixReceipt");
+  if (new Set(Object.values(prefixes)).size < 4) bad.push("prefixCredit");
   const days = { quoteValidDays: Math.floor(Number(str(f, "quoteValidDays", 4))), invoiceDueDays: Math.floor(Number(str(f, "invoiceDueDays", 4))) };
   for (const [k, v] of Object.entries(days)) if (!(v >= 0 && v <= 365)) bad.push(k);
   // แถบประกาศ + รหัสวิเคราะห์ + งานอัตโนมัติ

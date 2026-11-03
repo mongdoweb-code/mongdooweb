@@ -4,7 +4,8 @@
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import type { DocEventType, DocStatus, VatMode } from "../../../../../generated/prisma/client";
-import { logAdmin } from "@/lib/admin-log";
+import { logAdmin, refreshStorefront } from "@/lib/admin-log";
+import { moveStock } from "@/lib/stock";
 import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
@@ -35,6 +36,7 @@ type Payload = {
   signDate?: string;
   discountSatang: number; vatMode: VatMode; paymentMethod: string; paymentTerms: string; carrier: string; note: string; internalNote: string;
   sourceId?: string | null; orderId?: string | null;
+  creditReason?: string;
 };
 
 /** รูปหน้ารายการจากตัวแก้ไข: null = ใช้รูปสินค้า · "" = ไม่แสดง · key ของรูปที่อัปโหลดในร้านเท่านั้น */
@@ -63,6 +65,7 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
   }
   const issue = f.get("intent") === "issue";
   if (!p || !isDocType(String(p.type))) return { error: "ชนิดเอกสารไม่ถูกต้อง" };
+  if (p.type === "CREDIT_NOTE" && !p.id) return { error: "ใบลดหนี้สร้างจากหน้าใบเสร็จรับเงิน (ปุ่ม \"ออกใบลดหนี้ / คืนเงิน\")" };
   const s = await getSettings();
   const bad: string[] = [];
   const msgs: string[] = [];
@@ -95,7 +98,9 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
   if (validUntil && validUntil < issueYmd) { bad.push("validUntil"); msgs.push("วันยืนราคาต้องไม่ก่อนวันที่เอกสาร"); }
   if (dueDate && dueDate < issueYmd) { bad.push("dueDate"); msgs.push("วันครบกำหนดต้องไม่ก่อนวันที่เอกสาร"); }
   const vatMode: VatMode = s.vatEnabled && ["EXCLUSIVE", "INCLUSIVE", "NONE"].includes(p.vatMode) ? p.vatMode : "NONE";
-  if (vatMode !== "NONE" && p.type === "RECEIPT" && customer?.kind === "COMPANY" && !(customer.taxId && isValidThaiTaxId(customer.taxId))) {
+  const creditReason = p.type === "CREDIT_NOTE" ? String(p.creditReason ?? "").trim().slice(0, 300) : "";
+  if (p.type === "CREDIT_NOTE" && issue && creditReason.length < 3) { bad.push("creditReason"); msgs.push("กรุณาระบุเหตุผลการลดหนี้"); }
+  if (vatMode !== "NONE" && (p.type === "RECEIPT" || p.type === "CREDIT_NOTE") && customer?.kind === "COMPANY" && !(customer.taxId && isValidThaiTaxId(customer.taxId))) {
     bad.push("customer");
     msgs.push("ใบกำกับภาษีของนิติบุคคลต้องมีเลขประจำตัวผู้เสียภาษีของลูกค้า — แก้ไขข้อมูลลูกค้าก่อน");
   }
@@ -114,6 +119,7 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
     paymentMethod: String(p.paymentMethod ?? "").trim().slice(0, 60) || null, paymentTerms: String(p.paymentTerms ?? "").trim().slice(0, 2000) || null,
     carrier: String(p.carrier ?? "").trim().slice(0, 60) || null, note: String(p.note ?? "").trim().slice(0, 2000) || null,
     internalNote: String(p.internalNote ?? "").trim().slice(0, 2000) || null,
+    ...(p.type === "CREDIT_NOTE" ? { creditReason: creditReason || null } : {}),
   };
 
   let id = p.id ? String(p.id) : "";
@@ -379,6 +385,10 @@ export async function voidDoc(_prev: DocState, f: FormData): Promise<DocState> {
         const t = x.type === "RECEIPT" ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้";
         throw new UserError(`ใบเสนอราคานี้แปลงเป็น${t} ${x.docNo ?? "(ฉบับร่าง)"} แล้ว — ยกเลิก${t}ก่อน`);
       }
+      if (d.type === "RECEIPT") {
+        const cn = await tx.salesDocument.findFirst({ where: { sourceId: d.id, type: "CREDIT_NOTE", status: "ISSUED" }, select: { docNo: true } });
+        if (cn) throw new UserError(`ใบเสร็จนี้มีใบลดหนี้ ${cn.docNo} แล้ว — ยกเลิกใบลดหนี้ก่อน`);
+      }
       if (d.type === "RECEIPT" && d.receiptFor && !d.receiptFor.voided) {
         const pay = d.receiptFor;
         await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${pay.invoiceId} FOR UPDATE`;
@@ -473,4 +483,53 @@ export async function markPrinted(kind: "doc" | "label", ref: string) {
     const d = await prisma.salesDocument.findUnique({ where: { id: r }, select: { id: true, docNo: true } });
     if (d) await prisma.salesDocumentEvent.create({ data: { documentId: d.id, type: "PRINTED", adminId: admin.id, note: "พิมพ์/บันทึก PDF" } });
   } else await logAdmin(admin.id, "LABEL", `พิมพ์ใบปะหน้า ${r}`);
+}
+
+// ---------------------------------------------------------------------------
+// ใบลดหนี้ / คืนเงิน (อ้างอิงใบเสร็จเดิม)
+// ---------------------------------------------------------------------------
+/** จากใบเสร็จ → ใบลดหนี้ฉบับร่าง (คัดลอกรายการ ให้แก้เหลือเฉพาะส่วนที่คืน/ลดราคา) — มีร่างค้างอยู่ = เปิดร่างเดิม */
+export async function createCreditNote(f: FormData) {
+  const admin = await requireAdmin();
+  const rc = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) }, include: { derived: { where: { type: "CREDIT_NOTE", status: { not: "VOID" } }, select: { id: true, status: true, grandSatang: true } } } });
+  if (!rc || rc.type !== "RECEIPT" || rc.status !== "ISSUED") redirect("/admin/docs/RECEIPT");
+  const draft = rc.derived.find((x) => x.status === "DRAFT");
+  if (draft) redirect(`${docPath({ type: "CREDIT_NOTE", id: draft.id })}/edit`);
+  const used = rc.derived.reduce((sum, x) => sum + x.grandSatang, 0);
+  if (used >= rc.grandSatang) redirect(`${docPath(rc)}?err=${encodeURIComponent("ใบเสร็จนี้ลดหนี้ครบยอดแล้ว")}`);
+  const cn = await copyToDraft(rc.id, "CREDIT_NOTE", admin.id, { sourceId: rc.id, orderId: rc.orderId }, `ลดหนี้จากใบเสร็จ ${rc.docNo}`);
+  const reason = str(f, "reason", 300);
+  await prisma.salesDocument.update({ where: { id: cn.id }, data: { paymentTerms: null, note: null, carrier: null, ...(reason ? { creditReason: reason, internalNote: reason } : {}) } });
+  await logAdmin(admin.id, "DOC", `สร้างใบลดหนี้ (ฉบับร่าง) จากใบเสร็จ ${rc.docNo}`);
+  redirect(`${docPath(cn)}/edit`);
+}
+
+/** รับสินค้าตามใบลดหนี้คืนเข้าสต็อก (ครั้งเดียว) — เฉพาะรายการที่ผูกสินค้าที่นับสต็อก จำนวนเต็ม */
+export async function returnCreditStock(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  let msg = "", done = "";
+  try {
+    done = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${id} FOR UPDATE`;
+      const d = await tx.salesDocument.findUnique({ where: { id }, include: { items: true } });
+      if (!d || d.type !== "CREDIT_NOTE" || d.status !== "ISSUED") throw new UserError("รับคืนเข้าสต็อกได้เฉพาะใบลดหนี้ที่ออกแล้ว");
+      if (d.stockReturnedAt) throw new UserError("ใบลดหนี้นี้รับสินค้าคืนเข้าสต็อกไปแล้ว");
+      const lines = d.items.filter((i) => i.productId && i.qtyMilli % 1000 === 0).map((i) => ({ productId: i.productId!, delta: i.qtyMilli / 1000 }));
+      const res = await moveStock(tx, lines, { reason: "CANCEL", ref: d.docNo, adminId: admin.id, note: `รับคืนตามใบลดหนี้ ${d.docNo}` });
+      if (!res.length) throw new UserError("ไม่มีรายการที่นับสต็อกในใบลดหนี้นี้");
+      await tx.salesDocument.update({ where: { id }, data: { stockReturnedAt: new Date() } });
+      const text = res.map((r) => `${r.sku} +${r.change}`).join(", ");
+      await event(tx, id, "STOCK_RETURNED", admin.id, `รับคืนเข้าสต็อก: ${text}`);
+      return `${d.docNo}: ${text}`;
+    });
+  } catch (e) {
+    if (!(e instanceof UserError)) throw e;
+    msg = e.message;
+  }
+  if (done) {
+    await logAdmin(admin.id, "STOCK", `รับสินค้าคืนเข้าสต็อกตามใบลดหนี้ ${done}`);
+    refreshStorefront();
+  }
+  redirect(`${docPath({ type: "CREDIT_NOTE", id })}?${msg ? `err=${encodeURIComponent(msg)}` : "stock=1"}`);
 }

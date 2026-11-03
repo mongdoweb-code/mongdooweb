@@ -63,12 +63,13 @@ export async function receivables(today = ymdBkk(new Date())) {
 // เงินรับเข้ารายวัน (ปิดยอด)
 // ---------------------------------------------------------------------------
 
-export type DailySource = "ORDER" | "COD" | "INVOICE" | "RECEIPT";
+export type DailySource = "ORDER" | "COD" | "INVOICE" | "RECEIPT" | "REFUND";
 export const SOURCE_LABEL: Record<DailySource, string> = {
   ORDER: "คำสั่งซื้อเว็บ (โอน/พร้อมเพย์)",
   COD: "COD — ขนส่งโอนคืนร้าน",
   INVOICE: "รับชำระใบแจ้งหนี้",
   RECEIPT: "ใบเสร็จที่ออกตรง (ไม่ผ่านใบแจ้งหนี้)",
+  REFUND: "คืนเงินตามใบลดหนี้ (หักออก)",
 };
 export type DailyEntry = { source: DailySource; ref: string; href: string; who: string; method: string; amount: number; at: Date; note?: string };
 
@@ -76,7 +77,7 @@ export type DailyEntry = { source: DailySource; ref: string; href: string; who: 
 export async function dailyReceipts(ymd: string) {
   const from = fromYmd(ymd), to = new Date(from.getTime() + 864e5);
   const range = { gte: from, lt: to };
-  const [orders, cod, pays, rcs] = await Promise.all([
+  const [orders, cod, pays, rcs, cns] = await Promise.all([
     prisma.order.findMany({
       where: { paymentMethod: "TRANSFER", paidAt: range, status: { in: ["PAID", "SHIPPED"] } },
       orderBy: { paidAt: "asc" },
@@ -98,6 +99,12 @@ export async function dailyReceipts(ymd: string) {
       orderBy: { issueDate: "asc" },
       select: { id: true, docNo: true, grandSatang: true, paymentMethod: true, issueDate: true, customerSnapshot: true, note: true },
     }),
+    // ใบลดหนี้ = เงินที่คืนลูกค้า (ยอดติดลบ) ตามวันที่ในใบลดหนี้
+    prisma.salesDocument.findMany({
+      where: { type: "CREDIT_NOTE", status: "ISSUED", issueDate: range },
+      orderBy: { issueDate: "asc" },
+      select: { id: true, docNo: true, grandSatang: true, paymentMethod: true, issueDate: true, customerSnapshot: true, creditReason: true, source: { select: { docNo: true } } },
+    }),
   ]);
   const nameOf = (s: unknown) => ((s ?? {}) as { name?: string }).name ?? "—";
   const entries: DailyEntry[] = [
@@ -106,6 +113,10 @@ export async function dailyReceipts(ymd: string) {
     ...pays.map((p) => ({
       source: "INVOICE" as const, ref: p.invoice.docNo ?? "", href: `/admin/docs/INVOICE/${p.invoice.id}`, who: nameOf(p.invoice.customerSnapshot), method: p.method, amount: p.amountSatang, at: p.paidAt,
       note: [p.receipt?.docNo && `ใบเสร็จ ${p.receipt.docNo}`, p.reference].filter(Boolean).join(" · ") || undefined,
+    })),
+    ...cns.map((c) => ({
+      source: "REFUND" as const, ref: c.docNo ?? "", href: `/admin/docs/CREDIT_NOTE/${c.id}`, who: nameOf(c.customerSnapshot), method: c.paymentMethod ?? "—", amount: -c.grandSatang, at: c.issueDate!,
+      note: [c.source?.docNo && `อ้างอิง ${c.source.docNo}`, c.creditReason].filter(Boolean).join(" · ") || undefined,
     })),
     ...rcs.map((r) => ({ source: "RECEIPT" as const, ref: r.docNo ?? "", href: `/admin/docs/RECEIPT/${r.id}`, who: nameOf(r.customerSnapshot), method: r.paymentMethod ?? "—", amount: r.grandSatang, at: r.issueDate!, note: r.note ?? undefined })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime());

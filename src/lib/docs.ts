@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { bankLabel, parseBankAccounts } from "@/lib/settings";
 
 export type Tx = Prisma.TransactionClient;
-export const DOC_TYPES = ["QUOTATION", "INVOICE", "RECEIPT"] as const satisfies DocTypeT[];
+export const DOC_TYPES = ["QUOTATION", "INVOICE", "RECEIPT", "CREDIT_NOTE"] as const satisfies DocTypeT[];
 export const isDocType = (t: string): t is DocTypeT => (DOC_TYPES as readonly string[]).includes(t);
 export const PAY_METHODS = ["โอนเงินผ่านธนาคาร", "QR PromptPay", "เงินสด", "เช็ค", "บัตรเครดิต"];
 export const DEFAULT_LOGO = "/img/doc-logo.png";
@@ -26,7 +26,9 @@ export function defaultTerms(s: ShopSetting, type: DocTypeT) {
   if (type === "INVOICE") return s.termsInvoice ?? "กรุณาชำระภายในวันที่ครบกำหนด\nโอนแล้วแจ้งสลิปทาง LINE พร้อมเลขที่เอกสาร";
   return s.termsReceipt ?? "";
 }
-export const prefixOf = (s: ShopSetting, t: DocTypeT) => (t === "QUOTATION" ? s.prefixQuote : t === "INVOICE" ? s.prefixInvoice : s.prefixReceipt);
+export const prefixOf = (s: ShopSetting, t: DocTypeT) => (t === "QUOTATION" ? s.prefixQuote : t === "INVOICE" ? s.prefixInvoice : t === "CREDIT_NOTE" ? s.prefixCredit : s.prefixReceipt);
+/** เหตุผลการลดหนี้ที่ใช้บ่อย (เลือกแล้วแก้ต่อได้) */
+export const CREDIT_REASONS = ["รับคืนสินค้า", "สินค้าชำรุด/เสียหาย", "ลดราคาหลังการขาย", "คิดราคาผิด (เกินจริง)", "ส่งสินค้าไม่ครบ"];
 
 /**
  * จองเลขที่เอกสาร PREFIX+YYMM-NNNNN ภายใน transaction เดียวกับการออกเอกสาร
@@ -74,7 +76,7 @@ export const DOC_INCLUDE = {
   items: { orderBy: { sortOrder: "asc" }, include: { product: { select: { images: true } } } },
   payments: { orderBy: { paidAt: "asc" }, include: { receipt: { select: { id: true, docNo: true, status: true } } } },
   receiptFor: { include: { invoice: { select: { id: true, docNo: true } } } },
-  source: { select: { id: true, docNo: true, type: true, status: true } },
+  source: { select: { id: true, docNo: true, type: true, status: true, grandSatang: true } },
   derived: { select: { id: true, docNo: true, type: true, status: true, grandSatang: true }, orderBy: { createdAt: "asc" } },
   order: { select: { orderNo: true } },
   customer: { select: { id: true, code: true, name: true } },
@@ -86,7 +88,7 @@ export const statusOf = (d: Pick<SalesDocument, "type" | "status" | "validUntil"
 
 export function refLine(d: FullDoc) {
   const out: string[] = [];
-  if (d.source?.docNo) out.push(d.type === "QUOTATION" ? `แก้ไขจาก ${d.source.docNo}` : d.source.docNo);
+  if (d.source?.docNo) out.push(d.type === "QUOTATION" ? `แก้ไขจาก ${d.source.docNo}` : d.type === "CREDIT_NOTE" ? `ใบเสร็จ ${d.source.docNo}` : d.source.docNo);
   if (d.order) out.push(`คำสั่งซื้อ ${d.order.orderNo}`);
   return out.join(", ");
 }
@@ -109,6 +111,7 @@ export async function toView(d: FullDoc, s: ShopSetting): Promise<DocView> {
     paidSatang: d.paidSatang, payRef: pay?.reference ?? "",
     qr: d.type === "INVOICE" && d.status !== "VOID" && d.status !== "DRAFT" ? await invoiceQr(s, d.grandSatang - d.paidSatang) : null,
     printedAt: docDateTime(new Date(), s.dateEra), shop: shopHead(s), signDate: ymdOf(d.signDate),
+    credit: d.type === "CREDIT_NOTE" ? { reason: d.creditReason ?? "", original: d.source?.grandSatang ?? 0 } : null,
   };
 }
 

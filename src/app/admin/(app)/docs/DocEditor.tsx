@@ -21,6 +21,8 @@ export type EditorInit = {
   items: LineIn[]; discount: string; vatMode: VatModeT; paymentMethod: string; paymentTerms: string; carrier: string; note: string; internalNote: string;
   /** วันที่ในช่องลงนามฝั่งร้าน — ว่าง = ใช้วันที่เอกสาร */
   signDate: string;
+  /** ใบลดหนี้: เหตุผล · ยอดใบเสร็จเดิม · ลดได้อีกสูงสุด (สตางค์) */
+  creditReason?: string; creditOriginal?: number; creditMax?: number;
 };
 type Cust = { id: string; snap: CustSnap };
 /** price = ราคาขายจริง 1 ชิ้น (รวมราคาลดตามช่วงเวลา) · tiers = ราคาขายส่งตามจำนวน */
@@ -45,8 +47,9 @@ const blank = (): Line => withKey({ productId: "", sku: "", name: "", detail: ""
 
 export function DocEditor({ init, title, back, customers: cust0, products, shop, vatEnabled, vatRateBp, refText, printedAt, lists }: {
   init: EditorInit; title: string; back: string; customers: Cust[]; products: Prod[]; shop: ShopHead; vatEnabled: boolean; vatRateBp: number;
-  refText: string; printedAt: string; lists: { methods: string[]; carriers: string[]; units: string[] };
+  refText: string; printedAt: string; lists: { methods: string[]; carriers: string[]; units: string[]; reasons?: string[] };
 }) {
+  const isCn = init.type === "CREDIT_NOTE";
   const draftKey = `mdw_doc_draft_${init.id ?? `new-${init.type}`}`;
   const [state, onSubmit, pending] = useFormAction<DocState>(saveDoc, {});
   const [v, setV] = useState(() => ({ ...init, items: init.items.length ? init.items.map(withKey) : [blank()] }));
@@ -100,13 +103,16 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
     }),
     discountSatang: discount, vatMode: v.vatMode, vatRateBp, paymentMethod: v.paymentMethod, paymentTerms: v.paymentTerms, carrier: v.carrier, note: v.note,
     ref: refText, voidReason: "", paidSatang: 0, payRef: "", qr: null, printedAt, shop, signDate: v.signDate,
+    credit: isCn ? { reason: v.creditReason ?? "", original: init.creditOriginal ?? 0 } : null,
   };
+  const overCredit = isCn && init.creditMax !== undefined && t.grand > init.creditMax;
 
   const payload = JSON.stringify({
     id: init.id, type: v.type, customerId: v.customerId, issueDate: v.issueDate, validUntil: v.validUntil, dueDate: v.dueDate,
     items: v.items.map((l, i) => ({ productId: l.productId || null, sku: l.sku, name: l.name, detail: l.detail, unit: l.unit, image: l.image ?? null, ...items[i] })),
     signDate: v.signDate,
     discountSatang: sat(v.discount), vatMode: v.vatMode, paymentMethod: v.paymentMethod, paymentTerms: v.paymentTerms, carrier: v.carrier, note: v.note, internalNote: v.internalNote,
+    ...(isCn ? { creditReason: v.creditReason ?? "" } : {}),
   });
   const serverBad = (k: string) => state.fields?.includes(k);
 
@@ -158,16 +164,29 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
               />
             </section>
 
+            {isCn && (
+              <section className="box de-cn">
+                <h3>การลดหนี้ / คืนเงิน</h3>
+                <p className="sub">แก้รายการด้านล่างให้เหลือเฉพาะส่วนที่ลดหนี้ — เช่น จำนวนที่รับคืน หรือราคาที่ลดให้ต่อหน่วย · ยอดใบเสร็จเดิม ฿{money(init.creditOriginal ?? 0)}{init.creditMax !== undefined && init.creditMax !== init.creditOriginal ? ` · ลดได้อีก ฿${money(init.creditMax)}` : ""}</p>
+                <div className="field">
+                  <label htmlFor="creditReason">เหตุผลการลดหนี้ (แสดงบนเอกสาร) *</label>
+                  <input id="creditReason" list="creditReasons" value={v.creditReason ?? ""} onChange={(e) => set("creditReason", e.target.value)} maxLength={300} style={serverBad("creditReason") ? { borderColor: "var(--c-err)" } : undefined} placeholder="เช่น รับคืนสินค้าชำรุด 1 ชิ้น" />
+                  <datalist id="creditReasons">{(lists.reasons ?? []).map((m) => <option key={m} value={m} />)}</datalist>
+                </div>
+                {overCredit && <div className="login-err" role="alert">ยอดลดหนี้ ฿{money(t.grand)} เกินยอดที่ลดได้ ฿{money(init.creditMax ?? 0)}</div>}
+              </section>
+            )}
+
             <section className="box">
               <h3>ข้อมูลเอกสาร</h3>
               <div className="three">
                 <div className="field"><label htmlFor="issueDate">วันที่เอกสาร</label><input id="issueDate" type="date" value={v.issueDate} onChange={(e) => set("issueDate", e.target.value)} required /></div>
                 {v.type === "QUOTATION" && <div className="field"><label htmlFor="validUntil">ยืนราคาถึง</label><input id="validUntil" type="date" value={v.validUntil} min={v.issueDate} onChange={(e) => set("validUntil", e.target.value)} style={serverBad("validUntil") ? { borderColor: "var(--c-err)" } : undefined} /></div>}
                 {v.type === "INVOICE" && <div className="field"><label htmlFor="dueDate">ครบกำหนดชำระ</label><input id="dueDate" type="date" value={v.dueDate} min={v.issueDate} onChange={(e) => set("dueDate", e.target.value)} style={serverBad("dueDate") ? { borderColor: "var(--c-err)" } : undefined} /></div>}
-                <div className="field"><label htmlFor="payMethod">{v.type === "RECEIPT" ? "ชำระโดย" : "วิธีชำระเงิน"}</label>
+                <div className="field"><label htmlFor="payMethod">{v.type === "RECEIPT" ? "ชำระโดย" : isCn ? "คืนเงินโดย" : "วิธีชำระเงิน"}</label>
                   <input id="payMethod" list="payMethods" value={v.paymentMethod} onChange={(e) => set("paymentMethod", e.target.value)} maxLength={60} />
                   <datalist id="payMethods">{lists.methods.map((m) => <option key={m} value={m} />)}</datalist></div>
-                {v.type !== "QUOTATION" && <div className="field"><label htmlFor="carrier">ขนส่ง (ถ้ามี)</label>
+                {v.type !== "QUOTATION" && !isCn && <div className="field"><label htmlFor="carrier">ขนส่ง (ถ้ามี)</label>
                   <input id="carrier" list="carriers" value={v.carrier} onChange={(e) => set("carrier", e.target.value)} maxLength={60} placeholder="เช่น EMS, Kerry" />
                   <datalist id="carriers">{lists.carriers.map((m) => <option key={m} value={m} />)}</datalist></div>}
                 <div className="field">
@@ -273,7 +292,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
   );
 }
 
-const SIGNER: Record<DocTypeT, string> = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน" };
+const SIGNER: Record<DocTypeT, string> = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ" };
 
 // ---------------------------------------------------------------------------
 /** รูปหน้ารายการ: กดเพื่อเลือกรูปอื่นของสินค้า · อัปโหลดรูปใหม่ · ไม่แสดงรูป · กลับไปใช้รูปสินค้า */

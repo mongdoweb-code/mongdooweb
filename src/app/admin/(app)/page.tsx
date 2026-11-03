@@ -816,7 +816,7 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                   <ul className="dv-links" style={{ marginBottom: 10 }}>
                     {o.documents.map((d) => (
                       <li key={d.id}>
-                        <span className="sub">{d.type === "RECEIPT" ? "ใบเสร็จ" : d.type === "INVOICE" ? "ใบแจ้งหนี้" : "ใบเสนอราคา"}</span>
+                        <span className="sub">{d.type === "RECEIPT" ? "ใบเสร็จ" : d.type === "INVOICE" ? "ใบแจ้งหนี้" : d.type === "CREDIT_NOTE" ? "ใบลดหนี้" : "ใบเสนอราคา"}</span>
                         <Link className="link" href={`/admin/docs/${d.type}/${d.id}`}>{d.docNo ?? "ฉบับร่าง"}</Link>
                         {d.status === "VOID" && <span className="dst dst-void">ยกเลิก</span>}
                         {d.status !== "VOID" && d.docNo && <a className="link" href={`/admin/print/doc/${d.id}?auto=1`} target="_blank" rel="noopener">พิมพ์</a>}

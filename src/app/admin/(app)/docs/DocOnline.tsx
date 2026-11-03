@@ -10,10 +10,10 @@ import { approveDocSlipAction, rejectDocSlipAction } from "./slip-actions";
 const ST: Record<string, string> = { PENDING: "รอตรวจ", ACCEPTED: "อนุมัติแล้ว", REJECTED: "ไม่ผ่าน" };
 
 export async function DocOnline({ doc, era }: {
-  doc: { id: string; type: "QUOTATION" | "INVOICE" | "RECEIPT"; status: string; acceptedAt: Date | null; acceptedBy: string | null; grandSatang: number; paidSatang: number };
+  doc: { id: string; type: "QUOTATION" | "INVOICE" | "RECEIPT" | "CREDIT_NOTE"; status: string; acceptedAt: Date | null; acceptedBy: string | null; grandSatang: number; paidSatang: number };
   era: "AD" | "BE";
 }) {
-  if (doc.type === "RECEIPT" || doc.status === "DRAFT") return null;
+  if (doc.type === "RECEIPT" || doc.type === "CREDIT_NOTE" || doc.status === "DRAFT") return null;
   const live = doc.status !== "VOID";
   const token = live ? await ensureDocToken(doc.id) : null;
   const url = token ? `${siteUrl()}${publicDocUrl(doc, token)}` : null;

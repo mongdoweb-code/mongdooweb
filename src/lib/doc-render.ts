@@ -19,14 +19,17 @@ export type DocView = {
   paidSatang: number; payRef: string; qr: string | null; printedAt: string; shop: ShopHead;
   /** วันที่ในช่องลงนามฝั่งร้าน (YYYY-MM-DD) — ว่าง = ใช้วันที่เอกสาร */
   signDate?: string;
+  /** ใบลดหนี้: เหตุผล + มูลค่าตามเอกสารเดิม (สตางค์) — มูลค่าที่ถูกต้อง = เดิม − ลดหนี้ */
+  credit?: { reason: string; original: number } | null;
 };
 
 export const DOC_META: Record<DocTypeT, { th: string; en: string; short: string; path: string }> = {
   QUOTATION: { th: "ใบเสนอราคา", en: "QUOTATION", short: "QT", path: "QUOTATION" },
   INVOICE: { th: "ใบแจ้งหนี้ / ใบวางบิล", en: "INVOICE / BILLING NOTE", short: "IV", path: "INVOICE" },
   RECEIPT: { th: "ใบเสร็จรับเงิน", en: "RECEIPT", short: "RC", path: "RECEIPT" },
+  CREDIT_NOTE: { th: "ใบลดหนี้", en: "CREDIT NOTE", short: "CN", path: "CREDIT_NOTE" },
 };
-const SIGN: Record<DocTypeT, [string, string]> = { QUOTATION: ["ผู้เสนอราคา", "ผู้อนุมัติสั่งซื้อ"], INVOICE: ["ผู้วางบิล", "ผู้รับวางบิล"], RECEIPT: ["ผู้รับเงิน", "ผู้รับสินค้า"] };
+const SIGN: Record<DocTypeT, [string, string]> = { QUOTATION: ["ผู้เสนอราคา", "ผู้อนุมัติสั่งซื้อ"], INVOICE: ["ผู้วางบิล", "ผู้รับวางบิล"], RECEIPT: ["ผู้รับเงิน", "ผู้รับสินค้า"], CREDIT_NOTE: ["ผู้อนุมัติ", "ผู้รับใบลดหนี้"] };
 
 export const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const nl2br = (s: string) => esc(s).replace(/\n/g, "<br>");
@@ -68,7 +71,8 @@ export function buildDocParts(d: DocView): DocParts {
     </header>`;
   const headN = `<header class="sh-headn"><b>${esc(s.name)}</b><span><b>${esc(title)}</b> ${esc(label)} · หน้า {{P}} / {{N}}</span></header>`;
 
-  const info: [string, string][] = [["การชำระเงิน", esc(d.paymentMethod || "—")]];
+  const isCn = d.type === "CREDIT_NOTE";
+  const info: [string, string][] = [[isCn ? "คืนเงินโดย" : "การชำระเงิน", esc(d.paymentMethod || "—")]];
   if (d.type === "INVOICE") info.push(["ยอดค้างชำระ", `<b>${money(outstanding)}</b>`]);
   if (d.carrier && d.type !== "QUOTATION") info.push(["ขนส่ง", esc(d.carrier)]);
   info.push(["หน้า", "{{P}} / {{N}}"]);
@@ -105,6 +109,14 @@ export function buildDocParts(d: DocView): DocParts {
       ${d.qr ? `<div>สแกนพร้อมเพย์${s.promptpayName ? " " + esc(s.promptpayName) : ""} ยอด <b>${money(outstanding)}</b> บาท</div>` : ""}
       <div class="mut">โอนแล้วกรุณาแจ้งสลิป${s.line ? " ทาง LINE " + esc(s.line) : ""} พร้อมเลขที่ ${esc(label)}</div></div></div>`;
   }
+  if (isCn) {
+    // ใบลดหนี้ตามมาตรา 86/10: มูลค่าเดิม · มูลค่าที่ถูกต้อง · ผลต่าง (+ VAT ของผลต่างเมื่อเปิด VAT) · เหตุผล
+    const orig = d.credit?.original ?? 0;
+    const rows: [string, number][] = [["มูลค่าตามใบเสร็จเดิม", orig], ["มูลค่าที่ถูกต้อง", Math.max(0, orig - t.grand)], ["ผลต่าง (ลดหนี้)", t.grand]];
+    if (vatOn) rows.push([`ภาษีมูลค่าเพิ่มของผลต่าง ${d.vatRateBp / 100}%`, t.vat]);
+    payBox = `<div class="sh-cn"><h5>เหตุผลการลดหนี้</h5><p>${nl2br(d.credit?.reason || "—")}</p>
+      <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${money(v)}</dd>`).join("")}</dl></div>`;
+  }
   if (d.type === "RECEIPT") payBox = `<div class="sh-paid"><b>ได้รับเงินถูกต้องแล้ว</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}</div>`;
   const terms = d.paymentTerms.trim(), note = d.note.trim();
   // ช่องลงนาม: ฝั่งร้านใส่วันที่ให้ (วันที่ลงนามที่ตั้งไว้ หรือวันที่เอกสาร) · ฝั่งลูกค้าเว้นให้เขียนเอง
@@ -121,7 +133,7 @@ export function buildDocParts(d: DocView): DocParts {
           ${payBox}
         </div>
         <dl class="sh-tot">${tot.map(([k, v]) => `<dt>${k}</dt><dd>${money(v)}</dd>`).join("")}
-          <dt class="g">ราคารวมสุทธิ/บาท</dt><dd class="g">${money(t.grand)}</dd>
+          <dt class="g">${isCn ? "มูลค่าลดหนี้สุทธิ/บาท" : "ราคารวมสุทธิ/บาท"}</dt><dd class="g">${money(t.grand)}</dd>
           ${d.type === "INVOICE" && d.paidSatang ? `<dt>ชำระแล้ว</dt><dd>${money(d.paidSatang)}</dd><dt class="o">คงค้างชำระ</dt><dd class="o">${money(outstanding)}</dd>` : ""}</dl>
       </section>
       ${sign}
@@ -232,6 +244,7 @@ export const DOC_TABS: Record<DocTypeT, [DocSt | "all", string][]> = {
   QUOTATION: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["open", "รอตอบรับ"], ["accepted", "ตอบรับแล้ว"], ["rejected", "ไม่ตอบรับ"], ["expired", "หมดอายุ"], ["void", "ยกเลิก"]],
   INVOICE: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["unpaid", "ค้างชำระ"], ["partial", "ชำระบางส่วน"], ["overdue", "เกินกำหนด"], ["paid", "ชำระแล้ว"], ["void", "ยกเลิก"]],
   RECEIPT: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["issued", "ออกแล้ว"], ["void", "ยกเลิก"]],
+  CREDIT_NOTE: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["issued", "ออกแล้ว"], ["void", "ยกเลิก"]],
 };
 /** วันที่ทั้งหมดเป็น "YYYY-MM-DD" ตามเวลาไทย */
 export function displayStatus(d: { type: DocTypeT; status: string; validUntil: string; dueDate: string; paidSatang: number; grandSatang: number }, today: string): DocSt {

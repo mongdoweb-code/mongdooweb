@@ -2,7 +2,7 @@
 // เงินเป็นสตางค์ (จำนวนเต็ม), จำนวนเป็น qtyMilli (×1000 รองรับ 2.5 เมตร), ปัดครึ่งขึ้นต่อรายการ
 
 export type VatModeT = "NONE" | "EXCLUSIVE" | "INCLUSIVE";
-export type DocTypeT = "QUOTATION" | "INVOICE" | "RECEIPT";
+export type DocTypeT = "QUOTATION" | "INVOICE" | "RECEIPT" | "CREDIT_NOTE";
 export type LineIn = { qtyMilli: number; priceSatang: number; discountSatang: number };
 
 /** ปัดครึ่งขึ้น (ห่างจากศูนย์) */

@@ -28,7 +28,9 @@ export type ProfitBucket = {
 /** บรรทัดขายพร้อมรายได้สุทธิหลังเฉลี่ยส่วนลดท้ายบิล */
 function netLines(s: Sale) {
   const gross = s.lines.reduce((a, l) => a + l.amountSatang, 0);
-  const disc = Math.min(s.discountSatang ?? 0, gross);
+  // ใบลดหนี้มียอดติดลบ — ส่วนลดท้ายบิลจำกัดไม่เกินยอดรวม โดยคงเครื่องหมายเดิม
+  const d0 = s.discountSatang ?? 0;
+  const disc = Math.sign(d0) * Math.min(Math.abs(d0), Math.abs(gross));
   let left = disc;
   return s.lines.map((l, i) => {
     const share = i === s.lines.length - 1 ? left : gross ? Math.round((disc * l.amountSatang) / gross) : 0;

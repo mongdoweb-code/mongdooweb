@@ -393,6 +393,7 @@ model ShopSetting {
   prefixQuote    String  @default("QT")
   prefixInvoice  String  @default("IV")
   prefixReceipt  String  @default("RC")
+  prefixCredit   String  @default("CN")
   dateEra        DateEra @default(AD)
   quoteValidDays Int     @default(30)
   invoiceDueDays Int     @default(7)
@@ -565,6 +566,7 @@ enum DocType {
   QUOTATION // ใบเสนอราคา  (QT)
   INVOICE // ใบแจ้งหนี้/ใบวางบิล (IV)
   RECEIPT // ใบเสร็จรับเงิน (/ใบกำกับภาษี เมื่อเปิด VAT) (RC)
+  CREDIT_NOTE // ใบลดหนี้ / คืนเงิน (CN) — อ้างอิงใบเสร็จเดิม (sourceId)
 }
 
 enum DocStatus {
@@ -610,15 +612,17 @@ model SalesDocument {
   grandSatang    Int     @default(0)
   paidSatang     Int     @default(0) // IV: รวมที่รับชำระแล้ว
 
-  paymentMethod String? // เงินสด, โอนเงินผ่านธนาคาร, QR PromptPay
-  paymentTerms  String?
-  carrier       String? // EMS, Kerry …
-  note          String?   @db.Text // แสดงบนเอกสาร
-  internalNote  String?   @db.Text // ภายในร้านเท่านั้น
-  voidReason    String?
-  publicToken   String?   @unique // ลิงก์ให้ลูกค้าดู/พิมพ์เอกสาร (/track/receipt/:id?t=) — สุ่ม 32 ไบต์
-  acceptedAt    DateTime? // QT: ลูกค้ากดยืนยันออนไลน์ (U25)
-  acceptedBy    String? // ชื่อผู้ยืนยันที่ลูกค้ากรอก
+  paymentMethod   String? // เงินสด, โอนเงินผ่านธนาคาร, QR PromptPay
+  paymentTerms    String?
+  carrier         String? // EMS, Kerry …
+  note            String?   @db.Text // แสดงบนเอกสาร
+  internalNote    String?   @db.Text // ภายในร้านเท่านั้น
+  voidReason      String?
+  creditReason    String? // CN: เหตุผลการลดหนี้ (คืนสินค้า / ลดราคา / สินค้าชำรุด …)
+  stockReturnedAt DateTime? // CN: รับสินค้าคืนเข้าสต็อกแล้ว (กันทำซ้ำ)
+  publicToken     String?   @unique // ลิงก์ให้ลูกค้าดู/พิมพ์เอกสาร (/track/receipt/:id?t=) — สุ่ม 32 ไบต์
+  acceptedAt      DateTime? // QT: ลูกค้ากดยืนยันออนไลน์ (U25)
+  acceptedBy      String? // ชื่อผู้ยืนยันที่ลูกค้ากรอก
 
   // ความเชื่อมโยง QT → IV → RC และคำสั่งซื้อเว็บ
   sourceId String?
@@ -691,6 +695,7 @@ enum DocEventType {
   NOTE
   CUSTOMER_ACCEPTED // ลูกค้ายืนยันใบเสนอราคาผ่านลิงก์
   SLIP_UPLOADED // ลูกค้าแนบสลิปผ่านลิงก์ใบแจ้งหนี้
+  STOCK_RETURNED // CN: รับสินค้าคืนเข้าสต็อก
 }
 
 model SalesDocumentEvent {
