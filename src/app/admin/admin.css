@@ -20,7 +20,7 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 input,select,textarea{font-family:inherit;font-size:15px;color:var(--c-ink)}
 [hidden]{display:none!important}
 .num{font-variant-numeric:tabular-nums}
-.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 :focus-visible{outline:2px solid var(--c-orange);outline-offset:2px}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 18px;font-weight:600;font-size:14px;transition:background .2s,color .2s,border-color .2s;white-space:nowrap}
@@ -1747,3 +1747,19 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .qrc-acts{display:grid;gap:6px}
 .dv-hint{display:block;font-size:12px;line-height:1.5}
 .dv-acts form.qrc-form{display:grid;margin:4px 0}
+
+/* ตารางสินค้า 1366px: ไอคอนดำเนินการเล็กลงเล็กน้อย ให้ทั้งตารางพอดีจอ */
+.prod-tbl .row-acts{gap:0}
+.prod-tbl .ra{width:30px;height:30px}
+.prod-tbl td.p-name{min-width:220px}
+@media (max-width:1440px){.prod-tbl th,.prod-tbl td{padding-left:8px;padding-right:8px}}
+@media (max-width:860px){.tbl td.c-acts{grid-column:1/-1;text-align:left}.tbl td.c-acts .row-acts{justify-content:flex-start}}
+/* แก้ไขงาน (งานที่ต้องทำ) */
+.task-edit{position:relative}
+.task-edit > summary{list-style:none;cursor:pointer}
+.task-edit > summary::-webkit-details-marker{display:none}
+.task-edit[open] > .task-edit-form{position:absolute;right:0;top:36px;z-index:20;width:min(420px,86vw);background:#fff;border:1px solid var(--c-line);border-radius:8px;box-shadow:0 12px 32px rgba(0,0,0,.16);padding:14px;display:grid;gap:10px}
+.task-edit-form .two{display:grid;grid-template-columns:1.2fr 1fr .8fr;gap:8px}
+@media (max-width:560px){.task-edit-form .two{grid-template-columns:1fr}}
+.task-acts{display:flex;align-items:center;gap:2px}
+.task-acts form{display:contents}

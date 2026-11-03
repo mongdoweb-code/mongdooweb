@@ -1,5 +1,6 @@
 // หน้าคำสั่งซื้อ (หน้าแรกของหลังบ้าน) — โครงและ CSS ตามต้นแบบ, ข้อมูลจากฐานข้อมูล
 // ตัวกรองทั้งหมดอยู่ใน URL (?tab=&q=&range=&page=&open=) จึงรีเฟรช/แชร์ลิงก์ได้
+import { Icons, RowActions } from "../_components/RowActions";
 import { Pagination } from "../_components/Pagination";
 import {
   CANCEL_REASONS,
@@ -208,6 +209,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
               <th className="r">ยอดรวม</th>
               <th>สถานะ</th>
               <th>ตรวจพบ</th>
+              <th className="r col-acts">การดำเนินการ</th>
             </tr>
           </thead>
           <tbody>
@@ -260,6 +262,21 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
                       {o.couponCode && <span className="chip gray">คูปอง {o.couponCode}</span>}
                       {o.slipCount > 1 && <span className="chip gray">{o.slipCount} สลิป</span>}
                     </div>
+                  </td>
+                  <td className="r c-acts">
+                    <RowActions
+                      name={o.orderNo}
+                      before={
+                        ["PAID", "SHIPPED"].includes(o.status) ? (
+                          <a className="ra ra-print" href={`/admin/print/labels?orders=${encodeURIComponent(o.orderNo)}&size=A6&auto=1`} target="_blank" rel="noopener" data-tip="พิมพ์ใบปะหน้า" aria-label={`พิมพ์ใบปะหน้า ${o.orderNo}`}>
+                            {Icons.print}
+                          </a>
+                        ) : undefined
+                      }
+                      viewHref={rowHref}
+                      viewNewTab={false}
+                      viewTip="ดู / ตรวจสลิป / จัดการ"
+                    />
                   </td>
                 </tr>
               );

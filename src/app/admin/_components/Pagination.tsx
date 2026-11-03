@@ -76,3 +76,24 @@ export function Pagination({
     </div>
   );
 }
+
+/**
+ * แบ่งหน้ารายการที่โหลดมาทั้งหมดแล้ว (รายการไม่เยอะ เช่น บทความ คูปอง ผลงาน)
+ * keep = พารามิเตอร์อื่นใน URL ที่ต้องคงไว้ตอนเปลี่ยนหน้า (เช่น tab, q)
+ */
+export function paginate<T>(all: T[], sp: Record<string, string | string[] | undefined>, path: string, keep: string[] = [], fallbackPer = 20) {
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+  const per = readPer(sp.per, fallbackPer);
+  const total = all.length;
+  const pages = Math.max(1, Math.ceil(total / per));
+  const page = Math.min(pages, Math.max(1, Number(one(sp.page)) || 1));
+  const href = (n: number, pp: number) => {
+    const v = new URLSearchParams();
+    for (const k of keep) if (one(sp[k])) v.set(k, one(sp[k]));
+    if (pp !== fallbackPer) v.set("per", String(pp));
+    if (n > 1) v.set("page", String(n));
+    const s = v.toString();
+    return `${path}${s ? `?${s}` : ""}`;
+  };
+  return { rows: all.slice((page - 1) * per, page * per), page, pages, total, per, href };
+}

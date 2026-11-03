@@ -2,6 +2,8 @@
 // พนักงานเห็นรายการเพื่อรับของ แต่ไม่เห็นยอดเงิน/ต้นทุน
 import Link from "next/link";
 import { Pagination, readPer } from "../../_components/Pagination";
+import { Icons, RowActions } from "../../_components/RowActions";
+import { deletePo } from "./actions";
 import type { PoStatus } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -65,7 +67,7 @@ export default async function PurchaseOrdersPage({ searchParams }: PageProps<"/a
         </div>
         <table className="tbl" id="poTable">
           <thead>
-            <tr><th style={{ width: 150 }}>เลขที่</th><th>ผู้ขาย</th><th>สถานะ</th><th className="r">รับแล้ว</th>{owner && <th className="r">ยอดรวม</th>}<th>วันที่สั่ง</th></tr>
+            <tr><th style={{ width: 150 }}>เลขที่</th><th>ผู้ขาย</th><th>สถานะ</th><th className="r">รับแล้ว</th>{owner && <th className="r">ยอดรวม</th>}<th>วันที่สั่ง</th><th className="r col-acts">การดำเนินการ</th></tr>
           </thead>
           <tbody>
             {rows.map((po) => {
@@ -80,6 +82,16 @@ export default async function PurchaseOrdersPage({ searchParams }: PageProps<"/a
                   <td className="r num">{got}/{ordered}</td>
                   {owner && <td className="r num">{baht(po.totalSatang)}</td>}
                   <td className="sub">{day(po.orderedAt)}</td>
+                  <td className="r">
+                    <RowActions
+                      name={po.poNo ?? "ฉบับร่าง"}
+                      before={["ORDERED", "PARTIAL"].includes(po.status) ? <Link className="ra ra-dup" href={`/admin/purchase-orders/${po.id}#poReceiveForm`} data-tip="รับของเข้า" aria-label={`รับของเข้า ${po.poNo}`}>{Icons.stock}</Link> : undefined}
+                      viewHref={`/admin/purchase-orders/${po.id}`}
+                      viewNewTab={false}
+                      editHref={po.status === "DRAFT" ? `/admin/purchase-orders/${po.id}` : undefined}
+                      del={{ action: deletePo, id: po.id, title: "ลบใบสั่งซื้อฉบับร่าง?", body: "ยังไม่ได้ออกเลขที่ ลบได้", label: "ลบ", disabled: po.status !== "DRAFT" ? "ลบได้เฉพาะฉบับร่าง — ใบที่ออกแล้วใช้ยกเลิกในหน้าใบสั่งซื้อ" : !owner ? "ลบได้เฉพาะเจ้าของร้าน" : undefined }}
+                    />
+                  </td>
                 </tr>
               );
             })}

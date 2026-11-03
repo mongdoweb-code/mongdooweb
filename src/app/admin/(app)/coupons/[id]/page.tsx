@@ -51,6 +51,7 @@ export default async function CouponDetailPage({ params, searchParams }: PagePro
         <div className="kpi"><span>ส่วนลดรวม</span><b className="num">{baht(u.discountSatang)}</b><small>{u.orders} คำสั่งซื้อ</small></div>
         <div className="kpi"><span>ยอดขาย (ชำระแล้ว)</span><b className="num">{baht(u.salesSatang)}</b><small>คำสั่งซื้อที่ใช้คูปองนี้</small></div>
       </div>
+      <div id="edit" />
       <CouponForm
         categories={cats.map((x) => ({ id: x.id, name: x.nameTh }))}
         v={{

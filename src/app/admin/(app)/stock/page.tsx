@@ -1,6 +1,9 @@
 // /admin/stock — สต็อก: สินค้าที่นับสต็อก, สินค้าใกล้หมด (เกณฑ์ตั้งได้), ประวัติการเคลื่อนไหวทั้งหมด
 import { Pagination, readPer } from "../../_components/Pagination";
 import Link from "next/link";
+import { InlineCell } from "../../_components/InlineCell";
+import { Icons, RowActions } from "../../_components/RowActions";
+import { quickField } from "../products/quick-actions";
 import type { Prisma } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { fromYmd } from "@/lib/doc-calc";
@@ -105,17 +108,26 @@ async function ProductList({ where, q, page, per, T, qs, low }: { where: Prisma.
       <div className="l3-panel">
         {rows.length ? (
           <table className="l3-tbl" id="stockTbl">
-            <thead><tr><th>สินค้า</th><th>หมวด</th><th className="r">คงเหลือ</th><th>เคลื่อนไหวล่าสุด</th><th /></tr></thead>
+            <thead><tr><th>สินค้า</th><th>หมวด</th><th className="r">คงเหลือ</th><th>เคลื่อนไหวล่าสุด</th><th className="r col-acts">การดำเนินการ</th></tr></thead>
             <tbody>
               {rows.map((p) => (
                 <tr key={p.id} className={p.isActive ? "" : "off"}>
                   <td className="main"><Link className="link" href={`/admin/stock/${p.id}`}>{p.name}</Link><span className="sub">{p.sku}{p.isActive ? "" : " · ปิดขาย"}</span></td>
                   <td data-l="หมวด">{p.category.nameTh}</td>
                   <td className="r" data-l="คงเหลือ">
-                    <b className={p.stock <= 0 ? "l3-neg" : ""}>{p.stock}</b> {p.stock <= T && <span className={`chip ${p.stock <= 0 ? "bad" : "warn"}`}>{p.stock <= 0 ? "หมด" : "ใกล้หมด"}</span>}
+                    <InlineCell id={p.id} field="stock" action={quickField} label={`สต็อก ${p.sku}`} value={String(p.stock)} inputMode="numeric" className={p.stock <= 0 ? "l3-neg" : ""} display={<b>{p.stock}</b>} hint="Enter = บันทึก (มีประวัติ)" /> {p.stock <= T && <span className={`chip ${p.stock <= 0 ? "bad" : "warn"}`}>{p.stock <= 0 ? "หมด" : "ใกล้หมด"}</span>}
                   </td>
                   <td data-l="ล่าสุด">{p.stockMoves[0] ? `${STOCK_REASONS[p.stockMoves[0].reason as keyof typeof STOCK_REASONS] ?? p.stockMoves[0].reason} · ${fmt(p.stockMoves[0].createdAt)}` : "—"}</td>
-                  <td className="r"><Link className="btn btn-outline btn-sm" href={`/admin/stock/${p.id}`}>{low ? "รับของเข้า" : "ปรับสต็อก"}</Link></td>
+                  <td className="r">
+                    <RowActions
+                      name={p.sku}
+                      before={<Link className="ra ra-dup" href={`/admin/stock/${p.id}`} data-tip={low ? "รับของเข้า" : "รับเข้า / นับ / ปรับสต็อก"} aria-label={`${low ? "รับของเข้า" : "ปรับสต็อก"} ${p.sku}`}>{Icons.stock}</Link>}
+                      viewHref={`/admin/stock/${p.id}`}
+                      viewNewTab={false}
+                      viewTip="ประวัติสต็อก"
+                      editHref={`/admin/products/${p.id}`}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

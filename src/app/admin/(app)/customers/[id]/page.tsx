@@ -67,7 +67,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
       {sp.err === "inuse" && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>ลบไม่ได้ — ลูกค้ารายนี้มีเอกสารหรือคำสั่งซื้ออยู่ (เอกสารต้องเก็บไว้ตามกฎหมาย)</div>}
       <div className="pform-grid">
         <div className="d-col">
-          <div className="box"><h3>ข้อมูลลูกค้า</h3><CustomerForm v={v} saved={sp.saved === "1"} /></div>
+          <div className="box" id="edit"><h3>ข้อมูลลูกค้า</h3><CustomerForm v={v} saved={sp.saved === "1"} /></div>
           {c && (
             <form action={setMarketingOptOut} className="box" id="optOutBox">
               <h3>การรับข่าวสาร/การตลาด</h3>

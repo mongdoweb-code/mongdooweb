@@ -16,6 +16,18 @@ export const Icons = {
   copy: (
     <svg viewBox="0 0 24 24" {...P} aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
   ),
+  print: (
+    <svg viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="7" /></svg>
+  ),
+  plusDoc: (
+    <svg viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M12 12v6M9 15h6" /></svg>
+  ),
+  stock: (
+    <svg viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="m21 8-9-5-9 5 9 5 9-5Z" /><path d="M3 8v8l9 5 9-5V8M12 13v8" /></svg>
+  ),
+  history: (
+    <svg viewBox="0 0 24 24" {...P} aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5M12 7v5l3 2" /></svg>
+  ),
   grip: (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5.5" r="1.6" /><circle cx="15" cy="5.5" r="1.6" /><circle cx="9" cy="12" r="1.6" /><circle cx="15" cy="12" r="1.6" /><circle cx="9" cy="18.5" r="1.6" /><circle cx="15" cy="18.5" r="1.6" /></svg>
   ),
@@ -45,10 +57,19 @@ export function RowActions({
   dup,
   viewHref,
   viewDisabled,
+  viewTip = "ดู",
+  viewNewTab = true,
   editHref,
   del,
+  before,
 }: {
   name: string;
+  /** ข้อความป้ายของปุ่มดู เช่น "ดูหน้าร้าน" */
+  viewTip?: string;
+  /** false = เปิดในหน้าเดิม (หน้าภายในหลังบ้าน) */
+  viewNewTab?: boolean;
+  /** ปุ่มเฉพาะหน้า (วางก่อนปุ่มมาตรฐาน) */
+  before?: React.ReactNode;
   dup?: { action: (f: FormData) => Promise<void>; id: string; tip?: string };
   viewHref?: string;
   viewDisabled?: string;
@@ -57,6 +78,7 @@ export function RowActions({
 }) {
   return (
     <div className="row-acts">
+      {before}
       {dup && (
         <form action={dup.action}>
           <input type="hidden" name="id" value={dup.id} />
@@ -67,7 +89,11 @@ export function RowActions({
         (viewDisabled ? (
           <span className="ra ra-view" aria-disabled="true" data-tip={viewDisabled}>{Icons.eye}<span className="sr-only">ดู {name} ({viewDisabled})</span></span>
         ) : (
-          <a className="ra ra-view" href={viewHref} target="_blank" rel="noopener" data-tip="ดู" aria-label={`ดู ${name} (แท็บใหม่)`}>{Icons.eye}</a>
+          viewNewTab ? (
+            <a className="ra ra-view" href={viewHref} target="_blank" rel="noopener" data-tip={viewTip} aria-label={`${viewTip} ${name} (แท็บใหม่)`}>{Icons.eye}</a>
+          ) : (
+            <Link className="ra ra-view" href={viewHref} data-tip={viewTip} aria-label={`${viewTip} ${name}`}>{Icons.eye}</Link>
+          )
         ))}
       {editHref && (
         <Link className="ra ra-edit" href={editHref} data-tip="แก้ไข" aria-label={`แก้ไข ${name}`}>{Icons.edit}</Link>
