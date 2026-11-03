@@ -1219,3 +1219,16 @@ model BackupRun {
 
   @@index([createdAt])
 }
+
+/// ปิดยอดประจำวัน (ล็อต 14): ยอดรับเงินของวัน ณ เวลาที่ปิด + ยอดที่ตรวจกับบัญชีธนาคารจริง
+model DailyClose {
+  id            String   @id @default(cuid())
+  day           String   @unique @db.VarChar(10) // "YYYY-MM-DD" เวลาไทย
+  totalSatang   Int // ยอดที่ระบบคำนวณได้ตอนปิด
+  countedSatang Int? // ยอดที่ร้านตรวจเจอจริง (เว้นว่าง = ตรงกับระบบ)
+  byMethod      Json // [{ method, amount, count }] ณ ตอนปิด
+  entryCount    Int
+  note          String?
+  closedBy      String // ชื่อผู้ปิดยอด
+  closedAt      DateTime @default(now())
+}

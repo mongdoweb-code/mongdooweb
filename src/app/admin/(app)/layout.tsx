@@ -23,6 +23,8 @@ const ICON = {
   dash: <><rect x="3" y="3" width="8" height="10" /><rect x="13" y="3" width="8" height="6" /><rect x="13" y="11" width="8" height="10" /><rect x="3" y="15" width="8" height="6" /></>,
   inbox: <path d="M3 13h5l2 3h4l2-3h5M5 5h14l2 8v6H3v-6z" />,
   report: <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />,
+  debt: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2M3 12h2M19 12h2" /><path d="M15 16.5h3v3" /></>,
+  cash: <><rect x="2" y="6" width="20" height="12" /><circle cx="12" cy="12" r="2.6" /><path d="M6 9v.01M18 15v.01" /></>,
   stock: <path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10M7 5l9 4" />,
   pages: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4" />,
   users: <><circle cx="9" cy="8" r="4" /><path d="M2 21c0-4 3-6 7-6s7 2 7 6M17 11l2 2 4-4" /></>,
@@ -107,6 +109,8 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/search", label: "ค้นหา / คำพ้อง", icon: <Ico k="search" />, group: "เนื้อหาและ SEO" },
             { href: "/admin/redirects", label: "Redirect / หน้า 404", icon: <Ico k="redirect" />, group: "เนื้อหาและ SEO" },
             { href: "/admin/reports", label: "รายงานยอดขาย", icon: <Ico k="report" />, group: "รายงาน" },
+            { href: "/admin/reports/daily", label: "ปิดยอดประจำวัน", icon: <Ico k="cash" />, group: "รายงาน" },
+            { href: "/admin/reports/receivables", label: "ลูกหนี้ค้างชำระ", icon: <Ico k="debt" />, group: "รายงาน" },
             { href: "/admin/log", label: "บันทึกการใช้งาน", icon: <Ico k="log" />, group: "รายงาน" },
             ...(owner
               ? [

@@ -45,7 +45,10 @@ function DeniedToast() {
 
 export function AdminNav({ items, locked = false }: { items: NavItem[]; locked?: boolean }) {
   const path = usePathname();
-  const active = (href: string) => (href === "/admin" ? path === "/admin" : path === href || path.startsWith(href + "/"));
+  const hit = (href: string) => (href === "/admin" ? path === "/admin" : path === href || path.startsWith(href + "/"));
+  // เมนูย่อยที่ตรงกว่า (เช่น /admin/reports/daily) ชนะเมนูแม่ (/admin/reports)
+  const best = items.filter((it) => hit(it.href)).reduce((a, it) => (it.href.length > a.length ? it.href : a), "");
+  const active = (href: string) => href === best;
   const list = locked ? items.filter((it) => it.href === "/admin/account") : items;
   return (
     <nav>
