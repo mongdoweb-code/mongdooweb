@@ -38,7 +38,10 @@ type CatalogItem = { id: string; name: string; price: number; inStock: boolean }
 export async function buyableProduct(page: Page) {
   await page.goto("/");
   const catalog = await page.evaluate(() => JSON.parse(document.getElementById("mdw-data")!.textContent!).catalog as CatalogItem[]);
-  const p = catalog.find((c) => c.price > 0 && c.inStock);
-  expect(p, "ต้องมีสินค้าที่มีราคาและมีของอย่างน้อย 1 รายการ").toBeTruthy();
-  return p!;
+  // แคชหน้าร้านอาจยังมีสินค้าทดสอบที่เทสต์อื่นลบไปแล้ว — เลือกตัวแรกที่หน้าสินค้าเปิดได้จริง
+  for (const p of catalog.filter((c) => c.price > 0 && c.inStock).slice(0, 15)) {
+    if ((await page.request.get(`/product/${p.id}`)).ok()) return p;
+  }
+  expect(false, "ต้องมีสินค้าที่มีราคาและมีของอย่างน้อย 1 รายการ").toBeTruthy();
+  throw new Error("unreachable");
 }
