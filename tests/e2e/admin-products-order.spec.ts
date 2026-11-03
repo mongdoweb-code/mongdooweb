@@ -215,7 +215,8 @@ test("จัดการรวดเร็ว: แก้ราคา/สต็�
   await expect.poll(async () => (await q<{ t: boolean; s: number }>(`SELECT "trackStock" t, stock s FROM "Product" WHERE id=$1`, [P[0].id]))[0]).toEqual({ t: true, s: 12 });
   expect((await q(`SELECT 1 FROM "StockMovement" WHERE "productId"=$1`, [P[0].id])).length).toBeGreaterThan(0);
 
-  // แผงแก้ไขด่วน
+  // แผงแก้ไขด่วน (โหลดหน้าใหม่ก่อน — ข้อมูลในแผงมาจากแถวที่เซิร์ฟเวอร์เรนเดอร์ล่าสุด)
+  await list(page);
   await row.hover();
   await row.locator("button.rq-main").click();
   const dlg = page.getByRole("dialog", { name: P[0].name });
