@@ -1,5 +1,7 @@
 // /admin/claims — คิวเคลม/คืนสินค้า (A16) แยกตามสถานะ เรียงเก่าสุดก่อนในงานค้าง · ค้นหาเลขที่/ชื่อ/เบอร์/คำสั่งซื้อ
 import Link from "next/link";
+import { Pagination, paginate } from "../../_components/Pagination";
+import { Icons, RowActions } from "../../_components/RowActions";
 import type { ClaimStatus, Prisma } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { CLAIM_KIND, CLAIM_STATUS, CLAIM_STATUS_CLS, isClaimStatus, parseClaimItems } from "@/lib/claims";
@@ -27,6 +29,7 @@ export default async function ClaimsPage({ searchParams }: PageProps<"/admin/cla
   ]);
   const cnt = Object.fromEntries(counts.map((c) => [c.status, c._count._all])) as Record<string, number>;
   const count = (t: string) => (t === "ALL" ? Object.values(cnt).reduce((a, b) => a + b, 0) : t === "OPEN" ? (cnt.NEW ?? 0) + (cnt.REVIEWING ?? 0) + (cnt.APPROVED ?? 0) : cnt[t] ?? 0);
+  const pg = paginate(rows, sp, "/admin/claims", ["tab", "q"]);
   return (
     <main className="main">
       <div className="page-head">
@@ -54,9 +57,9 @@ export default async function ClaimsPage({ searchParams }: PageProps<"/admin/cla
           </form>
         </div>
         <table className="tbl" id="claimTable">
-          <thead><tr><th>เลขที่ / วันที่</th><th>ลูกค้า</th><th>ประเภท</th><th>สินค้า</th><th>สิทธิ์</th><th>สถานะ</th></tr></thead>
+          <thead><tr><th>เลขที่ / วันที่</th><th>ลูกค้า</th><th>ประเภท</th><th>สินค้า</th><th>สิทธิ์</th><th>สถานะ</th><th className="r col-acts">การดำเนินการ</th></tr></thead>
           <tbody>
-            {rows.map((c) => (
+            {pg.rows.map((c) => (
               <tr key={c.id}>
                 <td><Link className="link num" href={`/admin/claims/${c.id}`}><b>{c.claimNo}</b></Link><span className="sub">{fmt(c.createdAt)}{c.order ? ` · ${c.order.orderNo}` : ""}</span></td>
                 <td>{c.name}<span className="sub">{formatPhone(c.phone)}</span></td>
@@ -64,10 +67,20 @@ export default async function ClaimsPage({ searchParams }: PageProps<"/admin/cla
                 <td className="sub">{parseClaimItems(c.items).map((i) => `${i.name} × ${i.qty}`).join(", ")}</td>
                 <td>{c.inWarranty == null ? "—" : c.inWarranty ? <span className="chip ok">{c.kind === "RETURN" ? "ใน 7 วัน" : "ในประกัน"}</span> : <span className="chip bad">{c.kind === "RETURN" ? "เลย 7 วัน" : "หมดประกัน"}</span>}</td>
                 <td><span className={`chip ${CLAIM_STATUS_CLS[c.status]}`}>{CLAIM_STATUS[c.status]}</span></td>
+                <td className="r">
+                  <RowActions
+                    name={c.claimNo}
+                    before={c.order ? <Link className="ra ra-dup" href={`/admin?tab=ALL&open=${c.order.orderNo}`} data-tip="ดูคำสั่งซื้อ" aria-label={`ดูคำสั่งซื้อ ${c.order.orderNo}`}>{Icons.plusDoc}</Link> : undefined}
+                    viewHref={`/admin/claims/${c.id}`}
+                    viewNewTab={false}
+                    viewTip="ดู / ดำเนินการ"
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+        <Pagination page={pg.page} pages={pg.pages} total={pg.total} shown={pg.rows.length} per={pg.per} href={pg.href} unit="เรื่อง" />
         {!rows.length && <div className="empty"><b>ไม่มีเรื่องเคลมในหมวดนี้</b></div>}
       </section>
     </main>

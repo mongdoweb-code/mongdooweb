@@ -58,6 +58,22 @@ export async function toggleTask(f: FormData) {
   redirect(back(f));
 }
 
+/** แก้ไขงาน: หัวข้อ รายละเอียด ผู้รับงาน วันครบกำหนด — ทุกคนแก้ได้ (บันทึกค่าก่อน/หลัง) */
+export async function updateTask(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const t = await prisma.adminTask.findUnique({ where: { id } });
+  if (!t) redirect(back(f));
+  const title = str(f, "title", 200);
+  if (title.length < 2) redirect(back(f, "taskErr=title"));
+  const assigneeId = str(f, "assigneeId", 40) || null;
+  if (assigneeId && !(await prisma.admin.findFirst({ where: { id: assigneeId, isActive: true }, select: { id: true } }))) redirect(back(f, "taskErr=assignee"));
+  const data = { title, body: str(f, "body", 2000) || null, assigneeId, dueAt: dueFrom(f) };
+  const u = await prisma.adminTask.update({ where: { id }, data });
+  await logAdmin(admin.id, "TASK", `แก้ไขงาน “${title}”`, { entity: `Task:${id}`, diff: diffOf(t, u) });
+  redirect(back(f, "taskSaved=1"));
+}
+
 export async function deleteTask(f: FormData) {
   const admin = await requireAdmin();
   const id = str(f, "id", 40);

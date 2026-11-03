@@ -266,7 +266,7 @@ test("D6 สคริปต์หน้าร้านมีรุ่น · serv
     await pg2.click(".track-form button[type=submit]");
     await expect(pg2.locator("#slip")).toBeVisible();
     await pg2.setInputFiles("#slipFile", "tests/fixtures/slip.png");
-    await pg2.fill("#slipTime", "10:30");
+    await pg2.fill("#slipTime", "00:00"); // เวลาเช้าสุดของวันนี้ — ไม่เป็นเวลาในอนาคตไม่ว่าเทสต์จะรันกี่โมง
     await pg2.fill("#slipAmt", "1000");
     await pg2.click('#slip button[type=submit]');
     await expect(pg2.locator("#slip .trk-retry")).toContainText("ลองส่งใหม่");

@@ -1,5 +1,7 @@
 // /admin/data-requests — คิวคำขอข้อมูลส่วนบุคคล (A24, เจ้าของร้าน) · ต้องตอบภายใน 30 วัน (PDPA ม.30)
 import Link from "next/link";
+import { Pagination, paginate } from "../../_components/Pagination";
+import { RowActions } from "../../_components/RowActions";
 import type { DataRequestStatus } from "../../../../../generated/prisma/client";
 import { requireOwner } from "@/lib/auth";
 import { formatPhone } from "@/lib/format";
@@ -20,6 +22,7 @@ export default async function DataRequestsPage({ searchParams }: PageProps<"/adm
   ]);
   const cnt = (s: string) => counts.find((c) => c.status === s)?._count._all ?? 0;
   const now = new Date().getTime();
+  const pg = paginate(rows, sp, "/admin/data-requests", ["status"]);
   return (
     <main className="main" id="page-pdpa">
       <div className="page-head">
@@ -36,9 +39,9 @@ export default async function DataRequestsPage({ searchParams }: PageProps<"/adm
           </div>
         </div>
         <table className="tbl" id="drTable">
-          <thead><tr><th>วันที่ขอ</th><th>ผู้ขอ</th><th>ประเภท</th><th>{status === "NEW" ? "ครบกำหนด" : "ดำเนินการ"}</th></tr></thead>
+          <thead><tr><th>วันที่ขอ</th><th>ผู้ขอ</th><th>ประเภท</th><th>{status === "NEW" ? "ครบกำหนด" : "ดำเนินการ"}</th><th className="r col-acts">การดำเนินการ</th></tr></thead>
           <tbody>
-            {rows.map((r) => {
+            {pg.rows.map((r) => {
               const due = r.createdAt.getTime() + 30 * 864e5;
               const left = Math.ceil((due - now) / 864e5);
               return (
@@ -47,11 +50,13 @@ export default async function DataRequestsPage({ searchParams }: PageProps<"/adm
                   <td><Link className="row-link" href={`/admin/data-requests/${r.id}`}><b>{r.name}</b><span className="sub">{formatPhone(r.phone)}{r.email ? ` · ${r.email}` : ""}</span></Link></td>
                   <td>{DR_KIND[r.kind]}</td>
                   <td>{status === "NEW" ? <span className={`dst dst-${left < 7 ? "bad" : "pend"}`}>{left >= 0 ? `อีก ${left} วัน` : `เกิน ${-left} วัน`}</span> : <span className="sub">{r.handledAt ? day(r.handledAt) : "—"} · {r.handledBy ?? "—"}</span>}</td>
+                  <td className="r"><RowActions name={r.name} viewHref={`/admin/data-requests/${r.id}`} viewNewTab={false} viewTip="ดู / ดำเนินการ" /></td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        <Pagination page={pg.page} pages={pg.pages} total={pg.total} shown={pg.rows.length} per={pg.per} href={pg.href} unit="คำขอ" />
         {!rows.length && <div className="empty"><b>ไม่มีคำขอในสถานะนี้</b></div>}
       </section>
     </main>

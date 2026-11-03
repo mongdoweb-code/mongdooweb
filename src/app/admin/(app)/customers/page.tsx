@@ -2,6 +2,8 @@
 // รอบ 3 (A23): กลุ่มลูกค้า — แท็ก, ยอดซื้อรวม, ซื้อล่าสุด, ตัวกรอง (แท็ก/ยอดซื้อ/วันที่ซื้อล่าสุด/มีเลขผู้เสียภาษี) + ส่งออกสำหรับบรอดแคสต์
 import Link from "next/link";
 import { Pagination, readPer } from "../../_components/Pagination";
+import { Icons, RowActions } from "../../_components/RowActions";
+import { deleteCustomer } from "./actions";
 import { requireAdmin } from "@/lib/auth";
 import { allTags, parseSegment, segmentActive, segmentCustomers, segmentQuery } from "@/lib/customer-segments";
 import { money } from "@/lib/doc-calc";
@@ -13,7 +15,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 const day = (d: Date | null) => (d ? d.toLocaleDateString("th-TH", { dateStyle: "medium", timeZone: "Asia/Bangkok" }) : "—");
 
 export default async function CustomersPage({ searchParams }: PageProps<"/admin/customers">) {
-  await requireAdmin();
+  const owner = (await requireAdmin()).role === "OWNER";
   const sp = await searchParams;
   const PER = readPer(sp.per, 30);
   const f = parseSegment(sp);
@@ -89,7 +91,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
           )}
         </details>
         <table className="tbl" id="cuTable">
-          <thead><tr><th style={{ width: 70 }}>รหัส</th><th>ลูกค้า</th><th>ติดต่อ</th><th className="r">ยอดซื้อรวม</th><th>ซื้อล่าสุด</th><th className="r">ค้างชำระ</th></tr></thead>
+          <thead><tr><th style={{ width: 70 }}>รหัส</th><th>ลูกค้า</th><th>ติดต่อ</th><th className="r">ยอดซื้อรวม</th><th>ซื้อล่าสุด</th><th className="r">ค้างชำระ</th><th className="r col-acts">การดำเนินการ</th></tr></thead>
           <tbody>
             {rows.map((c) => {
               const o = oweOf(c.id);
@@ -106,6 +108,20 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
                   <td className="r num cu-spend">{c.stats.spendSatang ? `฿${money(c.stats.spendSatang)}` : <span className="sub">—</span>}<span className="sub">{c.stats.orders + c.stats.receipts ? `${c.stats.orders + c.stats.receipts} ครั้ง` : `เอกสาร ${c._count.documents}`}</span></td>
                   <td className="sub">{day(c.stats.lastAt)}</td>
                   <td className="r num">{o > 0 ? <b className="owe">฿{money(o)}</b> : <span className="sub">—</span>}</td>
+                  <td className="r">
+                    <RowActions
+                      name={`${c.code} ${c.name}`}
+                      before={<Link className="ra ra-dup" href={`/admin/docs/QUOTATION/new/edit?customer=${c.id}`} data-tip="สร้างใบเสนอราคา" aria-label={`สร้างใบเสนอราคาให้ ${c.name}`}>{Icons.plusDoc}</Link>}
+                      viewHref={`/admin/customers/${c.id}`}
+                      viewNewTab={false}
+                      viewTip="ดูข้อมูลลูกค้า"
+                      editHref={`/admin/customers/${c.id}#edit`}
+                      del={{
+                        action: deleteCustomer, id: c.id, title: "ลบลูกค้านี้?", body: `${c.code} ${c.name} — ลบถาวร`, label: "ลบลูกค้า",
+                        disabled: !owner ? "ลบได้เฉพาะเจ้าของร้าน" : c._count.documents || c.stats.orders ? "มีเอกสาร/คำสั่งซื้อแล้ว — ลบไม่ได้ (ใช้รวมลูกค้าซ้ำแทน)" : undefined,
+                      }}
+                    />
+                  </td>
                 </tr>
               );
             })}
