@@ -1,4 +1,4 @@
-// /admin/docs/QUOTATION|INVOICE|RECEIPT — รายการเอกสารขาย: KPI, แท็บสถานะ, ค้นหา, ช่วงวันที่, แบ่งหน้า, ส่งออก CSV
+// /admin/docs/QUOTATION|INVOICE|RECEIPT|CREDIT_NOTE — รายการเอกสารขาย: KPI, แท็บสถานะ, ค้นหา, ช่วงวันที่, แบ่งหน้า, ส่งออก CSV
 import Link from "next/link";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
 import { Icons } from "../../../_components/RowActions";
@@ -53,7 +53,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
     const [month, all, voids, draft] = await Promise.all([sum({ status: "ISSUED", issueDate: { gte: monthStart } }), sum({ status: "ISSUED" }), sum({ status: "VOID" }), sum({ status: "DRAFT" })]);
     kpis = [
       { label: "ออกเดือนนี้", value: String(month._count._all), sub: `฿${money(month._sum.grandSatang ?? 0)}`, tab: "issued" },
-      { label: "ใบเสร็จทั้งหมด", value: String(all._count._all), sub: `฿${money(all._sum.grandSatang ?? 0)}` },
+      { label: type === "CREDIT_NOTE" ? "ใบลดหนี้ทั้งหมด" : "ใบเสร็จทั้งหมด", value: String(all._count._all), sub: `฿${money(all._sum.grandSatang ?? 0)}` },
       { label: "ยกเลิก", value: String(voids._count._all), sub: "เลขที่ยังเก็บไว้", tab: "void" },
       { label: "ฉบับร่าง", value: String(draft._count._all), sub: "ยังไม่ออกเลขที่", tab: "draft" },
     ];
@@ -72,14 +72,19 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
       <div className="page-head">
         <div>
           <h1>{meta.th}</h1>
-          <p>{type === "QUOTATION" ? "เสนอราคา → ลูกค้าตอบรับ → แปลงเป็นใบแจ้งหนี้ได้ทันที" : type === "INVOICE" ? "วางบิล + QR พร้อมเพย์ตามยอดค้าง · บันทึกรับชำระแล้วออกใบเสร็จให้อัตโนมัติ" : "ใบเสร็จออกอัตโนมัติเมื่อบันทึกรับชำระ หรือออกจากคำสั่งซื้อหน้าเว็บ"}</p>
+          <p>{type === "QUOTATION" ? "เสนอราคา → ลูกค้าตอบรับ → แปลงเป็นใบแจ้งหนี้ได้ทันที" : type === "INVOICE" ? "วางบิล + QR พร้อมเพย์ตามยอดค้าง · บันทึกรับชำระแล้วออกใบเสร็จให้อัตโนมัติ" : type === "CREDIT_NOTE" ? "คืนสินค้า / ลดราคาหลังขาย / คืนเงิน — ออกจากหน้าใบเสร็จรับเงินเดิม (ปุ่ม “ออกใบลดหนี้ / คืนเงิน”) · รับสินค้าคืนเข้าสต็อกได้" : "ใบเสร็จออกอัตโนมัติเมื่อบันทึกรับชำระ หรือออกจากคำสั่งซื้อหน้าเว็บ"}</p>
         </div>
         <div className="head-actions">
           <a className="btn btn-outline" href={`/admin/docs.csv${qs({ type })}`}>ส่งออก CSV</a>
-          <Link className="btn btn-primary" href={`${base}/new/edit`}>+ สร้าง{meta.th.split(" /")[0]}</Link>
+          {type === "CREDIT_NOTE" ? (
+            <Link className="btn btn-primary" href="/admin/docs/RECEIPT?tab=issued">+ เลือกใบเสร็จที่จะลดหนี้</Link>
+          ) : (
+            <Link className="btn btn-primary" href={`${base}/new/edit`}>+ สร้าง{meta.th.split(" /")[0]}</Link>
+          )}
         </div>
       </div>
       {flash && <div className="login-info" role="status" style={{ marginBottom: 12 }}>{flash}</div>}
+      {typeof sp.err === "string" && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>{sp.err.slice(0, 200)}</div>}
 
       <div className="kpis">
         {kpis.map((k) =>
@@ -120,7 +125,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
           <thead>
             <tr>
               <th>เลขที่ / วันที่</th><th>ลูกค้า</th>
-              <th>{type === "QUOTATION" ? "ยืนราคาถึง" : type === "INVOICE" ? "ครบกำหนด / ค้างชำระ" : "ชำระโดย / อ้างอิง"}</th>
+              <th>{type === "QUOTATION" ? "ยืนราคาถึง" : type === "INVOICE" ? "ครบกำหนด / ค้างชำระ" : type === "CREDIT_NOTE" ? "อ้างอิงใบเสร็จ / เหตุผล" : "ชำระโดย / อ้างอิง"}</th>
               <th className="r">ยอดรวม</th><th>สถานะ</th><th className="r col-acts">การดำเนินการ</th>
             </tr>
           </thead>
@@ -133,6 +138,8 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                 type === "QUOTATION" ? docDate(ymdOf(d.validUntil), era)
                 : type === "INVOICE" ? (
                   <>{docDate(ymdOf(d.dueDate), era)}{d.status !== "DRAFT" && d.status !== "VOID" && d.grandSatang - d.paidSatang > 0 && <span className="sub owe">ค้าง ฿{money(d.grandSatang - d.paidSatang)}</span>}</>
+                ) : type === "CREDIT_NOTE" ? (
+                  <>{d.source?.docNo ?? "—"}{d.creditReason && <span className="sub">{d.creditReason}</span>}</>
                 ) : (
                   <>{d.paymentMethod ?? "—"}{d.order && <span className="sub">{d.order.orderNo}</span>}</>
                 );
@@ -159,7 +166,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
         {!rows.length && (
           <div className="empty">
             <b>{f.q || f.from || f.to || f.tab !== "all" ? "ไม่พบเอกสารตามตัวกรอง" : `ยังไม่มี${meta.th.split(" /")[0]}`}</b>
-            {type === "RECEIPT" ? "ใบเสร็จจะออกอัตโนมัติเมื่อบันทึกรับชำระในใบแจ้งหนี้ หรือกด “ออกใบเสร็จ” ในคำสั่งซื้อ" : <Link className="link" href={`${base}/new/edit`}>สร้างฉบับแรก</Link>}
+            {type === "RECEIPT" ? "ใบเสร็จจะออกอัตโนมัติเมื่อบันทึกรับชำระในใบแจ้งหนี้ หรือกด “ออกใบเสร็จ” ในคำสั่งซื้อ" : type === "CREDIT_NOTE" ? <>เปิดใบเสร็จรับเงินที่ต้องการลดหนี้ แล้วกด “ออกใบลดหนี้ / คืนเงิน” · <Link className="link" href="/admin/docs/RECEIPT?tab=issued">ไปที่ใบเสร็จรับเงิน</Link></> : <Link className="link" href={`${base}/new/edit`}>สร้างฉบับแรก</Link>}
           </div>
         )}
         <Pagination page={page} pages={pages} total={total} shown={rows.length} per={f.per} unit="ฉบับ" href={(n, pp) => `${base}${qs({ page: n > 1 ? n : "", per: pp === 20 ? "" : pp })}`} />

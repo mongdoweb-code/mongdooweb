@@ -6,6 +6,7 @@ import { CLAIM_KIND, CLAIM_STATUS, claimWindows, parseClaimItems } from "@/lib/c
 import { formatPhone } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { updateClaim } from "../actions";
+import { createCreditNote } from "../../docs/actions";
 import "../../coupons/coupons.css";
 
 const fmt = (d: Date | null) => (d ? d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }) : "—");
@@ -16,6 +17,13 @@ export default async function ClaimDetailPage({ params, searchParams }: PageProp
   const c = await prisma.claim.findUnique({ where: { id }, include: { order: { select: { orderNo: true, paidAt: true, shippedAt: true, status: true, totalSatang: true } } } });
   if (!c) notFound();
   const w = c.order ? claimWindows(c.order, c.createdAt) : null;
+  // ใบเสร็จของคำสั่งซื้อนี้ + ใบลดหนี้ที่ออกแล้ว (คืนเงิน/คืนสินค้าตามเคลม)
+  const receipts = c.orderId
+    ? await prisma.salesDocument.findMany({
+        where: { orderId: c.orderId, type: "RECEIPT", status: "ISSUED" },
+        select: { id: true, docNo: true, grandSatang: true, derived: { where: { type: "CREDIT_NOTE", status: { not: "VOID" } }, select: { id: true, docNo: true, status: true, grandSatang: true } } },
+      })
+    : [];
   return (
     <main className="main">
       <div className="page-head">
@@ -49,6 +57,33 @@ export default async function ClaimDetailPage({ params, searchParams }: PageProp
             <h3 style={{ marginTop: 12 }}>อาการ / ปัญหา</h3>
             <p style={{ whiteSpace: "pre-wrap" }} id="claimIssue">{c.issue}</p>
           </div>
+          {c.order && (
+            <div className="box" id="claimCredit">
+              <h3>ใบลดหนี้ / คืนเงิน</h3>
+              {receipts.length ? (
+                <ul className="dv-links">
+                  {receipts.map((r) => {
+                    const used = r.derived.filter((x) => x.status === "ISSUED").reduce((a, x) => a + x.grandSatang, 0);
+                    return (
+                      <li key={r.id}>
+                        <span className="sub">ใบเสร็จ</span><Link className="link num" href={`/admin/docs/RECEIPT/${r.id}`}>{r.docNo}</Link>
+                        {r.derived.map((x) => <Link key={x.id} className="link num" href={`/admin/docs/CREDIT_NOTE/${x.id}`}>{x.docNo ?? "ใบลดหนี้ (ร่าง)"}</Link>)}
+                        {used < r.grandSatang && (
+                          <form action={createCreditNote}>
+                            <input type="hidden" name="id" value={r.id} />
+                            <input type="hidden" name="reason" value={`${CLAIM_KIND[c.kind]}ตามเคลม ${c.claimNo}`} />
+                            <button className="btn btn-outline btn-sm" type="submit">{r.derived.some((x) => x.status === "DRAFT") ? "เปิดใบลดหนี้ที่ร่างไว้" : "ออกใบลดหนี้ / คืนเงิน"}</button>
+                          </form>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="sub">คำสั่งซื้อนี้ยังไม่มีใบเสร็จรับเงิน — ออกใบเสร็จจากหน้าคำสั่งซื้อก่อน แล้วจึงออกใบลดหนี้อ้างอิงใบเสร็จนั้น</p>
+              )}
+            </div>
+          )}
           {c.images.length > 0 && (
             <div className="box">
               <h3>รูปจากลูกค้า ({c.images.length})</h3>

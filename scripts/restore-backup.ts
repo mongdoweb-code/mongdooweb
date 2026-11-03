@@ -75,7 +75,15 @@ async function main() {
       if (!raw) throw new Error(`ไม่มีไฟล์ tables/${t}.json ในไฟล์สำรอง`);
       const rows = JSON.parse(raw.toString("utf8")) as unknown[];
       // ทั้งตารางใน statement เดียว: foreign key ที่อ้างตารางเดียวกัน (เช่น SalesDocument.sourceId) ตรวจตอนจบ statement จึงไม่ติดลำดับแถว
-      if (rows.length) await db.query(`INSERT INTO "${t}" SELECT * FROM json_populate_recordset(NULL::"${t}", $1::json)`, [JSON.stringify(rows)]);
+      // ใส่เฉพาะคอลัมน์ที่มีในไฟล์สำรอง — คอลัมน์ที่เพิ่มทีหลัง (ไฟล์สำรองเก่ากว่าโค้ด) ใช้ค่าเริ่มต้นของตาราง ไม่ใช่ NULL
+      if (rows.length) {
+        const have = new Set(rows.flatMap((r) => Object.keys(r as object)));
+        const cols = (await db.query(`SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 ORDER BY ordinal_position`, [t])).rows
+          .map((r) => r.column_name as string)
+          .filter((c) => have.has(c));
+        const list = cols.map((c) => `"${c}"`).join(", ");
+        await db.query(`INSERT INTO "${t}" (${list}) SELECT ${list} FROM json_populate_recordset(NULL::"${t}", $1::json)`, [JSON.stringify(rows)]);
+      }
       console.log(`  ✓ ${t.padEnd(26)} ${String(rows.length).padStart(8)} แถว`);
     }
     await db.query("COMMIT");

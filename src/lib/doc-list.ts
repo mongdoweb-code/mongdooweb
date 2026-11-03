@@ -58,7 +58,7 @@ export async function listDocs(type: DocTypeT, f: DocFilter, size = f.per) {
     orderBy: [{ issueDate: { sort: "desc", nulls: "first" } }, { docNo: "desc" }, { createdAt: "desc" }],
     skip: (page - 1) * size,
     take: size,
-    include: { customer: { select: { code: true, name: true } }, _count: { select: { items: true } }, order: { select: { orderNo: true } } },
+    include: { customer: { select: { code: true, name: true } }, _count: { select: { items: true } }, order: { select: { orderNo: true } }, source: { select: { docNo: true } } },
   });
   return { rows, total, page, pages };
 }

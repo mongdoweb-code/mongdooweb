@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { docDateTime, fromYmd, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
-import { DOC_INCLUDE, PAY_METHODS, UNITS, asSnap, custSnapshot, defaultTerms, docPath, isDocType, refLine, shopHead, todayYmd, ymdOf } from "@/lib/docs";
+import { CREDIT_REASONS, DOC_INCLUDE, PAY_METHODS, UNITS, asSnap, custSnapshot, defaultTerms, docPath, isDocType, refLine, shopHead, todayYmd, ymdOf } from "@/lib/docs";
 import { CARRIERS } from "@/lib/admin-orders";
 import { parseTiers, unitPriceSatang } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
@@ -23,6 +23,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
   let init: EditorInit;
   let ref = "";
   if (id === "new") {
+    if (type === "CREDIT_NOTE") redirect(`/admin/docs/RECEIPT?err=${encodeURIComponent("ใบลดหนี้สร้างจากหน้าใบเสร็จรับเงิน — เปิดใบเสร็จแล้วกด \"ออกใบลดหนี้ / คืนเงิน\"")}`);
     const cid = typeof sp.customer === "string" ? sp.customer : "";
     const c = cid ? await prisma.customer.findUnique({ where: { id: cid } }) : null;
     init = {
@@ -44,6 +45,10 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       discount: d.discountSatang ? (d.discountSatang / 100).toFixed(2) : "", vatMode: s.vatEnabled ? d.vatMode : "NONE", signDate: ymdOf(d.signDate),
       paymentMethod: d.paymentMethod ?? "", paymentTerms: d.paymentTerms ?? "", carrier: d.carrier ?? "", note: d.note ?? "", internalNote: d.internalNote ?? "",
     };
+    if (type === "CREDIT_NOTE" && d.source) {
+      const prev = await prisma.salesDocument.aggregate({ where: { sourceId: d.source.id, type: "CREDIT_NOTE", status: "ISSUED", NOT: { id: d.id } }, _sum: { grandSatang: true } });
+      Object.assign(init, { creditReason: d.creditReason ?? "", creditOriginal: d.source.grandSatang, creditMax: d.source.grandSatang - (prev._sum.grandSatang ?? 0) });
+    }
   }
   const [customers, products] = await Promise.all([
     prisma.customer.findMany({ orderBy: { code: "desc" }, take: 3000 }),
@@ -65,7 +70,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       vatRateBp={s.vatRateBp}
       refText={ref}
       printedAt={docDateTime(new Date(), s.dateEra)}
-      lists={{ methods: PAY_METHODS, carriers: CARRIERS, units: UNITS }}
+      lists={{ methods: PAY_METHODS, carriers: CARRIERS, units: UNITS, reasons: CREDIT_REASONS }}
     />
   );
 }

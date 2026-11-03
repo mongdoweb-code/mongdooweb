@@ -38,7 +38,7 @@ export default async function SettingsPage() {
             expressEnabled: s.expressEnabled, expressExtra: baht(s.expressExtraSatang),
             slipCheckWithin: s.slipCheckWithin, newOrderSound: s.newOrderSound,
             taxId: s.taxId ?? "", branch: s.branch ?? "", vatEnabled: s.vatEnabled, vatMode: s.vatMode,
-            prefixQuote: s.prefixQuote, prefixInvoice: s.prefixInvoice, prefixReceipt: s.prefixReceipt, dateEra: s.dateEra,
+            prefixQuote: s.prefixQuote, prefixInvoice: s.prefixInvoice, prefixReceipt: s.prefixReceipt, prefixCredit: s.prefixCredit, dateEra: s.dateEra,
             quoteValidDays: s.quoteValidDays, invoiceDueDays: s.invoiceDueDays,
             termsQuote: s.termsQuote ?? "", termsInvoice: s.termsInvoice ?? "", termsReceipt: s.termsReceipt ?? "", showSignature: s.showSignature,
             logoUrl: mediaUrl(s.logoKey),

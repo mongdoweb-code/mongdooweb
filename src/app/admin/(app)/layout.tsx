@@ -15,6 +15,7 @@ const ICON = {
   qt: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7" />,
   iv: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3" />,
   rc: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 11l2 2 4-4" />,
+  cn: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 11h6M11 8l-2 3 2 3" />,
   cust: <path d="M9 4a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM2 21c0-4 3-6 7-6s7 2 7 6M16 4a4 4 0 0 1 0 8M22 21c0-3-1.5-5-4-5.7" />,
   line: <><path d="M4 11c0-4 3.6-7 8-7s8 3 8 7-3.6 7-8 7c-.9 0-1.8-.1-2.6-.4L5 19l.8-3.3C4.7 14.4 4 12.8 4 11z" /></>,
   log: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
@@ -26,6 +27,7 @@ const ICON = {
   debt: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2M3 12h2M19 12h2" /><path d="M15 16.5h3v3" /></>,
   count: <><rect x="5" y="3" width="14" height="18" /><path d="M9 3v3h6V3M8.5 11l1.5 1.5 3-3M8.5 16.5h7" /></>,
   truck: <><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></>,
+  help: <><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01" /></>,
   cash: <><rect x="2" y="6" width="20" height="12" /><circle cx="12" cy="12" r="2.6" /><path d="M6 9v.01M18 15v.01" /></>,
   stock: <path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10M7 5l9 4" />,
   pages: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h4" />,
@@ -107,6 +109,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/docs/QUOTATION", label: "ใบเสนอราคา", icon: <Ico k="qt" />, group: "เอกสารขาย" },
             { href: "/admin/docs/INVOICE", label: "ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: unpaid, group: "เอกสารขาย" },
             { href: "/admin/docs/RECEIPT", label: "ใบเสร็จรับเงิน", icon: <Ico k="rc" />, group: "เอกสารขาย" },
+            { href: "/admin/docs/CREDIT_NOTE", label: "ใบลดหนี้ / คืนเงิน", icon: <Ico k="cn" />, group: "เอกสารขาย" },
             { href: "/admin/docs/slips", label: "สลิปจากลิงก์ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: docSlips, group: "เอกสารขาย" },
             { href: "/admin/customers", label: "ลูกค้า", icon: <Ico k="cust" />, group: "เอกสารขาย" },
             { href: "/admin/projects", label: "ผลงานติดตั้ง", icon: <Ico k="photo" />, group: "เนื้อหาและ SEO" },
@@ -127,6 +130,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
                   { href: "/admin/data-requests", label: "คำขอข้อมูลส่วนบุคคล", icon: <Ico k="shield" />, group: "ระบบ", badge: pdpaNew },
                 ]
               : []),
+            { href: "/admin/help", label: "คู่มือการใช้งาน", icon: <Ico k="help" />, group: "ระบบ" },
             { href: "/admin/account", label: "บัญชีของฉัน", icon: <Ico k="users" />, group: "ระบบ" },
             { href: "/", label: "ดูหน้าร้าน", icon: <Ico k="shop" />, group: "ระบบ", external: true },
           ]}

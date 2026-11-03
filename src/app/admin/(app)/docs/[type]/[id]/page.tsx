@@ -10,15 +10,15 @@ import { getSettings } from "@/lib/settings";
 import { ConfirmSubmit } from "../../../../_components/AdminClient";
 import { DocSheets } from "../../../../_components/DocSheets";
 import { LabelOptions } from "../../../../_components/LabelOptions";
-import { acceptQuote, convertQuote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, reviseQuote, setSignDate } from "../../actions";
+import { acceptQuote, convertQuote, createCreditNote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, returnCreditStock, reviseQuote, setSignDate } from "../../actions";
 import { PaymentForm, QuoteToReceiptForm, VoidForm } from "../../DocForms";
 import { DocOnline } from "../../DocOnline";
 
 export const instant = false;
 
-const SIGNER = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน" } as const;
+const SIGNER = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ" } as const;
 
-const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป" };
+const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป", STOCK_RETURNED: "รับคืนเข้าสต็อก" };
 
 export default async function DocViewPage({ params, searchParams }: PageProps<"/admin/docs/[type]/[id]">) {
   await requireAdmin();
@@ -41,9 +41,13 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
   const liveIv = d.derived.find((x) => x.type === "INVOICE" && x.status !== "VOID");
   const liveRc = d.derived.find((x) => x.type === "RECEIPT" && x.status !== "VOID");
   const draftRevision = d.derived.find((x) => x.type === "QUOTATION" && x.status === "DRAFT");
+  // ใบเสร็จ: ใบลดหนี้ที่ออกแล้วรวมเท่าไร (ลดได้อีกเท่าไร)
+  const credited = d.derived.filter((x) => x.type === "CREDIT_NOTE" && x.status === "ISSUED").reduce((sum, x) => sum + x.grandSatang, 0);
+  const cnDraft = d.derived.find((x) => x.type === "CREDIT_NOTE" && x.status === "DRAFT");
+  const stockLines = d.type === "CREDIT_NOTE" ? d.items.filter((i) => i.productId && i.qtyMilli % 1000 === 0).length : 0;
   const label = meta.th.split(" /")[0];
   const flash =
-    sp.issued === "1" ? `ออก${label}เลขที่ ${d.docNo} แล้ว` : sp.saved === "1" ? "บันทึกฉบับร่างแล้ว" : sp.exists === "1" ? "มีเอกสารนี้อยู่แล้ว — เปิดฉบับที่มีอยู่ให้" : sp.voided === "1" ? `ยกเลิก${label}แล้ว — เลขที่เดิมยังเก็บไว้ (ห้ามนำมาใช้ซ้ำ)` : "";
+    sp.issued === "1" ? `ออก${label}เลขที่ ${d.docNo} แล้ว` : sp.saved === "1" ? "บันทึกฉบับร่างแล้ว" : sp.exists === "1" ? "มีเอกสารนี้อยู่แล้ว — เปิดฉบับที่มีอยู่ให้" : sp.voided === "1" ? `ยกเลิก${label}แล้ว — เลขที่เดิมยังเก็บไว้ (ห้ามนำมาใช้ซ้ำ)` : sp.stock === "1" ? "รับสินค้าคืนเข้าสต็อกแล้ว — ดูได้ในประวัติสต็อก" : "";
   const err = typeof sp.err === "string" ? sp.err.slice(0, 200) : "";
   const idInput = <input type="hidden" name="id" value={d.id} />;
   const act = (fn: (f: FormData) => Promise<void>, text: string, cls = "btn btn-outline") => (
@@ -91,6 +95,9 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
               {d.carrier && <><span>ขนส่ง</span><b>{d.carrier}</b></>}
               {d.vatMode !== "NONE" && <><span>VAT {d.vatRateBp / 100}%</span><b>{d.vatMode === "EXCLUSIVE" ? "แยกนอก" : "รวมใน"} ฿{money(d.vatSatang)}</b></>}
               {d.status === "VOID" && <><span>เหตุผลยกเลิก</span><b>{d.voidReason}</b></>}
+              {d.type === "CREDIT_NOTE" && <><span>เหตุผลลดหนี้</span><b>{d.creditReason ?? "—"}</b></>}
+              {d.type === "CREDIT_NOTE" && d.source && <><span>อ้างอิงใบเสร็จ</span><b><Link className="link" href={docPath(d.source)}>{d.source.docNo}</Link> (฿{money(d.source.grandSatang)})</b></>}
+              {d.type === "RECEIPT" && credited > 0 && <><span>ลดหนี้แล้ว</span><b className="owe">฿{money(credited)}</b></>}
             </div>
             <div className="dv-acts">
               {d.status === "DRAFT" && (
@@ -117,7 +124,14 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
               {d.type === "QUOTATION" && d.status === "ISSUED" && <>{act(acceptQuote, st === "expired" ? "ลูกค้าตอบรับ (หมดอายุแล้ว)" : "ลูกค้าตอบรับ")}{act(rejectQuote, "ลูกค้าไม่ตอบรับ")}</>}
               {d.type === "QUOTATION" && ["ACCEPTED", "REJECTED"].includes(d.status) && !liveIv && !liveRc && act(reopenQuote, "กลับเป็นรอตอบรับ", "btn btn-ghost")}
               {d.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.status) && (draftRevision ? <Link className="btn btn-outline" href={`${docPath(draftRevision)}/edit`}>ฉบับแก้ไขที่ร่างไว้</Link> : act(reviseQuote, "สร้างฉบับแก้ไข"))}
-              {d.status !== "DRAFT" && act(duplicateDoc, "ทำสำเนาเป็นฉบับใหม่", "btn btn-ghost")}
+              {d.type === "RECEIPT" && d.status === "ISSUED" && (cnDraft ? (
+                <Link className="btn btn-outline" href={`${docPath(cnDraft)}/edit`}>ใบลดหนี้ที่ร่างไว้</Link>
+              ) : credited < d.grandSatang ? act(createCreditNote, credited ? `ออกใบลดหนี้เพิ่ม (ลดได้อีก ฿${money(d.grandSatang - credited)})` : "ออกใบลดหนี้ / คืนเงิน") : null)}
+              {d.type === "CREDIT_NOTE" && d.status === "ISSUED" && !d.stockReturnedAt && stockLines > 0 && (
+                <form action={returnCreditStock}>{idInput}<ConfirmSubmit className="btn btn-outline" title="รับสินค้าคืนเข้าสต็อก?" body={`เพิ่มสต็อกตามจำนวนในใบลดหนี้ ${stockLines} รายการ (สินค้าที่นับสต็อก) — ทำได้ครั้งเดียว`} confirmLabel="รับคืนเข้าสต็อก">รับสินค้าคืนเข้าสต็อก</ConfirmSubmit></form>
+              )}
+              {d.type === "CREDIT_NOTE" && d.stockReturnedAt && <small className="sub dv-hint">รับสินค้าคืนเข้าสต็อกแล้ว {docDateTime(d.stockReturnedAt, era)}</small>}
+              {d.status !== "DRAFT" && d.type !== "CREDIT_NOTE" && act(duplicateDoc, "ทำสำเนาเป็นฉบับใหม่", "btn btn-ghost")}
             </div>
           </div>
 
@@ -163,14 +177,14 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
             <section className="dv-sec">
               <h3>เอกสารที่เกี่ยวข้อง</h3>
               <ul className="dv-links">
-                {d.source && <li><span className="sub">{d.type === "QUOTATION" ? "แก้ไขจาก" : "อ้างอิง"}</span><Link className="link" href={docPath(d.source)}>{d.source.docNo ?? "ฉบับร่าง"}</Link><span className="sub">{DOC_META[d.source.type].short}</span></li>}
+                {d.source && <li><span className="sub">{d.type === "QUOTATION" ? "แก้ไขจาก" : d.type === "CREDIT_NOTE" ? "ลดหนี้จากใบเสร็จ" : "อ้างอิง"}</span><Link className="link" href={docPath(d.source)}>{d.source.docNo ?? "ฉบับร่าง"}</Link><span className="sub">{DOC_META[d.source.type].short}</span></li>}
                 {d.derived.map((x) => <li key={x.id}><span className="sub">{x.type === d.type ? "ฉบับแก้ไข/สำเนา" : DOC_META[x.type].th.split(" /")[0]}</span><Link className="link" href={docPath(x)}>{x.docNo ?? "ฉบับร่าง"}</Link>{x.status === "VOID" && <span className="dst dst-void">ยกเลิก</span>}</li>)}
                 {d.order && <li><span className="sub">คำสั่งซื้อเว็บ</span><Link className="link" href={`/admin?tab=ALL&open=${d.order.orderNo}`}>{d.order.orderNo}</Link></li>}
               </ul>
             </section>
           )}
 
-          {d.type !== "QUOTATION" && d.status !== "DRAFT" && d.status !== "VOID" && (
+          {d.type !== "QUOTATION" && d.type !== "CREDIT_NOTE" && d.status !== "DRAFT" && d.status !== "VOID" && (
             <details className="dv-sec lbl-box">
               <summary><h3>ใบปะหน้าส่งของ</h3></summary>
               <LabelOptions target={`doc=${d.id}`} idKey={d.id} />
@@ -181,7 +195,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
 
           {d.status !== "DRAFT" && d.status !== "VOID" && (
             <section className="dv-sec">
-              <VoidForm id={d.id} label={label} hint={d.type === "RECEIPT" && d.receiptFor ? "ยอดรับชำระของงวดนี้จะถูกหักออกจากใบแจ้งหนี้ให้อัตโนมัติ" : d.type === "INVOICE" && livePays.length ? "ต้องยกเลิกใบเสร็จของทุกงวดก่อน" : undefined} />
+              <VoidForm id={d.id} label={label} hint={d.type === "CREDIT_NOTE" && d.stockReturnedAt ? "สต็อกที่รับคืนไปแล้วไม่ถูกตัดกลับอัตโนมัติ — ปรับที่หน้าสต็อกถ้าจำเป็น" : d.type === "RECEIPT" && credited ? "ต้องยกเลิกใบลดหนี้ของใบเสร็จนี้ก่อน" : d.type === "RECEIPT" && d.receiptFor ? "ยอดรับชำระของงวดนี้จะถูกหักออกจากใบแจ้งหนี้ให้อัตโนมัติ" : d.type === "INVOICE" && livePays.length ? "ต้องยกเลิกใบเสร็จของทุกงวดก่อน" : undefined} />
             </section>
           )}
 

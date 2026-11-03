@@ -15,12 +15,23 @@ export async function issueDocTx(tx: Tx, id: string, adminId: string | null, s: 
   if (d.status !== "DRAFT") throw new DocUserError("เอกสารนี้ออกเลขที่แล้ว");
   if (!d._count.items || !d.customerId) throw new DocUserError("ต้องมีลูกค้าและรายการก่อนออกเอกสาร");
   const ymd = ymdBkk(d.issueDate ?? new Date());
+  if (d.type === "CREDIT_NOTE") {
+    // ใบลดหนี้: ต้องอ้างใบเสร็จที่ยังไม่ยกเลิก · มีเหตุผล · รวมทุกใบลดหนี้ของใบเสร็จนั้นต้องไม่เกินยอดใบเสร็จ
+    const src = d.source;
+    if (!src || src.type !== "RECEIPT" || src.status !== "ISSUED") throw new DocUserError("ใบลดหนี้ต้องอ้างอิงใบเสร็จรับเงินที่ยังไม่ยกเลิก");
+    if (!d.creditReason?.trim()) throw new DocUserError("กรุณาระบุเหตุผลการลดหนี้");
+    await tx.$queryRaw`SELECT "id" FROM "SalesDocument" WHERE "id" = ${src.id} FOR UPDATE`;
+    const prev = await tx.salesDocument.aggregate({ where: { sourceId: src.id, type: "CREDIT_NOTE", status: "ISSUED", NOT: { id } }, _sum: { grandSatang: true } });
+    const left = src.grandSatang - (prev._sum.grandSatang ?? 0);
+    if (d.grandSatang > left) throw new DocUserError(`ยอดลดหนี้เกินยอดที่ลดได้ของใบเสร็จ ${src.docNo} (ลดได้อีก ฿${money(Math.max(0, left))})`);
+    if (ymd < ymdBkk(src.issueDate ?? new Date(0))) throw new DocUserError("วันที่ใบลดหนี้ต้องไม่ก่อนวันที่ใบเสร็จ");
+  }
   const no = await allocDocNo(tx, d.type, ymd, prefixOf(s, d.type));
   const r = await tx.salesDocument.updateMany({ where: { id, status: "DRAFT" }, data: { docNo: no, status: "ISSUED", issueDate: fromYmd(ymd) } });
   if (r.count !== 1) throw new DocUserError("เอกสารนี้ถูกออกเลขที่ไปแล้ว");
   await tx.salesDocumentEvent.create({ data: { documentId: id, type: "ISSUED", adminId, note: `ออกเลขที่ ${no}` } });
   // ใบเสร็จ: บันทึกต้นทุนต่อหน่วย ณ วันที่ออก (รายงานกำไรของใบเสร็จที่ไม่ผูกคำสั่งซื้อ ไม่เปลี่ยนตามต้นทุนใหม่)
-  if (d.type === "RECEIPT")
+  if (d.type === "RECEIPT" || d.type === "CREDIT_NOTE")
     await tx.$executeRaw`
       UPDATE "SalesDocumentItem" AS i SET "costSatang" = p."costSatang"
       FROM "Product" AS p
