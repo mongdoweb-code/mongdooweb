@@ -106,6 +106,8 @@ export async function getShopData() {
     visible: c.showOnHome,
     order: c.sortOrder,
     count: 0,
+    // รูปหมวดที่อัปโหลดเองมาก่อน ไม่มีจึงใช้รูปสินค้า (ด้านล่าง)
+    ...(c.imageKey ? { img: mediaUrl(c.imageKey, "sm") ?? undefined } : {}),
   }));
 
   const catalog: CatalogItem[] = products.map((p) => {
@@ -231,8 +233,8 @@ export async function getCategory(slug: string) {
 
   const c = await prisma.category.findFirst({ where: { slug, isActive: true } });
   if (!c) return null;
-  // รูปแชร์ (Open Graph) = รูปสินค้าแรกของหมวด ตามลำดับเดียวกับหน้าหมวด
-  const first = await prisma.product.findFirst({
+  // รูปแชร์ (Open Graph) = รูปหมวดที่อัปโหลด หรือรูปสินค้าแรกของหมวด ตามลำดับเดียวกับหน้าหมวด
+  const first = c.imageKey ? null : await prisma.product.findFirst({
     where: { categoryId: c.id, isActive: true, isService: false, images: { isEmpty: false } },
     orderBy: PRODUCT_ORDER,
     select: { images: true, name: true },
@@ -244,7 +246,7 @@ export async function getCategory(slug: string) {
     popular: c.popular,
     description: c.description,
     showOnHome: c.showOnHome,
-    image: first ? { url: mediaUrl(first.images[0])!, alt: first.name } : null,
+    image: c.imageKey ? { url: mediaUrl(c.imageKey)!, alt: c.nameTh } : first ? { url: mediaUrl(first.images[0])!, alt: first.name } : null,
   };
 }
 

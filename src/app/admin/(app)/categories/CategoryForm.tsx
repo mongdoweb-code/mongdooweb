@@ -7,11 +7,16 @@ import { saveCategory, type CatState } from "./actions";
 export type CatValues = {
   id: string; nameTh: string; nameEn: string; slug: string; legacySlug: string; icon: string; group: string;
   popular: string; description: string; showOnHome: boolean; isActive: boolean;
+  /** รูปหมวดที่อัปโหลดไว้ (ลิงก์รูปย่อ) · fallback = รูปสินค้าตัวแรกของหมวด (แสดงเป็นตัวอย่างเมื่อยังไม่อัปโหลด) */
+  imageUrl: string; fallbackUrl: string;
 };
 
 export function CategoryForm({ v, icons }: { v: CatValues; icons: Record<string, string> }) {
   const [state, onSubmit, pending] = useFormAction<CatState>(saveCategory, {});
   const [icon, setIcon] = useState(v.icon);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [clear, setClear] = useState(false);
+  const shown = preview ?? (clear ? null : v.imageUrl || null);
   const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
   return (
     <form className="box cat-form" onSubmit={onSubmit}>
@@ -44,6 +49,32 @@ export function CategoryForm({ v, icons }: { v: CatValues; icons: Record<string,
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: path }} />
             </button>
           ))}
+        </div>
+      </div>
+      <div className="field cat-img-field">
+        <span className="lbl">รูปหมวด (แสดงในแถบ &quot;เลือกซื้อตามหมวดหมู่&quot; และการ์ดหมวดหน้าแรก)</span>
+        <div className="cat-img-row">
+          <span className={`cat-img-prev${shown ? "" : " fallback"}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {shown ? <img src={shown} alt="" /> : v.fallbackUrl ? <img src={v.fallbackUrl} alt="" /> : <span aria-hidden="true">?</span>}
+          </span>
+          <div className="cat-img-ctl">
+            <label className="btn btn-outline btn-sm" htmlFor="catImage">{v.imageUrl || preview ? "เปลี่ยนรูป" : "อัปโหลดรูป"}</label>
+            <input
+              id="catImage" name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" {...bad("image")}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                setPreview(f ? URL.createObjectURL(f) : null);
+                if (f) setClear(false);
+              }}
+            />
+            {v.imageUrl && !preview && (
+              <label className="chk-row"><input type="checkbox" name="clearImage" checked={clear} onChange={(e) => setClear(e.target.checked)} /> เอารูปหมวดออก (กลับไปใช้รูปสินค้า)</label>
+            )}
+            <small className="sub">
+              {preview ? "รูปใหม่ — กด “บันทึกหมวด” เพื่อใช้รูปนี้" : shown ? "รูปที่อัปโหลดไว้" : "ยังไม่ได้อัปโหลด — ตอนนี้ใช้รูปสินค้าตัวแรกของหมวด"} · JPG, PNG, WEBP ไม่เกิน 10 MB · แนะนำรูปสี่เหลี่ยมจัตุรัส พื้นขาวหรือโปร่งใส
+            </small>
+          </div>
         </div>
       </div>
       <div className="field"><label htmlFor="popular">รายการยอดนิยมใน dropdown (สูงสุด 4, คั่นด้วย ,)</label><input id="popular" name="popular" defaultValue={v.popular} placeholder="เช่น แสงขาว, RGB เปลี่ยนสี" /></div>

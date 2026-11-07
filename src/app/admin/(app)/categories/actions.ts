@@ -7,6 +7,7 @@ import { logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin, requireOwner } from "@/lib/auth";
 import { baseline, snapshot } from "@/lib/content-version";
 import { ICON_KEYS } from "@/lib/icons";
+import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { recordSlugChange } from "@/lib/redirects";
 import { CAT_SORT_LABEL, isCatSortKey, sortCategories } from "./sort";
@@ -30,6 +31,16 @@ export async function saveCategory(_prev: CatState, f: FormData): Promise<CatSta
   const legacySlug = str(f, "legacySlug", 300).replace(/^.*\/product-category\//, "").replace(/\/+$/, "").split("/").pop() || null;
   if (legacySlug && (await prisma.category.findFirst({ where: { legacySlug, NOT: id ? { id } : undefined } }))) bad.push("legacySlug");
   if (bad.length) return { error: bad.includes("slug") ? "ลิงก์หมวด (slug) ซ้ำหรือรูปแบบไม่ถูกต้อง" : "กรุณาตรวจช่องที่มีกรอบสีแดง", fields: bad };
+  // รูปหมวด: อัปโหลดใหม่ / เอาออก (กลับไปใช้รูปสินค้า) / ไม่แตะ
+  let imageKey: string | null | undefined = undefined;
+  const file = f.get("image");
+  if (file instanceof File && file.size > 0) {
+    try {
+      imageKey = await saveImage(Buffer.from(await file.arrayBuffer()), "categories", { full: 1200, thumb: 480 });
+    } catch (e) {
+      return { error: e instanceof MediaError ? e.message : "อัปโหลดรูปไม่สำเร็จ", fields: ["image"] };
+    }
+  } else if (f.get("clearImage") === "on") imageKey = null;
   const popular = str(f, "popular", 400).split(/[,\n]/).map((s) => s.trim().slice(0, 40)).filter(Boolean).slice(0, 4);
   const data = {
     nameTh,
@@ -42,6 +53,7 @@ export async function saveCategory(_prev: CatState, f: FormData): Promise<CatSta
     description: str(f, "description", 2000) || null,
     showOnHome: f.get("showOnHome") === "on",
     isActive: f.get("isActive") === "on",
+    ...(imageKey !== undefined ? { imageKey } : {}),
   };
   if (id) {
     const prev = await prisma.category.findUnique({ where: { id }, select: { slug: true } });
@@ -52,7 +64,7 @@ export async function saveCategory(_prev: CatState, f: FormData): Promise<CatSta
     await prisma.category.create({ data: { ...data, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
   }
   await snapshot("CATEGORIES", admin.displayName);
-  await logAdmin(admin.id, "CATEGORY", `${id ? "แก้ไข" : "เพิ่ม"}หมวด ${nameTh}`);
+  await logAdmin(admin.id, "CATEGORY", `${id ? "แก้ไข" : "เพิ่ม"}หมวด ${nameTh}${imageKey ? " · อัปโหลดรูปหมวด" : imageKey === null ? " · เอารูปหมวดออก" : ""}`);
   refreshStorefront();
   if (!id) redirect("/admin/categories?saved=1");
   refresh();
@@ -128,13 +140,13 @@ export async function rollbackCategories(f: FormData) {
   const admin = await requireAdmin();
   const v = await prisma.contentVersion.findUnique({ where: { id: str(f, "versionId", 40) } });
   if (!v || v.kind !== "CATEGORIES" || !Array.isArray(v.snapshot)) redirect("/admin/categories");
-  const rows = v.snapshot as { id: string; nameTh: string; nameEn: string; icon: string | null; group: CategoryGroup; popular: string[]; sortOrder: number; isActive: boolean; showOnHome?: boolean; description?: string | null }[];
+  const rows = v.snapshot as { id: string; nameTh: string; nameEn: string; icon: string | null; group: CategoryGroup; popular: string[]; sortOrder: number; isActive: boolean; showOnHome?: boolean; description?: string | null; imageKey?: string | null }[];
   const existing = new Set((await prisma.category.findMany({ select: { id: true } })).map((c) => c.id));
   await prisma.$transaction(
     rows.filter((r) => existing.has(r.id)).map((r) =>
       prisma.category.update({
         where: { id: r.id },
-        data: { nameTh: r.nameTh, nameEn: r.nameEn, icon: r.icon, group: r.group, popular: r.popular, sortOrder: r.sortOrder, isActive: r.isActive, showOnHome: r.showOnHome ?? true, description: r.description ?? null },
+        data: { nameTh: r.nameTh, nameEn: r.nameEn, icon: r.icon, group: r.group, popular: r.popular, sortOrder: r.sortOrder, isActive: r.isActive, showOnHome: r.showOnHome ?? true, description: r.description ?? null, ...(r.imageKey !== undefined ? { imageKey: r.imageKey } : {}) },
       }),
     ),
   );

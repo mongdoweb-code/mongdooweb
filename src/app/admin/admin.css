@@ -1769,3 +1769,11 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 @media (max-width:560px){.task-edit-form .two{grid-template-columns:1fr}}
 .task-acts{display:flex;align-items:center;gap:2px}
 .task-acts form{display:contents}
+/* รูปหมวด (ฟอร์มหมวดหมู่) */
+.cat-img-row{display:flex;gap:14px;align-items:center}
+.cat-img-prev{flex:0 0 84px;width:84px;height:84px;border-radius:50%;background:#fff;border:1px solid var(--c-line);display:grid;place-items:center;overflow:hidden;color:var(--c-muted);font-size:24px}
+.cat-img-prev img{width:80%;height:80%;object-fit:contain}
+.cat-img-prev.fallback{border-style:dashed;opacity:.75}
+.cat-img-ctl{display:grid;gap:6px;justify-items:start;min-width:0}
+.cat-img-ctl label.btn{cursor:pointer}
+.cat-img-ctl input[type=file]:focus-visible + *,.cat-img-ctl label.btn:focus-within{outline:2px solid var(--c-orange)}
