@@ -380,14 +380,33 @@ export const PRICE_FILTERS = {
   "3000-": "฿3,000 ขึ้นไป",
 } as const;
 export const STOCK_FILTERS = { in: "มีของพร้อมส่ง" } as const;
-/** "" = แนะนำ (ลำดับเริ่มต้นของร้าน: ขายดี → ยอดเข้าชม → ลำดับที่ตั้ง) */
+/** "" = แนะนำ (ลำดับที่ร้านจัดไว้: ปักหมุด → ลากจัดลำดับในหลังบ้าน) */
 export const SORTS = {
   "": "แนะนำ",
-  "price-asc": "ราคาต่ำ → สูง",
-  "price-desc": "ราคาสูง → ต่ำ",
-  best: "ขายดี",
+  name: "ชื่อสินค้า",
+  price: "ราคา",
   new: "มาใหม่",
+  best: "ขายดี",
+  rating: "คะแนนรีวิว",
 } as const;
+export type SortKey = keyof typeof SORTS;
+/** ทิศเริ่มต้นของแต่ละการเรียง (true = มาก → น้อย) — ปุ่ม ↓↑ สลับจากค่านี้ */
+export const SORT_DEFAULT_DESC: Record<SortKey, boolean> = { "": false, name: false, price: false, new: true, best: true, rating: true };
+/** คำอธิบายทิศของแต่ละการเรียง [น้อย→มาก, มาก→น้อย] */
+export const SORT_DIR_TEXT: Record<SortKey, [string, string]> = {
+  "": ["ตามที่ร้านแนะนำ", "ตามที่ร้านแนะนำ"],
+  name: ["ก → ฮ / A → Z", "ฮ → ก / Z → A"],
+  price: ["ราคาต่ำ → สูง", "ราคาสูง → ต่ำ"],
+  new: ["เก่า → ใหม่", "ใหม่ → เก่า"],
+  best: ["ขายน้อย → มาก", "ขายดีที่สุดก่อน"],
+  rating: ["คะแนนต่ำ → สูง", "คะแนนสูงสุดก่อน"],
+};
+/** ลิงก์เก่าของรอบก่อน (?sort=price-asc / price-desc / popular) → ค่าใหม่ */
+export const LEGACY_SORTS: Record<string, { sort: SortKey; dir: "" | "asc" | "desc" }> = {
+  "price-asc": { sort: "price", dir: "" },
+  "price-desc": { sort: "price", dir: "desc" },
+  popular: { sort: "", dir: "" },
+};
 
 export type ProductFilter = {
   category?: string;
@@ -396,17 +415,19 @@ export type ProductFilter = {
   price?: string;
   stock?: string;
   sort?: string;
+  /** "" = ทิศเริ่มต้นของการเรียงนั้น */
+  dir?: string;
 };
 
-/** ข้อมูลประกอบการเรียงลำดับ (ไม่ส่งไปเบราว์เซอร์): ยอดขายจริง + วันที่เพิ่มสินค้า */
-export type ListingMeta = Record<string, { sold: number; created: number; views: number }>;
+/** ข้อมูลประกอบการเรียงลำดับ (ไม่ส่งไปเบราว์เซอร์): ยอดขายจริง + วันที่เพิ่มสินค้า + คะแนนรีวิว (อนุมัติแล้ว) */
+export type ListingMeta = Record<string, { sold: number; created: number; views: number; rating: number; reviews: number }>;
 
 /** ยอดขายจากคำสั่งซื้อที่ชำระแล้ว/ส่งแล้ว + วันที่เพิ่มสินค้า ต่อ slug */
 export async function getListingMeta(): Promise<ListingMeta> {
   "use cache";
   cacheLife("hours");
   cacheTag(STOREFRONT_TAG);
-  const [products, sold] = await Promise.all([
+  const [products, sold, rated] = await Promise.all([
     prisma.product.findMany({
       where: { isActive: true, isService: false },
       select: { id: true, slug: true, createdAt: true, views: true },
@@ -416,10 +437,13 @@ export async function getListingMeta(): Promise<ListingMeta> {
       where: { productId: { not: null }, order: { status: { in: ["PAID", "SHIPPED"] } } },
       _sum: { qty: true },
     }),
+    prisma.review.groupBy({ by: ["productId"], where: { status: "APPROVED" }, _avg: { rating: true }, _count: { _all: true } }),
   ]);
   const soldBy = new Map(sold.map((r) => [r.productId, r._sum.qty ?? 0]));
+  const rateBy = new Map(rated.map((r) => [r.productId, { rating: r._avg.rating ?? 0, reviews: r._count._all }]));
   const out: ListingMeta = {};
-  for (const p of products) out[p.slug] = { sold: soldBy.get(p.id) ?? 0, created: p.createdAt.getTime(), views: p.views };
+  for (const p of products)
+    out[p.slug] = { sold: soldBy.get(p.id) ?? 0, created: p.createdAt.getTime(), views: p.views, ...(rateBy.get(p.id) ?? { rating: 0, reviews: 0 }) };
   return out;
 }
 
@@ -439,16 +463,32 @@ export function filterCatalog(catalog: CatalogItem[], f: ProductFilter, meta?: L
   // กรองช่วงราคา = ไม่รวมสินค้า "สอบถามราคา" (ราคา 0)
   if (range) list = list.filter((p) => p.price > 0 && p.price >= range[0] && p.price < range[1]);
   if (f.stock === "in") list = list.filter((p) => p.price > 0 && p.inStock);
-  const priced = (p: CatalogItem) => (p.price > 0 ? 0 : 1); // "สอบถามราคา" อยู่ท้ายเสมอเมื่อเรียงตามราคา
-  if (f.sort === "price-asc") list = [...list].sort((a, b) => priced(a) - priced(b) || a.price - b.price);
-  else if (f.sort === "price-desc") list = [...list].sort((a, b) => priced(a) - priced(b) || b.price - a.price);
-  else if (f.sort === "best" && meta) {
-    const m = (p: CatalogItem) => meta[p.id] ?? { sold: 0, views: 0, created: 0 };
-    list = [...list].sort((a, b) => m(b).sold - m(a).sold || Number(!!b.best) - Number(!!a.best) || m(b).views - m(a).views);
-  } else if (f.sort === "new" && meta) {
-    list = [...list].sort((a, b) => (meta[b.id]?.created ?? 0) - (meta[a.id]?.created ?? 0));
-  }
-  return list;
+  return sortCatalog(list, f, meta);
+}
+
+const thCollator = new Intl.Collator("th", { numeric: true, sensitivity: "base" });
+const NO_META = { sold: 0, created: 0, views: 0, rating: 0, reviews: 0 };
+
+/**
+ * เรียงรายการ (คืน array ใหม่ · การเรียงของ JS คงลำดับเดิมเมื่อค่าเท่ากัน → ค่าเท่ากันเรียงตาม "แนะนำ")
+ * - "สอบถามราคา" อยู่ท้ายเสมอเมื่อเรียงตามราคา · สินค้าที่ยังไม่มีรีวิวอยู่ท้ายเสมอเมื่อเรียงตามคะแนน
+ */
+export function sortCatalog(list: CatalogItem[], f: Pick<ProductFilter, "sort" | "dir">, meta?: ListingMeta) {
+  const key = (f.sort && f.sort in SORTS ? f.sort : "") as SortKey;
+  if (!key) return list;
+  const desc = f.dir === "asc" ? false : f.dir === "desc" ? true : SORT_DEFAULT_DESC[key];
+  const s = desc ? -1 : 1;
+  const m = (p: CatalogItem) => meta?.[p.id] ?? NO_META;
+  const priced = (p: CatalogItem) => (p.price > 0 ? 0 : 1);
+  const rated = (p: CatalogItem) => (m(p).reviews > 0 ? 0 : 1);
+  const cmp: Record<Exclude<SortKey, "">, (a: CatalogItem, b: CatalogItem) => number> = {
+    name: (a, b) => s * thCollator.compare(a.name, b.name),
+    price: (a, b) => priced(a) - priced(b) || s * (a.price - b.price),
+    new: (a, b) => s * (m(a).created - m(b).created),
+    best: (a, b) => s * (m(a).sold - m(b).sold || Number(!!a.best) - Number(!!b.best) || m(a).views - m(b).views),
+    rating: (a, b) => rated(a) - rated(b) || s * (m(a).rating - m(b).rating || m(a).reviews - m(b).reviews),
+  };
+  return [...list].sort(cmp[key]);
 }
 
 // คำพ้อง ไทย ↔ อังกฤษ (รวมชุดเดียวกับช่องค้นหาใน shell.js) — ตรงคำใดคำหนึ่งก็นับว่าเจอ

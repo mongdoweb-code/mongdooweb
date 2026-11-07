@@ -1,31 +1,7 @@
 "use client";
-// ส่วนควบคุมของรายการสินค้าที่ต้องใช้ JS: เลือกการเรียงลำดับ (เปลี่ยนแล้วไปหน้าใหม่ทันที)
-// และปุ่มเปิด/ปิดแผงตัวกรองบนมือถือ (เดสก์ท็อปแสดงตลอด)
+// ปุ่มเปิด/ปิดแผงตัวกรองบนมือถือ (เดสก์ท็อปแสดงตลอด)
+// แถบเรียงสินค้า (เรียงตาม/ทิศ/ต่อหน้า/มุมมอง) อยู่ที่ src/components/SortToolbar.tsx
 import { useId, useState } from "react";
-
-export function SortSelect({ value, options }: { value: string; options: { value: string; label: string; href: string }[] }) {
-  const id = useId();
-  return (
-    <div className="lst-sort">
-      <label htmlFor={id}>เรียงตาม</label>
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => {
-          const o = options.find((x) => x.value === e.target.value);
-          // ไปหน้าใหม่แบบลิงก์ธรรมดา → เพิ่มประวัติให้กดย้อนกลับได้
-          if (o) window.location.assign(o.href);
-        }}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 export function FilterPanel({ activeCount, children }: { activeCount: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);

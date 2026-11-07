@@ -1,6 +1,8 @@
 // รายการสินค้า + เรียงลำดับ + ตัวกรอง (การใช้งาน, สีแสง, ช่วงราคา, มีของ) + ตัวกรองสเปกของหมวด (U6)
 // ทุกตัวกรองอยู่ใน URL (ลิงก์ธรรมดา) → แชร์ลิงก์ได้ และกดย้อนกลับของเบราว์เซอร์ได้ทีละขั้น
 // สินค้าหลายตัวเลือก (U1) แสดงการ์ดเดียวต่อกลุ่ม (ตัวหลัก หรือตัวแรกที่ตรงตัวกรอง) พร้อม "มี n ตัวเลือก"
+import { cookies } from "next/headers";
+import { SortToolbar } from "@/components/SortToolbar";
 import { getCatalogExtras, getSpecDefs, type ProductExtra } from "@/lib/product-data";
 import {
   defsFor,
@@ -13,8 +15,11 @@ import {
 } from "@/lib/specs";
 import {
   COLOR_FILTERS,
+  LEGACY_SORTS,
   PRICE_FILTERS,
   SORTS,
+  SORT_DEFAULT_DESC,
+  SORT_DIR_TEXT,
   STOCK_FILTERS,
   USE_FILTERS,
   filterCatalog,
@@ -23,10 +28,21 @@ import {
   type CatalogItem,
 } from "@/lib/storefront";
 import { ProductGrid } from "./ProductCard";
-import { FilterPanel, SortSelect } from "./ListingControls";
+import { FilterPanel } from "./ListingControls";
 
 type Params = Record<string, string | string[] | undefined>;
-const PER_PAGE = 24;
+/** จำนวนต่อหน้า (หารด้วย 2, 3, 4 คอลัมน์ลงตัวทุกค่า) */
+const PER_OPTIONS = [12, 24, 36] as const;
+const PER_DEFAULT = 24;
+/** มุมมอง (จำในคุกกี้ mdw_view) — wideOnly = ซ่อนปุ่มบนจอ ≤ 1024px (จอเล็กแสดง 2 คอลัมน์อยู่แล้ว) */
+export const VIEW_COOKIE = "mdw_view";
+const VIEWS = [
+  { value: "grid2", label: "การ์ดใหญ่ 2 คอลัมน์", icon: "grid2" },
+  { value: "grid3", label: "การ์ด 3 คอลัมน์", icon: "grid3", wideOnly: true },
+  { value: "grid4", label: "การ์ด 4 คอลัมน์", icon: "grid4", wideOnly: true },
+  { value: "list", label: "แบบรายการ (รูปซ้าย รายละเอียดขวา)", icon: "list" },
+] as const;
+const VIEW_DEFAULT = "grid4";
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 const GROUPS = [
@@ -36,7 +52,7 @@ const GROUPS = [
   { key: "stock", legend: "สถานะสินค้า", opts: STOCK_FILTERS },
 ] as const;
 type FilterKey = (typeof GROUPS)[number]["key"];
-type State = Record<FilterKey | "sort", string>;
+type State = Record<FilterKey | "sort" | "dir" | "per", string>;
 
 /** อ่านค่าจาก URL — ค่าที่ไม่รู้จักถูกตัดทิ้ง (กัน URL แปลกๆ ทำให้หน้าเพี้ยน) */
 export function readListingParams(sp: Params): State {
@@ -44,13 +60,23 @@ export function readListingParams(sp: Params): State {
     const v = one(sp[k]);
     return v in allowed ? v : "";
   };
-  const sort = one(sp.sort) === "popular" ? "" : pick("sort", SORTS); // "popular" = ค่าเดิมของรอบก่อน
+  // ลิงก์เก่า ?sort=price-asc / price-desc / popular ยังใช้ได้
+  const legacy = LEGACY_SORTS[one(sp.sort)];
+  const sort = legacy ? legacy.sort : pick("sort", SORTS);
+  // ทิศทาง: เก็บใน URL เฉพาะเมื่อกลับทิศจากค่าเริ่มต้นของการเรียงนั้น ("แนะนำ" ไม่มีทิศ)
+  const rawDir = legacy?.dir || one(sp.dir);
+  const wantDesc = rawDir === "desc" ? true : rawDir === "asc" ? false : null;
+  const dir = sort && wantDesc !== null && wantDesc !== SORT_DEFAULT_DESC[sort as keyof typeof SORTS] ? rawDir : "";
+  const n = Number(one(sp.per));
+  const per = (PER_OPTIONS as readonly number[]).includes(n) && n !== PER_DEFAULT ? String(n) : "";
   return {
     use: pick("use", USE_FILTERS),
     color: pick("color", COLOR_FILTERS),
     price: pick("price", PRICE_FILTERS),
     stock: pick("stock", STOCK_FILTERS),
     sort,
+    dir,
+    per,
   };
 }
 
@@ -107,9 +133,16 @@ export async function ProductListing({
   const count = (list: CatalogItem[]) => collapseVariants(list, extras.bySlug, extras.groupSize).items.length;
   const { items: all, options } = collapseVariants(bySpecs(filterCatalog(base, current, meta)), extras.bySlug, extras.groupSize);
 
+  const PER_PAGE = Number(current.per) || PER_DEFAULT;
   const pages = Math.max(1, Math.ceil(all.length / PER_PAGE));
   const page = Math.min(pages, Math.max(1, Math.floor(Number(one(sp.page))) || 1));
   const items = all.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const savedView = (await cookies()).get(VIEW_COOKIE)?.value ?? "";
+  const view = VIEWS.some((v) => v.value === savedView) ? savedView : VIEW_DEFAULT;
+  const sortKey = current.sort as keyof typeof SORTS;
+  const desc = current.dir ? current.dir === "desc" : SORT_DEFAULT_DESC[sortKey];
+  // กดปุ่มทิศ = กลับทิศ → ถ้ากลับมาตรงค่าเริ่มต้นก็ไม่ต้องใส่ dir ใน URL
+  const flipDir = !desc === SORT_DEFAULT_DESC[sortKey] ? "" : desc ? "asc" : "desc";
 
   const url = (next: Partial<State> & { page?: number; spec?: SpecFilter }) => {
     const { spec, ...rest } = next;
@@ -197,9 +230,27 @@ export async function ProductListing({
           พบ <b>{all.length.toLocaleString("th-TH")}</b> รายการ
           {pages > 1 && <span className="lst-page"> · หน้า {page}/{pages}</span>}
         </p>
-        <SortSelect
-          value={current.sort}
-          options={Object.entries(SORTS).map(([v, label]) => ({ value: v, label, href: url({ sort: v, page: 1 }) }))}
+        <SortToolbar
+          className="lst-tools"
+          sort={{
+            value: current.sort,
+            // เปลี่ยนการเรียง = กลับไปทิศเริ่มต้นของการเรียงนั้น + หน้า 1
+            options: Object.entries(SORTS).map(([v, label]) => ({ value: v, label, href: url({ sort: v, dir: "", page: 1 }) })),
+          }}
+          dir={{
+            desc,
+            href: url({ dir: flipDir, page: 1 }),
+            disabled: !current.sort,
+            title: current.sort
+              ? `ตอนนี้: ${SORT_DIR_TEXT[sortKey][desc ? 1 : 0]} — กดเพื่อเรียง${SORT_DIR_TEXT[sortKey][desc ? 0 : 1]}`
+              : "เลือกการเรียง (ชื่อ ราคา ฯลฯ) ก่อน แล้วจึงสลับทิศได้",
+          }}
+          per={{
+            value: PER_PAGE,
+            label: "จำนวนสินค้าต่อหน้า",
+            options: PER_OPTIONS.map((n) => ({ n, href: url({ per: n === PER_DEFAULT ? "" : String(n), page: 1 }) })),
+          }}
+          view={{ value: view, options: VIEWS.map((v) => ({ ...v })), cookie: VIEW_COOKIE, target: ".prod-grid[data-view]" }}
         />
         <FilterPanel activeCount={active.length}>
         {groups.map((g) => (
@@ -291,6 +342,7 @@ export async function ProductListing({
         </div>
       )}
       <ProductGrid
+        view={view}
         items={items}
         options={options}
         eager={4}

@@ -1,5 +1,8 @@
 // /admin/products — รายการสินค้า: ค้นหา กรองตามหมวด/สถานะ · ลากเรียงลำดับหน้าร้าน · ปักหมุด · เรียงตามคอลัมน์ · แบ่งหน้า
+// แถบเรียง (SortToolbar): เรียงตาม ▾ · สลับทิศ ↓↑ · ต่อหน้า 20/50/100 · มุมมอง ตาราง / การ์ด / การ์ดเล็ก (จำในคุกกี้)
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { SortToolbar } from "@/components/SortToolbar";
 import type { Prisma } from "../../../../../generated/prisma/client";
 import { requireAdmin } from "@/lib/auth";
 import { bahtText } from "@/lib/format";
@@ -20,8 +23,27 @@ import "../../lot3.css";
 
 const STATUS = { all: "ทั้งหมด", pinned: "ปักหมุด", active: "เปิดขาย", inactive: "ปิดขาย", out: "สินค้าหมด", inquire: "สอบถามราคา", low: "สต็อกใกล้หมด" } as const;
 type Status = keyof typeof STATUS;
-const SORTS = { order: "ลำดับหน้าร้าน", name: "ชื่อสินค้า", category: "หมวด", price: "ราคา", stock: "สต็อก", updated: "แก้ไขล่าสุด" } as const;
+const SORTS = { order: "ลำดับหน้าร้าน", name: "ชื่อสินค้า", category: "หมวด", price: "ราคา", stock: "สต็อก", created: "วันที่เพิ่ม", updated: "แก้ไขล่าสุด" } as const;
 type SortKey = keyof typeof SORTS;
+/** การเรียงที่เริ่มจากมาก → น้อย (ที่เหลือ น้อย → มาก / ก → ฮ) */
+const DESC_FIRST: SortKey[] = ["stock", "created", "updated"];
+const DIR_TEXT: Record<SortKey, [string, string]> = {
+  order: ["ลำดับหน้าร้าน (บน → ล่าง)", "ลำดับหน้าร้านกลับด้าน (ล่าง → บน)"],
+  name: ["ก → ฮ / A → Z", "ฮ → ก / Z → A"],
+  category: ["หมวดตามลำดับเมนู", "หมวดกลับด้าน"],
+  price: ["ราคาต่ำ → สูง", "ราคาสูง → ต่ำ"],
+  stock: ["สต็อกน้อย → มาก", "สต็อกมาก → น้อย"],
+  created: ["เพิ่มก่อน → หลัง", "เพิ่มล่าสุดก่อน"],
+  updated: ["แก้ไขนานสุดก่อน", "แก้ไขล่าสุดก่อน"],
+};
+const VIEW_COOKIE = "mdw_admin_pview";
+const VIEWS = [
+  { value: "table", label: "มุมมองตาราง (ลากจัดลำดับได้)", icon: "table" },
+  { value: "grid", label: "มุมมองการ์ด", icon: "grid3" },
+  { value: "grid-sm", label: "มุมมองการ์ดเล็ก (เห็นหลายชิ้น)", icon: "grid6", wideOnly: true },
+] as const;
+type View = (typeof VIEWS)[number]["value"];
+const TOOL_PER = [20, 50, 100];
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export default async function ProductsAdminPage({ searchParams }: PageProps<"/admin/products">) {
@@ -36,6 +58,9 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
   const desc = one(sp.dir) === "desc";
   const byOrder = sortKey === "order" && !desc; // ลากเรียงได้เฉพาะมุมมอง "ลำดับหน้าร้าน"
   const per = readPer(sp.per, 20);
+  const savedView = (await cookies()).get(VIEW_COOKIE)?.value;
+  const view: View = VIEWS.find((v) => v.value === savedView)?.value ?? "table";
+  const cards = view !== "table";
   const statusWhere: Record<Status, Prisma.ProductWhereInput> = {
     all: {},
     pinned: { isPinned: true },
@@ -60,6 +85,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
     category: [{ category: { sortOrder: d } }, ...PRODUCT_ORDER],
     price: [{ priceSatang: d }, { name: "asc" }],
     stock: [{ trackStock: "desc" }, { stock: d }, { name: "asc" }],
+    created: [{ createdAt: d }],
     updated: [{ updatedAt: d }],
   };
   const total = await prisma.product.count({ where });
@@ -81,7 +107,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
   // คลิกหัวคอลัมน์: คอลัมน์เดิม = สลับทิศ · คอลัมน์ใหม่ = สต็อก/แก้ไขล่าสุดเริ่มมาก→น้อย อื่นๆ น้อย→มาก
   const th = (k: SortKey, label: string, className?: string) => {
     const on = sortKey === k;
-    const nextDesc = on ? !desc : k === "stock" || k === "updated";
+    const nextDesc = on ? !desc : DESC_FIRST.includes(k);
     return <SortTh key={k} label={label} on={on} desc={desc} className={className} href={qs({ sort: k === "order" && !nextDesc ? "" : k, dir: nextDesc ? "desc" : "", page: "" })} />;
   };
   const mv = (id: string, sku: string, edge: "top" | "bottom") => (
@@ -100,9 +126,69 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
     price: p.priceSatang ? String(p.priceSatang / 100) : "", compareAt: p.compareAtSatang ? String(p.compareAtSatang / 100) : "",
     trackStock: p.trackStock, stock: p.stock, inStock: p.inStock, isActive: p.isActive, isBestSeller: p.isBestSeller, badge: p.badge ?? "",
   });
+  // ชิ้นส่วนที่ใช้ร่วมกันระหว่างแถวตารางและการ์ด
+  const pinBtn = (p: (typeof rows)[number]) => (
+    <form action={togglePin}>
+      <input type="hidden" name="id" value={p.id} />
+      <button className={`pin-btn${p.isPinned ? " on" : ""}`} aria-pressed={p.isPinned} aria-label={`${p.isPinned ? "เลิกปักหมุด" : "ปักหมุด"} ${p.sku}`} data-tip={p.isPinned ? "เลิกปักหมุด" : "ปักหมุด (ขึ้นบนสุด)"}>
+        {Icons.star}
+      </button>
+    </form>
+  );
+  const priceCell = (p: (typeof rows)[number]) => (
+    <>
+      <InlineCell
+        id={p.id} field="price" action={quickField} label={`ราคาขาย ${p.sku}`} value={p.priceSatang ? String(p.priceSatang / 100) : ""} placeholder="0 = สอบถามราคา"
+        display={p.priceSatang ? bahtText(p.priceSatang) : <span className="chip warn">สอบถามราคา</span>}
+      />
+      {p.compareAtSatang ? <span className="sub"><s>{bahtText(p.compareAtSatang)}</s></span> : null}
+      {p.salePriceSatang ? (
+        <span className={`chip ${saleActive(p) ? "ok" : "warn"}`} title={p.saleEndsAt ? `ถึง ${p.saleEndsAt.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}` : undefined}>
+          ลด {bahtText(p.salePriceSatang)}{saleActive(p) ? "" : p.saleEndsAt && p.saleEndsAt <= new Date() ? " (หมดแล้ว)" : " (ตั้งเวลา)"}
+        </span>
+      ) : null}
+    </>
+  );
+  const stockCell = (p: (typeof rows)[number]) =>
+    p.trackStock ? (
+      <InlineCell id={p.id} field="stock" action={quickField} label={`สต็อก ${p.sku}`} value={String(p.stock)} inputMode="numeric" className={p.stock <= T ? "ic-warn" : ""} display={p.stock} />
+    ) : (
+      <InlineCell id={p.id} field="stock" action={quickField} label={`สต็อก ${p.sku}`} value="" inputMode="numeric" placeholder="จำนวน" hint="ใส่ตัวเลข = เริ่มนับสต็อก" display={<span className="sub">ไม่นับ</span>} />
+    );
+  const statusCell = (p: (typeof rows)[number], out: boolean) => (
+    <div className="st-cell">
+      {/* สวิตช์เปิด/ปิดขาย — กดแล้วบันทึกทันที */}
+      <form action={toggleProduct}>
+        <input type="hidden" name="id" value={p.id} />
+        <button className={`sw${p.isActive ? " on" : ""}`} type="submit" role="switch" aria-checked={p.isActive} aria-label={`เปิดขายบนหน้าร้าน ${p.sku}`} data-tip={p.isActive ? "เปิดขายอยู่ — กดเพื่อปิดขาย" : "ปิดขายอยู่ — กดเพื่อเปิดขาย"}>
+          <span className="sw-knob" aria-hidden="true" />
+        </button>
+      </form>
+      <span className={`sw-lbl${p.isActive ? " on" : ""}`} aria-hidden="true">{p.isActive ? "เปิดขาย" : "ปิดขาย"}</span>
+      {out && <span className="chip bad">หมด</span>}
+    </div>
+  );
+  const actions = (p: (typeof rows)[number]) => (
+    <RowActions
+      name={p.sku}
+      dup={{ action: duplicateProduct, id: p.id, tip: "ทำสำเนาสินค้า" }}
+      viewHref={`/product/${p.slug}`}
+      viewDisabled={p.isActive ? undefined : "ปิดขายอยู่ — ไม่แสดงหน้าร้าน"}
+      editHref={`/admin/products/${p.id}`}
+      del={{
+        action: deleteProduct,
+        id: p.id,
+        title: "ลบสินค้านี้?",
+        body: `${p.sku} — ${p.name} · ถ้าเคยอยู่ในคำสั่งซื้อหรือเอกสาร ระบบจะปิดขายแทนการลบ (เก็บประวัติไว้)`,
+        label: "ลบสินค้า",
+        disabled: owner ? undefined : "ลบได้เฉพาะเจ้าของร้าน",
+      }}
+    />
+  );
+  const isOut = (p: (typeof rows)[number]) => (p.trackStock ? p.stock <= 0 : !p.inStock);
+
   const body = rows.map((p) => {
     const img = mediaUrl(p.images[0], "sm");
-    const out = p.trackStock ? p.stock <= 0 : !p.inStock;
     return (
       <tr key={p.id} data-id={p.id} className={`${p.isActive ? "" : "row-off"}${p.isPinned ? " row-pin" : ""}`}>
         <td><input type="checkbox" name="ids" value={p.id} form="bulkForm" aria-label={`เลือก ${p.sku}`} /></td>
@@ -115,14 +201,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
             </div>
           </td>
         )}
-        <td className="col-pin">
-          <form action={togglePin}>
-            <input type="hidden" name="id" value={p.id} />
-            <button className={`pin-btn${p.isPinned ? " on" : ""}`} aria-pressed={p.isPinned} aria-label={`${p.isPinned ? "เลิกปักหมุด" : "ปักหมุด"} ${p.sku}`} data-tip={p.isPinned ? "เลิกปักหมุด" : "ปักหมุด (ขึ้นบนสุด)"}>
-              {Icons.star}
-            </button>
-          </form>
-        </td>
+        <td className="col-pin">{pinBtn(p)}</td>
         <td>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {img ? <img className="pthumb" src={img} alt="" loading="lazy" /> : <span className="pthumb" />}
@@ -143,58 +222,58 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           </div>
         </td>
         <td className="sub p-cat" style={{ fontSize: 13 }}>{p.category.nameTh}</td>
-        <td className="r num">
-          <InlineCell
-            id={p.id} field="price" action={quickField} label={`ราคาขาย ${p.sku}`} value={p.priceSatang ? String(p.priceSatang / 100) : ""} placeholder="0 = สอบถามราคา"
-            display={p.priceSatang ? bahtText(p.priceSatang) : <span className="chip warn">สอบถามราคา</span>}
-          />
-          {p.compareAtSatang ? <span className="sub"><s>{bahtText(p.compareAtSatang)}</s></span> : null}
-          {p.salePriceSatang ? (
-            <span className={`chip ${saleActive(p) ? "ok" : "warn"}`} title={p.saleEndsAt ? `ถึง ${p.saleEndsAt.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}` : undefined}>
-              ลด {bahtText(p.salePriceSatang)}{saleActive(p) ? "" : p.saleEndsAt && p.saleEndsAt <= new Date() ? " (หมดแล้ว)" : " (ตั้งเวลา)"}
-            </span>
-          ) : null}
-        </td>
-        <td className="r num">
-          {p.trackStock ? (
-            <InlineCell id={p.id} field="stock" action={quickField} label={`สต็อก ${p.sku}`} value={String(p.stock)} inputMode="numeric" className={p.stock <= T ? "ic-warn" : ""} display={p.stock} />
-          ) : (
-            <InlineCell id={p.id} field="stock" action={quickField} label={`สต็อก ${p.sku}`} value="" inputMode="numeric" placeholder="จำนวน" hint="ใส่ตัวเลข = เริ่มนับสต็อก" display={<span className="sub">ไม่นับ</span>} />
-          )}
-        </td>
-        <td>
-          <div className="st-cell">
-            {/* สวิตช์เปิด/ปิดขาย — กดแล้วบันทึกทันที */}
-            <form action={toggleProduct}>
-              <input type="hidden" name="id" value={p.id} />
-              <button className={`sw${p.isActive ? " on" : ""}`} type="submit" role="switch" aria-checked={p.isActive} aria-label={`เปิดขายบนหน้าร้าน ${p.sku}`} data-tip={p.isActive ? "เปิดขายอยู่ — กดเพื่อปิดขาย" : "ปิดขายอยู่ — กดเพื่อเปิดขาย"}>
-                <span className="sw-knob" aria-hidden="true" />
-              </button>
-            </form>
-            <span className={`sw-lbl${p.isActive ? " on" : ""}`} aria-hidden="true">{p.isActive ? "เปิดขาย" : "ปิดขาย"}</span>
-            {out && <span className="chip bad">หมด</span>}
-          </div>
-        </td>
-        <td className="r">
-          <RowActions
-            name={p.sku}
-            dup={{ action: duplicateProduct, id: p.id, tip: "ทำสำเนาสินค้า" }}
-            viewHref={`/product/${p.slug}`}
-            viewDisabled={p.isActive ? undefined : "ปิดขายอยู่ — ไม่แสดงหน้าร้าน"}
-            editHref={`/admin/products/${p.id}`}
-            del={{
-              action: deleteProduct,
-              id: p.id,
-              title: "ลบสินค้านี้?",
-              body: `${p.sku} — ${p.name} · ถ้าเคยอยู่ในคำสั่งซื้อหรือเอกสาร ระบบจะปิดขายแทนการลบ (เก็บประวัติไว้)`,
-              label: "ลบสินค้า",
-              disabled: owner ? undefined : "ลบได้เฉพาะเจ้าของร้าน",
-            }}
-          />
-        </td>
+        <td className="r num">{priceCell(p)}</td>
+        <td className="r num">{stockCell(p)}</td>
+        <td>{statusCell(p, isOut(p))}</td>
+        <td className="r">{actions(p)}</td>
       </tr>
     );
   });
+
+  // มุมมองการ์ด: รูปใหญ่ + ข้อมูลเดียวกับตาราง (แก้ราคา/สต็อกในการ์ดได้เหมือนกัน)
+  const grid = (
+    <ol className="pgrid" data-view={view} start={(page - 1) * per + 1}>
+      {rows.map((p, i) => {
+        const img = mediaUrl(p.images[0], "sm");
+        const out = isOut(p);
+        return (
+          <li key={p.id} className={`pcard${p.isActive ? "" : " row-off"}${p.isPinned ? " row-pin" : ""}`}>
+            <div className="pcard-top">
+              <label className="pcard-check">
+                <input type="checkbox" name="ids" value={p.id} form="bulkForm" aria-label={`เลือก ${p.sku}`} />
+              </label>
+              {sortKey === "order" && <span className="pcard-pos num" title="ลำดับบนหน้าร้าน">#{(page - 1) * per + i + 1}</span>}
+              <span className="pcard-pin">{pinBtn(p)}</span>
+            </div>
+            <a className="pcard-img" href={`/admin/products/${p.id}`} tabIndex={-1} aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {img ? <img src={img} alt="" loading="lazy" /> : <span className="pcard-ph" />}
+              {out && <span className="pcard-out">สินค้าหมด</span>}
+            </a>
+            <div className="pcard-body">
+              <span className="sub pcard-cat">{p.category.nameTh}</span>
+              <a className="row-link pcard-name" href={`/admin/products/${p.id}`}>
+                <b>{p.name}</b>
+              </a>
+              <span className="sub pcard-sku">{p.sku}{p.isBestSeller ? " · ขายดี" : ""}</span>
+              <dl className="pcard-nums">
+                <div><dt>ราคา</dt><dd className="num">{priceCell(p)}</dd></div>
+                <div><dt>สต็อก</dt><dd className="num">{stockCell(p)}</dd></div>
+              </dl>
+              <div className="pcard-foot">
+                {statusCell(p, false)}
+                {byOrder && <span className="edge-acts pcard-edge">{mv(p.id, p.sku, "top")}{mv(p.id, p.sku, "bottom")}</span>}
+              </div>
+              <div className="pcard-acts">
+                <button type="button" className="rq rq-main" data-qe-open={JSON.stringify(quick(p, img))}>⚡ แก้ไขด่วน</button>
+                {actions(p)}
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
 
   return (
     <main className="main">
@@ -241,7 +320,41 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           </select>
           <button className="btn btn-outline btn-sm" type="submit">ค้นหา</button>
         </form>
-        {byOrder ? (
+        <div className="toolbar3">
+          <span className="sub tb3-count" role="status">
+            พบ <b className="num">{total.toLocaleString("th-TH")}</b> รายการ
+            {pages > 1 && <> · หน้า {page}/{pages}</>}
+          </span>
+          <SortToolbar
+            spa
+            className="stb-sm"
+            sort={{
+              value: sortKey,
+              options: (Object.keys(SORTS) as SortKey[]).map((k) => ({
+                value: k,
+                label: SORTS[k],
+                href: qs({ sort: k === "order" ? "" : k, dir: DESC_FIRST.includes(k) ? "desc" : "", page: "" }),
+              })),
+            }}
+            dir={{
+              desc,
+              href: qs({ dir: desc ? "" : "desc", page: "" }),
+              title: `ตอนนี้: ${DIR_TEXT[sortKey][desc ? 1 : 0]} — กดเพื่อเรียง${DIR_TEXT[sortKey][desc ? 0 : 1]}`,
+            }}
+            per={{
+              value: per,
+              label: "จำนวนต่อหน้า",
+              options: TOOL_PER.map((n) => ({ n, href: qs({ per: n === 20 ? "" : String(n), page: "" }) })),
+            }}
+            view={{ value: view, options: VIEWS.map((v) => ({ ...v })), cookie: VIEW_COOKIE, cookiePath: "/admin" }}
+          />
+        </div>
+        {byOrder && cards ? (
+          <p className="sort-hint">
+            <span className="drag-ico" aria-hidden="true">{Icons.grip}</span>
+            มุมมองการ์ด: ใช้ปุ่ม ⤒ ⤓ ย้ายไปบนสุด/ล่างสุดของร้าน · ★ = ปักหมุดไว้บนสุด · ต้องการลากจัดลำดับทีละตำแหน่ง ให้สลับเป็นมุมมองตาราง
+          </p>
+        ) : byOrder ? (
           <p className="sort-hint">
             <span className="drag-ico" aria-hidden="true">{Icons.grip}</span>
             ลากที่ปุ่มจับเพื่อสลับตำแหน่ง (บันทึกทันที · หน้าร้านเรียงตามนี้ในลำดับ &quot;แนะนำ&quot;) · ★ = ปักหมุดไว้บนสุด
@@ -254,6 +367,12 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           </div>
         )}
         <BulkBar categories={cats.map((c) => ({ id: c.id, name: c.nameTh }))} />
+        {cards && rows.length > 0 && (
+          <label className="pgrid-all">
+            <input type="checkbox" id="bulkAll" /> เลือกทั้งหมดในหน้านี้
+          </label>
+        )}
+        {cards ? grid : (
         <div className="tbl-wrap">
           <table className="tbl prod-tbl">
             <thead>
@@ -279,6 +398,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
             )}
           </table>
         </div>
+        )}
         {!rows.length && <div className="empty"><b>ไม่พบสินค้า</b>ลองเปลี่ยนคำค้นหรือตัวกรอง</div>}
         <QuickEditProduct categories={cats.map((c) => ({ id: c.id, name: c.nameTh }))} action={quickSaveProduct} />
         <Pagination page={page} pages={pages} total={total} shown={rows.length} per={per} href={(n, pp) => qs({ page: n > 1 ? String(n) : "", per: pp === 20 ? "" : String(pp) })} />

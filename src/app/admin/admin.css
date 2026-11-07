@@ -1769,3 +1769,47 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 @media (max-width:560px){.task-edit-form .two{grid-template-columns:1fr}}
 .task-acts{display:flex;align-items:center;gap:2px}
 .task-acts form{display:contents}
+
+/* ---------- สินค้า: แถบเรียง (SortToolbar) + มุมมองการ์ด ---------- */
+.toolbar3{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:10px 16px;border-bottom:1px solid var(--c-line);background:#fff}
+.tb3-count b{color:var(--c-ink)}
+.pgrid-all{display:flex;align-items:center;gap:8px;padding:10px 16px 0;font-size:13.5px;color:var(--c-muted);font-weight:600;cursor:pointer}
+.pgrid{list-style:none;margin:0;padding:14px 16px 6px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.pgrid[data-view="grid-sm"]{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.pcard{position:relative;display:flex;flex-direction:column;background:#fff;border:1px solid var(--c-line);border-radius:10px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.pcard:hover,.pcard:focus-within{border-color:#cfc9bd;box-shadow:0 8px 22px rgba(20,20,20,.07)}
+.pcard.row-pin{border-color:#F5D58F;box-shadow:inset 0 3px 0 #F5A623}
+.pcard-top{position:absolute;z-index:2;top:6px;left:6px;right:6px;display:flex;align-items:center;gap:6px;pointer-events:none}
+.pcard-top>*{pointer-events:auto}
+.pcard-check{display:grid;place-items:center;width:30px;height:30px;background:rgba(255,255,255,.92);border:1px solid var(--c-line);border-radius:6px;cursor:pointer}
+.pcard-pos{font-size:12px;font-weight:700;color:var(--c-muted);background:rgba(255,255,255,.92);border:1px solid var(--c-line);border-radius:999px;padding:1px 8px}
+.pcard-pin{margin-left:auto;background:rgba(255,255,255,.92);border-radius:6px}
+.pcard-img{position:relative;display:block;aspect-ratio:1;background:#fff;border-bottom:1px solid #efece5}
+.pcard-img img{width:100%;height:100%;object-fit:contain;padding:8px}
+.pcard-ph{position:absolute;inset:30%;border-radius:50%;background:var(--c-cream-dk)}
+.pcard-out{position:absolute;left:0;right:0;bottom:0;background:rgba(20,20,20,.72);color:#fff;font-size:12.5px;font-weight:600;text-align:center;padding:4px}
+.pcard.row-off .pcard-img,.pcard.row-off .pcard-name{opacity:.55}
+.pcard-body{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px;flex:1;min-width:0}
+.pcard-cat{font-size:12px}
+.pcard-name{font-size:14px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard-sku{font-size:12px}
+.pcard-nums{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0 2px}
+.pcard-nums div{background:#FAF9F6;border:1px solid #efece5;border-radius:6px;padding:4px 8px;min-width:0}
+.pcard-nums dt{font-size:11px;color:var(--c-muted);font-weight:600}
+.pcard-nums dd{margin:0;font-size:14px;font-weight:600;display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center}
+.pcard-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto;padding-top:6px}
+.pcard-edge{opacity:1}
+.pcard-acts{display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:8px;border-top:1px solid #efece5;margin-top:6px}
+.pcard-acts .rq-main{white-space:nowrap}
+.pgrid[data-view="grid-sm"] .pcard-nums{grid-template-columns:1fr}
+.pgrid[data-view="grid-sm"] .pcard-cat,.pgrid[data-view="grid-sm"] .pcard-acts .rq-main{display:none}
+.pgrid[data-view="grid-sm"] .pcard-acts{justify-content:flex-end}
+.pgrid[data-view="grid-sm"] .pcard-body{padding:8px 10px 10px}
+@media (max-width:640px){
+  .toolbar3{padding:10px 12px}
+  .tb3-count{flex:1 1 100%}
+  .toolbar3 .stb{flex:1 1 100%}
+  .pgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+  .pcard-nums{grid-template-columns:1fr}
+  .pcard-acts .rq-main{display:none}
+}

@@ -362,17 +362,41 @@ test.describe("U10–U11 ค้นหาและหน้าหมวด", () =
     expect(total).toBeGreaterThan(0);
     expect(await page.locator(".prod-card").count()).toBe(Math.min(24, total));
 
-    // เรียงราคาต่ำ → สูง
-    await page.selectOption(".lst-sort select", "price-asc");
-    await page.waitForURL(/sort=price-asc/);
-    const prices = await page.locator(".prod-price").evaluateAll((els) =>
-      els.map((e) => Number((e.childNodes[0]?.textContent ?? "").replace(/[^\d.]/g, "")) || Infinity),
-    );
+    // แถบเรียง: เลือก "ราคา" (ต่ำ → สูง)
+    const sortBy = async (label: string) => {
+      await page.click(".stb-sort-btn");
+      await page.click(`.stb-menu .stb-opt:has(b:text-is("${label}"))`);
+    };
+    const priceList = () =>
+      page.locator(".prod-price").evaluateAll((els) => els.map((e) => Number((e.childNodes[0]?.textContent ?? "").replace(/[^\d.]/g, "")) || Infinity));
+    await sortBy("ราคา");
+    await page.waitForURL(/sort=price/);
+    const prices = await priceList();
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
-    for (const s of ["price-desc", "best", "new", ""]) {
-      await page.selectOption(".lst-sort select", s);
-      await page.waitForURL((u) => (s ? u.search.includes(`sort=${s}`) : !u.search.includes("sort=")));
+    // ปุ่ม ↓↑ = สลับเป็นราคาสูง → ต่ำ (สอบถามราคาอยู่ท้ายเสมอ)
+    await page.click(".stb-dir");
+    await page.waitForURL(/dir=desc/);
+    const desc = (await priceList()).filter((p) => p !== Infinity);
+    expect(desc).toEqual([...desc].sort((a, b) => b - a));
+    // เปลี่ยนการเรียง = กลับไปทิศเริ่มต้น
+    for (const [label, key] of [["ชื่อสินค้า", "name"], ["ขายดี", "best"], ["มาใหม่", "new"], ["คะแนนรีวิว", "rating"]] as const) {
+      await sortBy(label);
+      await page.waitForURL((u) => u.search.includes(`sort=${key}`) && !u.search.includes("dir="));
     }
+    // ลิงก์เก่ายังใช้ได้
+    await page.goto(`${base}?sort=price-desc`);
+    await expect(page.locator(".stb-sort-btn b")).toHaveText("ราคา");
+    // จำนวนต่อหน้า 12 + มุมมองแบบรายการ (จำในคุกกี้ — โหลดใหม่ยังเป็นแบบเดิม)
+    await page.click('.stb-per a:text-is("12")');
+    await page.waitForURL(/per=12/);
+    expect(await page.locator(".prod-card").count()).toBe(Math.min(12, total));
+    await page.click('.stb-views button[aria-label^="แบบรายการ"]');
+    await expect(page.locator(".prod-grid")).toHaveAttribute("data-view", "list");
+    await page.reload();
+    await expect(page.locator(".prod-grid")).toHaveAttribute("data-view", "list");
+    await page.click('.stb-views button[aria-label="การ์ด 4 คอลัมน์"]');
+    await page.goto(base);
+    await sortBy("แนะนำ");
 
     // กรองสี RGB → URL + จำนวน
     await page.click(".lst-group a.chip:has-text('RGB')");
