@@ -124,10 +124,7 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 .lst-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--c-line)}
 .lst-count{font-size:15px;color:var(--c-muted);margin-right:auto;order:1}
 .lst-count b{color:var(--c-ink)}
-.lst-sort{order:2;display:flex;align-items:center;gap:10px;font-size:14px}
-.lst-sort label{font-weight:600;color:var(--c-muted)}
-.lst-sort select{height:44px;min-width:170px;padding:0 36px 0 14px;border:1.5px solid var(--c-line);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C1C1C' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center/16px;font:inherit;font-size:15px;color:var(--c-ink);appearance:none;border-radius:0;cursor:pointer}
-.lst-sort select:hover{border-color:var(--c-ink)}
+.lst-bar > .stb{order:2}
 .lst-filters{display:contents}
 .lst-toggle{display:none;order:2;align-items:center;gap:8px;height:44px;padding:0 16px;border:1.5px solid var(--c-line);font-weight:600;font-size:15px}
 .lst-toggle svg{width:18px;height:18px}
@@ -147,12 +144,33 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
   .lst-bar{gap:10px}
   .lst-count{flex:1 1 100%;order:0;font-size:14px}
   .lst-toggle{display:inline-flex}
-  .lst-sort{order:3;margin-left:auto}
-  .lst-sort label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
-  .lst-sort select{min-width:0;width:160px}
+  .lst-bar > .stb{order:3;flex:1 1 100%}
   .lst-panel{order:4;display:none;padding:14px 0 4px;border-top:1px solid var(--c-line);gap:14px}
   .lst-filters[data-open] .lst-panel{display:flex}
   .lst-group{flex:1 1 100%}
+}
+
+/* --- มุมมองรายการสินค้า (จำไว้ในคุกกี้ mdw_shop_view): การ์ด 2/3/4 คอลัมน์ · แบบรายการ --- */
+.prod-grid[data-view="g2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:769px){.prod-grid[data-view="g3"],.prod-grid[data-view="g4"]{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:1025px){.prod-grid[data-view="g4"]{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.prod-grid[data-view="list"]{grid-template-columns:1fr;gap:16px}
+.prod-grid[data-view="list"] .prod-card{flex-direction:row;position:relative}
+.prod-grid[data-view="list"] .prod-card:hover{transform:none}
+.prod-grid[data-view="list"] .prod-img{flex:0 0 200px;width:200px;height:200px;aspect-ratio:1;align-self:center;margin:12px 0 12px 12px}
+.prod-grid[data-view="list"] .prod-img img{width:100%;height:100%;object-fit:contain}
+.prod-grid[data-view="list"] .prod-body{padding:20px 24px;min-width:0;justify-content:center}
+.prod-grid[data-view="list"] .prod-foot{margin-top:12px}
+.prod-grid[data-view="list"] .prod-name{font-size:18px;padding-right:80px}
+.prod-grid[data-view="list"] .prod-specs{display:flex}
+.prod-grid[data-view="list"] .prod-foot{justify-content:flex-start;gap:24px}
+.prod-grid[data-view="list"] .wc-tools{left:auto;right:12px;top:12px}
+@media (max-width:480px){
+  .prod-grid[data-view="list"] .prod-img{flex-basis:110px;width:110px;height:110px;margin:10px 0 10px 10px}
+  .prod-grid[data-view="list"] .prod-body{padding:12px}
+  .prod-grid[data-view="list"] .prod-name{font-size:14px;padding-right:56px}
+  .prod-grid[data-view="list"] .prod-specs{display:none}
+  .prod-grid[data-view="list"] .prod-foot{flex-wrap:wrap;gap:8px}
 }
 
 /* --- ค้นหา --- */

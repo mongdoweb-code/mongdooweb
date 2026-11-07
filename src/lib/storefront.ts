@@ -380,14 +380,31 @@ export const PRICE_FILTERS = {
   "3000-": "฿3,000 ขึ้นไป",
 } as const;
 export const STOCK_FILTERS = { in: "มีของพร้อมส่ง" } as const;
-/** "" = แนะนำ (ลำดับเริ่มต้นของร้าน: ขายดี → ยอดเข้าชม → ลำดับที่ตั้ง) */
+/** "" = แนะนำ (ลำดับที่ร้านจัดไว้: ปักหมุด → ลำดับที่ลากจัด) — ทิศทางเรียงอยู่ใน ?dir= แยกต่างหาก */
 export const SORTS = {
   "": "แนะนำ",
-  "price-asc": "ราคาต่ำ → สูง",
-  "price-desc": "ราคาสูง → ต่ำ",
-  best: "ขายดี",
+  name: "ชื่อสินค้า",
+  price: "ราคา",
   new: "มาใหม่",
+  best: "ขายดี",
+  rating: "คะแนนรีวิว",
 } as const;
+export type SortKey = keyof typeof SORTS;
+export type SortDir = "asc" | "desc";
+/** ทิศทางเริ่มต้นของแต่ละแบบ (ไม่ใส่ใน URL เมื่อเท่ากับค่านี้) */
+export const SORT_DIR: Record<SortKey, SortDir> = { "": "asc", name: "asc", price: "asc", new: "desc", best: "desc", rating: "desc" };
+/** ลิงก์เดิมที่เคยแชร์ (?sort=price-asc ฯลฯ) → แบบใหม่ */
+export const LEGACY_SORTS: Record<string, { sort: SortKey; dir: SortDir }> = {
+  "price-asc": { sort: "price", dir: "asc" },
+  "price-desc": { sort: "price", dir: "desc" },
+  popular: { sort: "", dir: "asc" },
+};
+/** อ่าน ?sort=&dir= (รองรับลิงก์เดิม) — ค่าที่ไม่รู้จัก = แนะนำ */
+export function readSort(sort: string, dir: string): { sort: SortKey; dir: SortDir } {
+  if (sort in LEGACY_SORTS) return LEGACY_SORTS[sort];
+  const k: SortKey = sort in SORTS ? (sort as SortKey) : "";
+  return { sort: k, dir: dir === "asc" || dir === "desc" ? dir : SORT_DIR[k] };
+}
 
 export type ProductFilter = {
   category?: string;
@@ -396,17 +413,18 @@ export type ProductFilter = {
   price?: string;
   stock?: string;
   sort?: string;
+  dir?: string;
 };
 
 /** ข้อมูลประกอบการเรียงลำดับ (ไม่ส่งไปเบราว์เซอร์): ยอดขายจริง + วันที่เพิ่มสินค้า */
-export type ListingMeta = Record<string, { sold: number; created: number; views: number }>;
+export type ListingMeta = Record<string, { sold: number; created: number; views: number; rating: number; reviews: number }>;
 
 /** ยอดขายจากคำสั่งซื้อที่ชำระแล้ว/ส่งแล้ว + วันที่เพิ่มสินค้า ต่อ slug */
 export async function getListingMeta(): Promise<ListingMeta> {
   "use cache";
   cacheLife("hours");
   cacheTag(STOREFRONT_TAG);
-  const [products, sold] = await Promise.all([
+  const [products, sold, rated] = await Promise.all([
     prisma.product.findMany({
       where: { isActive: true, isService: false },
       select: { id: true, slug: true, createdAt: true, views: true },
@@ -416,10 +434,14 @@ export async function getListingMeta(): Promise<ListingMeta> {
       where: { productId: { not: null }, order: { status: { in: ["PAID", "SHIPPED"] } } },
       _sum: { qty: true },
     }),
+    // คะแนนรีวิวเฉลี่ย (เฉพาะรีวิวที่อนุมัติแล้ว)
+    prisma.review.groupBy({ by: ["productId"], where: { status: "APPROVED" }, _avg: { rating: true }, _count: { _all: true } }),
   ]);
   const soldBy = new Map(sold.map((r) => [r.productId, r._sum.qty ?? 0]));
+  const rateBy = new Map(rated.map((r) => [r.productId, { rating: r._avg.rating ?? 0, reviews: r._count._all }]));
   const out: ListingMeta = {};
-  for (const p of products) out[p.slug] = { sold: soldBy.get(p.id) ?? 0, created: p.createdAt.getTime(), views: p.views };
+  for (const p of products)
+    out[p.slug] = { sold: soldBy.get(p.id) ?? 0, created: p.createdAt.getTime(), views: p.views, rating: rateBy.get(p.id)?.rating ?? 0, reviews: rateBy.get(p.id)?.reviews ?? 0 };
   return out;
 }
 
@@ -439,16 +461,24 @@ export function filterCatalog(catalog: CatalogItem[], f: ProductFilter, meta?: L
   // กรองช่วงราคา = ไม่รวมสินค้า "สอบถามราคา" (ราคา 0)
   if (range) list = list.filter((p) => p.price > 0 && p.price >= range[0] && p.price < range[1]);
   if (f.stock === "in") list = list.filter((p) => p.price > 0 && p.inStock);
-  const priced = (p: CatalogItem) => (p.price > 0 ? 0 : 1); // "สอบถามราคา" อยู่ท้ายเสมอเมื่อเรียงตามราคา
-  if (f.sort === "price-asc") list = [...list].sort((a, b) => priced(a) - priced(b) || a.price - b.price);
-  else if (f.sort === "price-desc") list = [...list].sort((a, b) => priced(a) - priced(b) || b.price - a.price);
-  else if (f.sort === "best" && meta) {
-    const m = (p: CatalogItem) => meta[p.id] ?? { sold: 0, views: 0, created: 0 };
-    list = [...list].sort((a, b) => m(b).sold - m(a).sold || Number(!!b.best) - Number(!!a.best) || m(b).views - m(a).views);
-  } else if (f.sort === "new" && meta) {
-    list = [...list].sort((a, b) => (meta[b.id]?.created ?? 0) - (meta[a.id]?.created ?? 0));
-  }
-  return list;
+  const { sort, dir } = readSort(f.sort ?? "", f.dir ?? "");
+  if (!sort) return list; // แนะนำ = ลำดับเดิมของแคตตาล็อก (ปักหมุด → ลำดับที่ร้านจัด)
+  const k = dir === "desc" ? -1 : 1;
+  const m = (p: CatalogItem) => meta?.[p.id] ?? { sold: 0, views: 0, created: 0, rating: 0, reviews: 0 };
+  // ลำดับเดิมใช้ตัดสินเมื่อค่าเท่ากัน (เรียงคงที่)
+  const pos = new Map(list.map((p, i) => [p.id, i]));
+  const tie = (a: CatalogItem, b: CatalogItem) => pos.get(a.id)! - pos.get(b.id)!;
+  let cmp: (a: CatalogItem, b: CatalogItem) => number;
+  if (sort === "price") {
+    const ask = (p: CatalogItem) => (p.price > 0 ? 0 : 1); // "สอบถามราคา" อยู่ท้ายเสมอ ไม่ว่าเรียงทางไหน
+    cmp = (a, b) => ask(a) - ask(b) || k * (a.price - b.price);
+  } else if (sort === "rating") {
+    const none = (p: CatalogItem) => (m(p).reviews > 0 ? 0 : 1); // ยังไม่มีรีวิว อยู่ท้ายเสมอ
+    cmp = (a, b) => none(a) - none(b) || k * (m(a).rating - m(b).rating) || k * (m(a).reviews - m(b).reviews);
+  } else if (sort === "name") cmp = (a, b) => k * a.name.localeCompare(b.name, "th", { numeric: true, sensitivity: "base" });
+  else if (sort === "new") cmp = (a, b) => k * (m(a).created - m(b).created);
+  else cmp = (a, b) => k * (m(a).sold - m(b).sold) || k * (Number(!!a.best) - Number(!!b.best)) || k * (m(a).views - m(b).views);
+  return [...list].sort((a, b) => cmp(a, b) || tie(a, b));
 }
 
 // คำพ้อง ไทย ↔ อังกฤษ (รวมชุดเดียวกับช่องค้นหาใน shell.js) — ตรงคำใดคำหนึ่งก็นับว่าเจอ

@@ -84,10 +84,11 @@ export function ProductCard({ p, eager = false, note, options }: { p: CatalogIte
 }
 
 /** eager = จำนวนการ์ดแถวแรกที่โหลดรูปทันที (อยู่ในจอแรก) ที่เหลือ lazy-load */
-export function ProductGrid({ items, empty, eager = 0, options }: { items: CatalogItem[]; empty?: React.ReactNode; eager?: number; options?: Record<string, number> }) {
+/** view = มุมมองของหน้ารายการสินค้า (g2 | g3 | g4 | list) — ไม่ส่ง = ตารางปกติของหน้าแรก/สินค้าที่เกี่ยวข้อง */
+export function ProductGrid({ items, empty, eager = 0, options, view }: { items: CatalogItem[]; empty?: React.ReactNode; eager?: number; options?: Record<string, number>; view?: string }) {
   if (!items.length) return <div className="pg-empty">{empty ?? "ไม่พบสินค้า"}</div>;
   return (
-    <div className="prod-grid">
+    <div className="prod-grid" data-view={view} data-listing={view ? "" : undefined}>
       {items.map((p, i) => (
         <ProductCard key={p.id} p={p} eager={i < eager} options={options?.[p.id]} />
       ))}

@@ -362,16 +362,22 @@ test.describe("U10–U11 ค้นหาและหน้าหมวด", () =
     expect(total).toBeGreaterThan(0);
     expect(await page.locator(".prod-card").count()).toBe(Math.min(24, total));
 
-    // เรียงราคาต่ำ → สูง
-    await page.selectOption(".lst-sort select", "price-asc");
-    await page.waitForURL(/sort=price-asc/);
-    const prices = await page.locator(".prod-price").evaluateAll((els) =>
-      els.map((e) => Number((e.childNodes[0]?.textContent ?? "").replace(/[^\d.]/g, "")) || Infinity),
-    );
+    // เรียงตาม ▾ ราคา (น้อย → มาก) แล้วสลับทิศ ↑↓
+    await page.click(".stb-sel");
+    await page.click('.stb-menu a:has-text("ราคา")');
+    await page.waitForURL(/sort=price/);
+    const priceList = () =>
+      page.locator(".prod-price").evaluateAll((els) => els.map((e) => Number((e.childNodes[0]?.textContent ?? "").replace(/[^\d.]/g, "")) || Infinity));
+    const prices = await priceList();
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
-    for (const s of ["price-desc", "best", "new", ""]) {
-      await page.selectOption(".lst-sort select", s);
-      await page.waitForURL((u) => (s ? u.search.includes(`sort=${s}`) : !u.search.includes("sort=")));
+    await page.click("a.stb-dir");
+    await page.waitForURL(/dir=desc/);
+    const down = (await priceList()).filter((x) => x !== Infinity); // "สอบถามราคา" อยู่ท้ายเสมอ
+    expect(down).toEqual([...down].sort((a, b) => b - a));
+    for (const [label, s] of [["ขายดี", "best"], ["มาใหม่", "new"], ["ชื่อสินค้า", "name"], ["คะแนนรีวิว", "rating"], ["แนะนำ", ""]] as const) {
+      await page.click(".stb-sel");
+      await page.click(`.stb-menu a:has-text("${label}")`);
+      await page.waitForURL((u) => (s ? u.search.includes(`sort=${s}`) && !u.search.includes("dir=") : !u.search.includes("sort=")));
     }
 
     // กรองสี RGB → URL + จำนวน

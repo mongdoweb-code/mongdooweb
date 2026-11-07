@@ -15,18 +15,33 @@ import {
   COLOR_FILTERS,
   PRICE_FILTERS,
   SORTS,
+  SORT_DIR,
   STOCK_FILTERS,
   USE_FILTERS,
   filterCatalog,
   getListingMeta,
   getShopData,
+  readSort,
   type CatalogItem,
+  type SortKey,
 } from "@/lib/storefront";
+import { cookies } from "next/headers";
+import { SortToolbar } from "@/components/sort-toolbar/SortToolbar";
 import { ProductGrid } from "./ProductCard";
-import { FilterPanel, SortSelect } from "./ListingControls";
+import { FilterPanel } from "./ListingControls";
 
 type Params = Record<string, string | string[] | undefined>;
-const PER_PAGE = 24;
+/** จำนวนต่อหน้า (?per=) — ค่าเริ่มต้น 24 */
+const PER_OPTIONS = [12, 24, 36] as const;
+const PER_DEFAULT = 24;
+/** มุมมองที่จำไว้ในคุกกี้ — บนมือถือเหลือ 2 คอลัมน์ / รายการ (3–4 คอลัมน์แสดงเป็น 2 คอลัมน์) */
+export const SHOP_VIEW_COOKIE = "mdw_shop_view";
+const VIEWS = [
+  { value: "g2", label: "การ์ด 2 คอลัมน์", icon: "g2" as const },
+  { value: "g3", label: "การ์ด 3 คอลัมน์", icon: "g3" as const, desktopOnly: true },
+  { value: "g4", label: "การ์ด 4 คอลัมน์", icon: "g4" as const, desktopOnly: true },
+  { value: "list", label: "แบบรายการ", icon: "list" as const },
+];
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 const GROUPS = [
@@ -36,7 +51,7 @@ const GROUPS = [
   { key: "stock", legend: "สถานะสินค้า", opts: STOCK_FILTERS },
 ] as const;
 type FilterKey = (typeof GROUPS)[number]["key"];
-type State = Record<FilterKey | "sort", string>;
+type State = Record<FilterKey | "sort" | "dir", string>;
 
 /** อ่านค่าจาก URL — ค่าที่ไม่รู้จักถูกตัดทิ้ง (กัน URL แปลกๆ ทำให้หน้าเพี้ยน) */
 export function readListingParams(sp: Params): State {
@@ -44,13 +59,17 @@ export function readListingParams(sp: Params): State {
     const v = one(sp[k]);
     return v in allowed ? v : "";
   };
-  const sort = one(sp.sort) === "popular" ? "" : pick("sort", SORTS); // "popular" = ค่าเดิมของรอบก่อน
+  // ?sort=&dir= (ลิงก์เดิม ?sort=price-asc / price-desc / popular ยังใช้ได้) — dir เก็บเฉพาะเมื่อไม่ใช่ทิศเริ่มต้น
+  const r = readSort(one(sp.sort), one(sp.dir));
+  const sort = r.sort;
+  const dir = r.dir === SORT_DIR[r.sort] ? "" : r.dir;
   return {
     use: pick("use", USE_FILTERS),
     color: pick("color", COLOR_FILTERS),
     price: pick("price", PRICE_FILTERS),
     stock: pick("stock", STOCK_FILTERS),
     sort,
+    dir,
   };
 }
 
@@ -107,13 +126,18 @@ export async function ProductListing({
   const count = (list: CatalogItem[]) => collapseVariants(list, extras.bySlug, extras.groupSize).items.length;
   const { items: all, options } = collapseVariants(bySpecs(filterCatalog(base, current, meta)), extras.bySlug, extras.groupSize);
 
-  const pages = Math.max(1, Math.ceil(all.length / PER_PAGE));
+  const perN = Number(one(sp.per));
+  const per = (PER_OPTIONS as readonly number[]).includes(perN) ? perN : PER_DEFAULT;
+  const pages = Math.max(1, Math.ceil(all.length / per));
   const page = Math.min(pages, Math.max(1, Math.floor(Number(one(sp.page))) || 1));
-  const items = all.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const items = all.slice((page - 1) * per, page * per);
+  const savedView = (await cookies()).get(SHOP_VIEW_COOKIE)?.value ?? "";
+  const view = VIEWS.some((v) => v.value === savedView) ? savedView : "g4";
 
-  const url = (next: Partial<State> & { page?: number; spec?: SpecFilter }) => {
-    const { spec, ...rest } = next;
-    const merged: Record<string, string> = { ...current, ...rest, page: rest.page && rest.page > 1 ? String(rest.page) : "" };
+  const url = (next: Partial<State> & { page?: number; spec?: SpecFilter; per?: number }) => {
+    const { spec, per: nextPer, ...rest } = next;
+    const p = nextPer ?? per;
+    const merged: Record<string, string> = { ...current, ...rest, per: p === PER_DEFAULT ? "" : String(p), page: rest.page && rest.page > 1 ? String(rest.page) : "" };
     const q = new URLSearchParams(Object.entries(merged).filter(([, v]) => v));
     for (const [k, v] of specFilterEntries(spec ?? sf)) q.append(k, v);
     const qs = q.toString();
@@ -158,6 +182,10 @@ export async function ProductListing({
     }),
   ];
   const clearAll = url({ use: "", color: "", price: "", stock: "", page: 1, spec: { enums: {}, ranges: {} } });
+  // แถบเรียงสินค้า: เปลี่ยนแบบเรียง = ใช้ทิศเริ่มต้นของแบบนั้น · ปุ่ม ↑↓ = สลับทิศของแบบปัจจุบัน
+  const sortKey = current.sort as SortKey;
+  const effDir = current.dir || SORT_DIR[sortKey];
+  const flip = effDir === "asc" ? "desc" : "asc";
 
   // ตัวกรองสเปก: นับจำนวนโดยใช้ตัวกรองอื่นทั้งหมด ยกเว้นสเปกนั้นเอง
   const baseFiltered = filterCatalog(base, { ...current, sort: "" });
@@ -197,9 +225,18 @@ export async function ProductListing({
           พบ <b>{all.length.toLocaleString("th-TH")}</b> รายการ
           {pages > 1 && <span className="lst-page"> · หน้า {page}/{pages}</span>}
         </p>
-        <SortSelect
-          value={current.sort}
-          options={Object.entries(SORTS).map(([v, label]) => ({ value: v, label, href: url({ sort: v, page: 1 }) }))}
+        <SortToolbar
+          sort={{
+            label: "เรียงตาม",
+            options: Object.entries(SORTS).map(([v, label]) => ({ value: v, label, on: v === sortKey, href: url({ sort: v, dir: "", page: 1 }) })),
+          }}
+          dir={{
+            desc: effDir === "desc",
+            href: sortKey ? url({ dir: flip === SORT_DIR[sortKey] ? "" : flip, page: 1 }) : null,
+            disabled: sortKey ? undefined : "เรียงแบบแนะนำ ใช้ลำดับที่ร้านจัดไว้ — เลือกแบบเรียงอื่นเพื่อสลับทิศ",
+          }}
+          per={{ label: "จำนวนสินค้าต่อหน้า", options: PER_OPTIONS.map((n) => ({ n, on: n === per, href: url({ per: n, page: 1 }) })) }}
+          views={{ value: view, cookie: SHOP_VIEW_COOKIE, mode: "attr", target: ".prod-grid[data-listing]", options: VIEWS }}
         />
         <FilterPanel activeCount={active.length}>
         {groups.map((g) => (
@@ -243,7 +280,7 @@ export async function ProductListing({
                 {g.def.unit ? ` (${g.def.unit})` : ""}
               </legend>
               <form className="lst-range" action={basePath} method="get">
-                {[...Object.entries(current).filter(([, v]) => v), ...specFilterEntries(withoutRange(g.def.code))].map(([k, v], i) => (
+                {[...Object.entries(current).filter(([, v]) => v), ...(per === PER_DEFAULT ? [] : [["per", String(per)]]), ...specFilterEntries(withoutRange(g.def.code))].map(([k, v], i) => (
                   <input key={`${k}-${i}`} type="hidden" name={k} value={v} />
                 ))}
                 <label>
@@ -291,6 +328,7 @@ export async function ProductListing({
         </div>
       )}
       <ProductGrid
+        view={view}
         items={items}
         options={options}
         eager={4}

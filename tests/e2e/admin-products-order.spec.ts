@@ -97,16 +97,20 @@ test("ปุ่มดู/แก้ไข/ลบ + เรียงตามคอ
   await expect(page).toHaveURL(/sort=name/);
   await expect(page.locator("[data-drag-handle]" + V)).toHaveCount(0);
   expect(await skus(page)).toEqual(["A", "B", "C"]);
-  // แบ่งหน้า: 10 ต่อหน้า → เลขหน้า + เปลี่ยนเป็น 20
-  await page.goto("/admin/products?per=10");
-  await expect(page.locator(".pg-sum" + V)).toContainText(/กำลังแสดง 1 ถึง 10 จาก/);
-  await expect(page.locator(".pg-nav .pg-btn.on" + V)).toHaveText("1");
-  await page.locator('.pg-nav a:has-text("ถัดไป")' + V).click();
-  await expect(page).toHaveURL(/page=2/);
-  await expect(page.locator(".pg-sum" + V)).toContainText(/กำลังแสดง 11 ถึง/);
-  await page.locator(".pg-per select" + V).selectOption("20");
-  await expect(page).toHaveURL(/\/admin\/products(\?(?!.*page=).*)?$/);
-  await expect(page.locator("tbody tr[data-id]" + V)).toHaveCount(Math.min(20, Number((await page.locator(".pg-sum b").nth(2).textContent())!.replace(/,/g, ""))));
+  // แบ่งหน้า: 20 ต่อหน้า (ตัวเลือก 20/50/100) → เลขหน้า + เปลี่ยนเป็น 50
+  await page.goto("/admin/products");
+  await expect(page.locator(".pg-sum" + V)).toContainText(/กำลังแสดง 1 ถึง/);
+  const total = Number((await page.locator(".pg-sum b" + V).nth(2).textContent())!.replace(/,/g, ""));
+  if (total > 20) {
+    await expect(page.locator(".pg-nav .pg-btn.on" + V)).toHaveText("1");
+    await page.locator('.pg-nav a:has-text("ถัดไป")' + V).click();
+    await expect(page).toHaveURL(/page=2/);
+    await expect(page.locator(".pg-sum" + V)).toContainText(/กำลังแสดง 21 ถึง/);
+  }
+  await page.locator(".pg-per select" + V).selectOption("50");
+  await expect(page).toHaveURL(/per=50/);
+  await expect(page).not.toHaveURL(/page=/);
+  await expect(page.locator("tbody tr[data-id]" + V)).toHaveCount(Math.min(50, total));
   // ลบ C (ไม่มีในคำสั่งซื้อ → ลบจริง)
   await list(page);
   await confirmClick(page, `tr[data-id="${P[2].id}"] button.ra-del`, "ลบสินค้า");
