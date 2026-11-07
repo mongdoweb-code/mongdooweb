@@ -1,4 +1,5 @@
 // /admin/home — หน้าแรกและความน่าเชื่อถือ (A30/U30) + เวลาทำการสำหรับสถานะ "ร้านเปิดอยู่/ปิดแล้ว" (U27)
+import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { DAY_NAMES, HOME_SECTIONS, hoursSummary, parseHomeSections, parseOpeningHours, parseTrust } from "@/lib/home";
 import { mediaUrl } from "@/lib/media";
@@ -49,7 +50,7 @@ export default async function HomeAdminPage({ searchParams }: PageProps<"/admin/
       <div className="l10-cols">
         <section className="box" aria-labelledby="order-h">
           <h3 id="order-h">ลำดับส่วนของหน้าแรก</h3>
-          <p className="l10-help" style={{ marginBottom: 10 }}>ติ๊กออก = ซ่อนส่วนนั้น · สไลด์ภาพหลักซ่อนไม่ได้ · ส่วนที่ยังไม่มีข้อมูล (เช่น ยังไม่มีผลงาน/บทความ) จะไม่แสดงเอง · แก้การ์ด/ลิงก์ของ “หมวดยอดนิยม” ที่ <a className="link" href="/admin/home/popular">หมวดยอดนิยม (หน้าแรก)</a></p>
+          <p className="l10-help" style={{ marginBottom: 10 }}>ติ๊กออก = ซ่อนส่วนนั้น · สไลด์ภาพหลักซ่อนไม่ได้ · ส่วนที่ยังไม่มีข้อมูล (เช่น ยังไม่มีผลงาน/บทความ) จะไม่แสดงเอง · แก้การ์ด/ลิงก์ของ “หมวดยอดนิยม” ที่ <Link className="link" href="/admin/home/popular">หมวดยอดนิยม (หน้าแรก)</Link></p>
           <SectionOrder rows={sections.map((x) => ({ key: x.key, label: HOME_SECTIONS[x.key], show: x.show }))} action={saveHomeSections} />
         </section>
 
