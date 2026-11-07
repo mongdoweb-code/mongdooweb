@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { parseHomeSections } from "@/lib/home";
 import { parsePopular } from "@/lib/popular-cats";
+import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { COLOR_FILTERS, USE_FILTERS, getShopData } from "@/lib/storefront";
 import { getPopularCards } from "@/lib/home-data";
@@ -14,11 +15,22 @@ export const instant = false;
 
 export default async function PopularAdminPage() {
   await requireAdmin();
-  const [s, { categories }, live] = await Promise.all([
+  const [s, { categories: cached }, live, dbCats] = await Promise.all([
     prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { popularCats: true, homeSections: true } }),
     getShopData(),
     getPopularCards(),
+    // รายชื่อหมวดจากฐานข้อมูลโดยตรง (หมวดที่เพิ่งเพิ่มต้องเห็นทันที) · ข้อมูลประกอบ (รูป/คำยอดนิยม) จากแคชหน้าร้าน
+    prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+      select: { slug: true, nameTh: true, nameEn: true, imageKey: true, showOnHome: true, _count: { select: { products: { where: { isActive: true, isService: false } } } } },
+    }),
   ]);
+  const fromCache = new Map(cached.map((c) => [c.slug, c]));
+  const categories = dbCats.map((c) => {
+    const x = fromCache.get(c.slug);
+    return { slug: c.slug, th: c.nameTh, count: c._count.products, visible: c.showOnHome, img: mediaUrl(c.imageKey, "sm") ?? x?.img ?? null, tags: x?.tags };
+  });
   const cfg = parsePopular(s?.popularCats);
   const section = parseHomeSections(s?.homeSections).find((x) => x.key === "popular");
   // ลิงก์แนะนำของแต่ละหมวด: คำยอดนิยมที่เจอสินค้าจริง + ตัวกรองสี/การใช้งาน + เรียงขายดี/มาใหม่
@@ -35,7 +47,7 @@ export default async function PopularAdminPage() {
         { label: "มีของพร้อมส่ง", href: `${base}?stock=in` },
       ];
       const seen = new Set<string>();
-      return { slug: c.slug, th: c.th, img: c.img ?? null, count: c.count, visible: c.visible, sug: sug.filter((x) => !seen.has(x.href) && seen.add(x.href)) };
+      return { slug: c.slug, th: c.th, img: c.img, count: c.count, visible: c.visible, sug: sug.filter((x) => !seen.has(x.href) && seen.add(x.href)) };
     });
   // ยังไม่ได้ตั้ง = เริ่มจากที่ระบบเลือกให้ตอนนี้ (แก้ต่อได้เลย)
   const initial = cfg.items.length
