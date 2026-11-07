@@ -2,10 +2,18 @@
 import assert from "node:assert/strict";
 import { HOME_KEYS, hoursSummary, parseHomeSections, parseOpeningHours, parseTrust } from "../../src/lib/home";
 
-// ลำดับ: รับทั้ง string และ { key, show }, ตัดซ้ำ/ไม่รู้จัก, ส่วนที่ขาดต่อท้าย, สไลด์ซ่อนไม่ได้
+// ลำดับ: รับทั้ง string และ { key, show }, ตัดซ้ำ/ไม่รู้จัก, คงลำดับที่บันทึกไว้, สไลด์ซ่อนไม่ได้
+// ส่วนที่ขาด (เพิ่มใหม่ภายหลัง) แทรกต่อจากส่วนที่อยู่ก่อนหน้าในรายการเริ่มต้น
 const s = parseHomeSections(["trust", { key: "slides", show: false }, "bogus", "trust", { key: "finder", show: false }]);
-assert.deepEqual(s.slice(0, 3), [{ key: "trust", show: true }, { key: "slides", show: true }, { key: "finder", show: false }]);
+const saved = s.filter((x) => ["trust", "slides", "finder"].includes(x.key));
+assert.deepEqual(saved, [{ key: "trust", show: true }, { key: "slides", show: true }, { key: "finder", show: false }]);
 assert.equal(s.length, HOME_KEYS.length);
+assert.equal(new Set(s.map((x) => x.key)).size, HOME_KEYS.length);
+// ร้านที่บันทึกลำดับไว้ก่อนมี "หมวดยอดนิยม" → ได้ส่วนใหม่ต่อจาก "หมวดหมู่สินค้า" (ไม่ใช่ท้ายหน้า) และแสดงอยู่
+const old = HOME_KEYS.filter((k) => k !== "popular").reverse();
+const withNew = parseHomeSections(old).map((x) => x.key);
+assert.equal(withNew.indexOf("popular"), withNew.indexOf("categories") + 1);
+assert.deepEqual(withNew.filter((k) => k !== "popular"), old);
 assert.deepEqual(parseHomeSections(null).map((x) => x.key), HOME_KEYS);
 
 // ความน่าเชื่อถือ: โลโก้ต้องเป็นไฟล์ trust/ ที่อัปโหลด, ลิงก์อันตรายถูกตัด, ตัวเลขต้องมีทั้งค่าและคำอธิบาย

@@ -8,6 +8,7 @@ import { HOME_SECTIONS, parseHomeSections, parseOpeningHours, parseTrust, type H
 import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { storage } from "@/lib/storage";
+import { parsePopular, safePopularHref } from "@/lib/popular-cats";
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").normalize("NFC").trim().slice(0, max);
 const done = (flag: string, msg = ""): never => redirect(`/admin/home?done=${flag}${msg ? `&msg=${encodeURIComponent(msg.slice(0, 160))}` : ""}`);
@@ -74,4 +75,38 @@ export async function saveHours(f: FormData) {
   await logAdmin(admin.id, "HOME", `ตั้งเวลาทำการ ${hours.length} ช่วง`);
   refreshStorefront();
   done("hours");
+}
+
+/** หมวดยอดนิยมหน้าแรก: บันทึกการ์ด (หมวด สีพื้น ลิงก์ย่อย ลำดับ) · reset = กลับไปเลือกอัตโนมัติ */
+export async function savePopular(f: FormData): Promise<{ ok?: string; error?: string }> {
+  const admin = await requireAdmin();
+  let raw: unknown = {};
+  try {
+    raw = JSON.parse(String(f.get("data") ?? "{}"));
+  } catch {
+    return { error: "ข้อมูลไม่ถูกต้อง ลองโหลดหน้าใหม่" };
+  }
+  if (f.get("intent") === "reset") {
+    await prisma.shopSetting.update({ where: { id: "shop" }, data: { popularCats: json({}) } });
+    await logAdmin(admin.id, "HOME", "หมวดยอดนิยมหน้าแรก: กลับไปเลือกอัตโนมัติ");
+    refreshStorefront();
+    return { ok: "กลับไปเลือกหมวดอัตโนมัติแล้ว" };
+  }
+  // ลิงก์ที่กรอกไม่ครบ/ผิดรูปแบบ → แจ้งก่อนบันทึก (ไม่ตัดทิ้งเงียบๆ)
+  const items = (raw as { items?: { cat?: string; links?: { label?: string; href?: string }[] }[] }).items ?? [];
+  for (const it of Array.isArray(items) ? items : []) {
+    for (const l of Array.isArray(it?.links) ? it.links : []) {
+      const label = String(l?.label ?? "").trim(), href = String(l?.href ?? "").trim();
+      if (!label && !href) continue;
+      if (!label || !safePopularHref(href)) return { error: `ลิงก์ "${label || href}" ไม่ถูกต้อง — ต้องมีข้อความ และลิงก์ขึ้นต้นด้วย / หรือ https://` };
+    }
+  }
+  const cfg = parsePopular(raw);
+  const cats = new Set((await prisma.category.findMany({ select: { slug: true } })).map((c) => c.slug));
+  cfg.items = cfg.items.filter((i) => cats.has(i.cat));
+  if (!cfg.items.length) return { error: "เพิ่มหมวดอย่างน้อย 1 หมวด (หรือกด “ให้ระบบเลือกอัตโนมัติ”)" };
+  await prisma.shopSetting.update({ where: { id: "shop" }, data: { popularCats: json(cfg) } });
+  await logAdmin(admin.id, "HOME", `หมวดยอดนิยมหน้าแรก: ${cfg.items.length} หมวด (${cfg.items.map((i) => i.cat).join(", ")})`);
+  refreshStorefront();
+  return { ok: `บันทึกแล้ว — หน้าแรกแสดง ${cfg.items.length} หมวด` };
 }

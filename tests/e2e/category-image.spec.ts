@@ -19,9 +19,10 @@ async function q<T = Record<string, unknown>>(sql: string, args: unknown[] = [])
 }
 const keyOf = async () => (await q<{ k: string | null }>(`SELECT "imageKey" k FROM "Category" WHERE id=$1`, [CAT]))[0].k;
 
+// สินค้าทดสอบอยู่ท้ายลำดับร้านเสมอ (sortOrder สูง) — ไม่ให้ไปเป็นสินค้าตัวแรกของแคตตาล็อกที่เทสอื่นหยิบใช้
 test.beforeAll(async () => {
   await q(`INSERT INTO "Category"(id, slug, "nameTh", "nameEn", "sortOrder") VALUES ($1,$1,$2,'E2E Cat Image',99999)`, [CAT, `หมวดรูปทดสอบ ${TAG}`]);
-  await q(`INSERT INTO "Product"(id, sku, slug, name, "priceSatang", "inStock", images, "categoryId", "updatedAt") VALUES ($1,$2,$3,$4,10000,true,'{}',$5,now())`, [
+  await q(`INSERT INTO "Product"(id, sku, slug, name, "priceSatang", "inStock", images, "categoryId", "sortOrder", "updatedAt") VALUES ($1,$2,$3,$4,10000,true,'{}',$5,970000,now())`, [
     PROD, `E2E-CATIMG-${TAG}`, PROD, `สินค้าหมวดรูป ${TAG}`, CAT,
   ]);
 });

@@ -12,6 +12,7 @@ export const HOME_SECTIONS = {
   slides: "สไลด์ภาพหลัก (บนสุด)",
   highlights: "แถบจุดเด่น (ส่งไว รับประกัน กันน้ำ)",
   categories: "หมวดหมู่สินค้า",
+  popular: "หมวดยอดนิยม (การ์ดหมวด + ลิงก์ย่อย)",
   finder: "ตัวช่วยเลือกไฟ",
   bestsellers: "สินค้าขายดี",
   trust: "ความน่าเชื่อถือ (คะแนนรีวิว โลโก้ลูกค้า ตัวเลข)",
@@ -43,7 +44,14 @@ export function parseHomeSections(v: unknown): HomeSection[] {
       out.push({ key, show: key === "slides" ? true : show });
     }
   }
-  for (const key of HOME_KEYS) if (!seen.has(key)) out.push({ key, show: true });
+  // ส่วนที่เพิ่มใหม่ภายหลัง: แทรกต่อจากส่วนที่อยู่ก่อนหน้าในรายการเริ่มต้น (เช่น หมวดยอดนิยม → หลังหมวดหมู่สินค้า)
+  HOME_KEYS.forEach((key, i) => {
+    if (seen.has(key)) return;
+    const prev = HOME_KEYS.slice(0, i).reverse().find((k) => out.some((x) => x.key === k));
+    const at = prev ? out.findIndex((x) => x.key === prev) + 1 : 0;
+    out.splice(at, 0, { key, show: true });
+    seen.add(key);
+  });
   return out;
 }
 

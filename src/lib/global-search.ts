@@ -29,6 +29,7 @@ const PAGES: { label: string; href: string; words: string; ownerOnly?: boolean }
   { label: "ปิดยอดประจำวัน", href: "/admin/reports/daily", words: "daily close ปิดยอด รับเงิน" },
   { label: "ผู้ขาย (ซัพพลายเออร์)", href: "/admin/suppliers", words: "supplier vendor ผู้ขาย ซัพพลายเออร์", ownerOnly: true },
   { label: "นับสต็อกทั้งร้าน", href: "/admin/stock/count", words: "stock count นับสต็อก ตรวจนับ" },
+  { label: "หมวดยอดนิยม (หน้าแรก)", href: "/admin/home/popular", words: "popular categories หมวดยอดนิยม หน้าแรก การ์ดหมวด" },
   { label: "คู่มือการใช้งาน", href: "/admin/help", words: "help manual คู่มือ วิธีใช้" },
   { label: "รายงานยอดขาย", href: "/admin/reports", words: "reports รายงาน ยอดขาย" },
   { label: "รายงานกำไร", href: "/admin/reports/profit", words: "profit กำไร", ownerOnly: true },

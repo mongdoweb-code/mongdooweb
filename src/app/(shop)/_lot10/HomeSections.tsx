@@ -5,14 +5,15 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { getProjects, getPublishedPosts, thaiDay, visibleNow } from "@/lib/blog";
 import type { HomeSectionKey } from "@/lib/home";
-import { getHomeConfig } from "@/lib/home-data";
+import { getHomeConfig, getPopularCards } from "@/lib/home-data";
+import { PopularRail } from "./PopularRail";
 import { getShopRating } from "@/lib/reviews";
 import { getPublicShopInfo } from "@/lib/settings";
 import { HOME_MAIN } from "../_markup/home";
 import { Stars } from "../product/_reviews/ProductReviews";
 import { withFeatureProject, withPayOptions } from "./home-chunks";
 
-type Legacy = Exclude<HomeSectionKey, "trust" | "projects" | "posts">;
+type Legacy = Exclude<HomeSectionKey, "trust" | "projects" | "posts" | "popular">;
 const MARKERS: [Legacy, string][] = [
   ["slides", "(2) HERO SLIDER"],
   ["highlights", "TRUST STRIP"],
@@ -100,6 +101,52 @@ async function TrustSection() {
   );
 }
 
+/** หมวดยอดนิยม: การ์ด (รูปบนพื้นสี + ชื่อหมวด + ลิงก์ย่อย) เลื่อนแนวนอน — ตั้งค่าที่ /admin/home/popular */
+async function PopularSection() {
+  const { title, cards } = await getPopularCards();
+  if (!cards.length) return null;
+  return (
+    <section className="pc-sec" aria-labelledby="pc-h" data-home="popular">
+      <div className="container">
+        <div className="pc-head">
+          <h2 className="pc-title" id="pc-h">{title}</h2>
+          <a href="/products" className="link-more">ดูสินค้าทั้งหมด</a>
+        </div>
+        <PopularRail label={title}>
+          {cards.map((c) => {
+            const href = `/category/${encodeURIComponent(c.slug)}`;
+            return (
+              <li key={c.slug} className="pc-card">
+                <a className="pc-img" href={href} style={{ background: c.bg }} tabIndex={-1} aria-hidden="true">
+                  {c.img ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- รูปย่อ WebP จาก /media
+                    <img src={c.img} alt="" width={240} height={240} loading="lazy" decoding="async" />
+                  ) : (
+                    <span className="pc-ph">{c.title.slice(0, 1)}</span>
+                  )}
+                </a>
+                <div className="pc-body">
+                  <h3 className="pc-name"><a href={href}>{c.title}</a></h3>
+                  <ul className="pc-links">
+                    {c.links.map((l) => (
+                      <li key={l.href + l.label}>
+                        <a href={l.href} {...(/^https?:/i.test(l.href) ? { target: "_blank", rel: "noopener" } : {})}>{l.label}</a>
+                      </li>
+                    ))}
+                    {c.links.length < 5 && (
+                      <li><a className="pc-all" href={href}>ดูทั้งหมด ({c.count.toLocaleString("th-TH")})</a></li>
+                    )}
+                  </ul>
+                </div>
+              </li>
+            );
+          })}
+        </PopularRail>
+      </div>
+    </section>
+  );
+}
+
 async function ProjectsSection() {
   const list = (await getProjects()).slice(0, 3);
   if (!list.length) return null;
@@ -182,6 +229,7 @@ export async function HomeSections() {
       {sections.map(({ key, show }) => {
         if (key === "trust") return show ? <TrustSection key={key} /> : null;
         if (key === "projects") return show ? <ProjectsSection key={key} /> : null;
+        if (key === "popular") return show ? <PopularSection key={key} /> : null;
         if (key === "posts")
           return show ? (
             <Suspense key={key} fallback={null}>
