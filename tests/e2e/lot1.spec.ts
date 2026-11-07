@@ -3,7 +3,7 @@
 // ตั้ง LOT1_SHOTS=<โฟลเดอร์> เพื่อเก็บภาพหน้าจอเดสก์ท็อป/มือถือไว้ตรวจด้วยตา
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { V, trackErrors } from "./helpers";
+import { V, openFilters, trackErrors } from "./helpers";
 import { ensureStorefrontFixtures, type Fixtures } from "./storefront-fixtures";
 
 // ฐานข้อมูลใหม่ (CI: migrate + seed) ไม่มีสินค้าหลายรูป/นับสต็อก/ราคา 0/URL เดิม → สร้างให้ก่อน แล้วลบเมื่อจบ
@@ -381,6 +381,7 @@ test.describe("U10–U11 ค้นหาและหน้าหมวด", () =
     }
 
     // กรองสี RGB → URL + จำนวน
+    await openFilters(page);
     await page.click(".lst-group a.chip:has-text('RGB')");
     await page.waitForURL(/color=rgb/);
     const rgb = Number(await page.locator(".lst-count b").textContent());
@@ -402,6 +403,7 @@ test.describe("U10–U11 ค้นหาและหน้าหมวด", () =
     await page.goBack();
     await expect(page).not.toHaveURL(/price=/);
     // การใช้งาน (บ่อปลา)
+    await openFilters(page);
     await page.click(".lst-group a.chip:has-text('บ่อปลา')");
     await page.waitForURL(/use=pond/);
     // ล้างตัวกรองทั้งหมด (คงการเรียงไว้)
@@ -583,6 +585,7 @@ test.describe("U15 การเข้าถึง (axe)", () => {
     await page.keyboard.press("Enter");
     await expect(page.locator("main#main")).toBeFocused();
     // ชิปตัวกรองมีกรอบโฟกัส
+    await openFilters(page);
     const chip = page.locator(".lst-group a.chip").first();
     await chip.focus();
     await page.keyboard.press("Shift+Tab");

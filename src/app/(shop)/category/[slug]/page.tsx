@@ -6,6 +6,8 @@ import { htmlToText } from "@/lib/html";
 import { absUrl, getCategory, getCategoryByLegacySlug, getShopData } from "@/lib/storefront";
 import { PageHead } from "../../_components/PageHead";
 import { ListingFallback, ProductListing } from "../../_components/ProductListing";
+import { CategoryCarousel } from "../../_components/CategoryCarousel";
+import { categoryTiles } from "../../_components/category-tiles";
 
 // สินค้า/หมวดที่เพิ่มใหม่หลัง build (ไม่อยู่ใน generateStaticParams) ให้ render ตอนเปิดหน้าได้
 export const instant = false;
@@ -56,6 +58,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps<"
     permanentRedirect(to ? `/category/${encodeURIComponent(to)}` : "/products");
   }
   const selfHref = `/category/${encodeURIComponent(cat.slug)}`;
+  const shop = await getShopData();
   const crumbs = [{ label: "สินค้าทั้งหมด", href: "/products" }, { label: cat.th }];
   return (
     <main id="main" tabIndex={-1}>
@@ -67,6 +70,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps<"
         sub={cat.popular.length ? `ยอดนิยม: ${cat.popular.join(" · ")}` : undefined}
       />
       <div className="container pg-body">
+        <CategoryCarousel title="เลือกซื้อตามหมวดหมู่" items={categoryTiles(shop.categories, shop.catalog)} current={cat.slug} />
         <Suspense fallback={<ListingFallback />}>
           <ProductListing basePath={selfHref} category={cat.slug} searchParams={searchParams} />
         </Suspense>

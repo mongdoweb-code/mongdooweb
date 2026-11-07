@@ -6,7 +6,7 @@ import "dotenv/config";
 import { randomBytes } from "node:crypto";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import pg from "pg";
-import { V, confirmClick, login, trackErrors } from "./helpers";
+import { V, confirmClick, login, openFilters, trackErrors } from "./helpers";
 import { refreshStorefront } from "./storefront-fixtures";
 
 test.describe.configure({ mode: "serial" });
@@ -224,6 +224,7 @@ test("U6 สเปกแบบมีโครงสร้าง: ตาราง
   await expect(page.locator('[data-spec-table] tr[data-attr="l9watt"] td')).toHaveText("3 W");
 
   await page.goto("/category/underwater-light");
+  await openFilters(page);
   const ip = page.locator('fieldset[data-spec="l9ip"]');
   await expect(ip.locator("legend")).toHaveText("กันน้ำทดสอบ");
   await ip.locator('a.chip:has-text("IP67")').click();
@@ -237,6 +238,7 @@ test("U6 สเปกแบบมีโครงสร้าง: ตาราง
   await expect(page.locator(".lst-count")).toContainText("พบ 1 รายการ");
   // ช่วงตัวเลข: วัตต์ ≥ 5
   await page.goto("/category/underwater-light");
+  await openFilters(page);
   const w = page.locator('fieldset[data-spec="l9watt"]');
   await w.locator('input[name="f_l9watt_min"]').fill("5");
   await w.locator('button[type="submit"]').click();
@@ -453,6 +455,7 @@ test("A5 สเปกต่อหมวด: ชุดมาตรฐาน, เ�
   await expect(page.locator('[data-spec-table] tr[data-attr="watt"] td')).toHaveText("5 W");
   await expect(page.locator('[data-spec-table] tr[data-attr="l9mat"] td')).toHaveText("แก้ว");
   await page.goto(`/category/${TEST_CAT_SLUG}`);
+  await openFilters(page);
   await expect(page.locator('fieldset[data-spec="l9mat"] a.chip')).toContainText("แก้ว");
   await page.locator('fieldset[data-spec="ip"] a.chip:has-text("IP68")').click();
   await expect(page.locator(".lst-count")).toContainText("พบ 1 รายการ");

@@ -1,9 +1,11 @@
-// สินค้าทั้งหมด + ลิงก์ไปแต่ละหมวด + เรียงลำดับ/ตัวกรอง
+// สินค้าทั้งหมด + แถบเลือกซื้อตามหมวดหมู่ (รูปวงกลม) + เรียงลำดับ/ตัวกรอง (ตัวกรองอยู่ในปุ่ม "ตัวกรอง")
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { absUrl, getShopData } from "@/lib/storefront";
 import { PageHead } from "../_components/PageHead";
 import { ListingFallback, ProductListing } from "../_components/ProductListing";
+import { CategoryCarousel } from "../_components/CategoryCarousel";
+import { categoryTiles } from "../_components/category-tiles";
 
 const TITLE = "สินค้าทั้งหมด — มองดูเว็บ";
 const DESCRIPTION =
@@ -24,18 +26,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ProductsPage({ searchParams }: PageProps<"/products">) {
-  const { categories } = await getShopData();
+  const { categories, catalog } = await getShopData();
   return (
     <main id="main" tabIndex={-1}>
       <PageHead crumbs={[{ label: "สินค้าทั้งหมด" }]} selfHref="/products" eyebrow="ร้านมองดูเว็บ" title="สินค้าทั้งหมด" />
       <div className="container pg-body">
-        <nav className="cat-chips" aria-label="หมวดสินค้า">
-          {categories.map((c) => (
-            <a key={c.slug} className="chip" href={`/category/${encodeURIComponent(c.slug)}`}>
-              {c.th}
-            </a>
-          ))}
-        </nav>
+        <CategoryCarousel title="เลือกซื้อตามหมวดหมู่" items={categoryTiles(categories, catalog)} />
         <Suspense fallback={<ListingFallback />}>
           <ProductListing basePath="/products" searchParams={searchParams} />
         </Suspense>

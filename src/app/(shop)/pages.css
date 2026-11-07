@@ -271,3 +271,38 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 .cart-recent a:hover{border-color:var(--c-ink)}
 .cart-recent img,.cart-recent .ph{width:56px;height:56px;object-fit:contain;background:var(--c-cream-dk)}
 .cart-recent .nm{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.4}
+
+/* --- เลือกซื้อตามหมวดหมู่ (รูปวงกลม เลื่อนซ้าย/ขวา) --- */
+.ccar{background:#F5F5F6;padding:22px 0 18px;margin-bottom:24px;min-width:0;max-width:100%;overflow:hidden}
+.ccar-h{font-size:22px;font-weight:700;margin:0 0 14px;padding:0 24px}
+.ccar-wrap{position:relative;display:flex;align-items:center;gap:4px}
+.ccar-track{position:relative;list-style:none;margin:0;padding:4px 8px;display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;flex:1;min-width:0;scroll-padding:0 8px}
+.ccar-track::-webkit-scrollbar{display:none}
+.ccar-track li{flex:0 0 auto;scroll-snap-align:start}
+.ccar-item{display:flex;flex-direction:column;align-items:center;gap:10px;width:132px;text-decoration:none;color:var(--c-ink);padding:4px 0}
+.ccar-img{width:108px;height:108px;border-radius:50%;background:#fff;display:grid;place-items:center;overflow:hidden;box-shadow:0 1px 3px rgba(20,20,20,.06);transition:transform .2s,box-shadow .2s}
+.ccar-img img{width:78%;height:78%;object-fit:contain}
+.ccar-ph{font-size:34px;font-weight:700;color:var(--c-muted)}
+.ccar-name{font-size:14px;line-height:1.35;text-align:center;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em}
+.ccar-item:hover .ccar-img,.ccar-item:focus-visible .ccar-img{transform:translateY(-3px);box-shadow:0 8px 18px rgba(20,20,20,.12)}
+.ccar-item:hover .ccar-name{color:#B5461C}
+.ccar-item[aria-current="page"] .ccar-img{box-shadow:0 0 0 3px var(--c-orange)}
+.ccar-item[aria-current="page"] .ccar-name{font-weight:700;color:#B5461C}
+.ccar-arrow{flex:0 0 40px;height:40px;display:grid;place-items:center;border:0;background:none;color:var(--c-ink);cursor:pointer;border-radius:50%}
+.ccar-arrow svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ccar-arrow:hover:not(:disabled){background:#fff}
+.ccar-arrow:disabled{opacity:.25;cursor:default}
+@media (max-width:768px){
+  .ccar{padding:16px 0 12px;margin-left:calc(-1 * var(--gutter));margin-right:calc(-1 * var(--gutter));max-width:none}
+  .ccar-h{font-size:18px;padding:0 16px}
+  .ccar-arrow{display:none}
+  .ccar-track{gap:10px;padding:4px 16px}
+  .ccar-item{width:92px;gap:8px}
+  .ccar-img{width:76px;height:76px}
+  .ccar-name{font-size:12.5px}
+}
+
+/* ตัวกรองซ่อนไว้ในปุ่ม "ตัวกรอง" ทุกขนาดจอ (กดเพื่อเปิด) */
+.lst-toggle{display:inline-flex}
+.lst-panel{display:none;order:4;padding:14px 0 4px;border-top:1px solid var(--c-line)}
+.lst-filters[data-open] .lst-panel{display:flex}

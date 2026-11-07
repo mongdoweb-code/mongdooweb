@@ -1,9 +1,10 @@
 "use client";
-// ปุ่มเปิด/ปิดแผงตัวกรองบนมือถือ (เดสก์ท็อปแสดงตลอด) — การเรียง/จำนวนต่อหน้า/มุมมองอยู่ที่ src/components/sort-toolbar
+// ปุ่ม "ตัวกรอง" เปิด/ปิดแผงตัวกรอง (ทุกขนาดจอ — ปิดไว้ก่อน เปิดเองเมื่อมีตัวกรองที่เลือกอยู่) — การเรียง/จำนวนต่อหน้า/มุมมองอยู่ที่ src/components/sort-toolbar
 import { useId, useState } from "react";
 
 export function FilterPanel({ activeCount, children }: { activeCount: number; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+  // มีตัวกรองที่เลือกอยู่ = เปิดแผงไว้ให้เห็นว่ากรองอะไรอยู่
+  const [open, setOpen] = useState(activeCount > 0);
   const id = useId();
   return (
     <div className="lst-filters" data-open={open ? "true" : undefined}>
