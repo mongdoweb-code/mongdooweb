@@ -3,7 +3,9 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { listVersions } from "@/lib/content-version";
 import { CATEGORY_ICONS } from "@/lib/icons";
+import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
+import { PRODUCT_ORDER } from "@/lib/storefront";
 import { ConfirmSubmit } from "../../_components/AdminClient";
 import { DragHandle, RowActions } from "../../_components/RowActions";
 import { SortableRows } from "../../_components/SortableRows";
@@ -140,10 +142,14 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
     );
   };
   const cur = edit && edit !== "new" ? cats.find((c) => c.id === edit) : null;
+  // ตัวอย่างรูปเมื่อยังไม่อัปโหลด = รูปสินค้าตัวแรกของหมวด (ลำดับเดียวกับหน้าร้าน)
+  const firstImg = cur
+    ? (await prisma.product.findFirst({ where: { categoryId: cur.id, isActive: true, isService: false, images: { isEmpty: false } }, orderBy: PRODUCT_ORDER, select: { images: true } }))?.images[0]
+    : undefined;
   const v: CatValues | null = cur
-    ? { id: cur.id, nameTh: cur.nameTh, nameEn: cur.nameEn, slug: cur.slug, legacySlug: cur.legacySlug ?? "", icon: cur.icon ?? "deco", group: cur.group, popular: cur.popular.join(", "), description: cur.description ?? "", showOnHome: cur.showOnHome, isActive: cur.isActive }
+    ? { imageUrl: mediaUrl(cur.imageKey, "sm") ?? "", fallbackUrl: mediaUrl(firstImg, "sm") ?? "", id: cur.id, nameTh: cur.nameTh, nameEn: cur.nameEn, slug: cur.slug, legacySlug: cur.legacySlug ?? "", icon: cur.icon ?? "deco", group: cur.group, popular: cur.popular.join(", "), description: cur.description ?? "", showOnHome: cur.showOnHome, isActive: cur.isActive }
     : edit === "new"
-      ? { id: "", nameTh: "", nameEn: "", slug: "", legacySlug: "", icon: "deco", group: "DECO", popular: "", description: "", showOnHome: true, isActive: true }
+      ? { imageUrl: "", fallbackUrl: "", id: "", nameTh: "", nameEn: "", slug: "", legacySlug: "", icon: "deco", group: "DECO", popular: "", description: "", showOnHome: true, isActive: true }
       : null;
 
   return (
@@ -178,6 +184,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
 
       <div className={v ? "pform-grid" : ""}>
         <section className="panel">
+          <div className="tbl-wrap">
           <table className="tbl">
             <thead>
               <tr>
@@ -197,10 +204,11 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
               <tbody>{rows.map((c, i) => row(c, i))}</tbody>
             )}
           </table>
+          </div>
         </section>
         {v && (
           <div className="d-col">
-            <CategoryForm key={v.id || "new"} v={v} icons={CATEGORY_ICONS} />
+            <CategoryForm key={`${v.id || "new"}:${v.imageUrl}`} v={v} icons={CATEGORY_ICONS} />
             {v.id && owner && (
               <form action={deleteCategory} className="box">
                 <input type="hidden" name="id" value={v.id} />
