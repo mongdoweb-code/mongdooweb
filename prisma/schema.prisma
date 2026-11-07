@@ -438,6 +438,8 @@ model ShopSetting {
   trust               Json     @default("{}")
   /// ลำดับส่วนของหน้าแรก ["slides","categories","finder","bestsellers","trust","projects","posts"]
   homeSections        Json     @default("[]")
+  /// หมวดยอดนิยมหน้าแรก { title, items: [{ cat, bg, links: [{ label, href }] }] } — แก้ที่ /admin/home/popular · ว่าง = เลือกให้อัตโนมัติ
+  popularCats         Json     @default("{}")
   backupRetentionDays Int      @default(14)
 
   updatedAt DateTime @updatedAt

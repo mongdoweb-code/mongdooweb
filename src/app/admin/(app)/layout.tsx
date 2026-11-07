@@ -106,6 +106,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/reviews", label: "รีวิวสินค้า", icon: <Ico k="star" />, badge: reviews, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/stock-alerts", label: "รอสินค้าเข้า", icon: <Ico k="bell" />, badge: waiting, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/home", label: "หน้าแรก / ความน่าเชื่อถือ", icon: <Ico k="home" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/home/popular", label: "หมวดยอดนิยม (หน้าแรก)", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/docs/QUOTATION", label: "ใบเสนอราคา", icon: <Ico k="qt" />, group: "เอกสารขาย" },
             { href: "/admin/docs/INVOICE", label: "ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: unpaid, group: "เอกสารขาย" },
             { href: "/admin/docs/RECEIPT", label: "ใบเสร็จรับเงิน", icon: <Ico k="rc" />, group: "เอกสารขาย" },
