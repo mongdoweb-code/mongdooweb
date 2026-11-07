@@ -45,3 +45,9 @@ export async function buyableProduct(page: Page) {
   expect(false, "ต้องมีสินค้าที่มีราคาและมีของอย่างน้อย 1 รายการ").toBeTruthy();
   throw new Error("unreachable");
 }
+
+/** เปิดแผงตัวกรองของรายการสินค้า (ปุ่ม "ตัวกรอง") ถ้ายังปิดอยู่ */
+export async function openFilters(page: Page) {
+  const t = page.locator(".lst-toggle");
+  if ((await t.getAttribute("aria-expanded")) !== "true") await t.click();
+}

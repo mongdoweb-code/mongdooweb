@@ -149,3 +149,29 @@ test("เมนูบน: หมวดสินค้า → สินค้า 
   await page.goto("/");
   await expect(page.locator('.dr-other a[href="/products"]')).toHaveCount(1);
 });
+
+test("เลือกซื้อตามหมวดหมู่: รูปวงกลม เลื่อนด้วยลูกศร กดไปหน้าหมวด · ตัวกรองอยู่ในปุ่ม", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/products");
+  await expect(page.locator(".cat-chips")).toHaveCount(0);
+  const car = page.locator(".ccar");
+  await expect(car.getByRole("heading", { name: "เลือกซื้อตามหมวดหมู่" })).toBeVisible();
+  const n = await car.locator(".ccar-item").count();
+  expect(n).toBeGreaterThan(3);
+  await expect(car.locator(".ccar-arrow.prev")).toBeDisabled();
+  const track = car.locator(".ccar-track");
+  if (await track.evaluate((el) => el.scrollWidth > el.clientWidth)) {
+    await car.locator(".ccar-arrow.next").click();
+    await expect.poll(() => track.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+    await expect(car.locator(".ccar-arrow.prev")).toBeEnabled();
+  }
+  // ตัวกรองซ่อนไว้ในปุ่ม
+  await expect(page.locator(".lst-panel")).toBeHidden();
+  await page.click(".lst-toggle");
+  await expect(page.locator(".lst-panel")).toBeVisible();
+  // กดหมวด → หน้าหมวด (หมวดปัจจุบันถูกเน้น)
+  const first = car.locator(".ccar-item").first();
+  const href = await first.getAttribute("href");
+  await page.goto(href!);
+  await expect(page.locator('.ccar-item[aria-current="page"]')).toHaveAttribute("href", href!);
+});
