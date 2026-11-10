@@ -120,6 +120,20 @@ function productLd(p: Detail) {
     description: (text || describe(p)).slice(0, 5000),
     brand: { "@type": "Brand", name: "มองดูเว็บ" },
     ...(p.images.length ? { image: p.images.map((i) => absUrl(i.full)) } : {}),
+    // วิดีโอสินค้า → VideoObject (Google แสดงวิดีโอในผลค้นหาได้ ต้องมีภาพปก ชื่อ คำอธิบาย วันที่อัปโหลด)
+    ...(p.video && p.video.poster
+      ? {
+          subjectOf: {
+            "@type": "VideoObject",
+            name: `วิดีโอ ${p.name}`,
+            description: (text || describe(p)).slice(0, 300),
+            thumbnailUrl: absUrl(p.video.poster),
+            contentUrl: absUrl(p.video.url),
+            uploadDate: p.video.uploaded,
+            ...(p.video.seconds ? { duration: `PT${p.video.seconds}S` } : {}),
+          },
+        }
+      : {}),
     ...(p.attrs.length ? { additionalProperty: p.attrs.map((a) => ({ "@type": "PropertyValue", name: a.label, value: a.value })) } : {}),
     // ราคา 0 = "สอบถามราคา" → ไม่ใส่ offers (ห้ามมีราคาว่าง/0 ใน schema)
     ...offer(url, p.price, p.inStock, saleEnd),
@@ -189,7 +203,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
       <PageHead crumbs={crumbs} selfHref={selfHref} title="" />
       <div className="container pg-body">
         <div className="pdp">
-          <Gallery images={p.images} alt={p.name} badge={<PriceBadge p={{ ...pv, badge: p.badge }} />} />
+          <Gallery images={p.images} video={p.video} alt={p.name} badge={<PriceBadge p={{ ...pv, badge: p.badge }} />} />
           <div>
             <a className="eyebrow" href={catHref}>
               {p.category.th}

@@ -9,6 +9,10 @@ import { srcSetOf } from "@/lib/img-srcset";
 
 type ShellWindow = Window & { addToCart?: (id: string, qty: number, mode: string) => boolean; openCart?: (from?: Element) => void };
 type Img = { full: string; sm: string };
+export type GalleryVideo = { url: string; poster: string | null; posterSm: string | null; seconds: number | null };
+/** สไลด์ในแกลเลอรี: รูป (idx = ลำดับในรายการรูป ใช้กับ Lightbox) หรือวิดีโอ (ต่อจากภาพปก) */
+type Slide = { kind: "img"; img: Img; idx: number } | { kind: "video"; v: GalleryVideo };
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /** รูปเต็มกว้าง/สูงไม่เกิน 1600px ใส่ในกล่องจัตุรัส (object-fit: contain) — ระบุขนาดกันหน้าเลื่อน */
 const FULL = 1600;
@@ -16,11 +20,22 @@ const FULL = 1600;
 // ---------------- แกลเลอรี ----------------
 
 /** badge = ป้ายบนรูป (component ราคาที่คำนวณ "ลด x%" ตามเวลาจริง) */
-export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; badge?: React.ReactNode }) {
+export function Gallery({ images, video, alt, badge }: { images: Img[]; video?: GalleryVideo | null; alt: string; badge?: React.ReactNode }) {
   const [i, setI] = useState(0);
   const [zoom, setZoom] = useState<number | null>(null);
   const track = useRef<HTMLDivElement>(null);
-  const n = images.length;
+  const vidRef = useRef<HTMLVideoElement>(null);
+  // ภาพปก (รูปแรก) มาก่อนเสมอ → วิดีโอ → รูปที่เหลือ (เหมือนหน้าสินค้า marketplace)
+  const slides: Slide[] = images.map((img, idx) => ({ kind: "img", img, idx }) as Slide);
+  if (video) slides.splice(images.length ? 1 : 0, 0, { kind: "video", v: video });
+  const n = slides.length;
+  const slideOfImg = (k: number) => slides.findIndex((s) => s.kind === "img" && s.idx === k);
+
+  // เลื่อนออกจากสไลด์วิดีโอ → หยุดเล่น (ไม่ให้มีเสียงค้างตอนดูรูปอื่น)
+  useEffect(() => {
+    const v = vidRef.current;
+    if (v && slides[i]?.kind !== "video" && !v.paused) v.pause();
+  });
 
   // เลื่อนไปยังรูปที่ k (ปุ่มก่อน/ถัดไป, รูปย่อ, คีย์บอร์ด) — ปัดบนมือถือใช้ scroll-snap ของเบราว์เซอร์
   // ระหว่างเลื่อนด้วยโค้ด (ปุ่ม/คีย์บอร์ด) ไม่อ่านตำแหน่งจาก scroll — กันตัวนับกระโดดระหว่างทาง
@@ -89,9 +104,9 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
     <div
       className="pdp-gallery"
       role="region"
-      aria-label={`รูปสินค้า ${n} รูป`}
+      aria-label={video ? `รูปสินค้า ${images.length} รูป และวิดีโอ` : `รูปสินค้า ${n} รูป`}
       onKeyDown={(e) => {
-        if (n < 2 || (e.target as HTMLElement).closest("dialog")) return;
+        if (n < 2 || (e.target as HTMLElement).closest("dialog, video")) return;
         if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
         e.preventDefault();
         go(i + (e.key === "ArrowRight" ? 1 : -1));
@@ -100,19 +115,33 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
       <div className="pdp-main gal">
         {badge}
         <div className="gal-track" ref={track}>
-          {images.map((im, k) => (
+          {slides.map((sl, k) =>
+            sl.kind === "video" ? (
+              <div key="video" className="gal-slide gal-video">
+                <video
+                  ref={vidRef}
+                  src={sl.v.url}
+                  poster={sl.v.poster ?? undefined}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  aria-label={`วิดีโอสินค้า ${alt}`}
+                  tabIndex={k === i ? 0 : -1}
+                />
+              </div>
+            ) : (
             <button
-              key={im.full + k}
+              key={sl.img.full + k}
               type="button"
               className="gal-slide"
               aria-label={`ขยายรูปที่ ${k + 1} จาก ${n}`}
               tabIndex={k === i ? 0 : -1}
-              onClick={() => setZoom(k)}
+              onClick={() => setZoom(sl.idx)}
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- รูป WebP จาก /media ย่อขนาดแล้ว */}
               <img
-                src={im.full}
-                srcSet={srcSetOf(im.full) ?? `${im.sm} 480w, ${im.full} ${FULL}w`}
+                src={sl.img.full}
+                srcSet={srcSetOf(sl.img.full) ?? `${sl.img.sm} 480w, ${sl.img.full} ${FULL}w`}
                 sizes="(max-width: 768px) 100vw, 50vw"
                 alt={k === 0 ? alt : `${alt} รูปที่ ${k + 1}`}
                 width={FULL}
@@ -123,7 +152,8 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
                 draggable={false}
               />
             </button>
-          ))}
+            ),
+          )}
         </div>
         {n > 1 && (
           <>
@@ -142,7 +172,7 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
             </span>
           </>
         )}
-        <span className="gal-hint" aria-hidden="true">
+        <span className="gal-hint" aria-hidden="true" hidden={slides[i]?.kind === "video"}>
           <svg viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="6" />
             <path d="m20 20-4.2-4.2M11 8.5v5M8.5 11h5" />
@@ -151,12 +181,25 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
       </div>
       {n > 1 && (
         <div className="pdp-thumbs" role="group" aria-label="เลือกรูป">
-          {images.map((im, k) => (
-            <button key={im.sm + k} type="button" aria-current={k === i} aria-label={`ดูรูปที่ ${k + 1}`} onClick={() => go(k)}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={im.sm} alt="" width={72} height={72} loading="lazy" decoding="async" />
-            </button>
-          ))}
+          {slides.map((sl, k) =>
+            sl.kind === "video" ? (
+              <button key="video" type="button" className="thumb-video" aria-current={k === i} aria-label="ดูวิดีโอสินค้า" onClick={() => go(k)}>
+                {sl.v.posterSm || images[0] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={sl.v.posterSm ?? images[0].sm} alt="" width={72} height={72} loading="lazy" decoding="async" />
+                ) : null}
+                <span className="tv-play" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                </span>
+                {sl.v.seconds ? <span className="tv-time">{clock(sl.v.seconds)}</span> : null}
+              </button>
+            ) : (
+              <button key={sl.img.sm + k} type="button" aria-current={k === i} aria-label={`ดูรูปที่ ${sl.idx + 1}`} onClick={() => go(k)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sl.img.sm} alt="" width={72} height={72} loading="lazy" decoding="async" />
+              </button>
+            ),
+          )}
         </div>
       )}
       {zoom !== null && (
@@ -166,7 +209,7 @@ export function Gallery({ images, alt, badge }: { images: Img[]; alt: string; ba
           start={zoom}
           onClose={(k) => {
             setZoom(null);
-            go(k);
+            go(slideOfImg(k));
           }}
         />
       )}

@@ -8,13 +8,14 @@ import { useFormAction } from "../../_components/useFormAction";
 import type { SpecDef } from "@/lib/specs";
 import { deleteProduct, duplicateProduct, saveProduct, type ProductFormState } from "./actions";
 import { SaleTierFields, SpecFields, type ExtrasValues } from "./ProductExtras";
+import { ProductMedia, type VideoValue } from "./ProductMedia";
 
 export type ProductValues = {
   id: string; name: string; slug: string; sku: string; categoryId: string; unit: string;
   price: string; compareAt: string; trackStock: boolean; stock: number; inStock: boolean;
   isActive: boolean; isBestSeller: boolean; badge: string; shortDescription: string; description: string;
   keywords: string; seoTitle: string; seoDescription: string; weightGram: string;
-  specs: { label: string; value: string }[]; images: { key: string; url: string }[];
+  specs: { label: string; value: string }[]; images: { key: string; url: string }[]; video: VideoValue | null;
   useAreas: string[]; lightColor: string; includesPsu: boolean; isAccessory: boolean;
   orders: number;
   /** ล็อต 9: ราคาลดตามเวลา ราคาขายส่ง สเปกตามหมวด กลุ่มตัวเลือก */
@@ -32,29 +33,13 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
   const [name, setName] = useState(v.name);
   const [seoTitle, setSeoTitle] = useState(v.seoTitle);
   const [seoDesc, setSeoDesc] = useState(v.seoDescription);
-  const [dragI, setDragI] = useState<number | null>(null);
-  const [overI, setOverI] = useState<number | null>(null);
-  const [images, setImages] = useState(v.images);
-  const [newFiles, setNewFiles] = useState<{ name: string; url: string }[]>([]);
+  const [mediaBusy, setMediaBusy] = useState(false);
   const [specs, setSpecs] = useState(v.specs.length ? v.specs : [{ label: "", value: "" }]);
   const [track, setTrack] = useState(v.trackStock);
   const [slug, setSlug] = useState(v.slug);
   const [slugTouched, setSlugTouched] = useState(!!v.id);
   const [cat, setCat] = useState(v.categoryId);
   const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
-  const move = (i: number, d: number) => {
-    const next = [...images];
-    const [x] = next.splice(i, 1);
-    next.splice(Math.max(0, Math.min(next.length, i + d)), 0, x);
-    setImages(next);
-  };
-  const moveTo = (from: number, to: number) => {
-    if (from === to) return;
-    const next = [...images];
-    const [x] = next.splice(from, 1);
-    next.splice(to, 0, x);
-    setImages(next);
-  };
   const serpTitle = `${seoTitle || name || "ชื่อสินค้า"} — มองดูเว็บ`;
   const serpDesc = seoDesc || shortText || `${name} ราคาพิเศษ สั่งออนไลน์ได้ที่มองดูเว็บ`;
 
@@ -63,7 +48,6 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
       <form onSubmit={onSubmit} className="pform">
         <input type="hidden" name="id" value={v.id} />
         <input type="hidden" name="stock0" value={v.stock} />
-        <input type="hidden" name="images" value={JSON.stringify(images.map((i) => i.key))} />
         <input type="hidden" name="specs" value={JSON.stringify(specs)} />
         {state.error && <div className="login-err" role="alert">{state.error}</div>}
         {state.ok && <div className="login-info" role="status">{state.ok}{v.id && <> · <a href={`/product/${v.slug}`} target="_blank" rel="noopener">ดูหน้าสินค้า</a></>}</div>}
@@ -89,46 +73,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               </div>
             </div>
 
-            <div className="box">
-              <h3>รูปสินค้า <span className="sub">รูปแรก = รูปหลัก · ลากเพื่อจัดลำดับ หรือใช้ปุ่มลูกศร</span></h3>
-              <div className="img-grid" {...bad("newImages")}>
-                {images.map((im, i) => (
-                  <figure
-                    key={im.key}
-                    draggable
-                    data-key={im.key}
-                    style={{ position: "relative" }}
-                    className={`${dragI === i ? "dragging" : ""} ${overI === i && dragI !== i ? "drag-over" : ""}`}
-                    onDragStart={(e) => { setDragI(i); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(i)); }}
-                    onDragOver={(e) => { e.preventDefault(); if (overI !== i) setOverI(i); }}
-                    onDragLeave={() => setOverI(null)}
-                    onDrop={(e) => { e.preventDefault(); const from = dragI ?? Number(e.dataTransfer.getData("text/plain")); moveTo(from, i); setDragI(null); setOverI(null); }}
-                    onDragEnd={() => { setDragI(null); setOverI(null); }}
-                  >
-                    {i === 0 && <span className="main-tag">รูปหลัก</span>}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={im.url} alt={`รูปที่ ${i + 1}`} draggable={false} />
-                    <figcaption>
-                      <button type="button" className="icon-btn sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`เลื่อนรูปที่ ${i + 1} ไปก่อน`}>←</button>
-                      <button type="button" className="icon-btn sm" onClick={() => move(i, 1)} disabled={i === images.length - 1} aria-label={`เลื่อนรูปที่ ${i + 1} ไปหลัง`}>→</button>
-                      {i > 0 && <button type="button" className="icon-btn sm" onClick={() => moveTo(i, 0)} aria-label={`ตั้งรูปที่ ${i + 1} เป็นรูปหลัก`} title="ตั้งเป็นรูปหลัก">★</button>}
-                      <button type="button" className="icon-btn sm del" onClick={() => setImages(images.filter((_, k) => k !== i))} aria-label="ลบรูป">✕</button>
-                    </figcaption>
-                  </figure>
-                ))}
-                {newFiles.map((n) => (
-                  <figure key={n.url} className="new">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={n.url} alt={n.name} />
-                    <figcaption><span className="sub">ใหม่ — บันทึกเพื่ออัปโหลด</span></figcaption>
-                  </figure>
-                ))}
-              </div>
-              <label className="btn btn-outline btn-sm" htmlFor="newImages" style={{ width: "max-content" }}>+ เลือกรูป (ได้หลายรูป)</label>
-              <input id="newImages" name="newImages" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only"
-                onChange={(e) => setNewFiles([...(e.target.files ?? [])].map((f) => ({ name: f.name, url: URL.createObjectURL(f) })))} />
-              <small className="sub">JPG/PNG/WEBP ไม่เกิน 10 MB ต่อรูป · ระบบย่อเป็น WebP ให้อัตโนมัติ</small>
-            </div>
+            <ProductMedia images={v.images} video={v.video} onBusy={setMediaBusy} invalid={{ images: state.fields?.includes("newImages"), video: state.fields?.includes("video") }} />
 
             <div className="box">
               <h3>สเปกสินค้า</h3>
@@ -174,7 +119,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               <label className="chk-row"><input type="checkbox" name="isBestSeller" defaultChecked={v.isBestSeller} /> แสดงใน &quot;สินค้าขายดี&quot; หน้าแรก</label>
               <div className="field"><label htmlFor="badge">ป้ายบนการ์ด</label><input id="badge" name="badge" defaultValue={v.badge} maxLength={20} placeholder="เช่น ขายดี, แนะนำ, ใหม่" /></div>
               <div className="act-row">
-                <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? "กำลังบันทึก…" : "บันทึกสินค้า"}</button>
+                <button className="btn btn-primary" type="submit" disabled={pending || mediaBusy} title={mediaBusy ? "รอรูป/วิดีโออัปโหลดเสร็จก่อน" : undefined}>{pending ? "กำลังบันทึก…" : mediaBusy ? "กำลังอัปโหลดไฟล์…" : "บันทึกสินค้า"}</button>
                 <Link className="btn btn-outline" href="/admin/products">กลับ</Link>
               </div>
             </div>

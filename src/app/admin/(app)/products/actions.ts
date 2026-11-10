@@ -7,6 +7,8 @@ import { diffOf, logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin, requireOwner } from "@/lib/auth";
 import { sanitizeDescription } from "@/lib/html";
 import { MediaError, saveImage } from "@/lib/media";
+import { storage } from "@/lib/storage";
+import { isPosterKey, isVideoKey } from "@/lib/video";
 import { prisma } from "@/lib/prisma";
 import { queueRestockIfAvailableNow } from "@/lib/stock-alerts";
 import { setStock } from "@/lib/stock";
@@ -87,7 +89,18 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
       return { error: e instanceof MediaError ? `${file.name}: ${e.message}` : `อัปโหลด ${file.name} ไม่สำเร็จ`, fields: ["newImages"] };
     }
   }
-  const images = [...keep, ...uploaded].slice(0, 30);
+  const images = [...new Set([...keep, ...uploaded])].slice(0, 30);
+  if (f.get("mediaBusy") === "1") return { error: "รูป/วิดีโอยังอัปโหลดไม่เสร็จ — รอสักครู่แล้วกดบันทึกอีกครั้ง" };
+
+  // วิดีโอสินค้า (อัปโหลดไว้แล้วผ่าน /admin/products/upload) — ต้องเป็นไฟล์ที่มีอยู่จริง
+  const videoRaw = str(f, "videoKey", 200);
+  const videoKey = isVideoKey(videoRaw) ? videoRaw : null;
+  if (videoRaw && !videoKey) return { error: "ไฟล์วิดีโอไม่ถูกต้อง — อัปโหลดใหม่", fields: ["video"] };
+  if (videoKey && (await storage().size(videoKey).catch(() => null)) == null) return { error: "ไม่พบไฟล์วิดีโอที่อัปโหลด — อัปโหลดใหม่", fields: ["video"] };
+  const posterRaw = str(f, "videoPosterKey", 200);
+  const videoPosterKey = videoKey && isPosterKey(posterRaw) ? posterRaw : null;
+  const secs = Math.round(Number(str(f, "videoSeconds", 6)));
+  const videoSeconds = videoKey && secs > 0 && secs <= 600 ? secs : null;
 
   const data = {
     name,
@@ -111,6 +124,9 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     weightGram,
     specs,
     images,
+    videoKey,
+    videoPosterKey,
+    videoSeconds,
     useAreas: USE.filter((u) => f.getAll("useAreas").includes(u)),
     lightColor: COLORS.includes(str(f, "lightColor") as LightColor) ? (str(f, "lightColor") as LightColor) : "ANY",
     includesPsu: f.get("includesPsu") === "on",
