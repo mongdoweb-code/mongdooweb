@@ -181,3 +181,24 @@ test("มือถือ: ตารางสีไม่ล้นจอ", async 
     await page.keyboard.press("Escape");
   }
 });
+
+test("หน้าสินค้า: คำอธิบายย่อข้างราคาแสดงรายการจุด/ตัวเลข หัวข้อ ตาราง เหมือนในตัวแก้ไข", async ({ page }) => {
+  await q(`UPDATE "Product" SET "shortDescription"=$2 WHERE id=$1`, [
+    P.id,
+    "<h3>หัวข้อสั้น</h3><ul><li>ข้อหนึ่ง</li></ul><ul><li>ข้อสอง</li></ul><ol><li>ลำดับหนึ่ง</li><li>ลำดับสอง</li></ol><blockquote>ข้อความเน้น</blockquote><table><tbody><tr><td>A</td><td>B</td></tr></tbody></table>",
+  ]);
+  await q(`UPDATE "Product" SET "updatedAt"=now() WHERE id=$1`, [P.id]);
+  // หน้าร้านแคชไว้ — ให้ admin บันทึกเพื่อรีเฟรชแคช
+  await login(page);
+  await page.goto(`/admin/products/${P.id}`);
+  await page.locator('button[type=submit]:has-text("บันทึกสินค้า")' + V).first().click();
+  await expect.poll(async () => (await q<{ s: string }>(`SELECT "shortDescription" s FROM "Product" WHERE id=$1`, [P.id]))[0].s).toContain("<li>");
+  await page.goto(`/product/${P.slug}`);
+  const short = page.locator(".pdp-short");
+  await expect(short.locator("ul").first()).toHaveCSS("list-style-type", "disc");
+  await expect(short.locator("ol")).toHaveCSS("list-style-type", "decimal");
+  await expect(short.locator("li").first()).toHaveCSS("display", "list-item");
+  expect(Number((await short.locator("ul").first().evaluate((e) => getComputedStyle(e).paddingLeft)).replace("px", ""))).toBeGreaterThan(15);
+  await expect(short.locator("blockquote")).toHaveCSS("border-left-style", "solid");
+  await expect(short.locator("td").first()).toHaveCSS("border-top-style", "solid");
+});

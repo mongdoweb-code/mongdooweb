@@ -95,13 +95,28 @@ a.add-btn{display:inline-flex;align-items:center;justify-content:center}
 .pdp-qty input{width:56px;border:0;text-align:center;font:inherit;font-size:16px;-moz-appearance:textfield}
 .pdp-qty input::-webkit-inner-spin-button{appearance:none}
 .prose-desc{margin-top:40px;padding-top:28px;border-top:1px solid var(--c-line);max-width:860px}
-.prose-desc h2{font-size:22px;margin:24px 0 10px}.prose-desc h3{font-size:18px;margin:20px 0 8px}
-.prose-desc p{margin:0 0 12px;color:#3a3834}.prose-desc ul,.prose-desc ol{padding-left:22px;margin:0 0 12px}
-.prose-desc ul{list-style:disc}.prose-desc ol{list-style:decimal}
-.prose-desc img{max-width:100%;height:auto;margin:12px auto;display:block}
-.prose-desc table{border-collapse:collapse;width:100%;margin:12px 0;font-size:15px}
-.prose-desc td,.prose-desc th{border:1px solid var(--c-line);padding:8px 10px;text-align:left}
-.prose-desc a{color:var(--c-orange);text-decoration:underline}
+/* ข้อความจากตัวแก้ไขหลังบ้าน (คำอธิบายย่อข้างราคา + รายละเอียดสินค้า) — หน้าตาเดียวกับในตัวแก้ไข
+   ต้องคืนค่า list-style เพราะ shop.css รีเซ็ต ul{list-style:none} ทั้งเว็บ */
+:is(.prose-desc,.pdp-short) h2{font-size:22px;margin:24px 0 10px}:is(.prose-desc,.pdp-short) h3{font-size:18px;margin:20px 0 8px}:is(.prose-desc,.pdp-short) h4{font-size:16px;margin:16px 0 6px}
+:is(.prose-desc,.pdp-short) p{margin:0 0 12px;color:#3a3834}
+:is(.prose-desc,.pdp-short) :is(ul,ol){padding-left:24px;margin:0 0 12px}
+:is(.prose-desc,.pdp-short) ul{list-style:disc outside}:is(.prose-desc,.pdp-short) ol{list-style:decimal outside}
+:is(.prose-desc,.pdp-short) ul ul{list-style-type:circle}:is(.prose-desc,.pdp-short) ul ul ul{list-style-type:square}
+:is(.prose-desc,.pdp-short) li{display:list-item;margin:0 0 4px}
+:is(.prose-desc,.pdp-short) li::marker{color:#3a3834}
+/* WooCommerce เดิมมักเป็น <ul> 1 ข้อต่อ 1 รายการ — ชิดกันให้ดูเป็นรายการเดียว */
+:is(.prose-desc,.pdp-short) ul+ul,:is(.prose-desc,.pdp-short) ol+ol{margin-top:-8px}
+:is(.prose-desc,.pdp-short) blockquote{border-left:4px solid var(--c-orange);background:#FFF7F2;padding:10px 14px;margin:0 0 12px}
+:is(.prose-desc,.pdp-short) hr{border:0;border-top:1px solid var(--c-line);margin:16px 0}
+:is(.prose-desc,.pdp-short) :is(strong,b){font-weight:700}:is(.prose-desc,.pdp-short) :is(em,i){font-style:italic}
+:is(.prose-desc,.pdp-short) u{text-decoration:underline}:is(.prose-desc,.pdp-short) :is(s,strike){text-decoration:line-through}
+:is(.prose-desc,.pdp-short) :is(sup,sub){font-size:.75em;line-height:0}
+:is(.prose-desc,.pdp-short) img{max-width:100%;height:auto;margin:12px auto;display:block}
+:is(.prose-desc,.pdp-short) table{border-collapse:collapse;width:100%;margin:12px 0;font-size:15px}
+:is(.prose-desc,.pdp-short) :is(td,th){border:1px solid var(--c-line);padding:8px 10px;text-align:left}
+:is(.prose-desc,.pdp-short) th{background:#FCFBF9}
+:is(.prose-desc,.pdp-short) a{color:#B5461C;text-decoration:underline}
+.pdp-short > :last-child{margin-bottom:0}
 @media (max-width:768px){.pdp-gallery{position:static}}
 .pager-shop{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:36px}
 .pager-shop a{min-width:40px;height:40px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--c-line);font-weight:600;font-size:14px}
