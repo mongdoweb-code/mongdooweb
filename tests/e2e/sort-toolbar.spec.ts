@@ -74,6 +74,20 @@ test("หน้าร้าน: 6 แบบเรียง · ลิงก์เ
   await expect(page.locator(".prod-grid[data-listing]")).toHaveAttribute("data-view", "g3");
   const cols = await page.locator(".prod-grid[data-listing]").evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
   expect(cols).toBe(3);
+  // 6 คอลัมน์ (จอกว้าง ≥1200) — ทั้งหน้าหมวดและหน้าสินค้าทั้งหมด · จำในคุกกี้
+  await page.getByRole("button", { name: "มุมมองการ์ด 6 คอลัมน์" }).click();
+  await expect(page.locator(".prod-grid[data-listing]")).toHaveAttribute("data-view", "g6");
+  const width = page.viewportSize()!.width;
+  const cols6 = await page.locator(".prod-grid[data-listing]").evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+  expect(cols6).toBe(width >= 1200 ? 6 : width >= 1025 ? 5 : 4);
+  expect((await context.cookies()).find((c) => c.name === "mdw_shop_view")?.value).toBe("g6");
+  await page.goto("/products");
+  await expect(page.locator(".prod-grid[data-listing]")).toHaveAttribute("data-view", "g6");
+  await expect(page.getByRole("button", { name: "มุมมองการ์ด 6 คอลัมน์" })).toHaveAttribute("aria-pressed", "true");
+  // การ์ดไม่ล้นคอลัมน์ ปุ่มอยู่ในการ์ด
+  const fit = await page.locator(".prod-grid[data-listing] .prod-card").first().evaluate((c) => c.scrollWidth <= c.clientWidth + 1);
+  expect(fit).toBe(true);
+  await page.getByRole("button", { name: "มุมมองการ์ด 3 คอลัมน์" }).click();
 
   // มือถือ: เหลือ 2 คอลัมน์ / รายการ
   await page.setViewportSize({ width: 390, height: 844 });
@@ -139,9 +153,9 @@ test("เมนูบน: หมวดสินค้า → สินค้า 
   await page.goto("/");
   const labels = (await page.locator("nav.nav > a, nav.nav .t").allTextContents()).map((t) => t.trim());
   const at = (t: string) => labels.indexOf(t);
-  expect(at("สินค้า")).toBe(at("หมวดสินค้า") + 1);
+  expect(at("สินค้าทั้งหมด")).toBe(at("หมวดสินค้า") + 1);
   expect(at("ช่วยเลือกไฟ")).toBe(at("สินค้าขายดี") + 1);
-  await page.locator("nav.nav > a", { hasText: /^สินค้า$/ }).click();
+  await page.locator("nav.nav > a", { hasText: /^สินค้าทั้งหมด$/ }).click();
   await expect(page).toHaveURL(/\/products$/);
   await expect(page.getByRole("heading", { name: "สินค้าทั้งหมด", level: 1 })).toBeVisible();
   // มือถือ: ลิ้นชักเมนูมี "สินค้าทั้งหมด"

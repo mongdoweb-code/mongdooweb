@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import "./sort-toolbar.css";
 
-export type ViewIcon = "g2" | "g3" | "g4" | "list" | "table" | "cards" | "small";
+export type ViewIcon = "g2" | "g3" | "g4" | "g6" | "list" | "table" | "cards" | "small";
 export type SortToolbarProps = {
   sort: { label: string; options: { value: string; label: string; href: string; on: boolean }[] };
   /** null = ซ่อนปุ่ม · disabled = แสดงจางพร้อมเหตุผล */
@@ -26,6 +26,7 @@ const ICON: Record<ViewIcon, React.ReactNode> = {
   g2: <><rect x="4" y="4" width="7" height="7" /><rect x="13" y="4" width="7" height="7" /><rect x="4" y="13" width="7" height="7" /><rect x="13" y="13" width="7" height="7" /></>,
   g3: <>{[4, 10, 16].flatMap((y) => [4, 10, 16].map((x) => <rect key={`${x}-${y}`} x={x} y={y} width="4" height="4" />))}</>,
   g4: <>{[4, 8.5, 13, 17.5].flatMap((y) => [4, 8.5, 13, 17.5].map((x) => <rect key={`${x}-${y}`} x={x} y={y} width="2.6" height="2.6" />))}</>,
+  g6: <>{[5, 10.5, 16].flatMap((y) => [2.5, 6, 9.5, 13, 16.5, 20].map((x) => <rect key={`${x}-${y}`} x={x} y={y} width="2.2" height="3.2" />))}</>,
   list: <><rect x="4" y="5" width="3" height="3" /><rect x="4" y="10.5" width="3" height="3" /><rect x="4" y="16" width="3" height="3" /><path d="M10 6.5h10M10 12h10M10 17.5h10" fill="none" stroke="currentColor" strokeWidth="1.8" /></>,
   table: <path d="M4 5h16v14H4zM4 10h16M4 14.5h16M9.5 5v14" fill="none" stroke="currentColor" strokeWidth="1.7" />,
   cards: <><rect x="4" y="4" width="7" height="7" /><rect x="13" y="4" width="7" height="7" /><rect x="4" y="13" width="7" height="7" /><rect x="13" y="13" width="7" height="7" /></>,
