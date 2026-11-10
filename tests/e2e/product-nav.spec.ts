@@ -49,10 +49,11 @@ test("เมนูด่วน: ครบทุกส่วน · กดแล�
       ]);
       return Math.abs(top - navBottom - 12) < 30 || top > navBottom; // อยู่ใต้แถบพอดี (ส่วนท้ายหน้าอาจเลื่อนไม่ถึง)
     }).toBe(true);
-    // ส่วนที่อยู่ลึกลงไป: แถบติดอยู่ขอบบนจอ (sticky)
-    if (["sec-desc", "downloadsBox", "sec-dup"].includes(id)) await expect.poll(() => nav.evaluate((e) => e.getBoundingClientRect().top)).toBeLessThan(5);
     await expect(page.locator(`#${id} h3`).first()).toBeFocused();
   }
+  // ติดขอบบนจอ (sticky): เลื่อนลงสุดหน้า → แถบยังอยู่บนสุด (ไม่ขึ้นกับความยาวข้อมูลในฐานข้อมูลทดสอบ)
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => nav.evaluate((e) => Math.round(e.getBoundingClientRect().top))).toBe(0);
   expect(page.url()).toContain("#productMedia");
   // เลื่อนเองขึ้นบนสุด → ไฮไลต์กลับไปส่วนแรก
   await page.waitForTimeout(1000);
