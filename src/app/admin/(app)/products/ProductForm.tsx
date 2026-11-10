@@ -10,6 +10,7 @@ import { deleteProduct, duplicateProduct, saveProduct, type ProductFormState } f
 import { SaleTierFields, SpecFields, type ExtrasValues } from "./ProductExtras";
 import { ProductMedia, type VideoValue } from "./ProductMedia";
 import { SectionNav, type NavSection } from "../../_components/SectionNav";
+import { SaveResultPopup } from "../../_components/SaveResultPopup";
 
 /** เมนูด่วนด้านบนฟอร์ม — ลำดับตามที่ใช้บ่อย (ส่วนที่ไม่มีในหน้าถูกซ่อนเอง) */
 const SECTIONS: NavSection[] = [
@@ -71,6 +72,15 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
             {pending ? "กำลังบันทึก…" : mediaBusy ? "รออัปโหลด…" : "บันทึก"}
           </button>
         }
+      />
+      <SaveResultPopup
+        result={state}
+        viewHref={v.id && v.isActive ? `/product/${v.slug}` : undefined}
+        onFix={() => {
+          // โฟกัสช่องแรกที่ผิด (SectionNav เลื่อนไปส่วนนั้นให้แล้ว)
+          const el = document.querySelector<HTMLElement>('#productForm [style*="--c-err"], #productForm .bad input, #productForm [aria-invalid="true"]');
+          el?.focus({ preventScroll: false });
+        }}
       />
       <form onSubmit={onSubmit} className="pform" id="productForm">
         <input type="hidden" name="id" value={v.id} />

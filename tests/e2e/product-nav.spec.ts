@@ -123,3 +123,35 @@ test("หน้าสินค้า: แถบรูปย่อมีปุ่
   })).toBe(true);
   await expect(r).toBeHidden();
 });
+
+test("บันทึก → ป๊อปอัป 'บันทึกสำเร็จ' (ปิดเองใน ~3 วินาที / ปุ่มตกลง / Esc) · บันทึกผิด → ป๊อปอัป 'บันทึกไม่สำเร็จ' + แก้ไขช่องที่ผิด", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  await page.goto(`/admin/products/${P.id}`);
+  await page.locator('button[type=submit]:has-text("บันทึกสินค้า")' + V).first().click();
+  const ok = page.getByRole("status").filter({ hasText: "บันทึกสำเร็จ" });
+  await expect(ok).toBeVisible();
+  await expect(ok).toContainText("หน้าร้านแสดงข้อมูลใหม่ทันที");
+  await expect(ok.getByRole("link", { name: "ดูหน้าสินค้า" })).toHaveAttribute("href", `/product/${P.slug}`);
+  await expect(ok).toBeHidden({ timeout: 6000 }); // ปิดเอง
+  // บันทึกอีกครั้ง → แสดงใหม่ · ปิดด้วยปุ่มตกลง
+  await page.getByRole("navigation", { name: "ไปยังส่วนของฟอร์ม" }).getByRole("button", { name: "บันทึก" }).click();
+  await expect(ok).toBeVisible();
+  await ok.getByRole("button", { name: "ตกลง" }).click();
+  await expect(ok).toBeHidden();
+  // ผิด → ไม่ปิดเอง · แก้ไขช่องที่ผิด → โฟกัสช่องราคา
+  await page.fill("#price" + V, "abc");
+  await page.locator('button[type=submit]:has-text("บันทึกสินค้า")' + V).first().click();
+  const bad = page.getByRole("alertdialog", { name: "บันทึกไม่สำเร็จ" });
+  await expect(bad).toBeVisible();
+  await page.waitForTimeout(3500);
+  await expect(bad).toBeVisible();
+  await bad.getByRole("button", { name: "แก้ไขช่องที่ผิด" }).click();
+  await expect(bad).toBeHidden();
+  await expect(page.locator("#price" + V)).toBeFocused();
+  await page.fill("#price" + V, "150");
+  await page.keyboard.press("Enter");
+  await expect(ok).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(ok).toBeHidden();
+});
