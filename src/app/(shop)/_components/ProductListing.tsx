@@ -34,12 +34,13 @@ type Params = Record<string, string | string[] | undefined>;
 /** จำนวนต่อหน้า (?per=) — ค่าเริ่มต้น 24 */
 const PER_OPTIONS = [12, 24, 36] as const;
 const PER_DEFAULT = 24;
-/** มุมมองที่จำไว้ในคุกกี้ — บนมือถือเหลือ 2 คอลัมน์ / รายการ (3–4 คอลัมน์แสดงเป็น 2 คอลัมน์) */
+/** มุมมองที่จำไว้ในคุกกี้ — บนมือถือเหลือ 2 คอลัมน์ / รายการ (3–6 คอลัมน์แสดงเป็น 2 คอลัมน์) */
 export const SHOP_VIEW_COOKIE = "mdw_shop_view";
 const VIEWS = [
   { value: "g2", label: "การ์ด 2 คอลัมน์", icon: "g2" as const },
   { value: "g3", label: "การ์ด 3 คอลัมน์", icon: "g3" as const, desktopOnly: true },
   { value: "g4", label: "การ์ด 4 คอลัมน์", icon: "g4" as const, desktopOnly: true },
+  { value: "g6", label: "การ์ด 6 คอลัมน์", icon: "g6" as const, desktopOnly: true },
   { value: "list", label: "แบบรายการ", icon: "list" as const },
 ];
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

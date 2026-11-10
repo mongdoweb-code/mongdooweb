@@ -49,10 +49,11 @@ test("เมนูด่วน: ครบทุกส่วน · กดแล�
       ]);
       return Math.abs(top - navBottom - 12) < 30 || top > navBottom; // อยู่ใต้แถบพอดี (ส่วนท้ายหน้าอาจเลื่อนไม่ถึง)
     }).toBe(true);
-    // ส่วนที่อยู่ลึกลงไป: แถบติดอยู่ขอบบนจอ (sticky)
-    if (["sec-desc", "downloadsBox", "sec-dup"].includes(id)) await expect.poll(() => nav.evaluate((e) => e.getBoundingClientRect().top)).toBeLessThan(5);
     await expect(page.locator(`#${id} h3`).first()).toBeFocused();
   }
+  // ติดขอบบนจอ (sticky): เลื่อนลงสุดหน้า → แถบยังอยู่บนสุด (ไม่ขึ้นกับความยาวข้อมูลในฐานข้อมูลทดสอบ)
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => nav.evaluate((e) => Math.round(e.getBoundingClientRect().top))).toBe(0);
   expect(page.url()).toContain("#productMedia");
   // เลื่อนเองขึ้นบนสุด → ไฮไลต์กลับไปส่วนแรก
   await page.waitForTimeout(1000);
@@ -81,6 +82,9 @@ test("สินค้าใหม่ไม่มีเมนูไฟล์ด�
   await page.fill("#price" + V, "189");
   await nav.getByRole("button", { name: "บันทึก" }).click();
   await expect.poll(async () => (await q<{ p: number }>(`SELECT "priceSatang" p FROM "Product" WHERE id=$1`, [P.id]))[0].p).toBe(18900);
+  // บันทึกจากปุ่มในแถบต้องส่งทุกช่องของฟอร์ม — สถานะเปิดขาย/สต็อก/ชื่อ/ลิงก์ไม่เปลี่ยน
+  const row = (await q<{ a: boolean; s: string; n: string; i: boolean }>(`SELECT "isActive" a, slug s, name n, "inStock" i FROM "Product" WHERE id=$1`, [P.id]))[0];
+  expect(row).toEqual({ a: true, s: P.slug, n: `สินค้าทดสอบเมนูด่วน ${TAG}`, i: true });
 });
 
 test("มือถือ: แถบติดใต้หัวเว็บ เลื่อนด้วย ‹ › ได้ ไม่ล้นจอ", async ({ page }) => {
