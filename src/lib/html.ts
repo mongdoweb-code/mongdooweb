@@ -23,6 +23,7 @@ export function sanitizeDescription(html: string, rewriteImg?: (src: string) => 
         "font-weight": [/^(bold|[4-9]00)$/],
         "font-style": [/^italic$/],
         "text-decoration": [/^(underline|line-through)( (underline|line-through))?$/],
+        "line-height": [/^[0-3](\.\d{1,2})?$/],
       },
       img: { width: [/^\d{1,4}(px|%)$/] },
     },

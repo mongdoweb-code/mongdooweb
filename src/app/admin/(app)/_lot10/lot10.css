@@ -98,3 +98,10 @@
 .pce,.pce > *,.pce-list > li{min-width:0}
 .pce-preview{max-width:100%}
 .pce-item > *{min-width:0}
+.pce-more{position:relative;display:inline-flex}
+.pce-bg .pce-other{width:auto;height:28px;border-radius:14px;padding:0 10px 0 4px;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;background:#fff;border:1.5px solid var(--c-line);color:var(--c-ink)}
+.pce-bg .pce-other.on{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--c-orange)}
+.pce-other-sw{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.12);background:conic-gradient(#f44336,#ff9800,#ffeb3b,#4caf50,#00bcd4,#3f51b5,#9c27b0,#f44336)}
+.pce-bg .cp-pop button{width:auto;height:auto;border-radius:6px;box-shadow:none}
+.pce-bg .cp-pop .cp-sw,.pce-bg .cp-pop .cp-tool{width:22px;height:22px;border-radius:50%}
+.pce-bg .cp-pop .cp-sw[aria-checked="true"]{box-shadow:none}

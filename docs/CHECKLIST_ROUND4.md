@@ -99,5 +99,7 @@
 
 | T9 | รูปสินค้า: อัปโหลดทันทีที่เลือก (แถบ % · ลองใหม่ · เลือกเพิ่มได้ไม่ทับของเดิม · ลากไฟล์มาวาง ≤30 รูป ≤10 MB) · ป้าย "ปก" ที่รูปแรก · ปุ่ม "ตั้งเป็นปก" ทุกรูป (มือถือเห็นตลอด) · ← → ลาก ✕ · บันทึกซ้ำไม่อัปโหลดซ้ำ · ปุ่มบันทึกรอจนอัปโหลดเสร็จ · หมดเวลาเข้าสู่ระบบแจ้งชัด | ☑ |
 | T10 | วิดีโอสินค้า 1 คลิป: MP4 ≤30 MB 10–60 วินาที (ตรวจทั้งในเบราว์เซอร์และ server จากไบต์จริง) · ภาพปกวิดีโอสร้างจากเฟรมอัตโนมัติ · ไฟล์ใหม่ใช้ไม่ได้ = วิดีโอเดิมยังอยู่ · หน้าร้าน: สไลด์ถัดจากภาพปก + รูปย่อมีปุ่มเล่นและเวลา · หยุดเองเมื่อเลื่อนไปรูปอื่น · `/media/videos/*` รองรับ Range (206/416) · JSON-LD VideoObject | ☑ |
+| T11 | ตัวเลือกสีแบบ Google Docs (`ColorPalette` ใช้ร่วมทุกเมนูที่มีสี): ตาราง 80 สี + สีของร้าน 10 สี + กำหนดเอง (วงล้อ/HEX ตรวจรูปแบบ, จำ 10 สีล่าสุด, หลอดดูดสี Chrome/Edge) + ✓ สีปัจจุบัน + แป้นพิมพ์ (ลูกศร/Enter/Esc) + คลิกนอกปิด + ไม่ล้นจอมือถือ · ตัวแก้ไขข้อความ: สีตัวอักษร "รีเซ็ต" / ไฮไลต์ "ไม่มีสี" (ไม่ลบตัวหนา/ขนาด) · การ์ดหมวดยอดนิยม: พาสเทล 8 สี + "สีอื่น" (เก็บ #RRGGBB, หน้าร้านใช้สีนั้น) | ☑ |
+| T12 | เมนูที่ขาดเทียบ Google Docs: ระยะห่างบรรทัด (1 · 1.15 · 1.5 · 2 · ค่าเริ่มต้น — server อนุญาต line-height) · ตัวยก/ตัวห้อย (m², CO₂) · ทูลทิปไม่ทับเมนูที่เปิด | ☑ |
 
-ทดสอบ: `tests/e2e/sort-toolbar.spec.ts`, `tests/e2e/category-image.spec.ts`, `tests/e2e/popular-categories.spec.ts`, `tests/e2e/product-media.spec.ts`, `tests/unit/video.test.ts` (+ ปรับ `lot1.spec.ts` U11, `admin-products-order.spec.ts`)
+ทดสอบ: `tests/e2e/sort-toolbar.spec.ts`, `tests/e2e/category-image.spec.ts`, `tests/e2e/popular-categories.spec.ts`, `tests/e2e/product-media.spec.ts`, `tests/e2e/editor-colors.spec.ts`, `tests/unit/video.test.ts` (+ ปรับ `lot1.spec.ts` U11, `admin-products-order.spec.ts`)

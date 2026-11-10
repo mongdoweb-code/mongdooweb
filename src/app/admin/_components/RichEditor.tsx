@@ -1,6 +1,6 @@
 "use client";
 // ตัวแก้ไขข้อความแบบเอกสาร (คล้าย Google Docs): ย้อนกลับ/ทำซ้ำ · รูปแบบย่อหน้า · ขนาดตัวอักษร − n + · ตัวหนา/เอียง/ขีดเส้นใต้/ขีดฆ่า
-// · สีตัวอักษร/ไฮไลต์ · ลิงก์ · แนบรูป (อัปโหลด) · ตาราง · เส้นคั่น · จัดชิดซ้าย/กลาง/ขวา/เต็มแนว · รายการ · ย่อหน้าเข้า/ออก · ล้างรูปแบบ · โหมด HTML · เต็มจอ
+// · ตัวยก/ตัวห้อย · สีตัวอักษร/ไฮไลต์ (ตารางสีแบบ Google Docs: ColorPalette) · ระยะห่างบรรทัด · ลิงก์ · แนบรูป (อัปโหลด) · ตาราง · เส้นคั่น · จัดชิดซ้าย/กลาง/ขวา/เต็มแนว · รายการ · ย่อหน้าเข้า/ออก · ล้างรูปแบบ · โหมด HTML · เต็มจอ
 // ค่าเก็บใน <input type="hidden" name={name}> — เซิร์ฟเวอร์ล้าง HTML อีกชั้นตอนบันทึก (src/lib/html.ts)
 import {
   createContext,
@@ -12,6 +12,7 @@ import {
 } from "react";
 import { autoParagraph } from "@/lib/autop";
 import { uploadEditorImage } from "./editor-actions";
+import { ColorPopover, toHex } from "./ColorPalette";
 
 const SIZES = [10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 28, 32, 36, 48];
 const BLOCKS = [
@@ -21,6 +22,16 @@ const BLOCKS = [
   ["h4", "หัวข้อย่อย"],
   ["blockquote", "ข้อความเน้น"],
 ] as const;
+/** ระยะห่างบรรทัด (null = ค่าเริ่มต้นของหน้าร้าน) */
+const LINES: [string | null, string][] = [
+  [null, "ค่าเริ่มต้น"],
+  ["1", "1 (ชิด)"],
+  ["1.15", "1.15"],
+  ["1.5", "1.5"],
+  ["2", "2 (ห่าง)"],
+];
+/** สีชั่วคราวที่ใช้ "ล้างสี" (ใส่สีนี้แล้วลบ style ที่มีสีนี้ทิ้ง) */
+const SENTINEL = "#010203";
 const SAFE_URL = /^(https?:\/\/|\/(?!\/)|#|tel:|mailto:)/i;
 
 /** ล้าง HTML ฝั่งเบราว์เซอร์ (ตอนวาง/สลับจากโหมด HTML) — ตัดสคริปต์ อีเวนต์ คลาส ฟอนต์ ที่ติดมาจาก Word/เว็บอื่น */
@@ -63,6 +74,7 @@ function cleanHtml(html: string) {
         "font-weight",
         "font-style",
         "text-decoration",
+        "line-height",
       ];
       const kept = keep
         .map((k) => [k, st.getPropertyValue(k)] as const)
@@ -113,6 +125,9 @@ const ICON = {
   code: "m16 18 6-6-6-6M8 6l-6 6 6 6",
   full: "M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5",
   exitFull: "M3 8h5V3M21 8h-5V3M16 21v-5h5M8 21v-5H3",
+  sup: "M3 7l8 10M11 7 3 17M15 4.5a1.8 1.8 0 0 1 3.6 0c0 1.6-3.6 2.6-3.6 4.5h3.8",
+  sub: "M3 7l8 10M11 7 3 17M15 15.5a1.8 1.8 0 0 1 3.6 0c0 1.6-3.6 2.6-3.6 4.5h3.8",
+  line: "M11 6h10M11 12h10M11 18h10M5 4v16M2.5 6.5 5 4l2.5 2.5M2.5 17.5 5 20l2.5-2.5",
 };
 
 type BtnProps = {
@@ -178,8 +193,10 @@ export function RichEditor({
   } | null>(null);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
-  const [color, setColor] = useState("#C0392B");
-  const [mark, setMark] = useState("#FFF176");
+  const [color, setColor] = useState("#CC0000");
+  const [mark, setMark] = useState("#FFFF00");
+  /** เมนูที่เปิดอยู่: สีตัวอักษร / ไฮไลต์ / ระยะบรรทัด + ค่าปัจจุบันตรงเคอร์เซอร์ */
+  const [menu, setMenu] = useState<{ kind: "fore" | "hilite" | "line"; cur: string | null } | null>(null);
 
   // ใส่เนื้อหาเริ่มต้นครั้งเดียว (ไม่ควบคุมด้วย React — ไม่งั้นเคอร์เซอร์กระโดด)
   useEffect(() => {
@@ -228,6 +245,8 @@ export function RichEditor({
           italic: q("italic"),
           underline: q("underline"),
           strikeThrough: q("strikeThrough"),
+          superscript: q("superscript"),
+          subscript: q("subscript"),
           insertUnorderedList: q("insertUnorderedList"),
           insertOrderedList: q("insertOrderedList"),
           justifyLeft: q("justifyLeft"),
@@ -263,6 +282,86 @@ export function RichEditor({
         : "false",
     );
     document.execCommand(cmd, false, value);
+    sync();
+  };
+
+  /** บล็อก (ย่อหน้า/หัวข้อ/รายการ/ช่องตาราง) ที่ส่วนที่เลือกครอบอยู่ */
+  const selectedBlocks = () => {
+    const el = ed.current;
+    const sel = document.getSelection();
+    if (!el || !sel || !sel.rangeCount) return [] as HTMLElement[];
+    const r = sel.getRangeAt(0);
+    const SEL = "p,h2,h3,h4,li,blockquote,td,th,div";
+    const hit = [...el.querySelectorAll<HTMLElement>(SEL)].filter((b) => r.intersectsNode(b) && !b.querySelector(SEL));
+    if (hit.length) return hit;
+    const n = r.startContainer.nodeType === 1 ? (r.startContainer as Element) : r.startContainer.parentElement;
+    const b = n?.closest<HTMLElement>(SEL);
+    return b && el.contains(b) ? [b] : [];
+  };
+
+  /** เปิดเมนูสี/ระยะบรรทัด พร้อมอ่านค่าปัจจุบันตรงเคอร์เซอร์ (แสดง ✓) */
+  const openMenu = (kind: "fore" | "hilite" | "line") => {
+    if (menu?.kind === kind) return setMenu(null);
+    restore();
+    let cur: string | null = null;
+    try {
+      if (kind === "fore") cur = toHex(document.queryCommandValue("foreColor"));
+      // ไม่มีไฮไลต์ Chrome ตอบสีพื้น (ขาว) — ถือว่า "ไม่มีสี"
+      if (kind === "hilite") {
+        const h = toHex(document.queryCommandValue("hiliteColor")) ?? toHex(document.queryCommandValue("backColor"));
+        cur = h === "#FFFFFF" ? null : h;
+      }
+    } catch {}
+    if (kind === "line") cur = selectedBlocks()[0]?.style.lineHeight || null;
+    setMenu({ kind, cur });
+  };
+
+  /** ใส่สี (hex) หรือล้างสี (null) ให้ข้อความที่เลือก */
+  const applyColor = (kind: "fore" | "hilite", hex: string | null) => {
+    setMenu(null);
+    const cmd = kind === "fore" ? "foreColor" : "hiliteColor";
+    if (hex) {
+      if (kind === "fore") setColor(hex);
+      else setMark(hex);
+      exec(cmd, hex);
+      setErr("");
+      return;
+    }
+    restore();
+    if (document.getSelection()?.isCollapsed) {
+      setErr(kind === "fore" ? "เลือกข้อความที่ต้องการล้างสีก่อน" : "เลือกข้อความที่ต้องการเอาไฮไลต์ออกก่อน");
+      return;
+    }
+    // ใส่สีชั่วคราวแล้วลบ style สีนั้นทิ้ง = ข้อความกลับเป็นสีปกติ (ไม่ไปลบตัวหนา/ขนาดเหมือน "ล้างรูปแบบ")
+    exec(cmd, SENTINEL);
+    const prop = kind === "fore" ? "color" : "background-color";
+    ed.current?.querySelectorAll<HTMLElement>("[style]").forEach((n) => {
+      if (toHex(n.style.getPropertyValue(prop)) !== SENTINEL) return;
+      n.style.removeProperty(prop);
+      if (!n.getAttribute("style")?.trim()) n.removeAttribute("style");
+      if (n.tagName === "SPAN" && !n.attributes.length) n.replaceWith(...n.childNodes);
+    });
+    ed.current?.querySelectorAll(`font[color="${SENTINEL}"]`).forEach((f) => f.replaceWith(...f.childNodes));
+    setErr("");
+    sync();
+  };
+
+  /** ระยะห่างบรรทัดของย่อหน้าที่เลือก */
+  const applyLine = (v: string | null) => {
+    setMenu(null);
+    restore();
+    let blocks = selectedBlocks();
+    if (!blocks.length) {
+      document.execCommand("formatBlock", false, "<p>");
+      blocks = selectedBlocks();
+    }
+    blocks.forEach((b) => {
+      if (v) b.style.lineHeight = v;
+      else {
+        b.style.removeProperty("line-height");
+        if (!b.getAttribute("style")?.trim()) b.removeAttribute("style");
+      }
+    });
     sync();
   };
 
@@ -517,38 +616,53 @@ export function RichEditor({
               title="ขีดฆ่า"
               on={!!state.on.strikeThrough}
             />
-            <span className="rte-color" data-tip="สีตัวอักษร">
+            <Btn
+              cmd="superscript"
+              icon="sup"
+              title="ตัวยก เช่น m²"
+              on={!!state.on.superscript}
+            />
+            <Btn
+              cmd="subscript"
+              icon="sub"
+              title="ตัวห้อย เช่น CO₂"
+              on={!!state.on.subscript}
+            />
+            <span className="rte-color">
               <button
                 type="button"
-                className="rte-b"
-                aria-label="ใส่สีตัวอักษร"
+                className={`rte-b rte-cb${menu?.kind === "fore" ? " on" : ""}`}
+                aria-label="สีตัวอักษร"
+                aria-haspopup="dialog"
+                aria-expanded={menu?.kind === "fore"}
+                data-tip="สีตัวอักษร"
                 disabled={source}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => exec("foreColor", color)}
+                onClick={() => openMenu("fore")}
               >
-                <span className="rte-a" style={{ borderBottomColor: color }}>
-                  A
-                </span>
+                <span className="rte-a" style={{ borderBottomColor: color }}>A</span>
+                <svg className="rte-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
               </button>
-              <input
-                type="color"
-                value={color}
-                aria-label="เลือกสีตัวอักษร"
-                disabled={source}
-                onChange={(e) => {
-                  setColor(e.target.value);
-                  exec("foreColor", e.target.value);
-                }}
+              <ColorPopover
+                open={menu?.kind === "fore"}
+                onClose={() => setMenu(null)}
+                label="เลือกสีตัวอักษร"
+                value={menu?.cur ?? null}
+                resetLabel="รีเซ็ต (สีปกติ)"
+                onPick={(h) => applyColor("fore", h)}
               />
             </span>
-            <span className="rte-color" data-tip="ไฮไลต์">
+            <span className="rte-color">
               <button
                 type="button"
-                className="rte-b"
-                aria-label="ไฮไลต์ข้อความ"
+                className={`rte-b rte-cb${menu?.kind === "hilite" ? " on" : ""}`}
+                aria-label="สีไฮไลต์"
+                aria-haspopup="dialog"
+                aria-expanded={menu?.kind === "hilite"}
+                data-tip="สีไฮไลต์"
                 disabled={source}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => exec("hiliteColor", mark)}
+                onClick={() => openMenu("hilite")}
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -562,16 +676,15 @@ export function RichEditor({
                   <path d="m9 11-6 6v3h9l3-3M22 12l-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4" />
                   <path d="M3 22h18" stroke={mark} strokeWidth="3" />
                 </svg>
+                <svg className="rte-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
               </button>
-              <input
-                type="color"
-                value={mark}
-                aria-label="เลือกสีไฮไลต์"
-                disabled={source}
-                onChange={(e) => {
-                  setMark(e.target.value);
-                  exec("hiliteColor", e.target.value);
-                }}
+              <ColorPopover
+                open={menu?.kind === "hilite"}
+                onClose={() => setMenu(null)}
+                label="เลือกสีไฮไลต์"
+                value={menu?.cur ?? null}
+                resetLabel="ไม่มีสี (เอาไฮไลต์ออก)"
+                onPick={(h) => applyColor("hilite", h)}
               />
             </span>
           </div>
@@ -619,6 +732,52 @@ export function RichEditor({
               title="เต็มแนว"
               on={!!state.on.justifyFull}
             />
+            <span className="rte-color">
+              <button
+                type="button"
+                className={`rte-b rte-cb${menu?.kind === "line" ? " on" : ""}`}
+                aria-label="ระยะห่างบรรทัด"
+                aria-haspopup="menu"
+                aria-expanded={menu?.kind === "line"}
+                data-tip="ระยะห่างบรรทัด"
+                disabled={source}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => openMenu("line")}
+              >
+                <I d={ICON.line} />
+                <svg className="rte-caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+              </button>
+              {menu?.kind === "line" && (
+                <div
+                  className="cp-pop left rte-menu"
+                  role="menu"
+                  aria-label="ระยะห่างบรรทัด"
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setMenu(null);
+                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      const all = [...e.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+                      const k = all.indexOf(document.activeElement as HTMLButtonElement);
+                      all[(k + (e.key === "ArrowDown" ? 1 : -1) + all.length) % all.length]?.focus();
+                    }
+                  }}
+                >
+                  {LINES.map(([v, l]) => (
+                    <button
+                      key={l}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={(menu.cur || null) === v}
+                      autoFocus={(menu.cur || null) === v}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => applyLine(v)}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </span>
           </div>
           <div className="rte-g">
             <Btn
