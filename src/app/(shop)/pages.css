@@ -83,7 +83,15 @@ a.add-btn{display:inline-flex;align-items:center;justify-content:center}
 .pdp-gallery{display:grid;gap:12px;position:sticky;top:calc(var(--header-h,76px) + 16px)}
 .pdp-main{aspect-ratio:1;background:#fff;border:1px solid var(--c-line);display:grid;place-items:center;position:relative;overflow:hidden}
 .pdp-main img{width:100%;height:100%;object-fit:contain}
-.pdp-thumbs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding-bottom:4px}
+.pdp-thumbs-wrap{position:relative;min-width:0;max-width:100%}
+.pdp-thumbs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;scroll-behavior:smooth}
+.pdp-thumbs::-webkit-scrollbar{display:none}
+/* ปุ่ม ‹ › บนแถบรูปย่อ (แสดงเมื่อรูปย่อล้นกรอบ) */
+.th-arr{position:absolute;top:calc(50% - 2px);transform:translateY(-50%);z-index:2;width:30px;height:44px;display:grid;place-items:center;background:rgba(255,255,255,.94);border:1px solid var(--c-line);box-shadow:0 2px 8px rgba(0,0,0,.15);cursor:pointer;color:var(--c-ink)}
+.th-arr.l{left:0}.th-arr.r{right:0}
+.th-arr:hover{border-color:var(--c-orange);color:#B5461C}
+.th-arr[hidden]{display:none}
+.th-arr svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .pdp-thumbs button{flex:0 0 72px;height:72px;border:1.5px solid var(--c-line);background:#fff;padding:0;cursor:pointer}
 .pdp-thumbs button[aria-current="true"]{border-color:var(--c-orange)}
 .pdp-thumbs img{width:100%;height:100%;object-fit:contain}

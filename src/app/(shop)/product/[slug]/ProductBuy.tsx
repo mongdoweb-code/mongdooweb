@@ -29,6 +29,35 @@ export function Gallery({ images, video, alt, badge }: { images: Img[]; video?: 
   const slides: Slide[] = images.map((img, idx) => ({ kind: "img", img, idx }) as Slide);
   if (video) slides.splice(images.length ? 1 : 0, 0, { kind: "video", v: video });
   const n = slides.length;
+  // แถบรูปย่อ: ปุ่ม ‹ › เมื่อรูปย่อล้นกรอบ + เลื่อนให้รูปที่กำลังดูอยู่ในกรอบเสมอ
+  const thumbs = useRef<HTMLDivElement>(null);
+  const [edge, setEdge] = useState({ l: false, r: false });
+  useEffect(() => {
+    const t = thumbs.current;
+    if (!t) return;
+    const m = () => setEdge({ l: t.scrollLeft > 2, r: t.scrollLeft + t.clientWidth < t.scrollWidth - 2 });
+    m();
+    t.addEventListener("scroll", m, { passive: true });
+    const ro = new ResizeObserver(m);
+    ro.observe(t);
+    return () => {
+      t.removeEventListener("scroll", m);
+      ro.disconnect();
+    };
+  }, [n]);
+  useEffect(() => {
+    const t = thumbs.current;
+    const b = t?.children[i] as HTMLElement | undefined;
+    if (!t || !b) return;
+    const l = b.offsetLeft - t.offsetLeft - 8;
+    const r = l + b.offsetWidth + 16 - t.clientWidth;
+    if (t.scrollLeft > l) t.scrollTo({ left: l, behavior: "smooth" });
+    else if (t.scrollLeft < r) t.scrollTo({ left: r, behavior: "smooth" });
+  }, [i]);
+  const shiftThumbs = (dir: 1 | -1) => {
+    const t = thumbs.current;
+    if (t) t.scrollBy({ left: dir * Math.max(80, t.clientWidth - 80), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  };
   const slideOfImg = (k: number) => slides.findIndex((s) => s.kind === "img" && s.idx === k);
 
   // เลื่อนออกจากสไลด์วิดีโอ → หยุดเล่น (ไม่ให้มีเสียงค้างตอนดูรูปอื่น)
@@ -180,7 +209,11 @@ export function Gallery({ images, video, alt, badge }: { images: Img[]; video?: 
         </span>
       </div>
       {n > 1 && (
-        <div className="pdp-thumbs" role="group" aria-label="เลือกรูป">
+        <div className="pdp-thumbs-wrap">
+        <button type="button" className="th-arr l" aria-label="เลื่อนรูปย่อไปทางซ้าย" hidden={!edge.l} onClick={() => shiftThumbs(-1)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
+        </button>
+        <div className="pdp-thumbs" role="group" aria-label="เลือกรูป" ref={thumbs}>
           {slides.map((sl, k) =>
             sl.kind === "video" ? (
               <button key="video" type="button" className="thumb-video" aria-current={k === i} aria-label="ดูวิดีโอสินค้า" onClick={() => go(k)}>
@@ -200,6 +233,10 @@ export function Gallery({ images, video, alt, badge }: { images: Img[]; video?: 
               </button>
             ),
           )}
+        </div>
+        <button type="button" className="th-arr r" aria-label="เลื่อนรูปย่อไปทางขวา" hidden={!edge.r} onClick={() => shiftThumbs(1)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+        </button>
         </div>
       )}
       {zoom !== null && (
