@@ -5,7 +5,7 @@ import { parseHomeSections, parseTrust } from "@/lib/home";
 import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { STOREFRONT_TAG } from "@/lib/settings";
-import { POPULAR_BG, POPULAR_BG_KEYS, parsePopular, type PopularItem } from "@/lib/popular-cats";
+import { POPULAR_BG_KEYS, parsePopular, popularBgColor, type PopularItem } from "@/lib/popular-cats";
 import { getShopData } from "@/lib/storefront";
 
 export async function getHomeConfig() {
@@ -39,7 +39,7 @@ export async function getPopularCards() {
   const cards = items.flatMap((it) => {
     const c = bySlug.get(it.cat);
     if (!c || c.count <= 0) return [];
-    return [{ slug: c.slug, title: c.th, en: c.en, img: c.img ?? null, count: c.count, bg: POPULAR_BG[it.bg].color, links: it.links }];
+    return [{ slug: c.slug, title: c.th, en: c.en, img: c.img ?? null, count: c.count, bg: popularBgColor(it.bg), links: it.links }];
   });
   return { title: cfg.title, cards, auto };
 }

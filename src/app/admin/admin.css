@@ -1596,9 +1596,41 @@ a.pg-btn:hover{border-color:var(--c-orange);color:var(--c-orange-dk)}
 .rte-sel:hover{background:#E1E6EE}
 .rte-num{width:52px;height:30px;border:1px solid #9AA0A6;border-radius:4px;background:#fff;text-align:center;font-size:13px;font-variant-numeric:tabular-nums}
 .rte-size{gap:2px}
-.rte-color{display:inline-flex;align-items:center}
-.rte-color input[type=color]{width:16px;height:28px;border:0;padding:0;background:none;cursor:pointer}
-.rte-a{font-weight:700;font-size:15px;line-height:1;border-bottom:3px solid;padding:0 2px 1px}
+.rte-color{display:inline-flex;align-items:center;position:relative}
+.rte-b.rte-cb{width:auto;min-width:32px;padding:0 2px 0 6px;display:inline-flex;gap:0;align-items:center}
+.rte-caret{width:14px!important;height:14px!important;fill:none;stroke:currentColor;stroke-width:2;opacity:.7}
+.rte-a{font-weight:700;font-size:15px;line-height:1;border-bottom:4px solid;padding:0 2px 1px;min-width:14px;text-align:center}
+
+/* ---------- ตัวเลือกสี (ColorPalette — ใช้ร่วมทุกเมนูที่มีสี) ---------- */
+.cp-pop{position:absolute;top:calc(100% + 4px);z-index:40;background:#fff;border:1px solid #DADCE0;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,.18);padding:10px;max-width:calc(100vw - 16px)}
+.cp-pop.left{left:0}.cp-pop.right{right:0}
+.cp{display:grid;gap:4px;width:max-content;max-width:100%}
+.cp-row{display:grid;grid-template-columns:repeat(10,22px);gap:4px}
+.cp-row.gap{margin-bottom:6px}
+.cp-sw{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.12);padding:0;cursor:pointer;display:grid;place-items:center;transition:transform .1s,box-shadow .1s}
+.cp-sw:hover{transform:scale(1.15);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.cp-sw:focus-visible{outline:2px solid #0B57D0;outline-offset:2px}
+.cp-sw[aria-checked="true"]::after{content:"";width:9px;height:5px;border:solid #fff;border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg)}
+.cp-sw.lt[aria-checked="true"]::after{border-color:#202124}
+.cp-h{font-size:12px;color:#5F6368;margin:6px 0 0;font-weight:600}
+.cp-reset{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px;border-radius:6px;font-size:13px;color:#202124;text-align:left;margin-bottom:4px}
+.cp-reset:hover,.cp-reset:focus-visible{background:#F1F3F4}
+.cp-reset svg,.cp-tool svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cp-tool{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;color:#5F6368}
+.cp-tool:hover,.cp-tool[aria-expanded="true"]{background:#F1F3F4;color:#202124}
+.cp-add{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid #EEE}
+.cp-add input{flex:none;margin:0}
+.cp-add input[type=color]{width:34px!important;height:30px;border:1px solid var(--c-line);padding:2px;background:#fff;cursor:pointer}
+.cp-add .cp-hex{width:96px!important;height:30px;border:1.5px solid var(--c-line);padding:0 8px;font:13px ui-monospace,monospace;text-transform:uppercase}
+.cp-hex.bad{border-color:var(--c-err)}
+.cp-prev{width:30px;height:30px;border-radius:6px;border:1px solid rgba(0,0,0,.15)}
+.cp-err{flex-basis:100%;font-size:12px;color:var(--c-err)}
+.rte .rte-bar [aria-expanded="true"][data-tip]::after,.rte .rte-bar [aria-expanded="true"][data-tip]::before{display:none}
+.rte-menu{display:grid;min-width:150px;padding:6px}
+.rte-menu button{display:flex;align-items:center;gap:8px;height:32px;padding:0 10px 0 28px;border-radius:4px;font-size:13px;text-align:left;position:relative}
+.rte-menu button:hover,.rte-menu button:focus-visible{background:#F1F3F4}
+.rte-menu button[aria-checked="true"]::before{content:"✓";position:absolute;left:10px;font-weight:700;color:#0B57D0}
+@media (max-width:480px){.cp-row{grid-template-columns:repeat(10,20px);gap:3px}.cp-sw,.cp-tool{width:20px;height:20px}.cp-pop{padding:8px}}
 .rte-body{padding:18px 22px;outline:none;overflow-y:auto;max-height:70vh;font-size:15px;line-height:1.7;color:#3a3834;margin:0!important;border:0!important;max-width:none!important}
 .rte-body:empty::before{content:"เริ่มพิมพ์รายละเอียดสินค้า…";color:#a39d90}
 .rte-body h2{font-size:22px;margin:18px 0 8px;color:var(--c-ink)}

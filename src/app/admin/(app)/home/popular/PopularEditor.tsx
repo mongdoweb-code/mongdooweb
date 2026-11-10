@@ -1,8 +1,9 @@
 "use client";
-// ตัวแก้ไขหมวดยอดนิยม: การ์ดละ 1 หมวด · เลือกสีพื้นรูป · ลิงก์ย่อย (พิมพ์เอง หรือกดลิงก์แนะนำ) · ขึ้น/ลง/ลบ · ตัวอย่างสด
+// ตัวแก้ไขหมวดยอดนิยม: การ์ดละ 1 หมวด · เลือกสีพื้นรูป (พาสเทล 8 สี หรือ "สีอื่น" จากตารางสี) · ลิงก์ย่อย (พิมพ์เอง หรือกดลิงก์แนะนำ) · ขึ้น/ลง/ลบ · ตัวอย่างสด
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
-import { POPULAR_BG, POPULAR_BG_KEYS, POPULAR_MAX_ITEMS, POPULAR_MAX_LINKS, type PopularBg, type PopularConfig } from "@/lib/popular-cats";
+import { POPULAR_BG, POPULAR_BG_KEYS, POPULAR_MAX_ITEMS, POPULAR_MAX_LINKS, popularBgColor, type PopularBg, type PopularConfig } from "@/lib/popular-cats";
+import { ColorPopover } from "../../../_components/ColorPalette";
 
 export type CatOpt = { slug: string; th: string; img: string | null; count: number; visible: boolean; sug: { label: string; href: string }[] };
 type Item = { key: number; cat: string; bg: PopularBg; links: { label: string; href: string }[] };
@@ -17,6 +18,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
   const [pending, start] = useTransition();
   const [addCat, setAddCat] = useState("");
+  const [colorFor, setColorFor] = useState<number | null>(null);
   const uid = useId();
   const catOf = (slug: string) => cats.find((c) => c.slug === slug);
   const unused = cats.filter((c) => !items.some((i) => i.cat === c.slug));
@@ -54,7 +56,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
               const c = catOf(it.cat);
               return (
                 <li key={it.key} className="pce-pv-card">
-                  <span className="pce-pv-img" style={{ background: POPULAR_BG[it.bg].color }}>
+                  <span className="pce-pv-img" style={{ background: popularBgColor(it.bg) }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {c?.img ? <img src={c.img} alt="" /> : <span>{c?.th.slice(0, 1)}</span>}
                   </span>
@@ -85,7 +87,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
             <li key={it.key} className="box pce-item" data-cat={it.cat}>
               <div className="pce-item-head">
                 <span className="pce-n">{i + 1}</span>
-                <span className="pce-thumb" style={{ background: POPULAR_BG[it.bg].color }}>
+                <span className="pce-thumb" style={{ background: popularBgColor(it.bg) }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {c?.img ? <img src={c.img} alt="" /> : null}
                 </span>
@@ -108,6 +110,21 @@ export function PopularEditor({ initial, cats, custom, action }: {
                   <button key={k} type="button" role="radio" aria-checked={it.bg === k} aria-label={POPULAR_BG[k].label} title={POPULAR_BG[k].label}
                     style={{ background: POPULAR_BG[k].color }} onClick={() => set(it.key, { bg: k })} />
                 ))}
+                <span className="pce-more">
+                  <button type="button" className={`pce-other${it.bg.startsWith("#") ? " on" : ""}`} aria-haspopup="dialog" aria-expanded={colorFor === it.key}
+                    aria-label={it.bg.startsWith("#") ? `สีอื่น (ใช้อยู่ ${it.bg})` : "สีอื่น"} onClick={() => setColorFor(colorFor === it.key ? null : it.key)}>
+                    <span className="pce-other-sw" style={it.bg.startsWith("#") ? { background: it.bg } : undefined} aria-hidden="true" />
+                    สีอื่น{it.bg.startsWith("#") ? ` ${it.bg}` : ""} ▾
+                  </button>
+                  <ColorPopover open={colorFor === it.key} onClose={() => setColorFor(null)} label={`สีพื้นรูป ${c?.th ?? ""}`}
+                    value={popularBgColor(it.bg)}
+                    presets={{ title: "พาสเทลแนะนำ (เข้ากับธีม)", colors: POPULAR_BG_KEYS.map((k) => ({ hex: POPULAR_BG[k].color, name: POPULAR_BG[k].label })) }}
+                    onPick={(h) => {
+                      const k = POPULAR_BG_KEYS.find((x) => POPULAR_BG[x].color.toUpperCase() === h?.toUpperCase());
+                      set(it.key, { bg: k ?? ((h ?? "cream") as PopularBg) });
+                      setColorFor(null);
+                    }} />
+                </span>
               </div>
 
               <div className="pce-links">

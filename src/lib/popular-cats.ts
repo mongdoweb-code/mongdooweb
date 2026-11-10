@@ -13,8 +13,14 @@ export const POPULAR_BG = {
   sky: { label: "ฟ้า", color: "#DDE9F4" },
   lavender: { label: "ม่วงอ่อน", color: "#E7E3F4" },
 } as const;
-export type PopularBg = keyof typeof POPULAR_BG;
-export const POPULAR_BG_KEYS = Object.keys(POPULAR_BG) as PopularBg[];
+export type PopularBgKey = keyof typeof POPULAR_BG;
+/** สีพื้น: ชื่อสีพาสเทลด้านบน หรือรหัสสีที่เลือกเองจากตารางสี (#RRGGBB) */
+export type PopularBg = PopularBgKey | `#${string}`;
+export const POPULAR_BG_KEYS = Object.keys(POPULAR_BG) as PopularBgKey[];
+const HEX = /^#[0-9a-f]{6}$/i;
+/** ค่าที่เก็บ → สี CSS (ค่าผิดรูปแบบ = ครีม) */
+export const popularBgColor = (bg: string): string =>
+  bg in POPULAR_BG ? POPULAR_BG[bg as PopularBgKey].color : HEX.test(bg) ? bg.toUpperCase() : POPULAR_BG.cream.color;
 
 export const POPULAR_MAX_ITEMS = 12;
 export const POPULAR_MAX_LINKS = 5;
@@ -42,7 +48,10 @@ export function parsePopular(v: unknown): PopularConfig {
     const cat = text(r.cat, 80);
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(cat) || seen.has(cat)) continue;
     seen.add(cat);
-    const bg: PopularBg = typeof r.bg === "string" && r.bg in POPULAR_BG ? (r.bg as PopularBg) : POPULAR_BG_KEYS[items.length % POPULAR_BG_KEYS.length];
+    const bg: PopularBg =
+      typeof r.bg === "string" && r.bg in POPULAR_BG ? (r.bg as PopularBgKey)
+      : typeof r.bg === "string" && HEX.test(r.bg) ? (r.bg.toUpperCase() as PopularBg)
+      : POPULAR_BG_KEYS[items.length % POPULAR_BG_KEYS.length];
     const links = (Array.isArray(r.links) ? r.links : [])
       .filter((l): l is Record<string, unknown> => !!l && typeof l === "object")
       .map((l) => ({ label: text(l.label, 40), href: safePopularHref(l.href) }))

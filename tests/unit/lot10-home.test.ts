@@ -1,6 +1,7 @@
 // ล็อต 10: ค่าหน้าแรก (ลำดับส่วน / ความน่าเชื่อถือ / เวลาทำการ) — ค่าผิดรูปแบบต้องถูกข้ามอย่างนุ่มนวล
 import assert from "node:assert/strict";
 import { HOME_KEYS, hoursSummary, parseHomeSections, parseOpeningHours, parseTrust } from "../../src/lib/home";
+import { parsePopular, popularBgColor } from "../../src/lib/popular-cats";
 
 // ลำดับ: รับทั้ง string และ { key, show }, ตัดซ้ำ/ไม่รู้จัก, คงลำดับที่บันทึกไว้, สไลด์ซ่อนไม่ได้
 // ส่วนที่ขาด (เพิ่มใหม่ภายหลัง) แทรกต่อจากส่วนที่อยู่ก่อนหน้าในรายการเริ่มต้น
@@ -34,3 +35,15 @@ assert.equal(hoursSummary(h), "จันทร์–อังคาร 09:00–1
 assert.deepEqual(parseOpeningHours("x"), []);
 
 console.log("lot10-home: ผ่านทั้งหมด");
+
+// สีพื้นการ์ดหมวดยอดนิยม: ชื่อพาสเทล หรือ #RRGGBB จากตารางสี · ค่าผิดรูปแบบ → พาสเทลอัตโนมัติ
+{
+  const c = parsePopular({ items: [{ cat: "a", bg: "sky" }, { cat: "b", bg: "#d9ead3" }, { cat: "c", bg: "url(x)" }, { cat: "d", bg: "#12345" }] });
+  assert.equal(c.items[0].bg, "sky");
+  assert.equal(c.items[1].bg, "#D9EAD3");
+  assert.ok(!c.items[2].bg.startsWith("#") && !c.items[3].bg.startsWith("#"));
+  assert.equal(popularBgColor("sky"), "#DDE9F4");
+  assert.equal(popularBgColor("#d9ead3"), "#D9EAD3");
+  assert.equal(popularBgColor("red;background:url(x)"), "#F2EDE3");
+  console.log("popular bg: ok");
+}
