@@ -9,6 +9,24 @@ import type { SpecDef } from "@/lib/specs";
 import { deleteProduct, duplicateProduct, saveProduct, type ProductFormState } from "./actions";
 import { SaleTierFields, SpecFields, type ExtrasValues } from "./ProductExtras";
 import { ProductMedia, type VideoValue } from "./ProductMedia";
+import { SectionNav, type NavSection } from "../../_components/SectionNav";
+
+/** เมนูด่วนด้านบนฟอร์ม — ลำดับตามที่ใช้บ่อย (ส่วนที่ไม่มีในหน้าถูกซ่อนเอง) */
+const SECTIONS: NavSection[] = [
+  { id: "sec-info", label: "ข้อมูลสินค้า" },
+  { id: "productMedia", label: "รูปสินค้า" },
+  { id: "sec-price", label: "ราคาและการขาย" },
+  { id: "sec-seo", label: "SEO และการค้นหา" },
+  { id: "sec-finder", label: "ตัวช่วยเลือกไฟ (หน้าแรก)" },
+  { id: "sec-specs", label: "สเปกสินค้า" },
+  { id: "specBox", label: "สเปกตามหมวด" },
+  { id: "sec-desc", label: "คำอธิบาย" },
+  { id: "downloadsBox", label: "ไฟล์ดาวน์โหลด" },
+  { id: "sec-dup", label: "ทำสำเนาสินค้า" },
+  { id: "saleBox", label: "ลดราคาตามช่วงเวลา" },
+  { id: "tierBox", label: "ราคาขายส่ง" },
+  { id: "variantBox", label: "กลุ่มตัวเลือก" },
+];
 
 export type ProductValues = {
   id: string; name: string; slug: string; sku: string; categoryId: string; unit: string;
@@ -45,7 +63,16 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
 
   return (
     <>
-      <form onSubmit={onSubmit} className="pform">
+      <SectionNav
+        sections={SECTIONS}
+        watch={state.error ? `${state.error}|${state.fields?.join() ?? ""}` : undefined}
+        action={
+          <button className="btn btn-primary btn-sm" type="submit" form="productForm" disabled={pending || mediaBusy} title={mediaBusy ? "รอรูป/วิดีโออัปโหลดเสร็จก่อน" : "บันทึกสินค้า"}>
+            {pending ? "กำลังบันทึก…" : mediaBusy ? "รออัปโหลด…" : "บันทึก"}
+          </button>
+        }
+      />
+      <form onSubmit={onSubmit} className="pform" id="productForm">
         <input type="hidden" name="id" value={v.id} />
         <input type="hidden" name="stock0" value={v.stock} />
         <input type="hidden" name="specs" value={JSON.stringify(specs)} />
@@ -54,7 +81,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
 
         <div className="pform-grid">
           <div className="d-col">
-            <div className="box set-grid-inner">
+            <div className="box set-grid-inner" id="sec-info">
               <h3>ข้อมูลสินค้า</h3>
               <div className="field"><label htmlFor="name">ชื่อสินค้า</label>
                 <input id="name" name="name" value={name} required maxLength={250} {...bad("name")} onChange={(e) => { setName(e.target.value); if (!slugTouched) setSlug(slugify(e.target.value)); }} /></div>
@@ -75,7 +102,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
 
             <ProductMedia images={v.images} video={v.video} onBusy={setMediaBusy} invalid={{ images: state.fields?.includes("newImages"), video: state.fields?.includes("video") }} />
 
-            <div className="box">
+            <div className="box" id="sec-specs">
               <h3>สเปกสินค้า</h3>
               {specs.map((s, i) => (
                 <div className="spec-row" key={i}>
@@ -89,7 +116,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
 
             <SpecFields v={v.extras} defs={specDefs} categoryId={cat} fields={state.fields} />
 
-            <div className="box">
+            <div className="box" id="sec-desc">
               <h3>คำอธิบาย</h3>
               <div className="field">
                 <span className="lbl">คำอธิบายย่อ (แสดงใต้ราคา)</span>
@@ -103,7 +130,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
           </div>
 
           <div className="d-col">
-            <div className="act">
+            <div className="act" id="sec-price">
               <h3>ราคาและการขาย</h3>
               <div className="two">
                 <div className="field"><label htmlFor="price">ราคาขาย (บาท)</label><input id="price" name="price" defaultValue={v.price} inputMode="decimal" {...bad("price")} /><small>0 หรือเว้นว่าง = &quot;สอบถามราคา&quot;</small></div>
@@ -136,7 +163,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               </div>
             )}
 
-            <div className="box">
+            <div className="box" id="sec-finder">
               <h3>ตัวช่วยเลือกไฟ (หน้าแรก)</h3>
               <span className="lbl" style={{ fontSize: 13, fontWeight: 600, color: "var(--c-muted)" }}>เหมาะกับพื้นที่</span>
               <div className="chk-wrap">
@@ -148,7 +175,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               <label className="chk-row"><input type="checkbox" name="isAccessory" defaultChecked={v.isAccessory} /> เป็นอุปกรณ์เสริม</label>
             </div>
 
-            <div className="box">
+            <div className="box" id="sec-seo">
               <h3>SEO และการค้นหา</h3>
               <div className="field"><label htmlFor="seoTitle">หัวข้อบน Google <span className={`seo-meter${serpTitle.length > 60 ? " warn" : ""}`}>{serpTitle.length}/60</span></label><input id="seoTitle" name="seoTitle" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} maxLength={120} placeholder={name} /><small>เว้นว่าง = ใช้ชื่อสินค้า</small></div>
               <div className="field"><label htmlFor="seoDescription">คำอธิบายบน Google <span className={`seo-meter${serpDesc.length > 160 ? " warn" : ""}`}>{serpDesc.length}/160</span></label><textarea id="seoDescription" name="seoDescription" value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} maxLength={300} rows={3} /><small>เว้นว่าง = ใช้คำอธิบายย่อ</small></div>
@@ -169,7 +196,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
       </form>
       {children}
       {v.id && (
-        <form action={duplicateProduct} className="box" style={{ marginTop: 16, maxWidth: 520 }}>
+        <form action={duplicateProduct} className="box" id="sec-dup" style={{ marginTop: 16, maxWidth: 520 }}>
           <input type="hidden" name="id" value={v.id} />
           <h3>ทำสำเนาสินค้า</h3>
           <p className="sub">สร้างสินค้าใหม่จากข้อมูลนี้ (ชื่อ ราคา รูป สเปก คำอธิบาย) — สำเนาจะปิดขายไว้ก่อนและสต็อกเป็น 0</p>

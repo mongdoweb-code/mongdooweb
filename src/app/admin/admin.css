@@ -1809,3 +1809,27 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .cat-img-ctl{display:grid;gap:6px;justify-items:start;min-width:0}
 .cat-img-ctl label.btn{cursor:pointer}
 .cat-img-ctl input[type=file]:focus-visible + *,.cat-img-ctl label.btn:focus-within{outline:2px solid var(--c-orange)}
+
+/* ---------- เมนูด่วนติดด้านบนฟอร์มยาว (SectionNav) ---------- */
+.snav{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:6px;height:52px;margin:0 0 16px;padding:0 8px 0 4px;background:#fff;border:1px solid var(--c-line);border-radius:8px;box-shadow:0 4px 14px rgba(20,20,20,.06)}
+.snav-track{flex:1;min-width:0;height:100%;display:flex;overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth}
+.snav-track::-webkit-scrollbar{display:none}
+.snav-a{position:relative;flex:none;display:flex;align-items:center;gap:6px;padding:0 14px;font-size:14px;color:#3C4043;white-space:nowrap;border-bottom:3px solid transparent;border-top:3px solid transparent;text-decoration:none;transition:color .15s,border-color .15s}
+.snav-a:hover{color:#B5461C;background:#FFF7F2}
+.snav-a[aria-current="true"]{color:#B5461C;border-bottom-color:var(--c-orange);font-weight:700}
+.snav-a:focus-visible{outline:2px solid var(--c-orange);outline-offset:-4px}
+.snav-a.err{color:var(--c-err)}
+.snav-dot{width:8px;height:8px;border-radius:50%;background:var(--c-err)}
+.snav-arr{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--c-line);background:#fff;font-size:20px;line-height:1;color:var(--c-ink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.snav-arr:hover{border-color:var(--c-orange);color:#B5461C}
+.snav-arr[hidden]{display:none}
+.snav-act{flex:none;padding-left:8px;border-left:1px solid var(--c-line)}
+.snav-act .btn{white-space:nowrap}
+/* ส่วนที่ถูกเลื่อนมาหา: ไฮไลต์หัวข้อสั้น ๆ */
+.main h3[tabindex="-1"]:focus{outline:none}
+.pform .rte-bar{top:52px}
+@media (max-width:860px){
+  .snav{top:56px;margin:0 -16px 12px;border-radius:0;border-left:0;border-right:0;height:48px}
+  .snav-a{padding:0 11px;font-size:13.5px}
+  .pform .rte-bar{top:104px}
+}
