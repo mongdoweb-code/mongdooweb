@@ -326,6 +326,10 @@ export async function getProductDetail(slug: string) {
     inStock: available(p),
     stockLeft: p.trackStock ? p.stock : null,
     images: p.images.map((k) => ({ full: mediaUrl(k)!, sm: mediaUrl(k, "sm")! })),
+    /** วิดีโอสินค้า (MP4) + ภาพปกวิดีโอ — แสดงในแกลเลอรีถัดจากภาพปก */
+    video: p.videoKey
+      ? { url: mediaUrl(p.videoKey)!, poster: mediaUrl(p.videoPosterKey) ?? mediaUrl(p.images[0]) ?? null, posterSm: mediaUrl(p.videoPosterKey, "sm") ?? mediaUrl(p.images[0], "sm") ?? null, seconds: p.videoSeconds, uploaded: p.updatedAt.toISOString() }
+      : null,
     specs: Array.isArray(p.specs)
       ? (p.specs as { label?: unknown; value?: unknown }[])
           .map((s) => ({ label: String(s?.label ?? ""), value: String(s?.value ?? "") }))

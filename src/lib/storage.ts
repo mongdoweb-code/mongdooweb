@@ -2,8 +2,8 @@
 // local: โฟลเดอร์ UPLOAD_DIR บนเซิร์ฟเวอร์ (ค่าเริ่มต้น ./uploads — บน Railway ให้ชี้ไปที่ volume)
 // s3: S3 หรือบริการที่เข้ากันได้ (Railway Bucket, Cloudflare R2, AWS S3) — bucket ต้องเป็นแบบ private
 // ไฟล์ไม่ได้อยู่ใน public/ — สลิปเปิดได้ผ่าน route ที่ตรวจสิทธิ์แอดมินเท่านั้น
-import { DeleteObjectCommand, GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { mkdir, open, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 
 export interface StorageDriver {
@@ -11,7 +11,13 @@ export interface StorageDriver {
   get(key: string): Promise<Buffer | null>;
   /** ลบไฟล์ — ไม่มีไฟล์อยู่แล้วก็ไม่ error */
   delete(key: string): Promise<void>;
+  /** ขนาดไฟล์ (ไบต์) — ไม่มีไฟล์ = null · ใช้กับการส่งวิดีโอทีละช่วง (HTTP Range) */
+  size(key: string): Promise<number | null>;
+  /** อ่านเฉพาะช่วงไบต์ [start, end] (รวม end) — ไม่ต้องโหลดไฟล์ทั้งก้อน */
+  getRange(key: string, start: number, end: number): Promise<Buffer | null>;
 }
+const notFound = (e: unknown) =>
+  e instanceof NoSuchKey || (e as { name?: string }).name === "NoSuchKey" || (e as { name?: string }).name === "NotFound" || (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404;
 
 // key ต้องเป็น path ย่อยปลอดภัย เช่น "slips/2026/10/abc.jpg" — กัน ../ หลุดออกนอกโฟลเดอร์
 const SAFE_KEY = /^[a-z0-9][a-z0-9/_-]*\.[a-z0-9]+$/i;
@@ -40,6 +46,31 @@ function localDriver(root: string): StorageDriver {
     },
     async delete(key) {
       await rm(pathOf(key), { force: true });
+    },
+    async size(key) {
+      try {
+        return (await stat(pathOf(key))).size;
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
+        throw e;
+      }
+    },
+    async getRange(key, start, end) {
+      let fh;
+      try {
+        fh = await open(pathOf(key), "r");
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code === "ENOENT") return null;
+        throw e;
+      }
+      try {
+        const len = Math.max(0, end - start + 1);
+        const buf = Buffer.alloc(len);
+        const { bytesRead } = await fh.read(buf, 0, len, start);
+        return buf.subarray(0, bytesRead);
+      } finally {
+        await fh.close();
+      }
     },
   };
 }
@@ -73,17 +104,34 @@ function s3Driver(): StorageDriver {
         const r = await client.send(new GetObjectCommand({ Bucket: bucket, Key: full(key) }));
         return r.Body ? Buffer.from(await r.Body.transformToByteArray()) : null;
       } catch (e) {
-        if (e instanceof NoSuchKey || (e as { name?: string }).name === "NoSuchKey" || (e as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404) return null;
+        if (notFound(e)) return null;
         throw e;
       }
     },
     async delete(key) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: full(key) }));
     },
+    async size(key) {
+      try {
+        return (await client.send(new HeadObjectCommand({ Bucket: bucket, Key: full(key) }))).ContentLength ?? null;
+      } catch (e) {
+        if (notFound(e)) return null;
+        throw e;
+      }
+    },
+    async getRange(key, start, end) {
+      try {
+        const r = await client.send(new GetObjectCommand({ Bucket: bucket, Key: full(key), Range: `bytes=${start}-${end}` }));
+        return r.Body ? Buffer.from(await r.Body.transformToByteArray()) : null;
+      } catch (e) {
+        if (notFound(e)) return null;
+        throw e;
+      }
+    },
   };
 }
 
-const MIME: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", json: "application/json", zip: "application/zip", pdf: "application/pdf" };
+const MIME: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", json: "application/json", zip: "application/zip", pdf: "application/pdf", mp4: "video/mp4" };
 const mimeOf = (key: string) => MIME[key.split(".").pop()!.toLowerCase()] ?? "application/octet-stream";
 
 let driver: StorageDriver | undefined;

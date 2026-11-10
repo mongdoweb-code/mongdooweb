@@ -203,6 +203,13 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 .gal-slide{flex:0 0 100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always;padding:0;background:#fff;cursor:zoom-in;display:grid;place-items:center}
 .gal-slide img{width:100%;height:100%;object-fit:contain}
 .gal-slide:focus-visible{outline-offset:-4px}
+.gal-video{cursor:default;background:#111}
+.gal-video video{width:100%;height:100%;object-fit:contain;background:#111}
+.pdp-thumbs .thumb-video{position:relative;background:#111}
+.thumb-video img{opacity:.85}
+.tv-play{position:absolute;inset:0;display:grid;place-items:center}
+.tv-play svg{width:26px;height:26px;fill:#fff;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+.tv-time{position:absolute;right:3px;bottom:3px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;line-height:1;padding:2px 4px;border-radius:3px}
 .gal-nav{position:absolute;top:50%;width:44px;height:44px;margin-top:-22px;display:grid;place-items:center;background:rgba(255,255,255,.92);border:1px solid var(--c-line);box-shadow:0 4px 14px rgba(0,0,0,.08);z-index:2;opacity:0;transition:opacity .2s}
 .gal-nav.prev{left:10px}.gal-nav.next{right:10px}
 .gal-nav svg,.lb-nav svg,.lb-close svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}

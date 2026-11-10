@@ -34,7 +34,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
     v = {
       id: "", name: "", slug: "", sku: "", categoryId: categories[0]?.id ?? "", unit: "ชิ้น", price: "", compareAt: "",
       trackStock: false, stock: 0, inStock: true, isActive: true, isBestSeller: false, badge: "", shortDescription: "", description: "",
-      keywords: "", seoTitle: "", seoDescription: "", weightGram: "", specs: [], images: [], useAreas: [], lightColor: "ANY",
+      keywords: "", seoTitle: "", seoDescription: "", weightGram: "", specs: [], images: [], video: null, useAreas: [], lightColor: "ANY",
       includesPsu: false, isAccessory: false, orders: 0,
       extras: { salePrice: "", saleStartsAt: "", saleEndsAt: "", tiers: [], attrs: {}, group: null },
     };
@@ -49,6 +49,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
       weightGram: p.weightGram != null ? String(p.weightGram) : "",
       specs: Array.isArray(p.specs) ? (p.specs as { label: string; value: string }[]).map((s) => ({ label: String(s.label ?? ""), value: String(s.value ?? "") })) : [],
       images: p.images.map((k) => ({ key: k, url: mediaUrl(k, "sm")! })),
+      video: p.videoKey ? { key: p.videoKey, url: mediaUrl(p.videoKey)!, posterKey: p.videoPosterKey, posterUrl: mediaUrl(p.videoPosterKey, "sm"), seconds: p.videoSeconds } : null,
       useAreas: p.useAreas, lightColor: p.lightColor, includesPsu: p.includesPsu, isAccessory: p.isAccessory,
       orders: p._count.orderItems + p._count.docItems,
       extras: {

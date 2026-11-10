@@ -150,6 +150,9 @@ model Product {
   legacyPath       String?  @unique // URL เดิม /product/... (redirect 301 มาหน้าใหม่)
   specs            Json? // [{"label":"กำลังไฟ","value":"10W COB"}, ...]
   images           String[] // storage keys เรียงตามลำดับแสดง
+  videoKey         String? // วิดีโอสินค้า MP4 (videos/…) — 1 คลิปต่อสินค้า ≤30 MB 10–60 วินาที
+  videoPosterKey   String? // ภาพหน้าปกวิดีโอ (videos/….webp) สร้างจากเฟรมในเบราว์เซอร์ตอนอัปโหลด
+  videoSeconds     Int? // ความยาววิดีโอ (วินาที) อ่านจากไฟล์ฝั่ง server
   model3dKey       String? // ไฟล์ .glb สำหรับตัวหมุนดู 3D (ถ้ามี)
 
   // รอบ 3: ตัวเลือก ราคาลดตามเวลา ราคาส่ง ไฟล์ดาวน์โหลด ต้นทุน สเปกแบบมีโครงสร้าง รีวิว

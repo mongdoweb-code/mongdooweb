@@ -307,3 +307,44 @@ a.ar-kpi:hover{border-top-color:var(--c-ink)}
 .pcard-foot{flex-wrap:wrap}
 .pcard-foot .row-acts{flex-wrap:wrap;justify-content:flex-end;gap:2px;min-width:0}
 @media (max-width:640px){.pcard .ra{width:26px;height:26px}.pcard-foot{justify-content:flex-start}.pcard-body{padding:8px}}
+
+/* รูปและวิดีโอสินค้า (ProductMedia) — ปก · อัปโหลดทันที · วิดีโอ */
+.pm-box{display:grid;gap:10px}
+.pm-box h3 .sub{font-weight:400}
+.pm-grid{list-style:none;margin:0;padding:6px;display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;border:1.5px dashed transparent;border-radius:8px;transition:border-color .15s,background .15s}
+.pm-grid.dropping{border-color:var(--c-orange);background:#FFF6F1}
+.pm-grid.bad{border-color:var(--c-err)}
+.pm-tile{border:1px solid var(--c-line);border-radius:8px;background:#fff;overflow:hidden;display:grid;cursor:grab;min-width:0}
+.pm-tile.cover{border:2px solid var(--c-orange)}
+.pm-tile.dragging{opacity:.4}
+.pm-tile.over{outline:2.5px dashed var(--c-orange);outline-offset:2px}
+.pm-tile.failed{border-color:var(--c-err)}
+.pm-img{position:relative;aspect-ratio:1;background:#FAF8F4}
+.pm-img img{width:100%;height:100%;object-fit:contain;display:block}
+.pm-cover-tag{position:absolute;left:0;right:0;bottom:0;background:rgba(217,86,42,.92);color:#fff;font-size:12.5px;font-weight:700;text-align:center;padding:3px 0;letter-spacing:.5px}
+.pm-set-cover{position:absolute;left:6px;right:6px;bottom:6px;padding:4px 0;font-size:12px;font-weight:600;border-radius:6px;border:0;background:rgba(20,20,20,.72);color:#fff;cursor:pointer;opacity:0;transition:opacity .15s}
+.pm-tile:hover .pm-set-cover,.pm-set-cover:focus-visible{opacity:1}
+@media (hover:none),(max-width:768px){.pm-set-cover{opacity:1}}
+.pm-progress{position:absolute;inset:auto 8px 8px;height:20px;background:rgba(255,255,255,.92);border-radius:10px;overflow:hidden;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.pm-progress i{position:absolute;left:0;top:0;bottom:0;background:#F9C9B4;transition:width .2s}
+.pm-progress b{position:relative;font-size:11.5px}
+.pm-err{position:absolute;inset:0;background:rgba(255,255,255,.93);color:var(--c-err);font-size:11.5px;line-height:1.35;padding:8px;display:grid;align-content:center;justify-items:center;gap:6px;text-align:center;overflow:hidden}
+.pm-acts{display:flex;justify-content:center;gap:2px;overflow:hidden;border-top:1px solid var(--c-line);min-height:32px;align-items:center}
+.pm-acts .del:hover{color:var(--c-err)}
+.pm-add button{width:100%;height:100%;min-height:150px;border:1.5px dashed #CFC9BF;border-radius:8px;background:#fff;display:grid;place-content:center;justify-items:center;gap:4px;color:var(--c-orange-dk);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.pm-add button:hover{border-color:var(--c-orange);background:#FFF8F4}
+.pm-add svg,.pm-vadd svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.pm-add small{color:var(--c-muted);font-weight:400}
+.pm-vh{margin-top:10px}
+.pm-video{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;padding:12px;border:1px solid var(--c-line);border-radius:8px;background:#FCFBF9}
+.pm-video.bad{border-color:var(--c-err)}
+.pm-vadd{width:118px;height:118px;flex:0 0 118px;border:1.5px dashed #CFC9BF;border-radius:8px;background:#fff;display:grid;place-content:center;justify-items:center;gap:4px;color:var(--c-orange-dk);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.pm-vadd:hover{border-color:var(--c-orange);background:#FFF8F4}
+.pm-vrules{margin:0;padding-left:18px;font-size:12.5px;color:var(--c-muted);display:grid;gap:3px;flex:1 1 260px;min-width:0}
+.pm-vcard{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;flex:1 1 360px;min-width:0}
+.pm-vplayer{position:relative;width:240px;max-width:100%;aspect-ratio:1;background:#111;border-radius:8px;overflow:hidden}
+.pm-vplayer video{width:100%;height:100%;object-fit:contain;display:block}
+.pm-vinfo{display:grid;gap:8px;align-content:start;min-width:0;flex:1 1 140px}
+.pm-vbtns{display:flex;gap:6px;flex-wrap:wrap}
+.pm-verr{color:var(--c-err);font-size:13px}
+@media (max-width:640px){.pm-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pm-acts{gap:0;justify-content:space-around}.pm-acts .icon-btn.sm{width:26px;height:30px;flex-shrink:1;min-width:0}.pm-set-cover{font-size:11px;left:4px;right:4px}.pm-add button{min-height:110px}.pm-vplayer{width:100%}}
