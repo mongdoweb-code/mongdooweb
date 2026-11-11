@@ -13,7 +13,9 @@ import { DocEditor, type EditorInit } from "../../../DocEditor";
 export const instant = false;
 
 export default async function DocEditPage({ params, searchParams }: PageProps<"/admin/docs/[type]/[id]/edit">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
+  // ต้นทุน/กำไรแสดงเฉพาะเจ้าของร้าน (เหมือนรายงานกำไร) — ไม่ส่งไปเบราว์เซอร์ของพนักงาน
+  const owner = admin.role === "OWNER";
   const [{ type, id }, sp] = await Promise.all([params, searchParams]);
   if (!isDocType(type)) notFound();
   const s = await getSettings();
@@ -52,7 +54,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
   }
   const [customers, products] = await Promise.all([
     prisma.customer.findMany({ orderBy: { code: "desc" }, take: 3000 }),
-    prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { isService: "desc" }, { name: "asc" }], select: { id: true, sku: true, name: true, unit: true, priceSatang: true, salePriceSatang: true, saleStartsAt: true, saleEndsAt: true, tierPrices: true, isService: true, isActive: true, images: true }, take: 5000 }),
+    prisma.product.findMany({ orderBy: [{ isActive: "desc" }, { isService: "desc" }, { name: "asc" }], select: { id: true, sku: true, name: true, unit: true, priceSatang: true, salePriceSatang: true, saleStartsAt: true, saleEndsAt: true, tierPrices: true, isService: true, isActive: true, images: true, trackStock: true, stock: true, inStock: true, costSatang: true, category: { select: { nameTh: true } } }, take: 5000 }),
   ]);
   return (
     <DocEditor
@@ -63,7 +65,13 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       // ราคาตั้งต้น = ราคาขายจริง (ราคาลดตามช่วงเวลา) + ราคาขายส่งตามจำนวน — แก้ได้ในตัวแก้ไข
       products={products.map((p) => {
         const tiers = parseTiers(p.tierPrices);
-        return { id: p.id, sku: p.sku, name: p.name, unit: p.unit, price: unitPriceSatang(p), service: p.isService, off: !p.isActive, ...(tiers.length ? { tiers } : {}), ...(p.images.length ? { imgs: p.images.slice(0, 8) } : {}) };
+        return {
+          id: p.id, sku: p.sku, name: p.name, unit: p.unit, price: unitPriceSatang(p), service: p.isService, off: !p.isActive, cat: p.category.nameTh,
+          // stock: จำนวนคงเหลือเมื่อนับสต็อก · null = ไม่นับ · out = หมด
+          stock: p.isService ? null : p.trackStock ? p.stock : null, out: !p.isService && (p.trackStock ? p.stock <= 0 : !p.inStock),
+          ...(owner && p.costSatang != null ? { cost: p.costSatang } : {}),
+          ...(tiers.length ? { tiers } : {}), ...(p.images.length ? { imgs: p.images.slice(0, 8) } : {}),
+        };
       })}
       shop={shopHead(s)}
       vatEnabled={s.vatEnabled}
@@ -71,6 +79,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       refText={ref}
       printedAt={docDateTime(new Date(), s.dateEra)}
       lists={{ methods: PAY_METHODS, carriers: CARRIERS, units: UNITS, reasons: CREDIT_REASONS }}
+      showCost={owner}
     />
   );
 }

@@ -1857,3 +1857,86 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 @keyframes srp-fade{from{opacity:0}to{opacity:1}}
 @keyframes srp-draw{to{stroke-dashoffset:0}}
 @media (prefers-reduced-motion:reduce){.srp,.srp-back{animation:none}.srp.ok .srp-ic path{animation:none;stroke-dashoffset:0}}
+
+/* ---------- ตัวแก้ไขเอกสารขาย (2026-11-11): เลือกสินค้า · วันที่ด่วน · เงื่อนไขสำเร็จรูป · กำไร · แถบยอดรวม ---------- */
+.de-lines-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.de-line .ln-err{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px}
+.ln-warn{color:#9A5B00;font-weight:600}
+.ln-warn::before{content:"⚠ "}
+.ln-warn.bad{color:var(--c-err)}
+.de-line .row-acts{display:flex;gap:0}
+.de-line .row-acts .del:hover{color:var(--c-err)}
+.de-quick{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.de-quick button,.de-snips button{height:28px;padding:0 10px;border:1px solid var(--c-line);background:#fff;font-size:12.5px;color:var(--c-ink);border-radius:0}
+.de-quick button:hover,.de-snips button:hover{border-color:var(--c-orange);color:#B5461C}
+.de-quick button[aria-pressed="true"]{background:var(--c-orange);border-color:var(--c-orange);color:#fff}
+.de-snips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.de-snips button{height:auto;min-height:28px;padding:4px 10px;text-align:left;line-height:1.35}
+.de-snips button[aria-pressed="true"]{background:#E8F7EF;border-color:#9ED8B8;color:#14674A}
+.de-margin{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;padding:10px 14px;background:#F4F8FC;border:1px dashed #A9C3E0}
+.de-margin > div{display:grid;gap:2px}
+.de-margin > div span{font-size:12px;color:var(--c-muted);font-weight:600}
+.de-margin b{font-size:16px}
+.de-margin b.neg,.de-foot-sum .neg{color:var(--c-err)}
+.de-margin small{flex-basis:100%;font-size:12px}
+.de-foot-sum{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap;font-size:13px;color:var(--c-muted)}
+.de-foot-sum b{font-size:17px;color:var(--c-ink)}
+.ac-o.ac-prod{display:flex;gap:10px;align-items:center}
+.ac-img{flex:none;width:40px;height:40px;object-fit:contain;background:#F7F5F0;border:1px solid var(--c-line)}
+.ac-txt{min-width:0}
+
+/* หน้าต่างเลือกสินค้า */
+/* flex (ไม่ใช่ grid) — ความกว้าง % อิงจอจริง แถบหมวดยาวแค่เลื่อนในแถบ ไม่ดันหน้าต่างล้นจอ */
+.pp-back{position:fixed;inset:0;z-index:150;background:rgba(20,20,20,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+.pp{width:100%;max-width:920px;min-width:0;max-height:calc(100vh - 32px);background:#fff;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.3);overflow:hidden}
+.pp > *{min-width:0}
+.pp-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--c-line)}
+.pp-head h2{font-size:18px;margin:0}
+.pp-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 16px 8px}
+.pp-tools input[type=search]{flex:1;min-width:220px;height:42px;border:1.5px solid var(--c-line);padding:0 12px;font-size:15px;outline:none;border-radius:0}
+.pp-tools input[type=search]:focus{border-color:var(--c-ink)}
+.pp-cats{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:thin}
+.pp-cats button{flex:none;height:30px;padding:0 10px;border:1px solid var(--c-line);background:#fff;font-size:13px;white-space:nowrap;border-radius:0}
+.pp-cats button span{color:var(--c-muted);font-size:11.5px;margin-left:2px}
+.pp-cats button[aria-pressed="true"]{background:var(--c-orange);border-color:var(--c-orange);color:#fff}
+.pp-cats button[aria-pressed="true"] span{color:#fff}
+.pp-list{list-style:none;margin:0;padding:0;overflow-y:auto;flex:1;border-top:1px solid var(--c-line);min-height:200px}
+.pp-row{display:grid;grid-template-columns:minmax(0,1fr) 120px 150px;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--c-line)}
+.pp-row.hi{background:#FAF8F4}
+.pp-row.on{background:#FFF5F0}
+.pp-pick{display:flex;gap:10px;align-items:center;min-width:0;cursor:pointer}
+.pp-pick input{width:18px;height:18px;flex:none;accent-color:var(--c-orange)}
+.pp-img{flex:none;width:52px;height:52px;display:grid;place-items:center;background:#F7F5F0;border:1px solid var(--c-line);color:var(--c-muted)}
+.pp-img img{width:100%;height:100%;object-fit:contain}
+.pp-info{display:grid;gap:2px;min-width:0}
+.pp-info b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp-info .sub{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp-tags{display:flex;flex-wrap:wrap;gap:4px}
+.pp-tags i{font-style:normal;font-size:11px;font-weight:600;padding:1px 6px;background:#F1EFEA;color:#57534C}
+.pp-tags .t-off{background:#EDEBE6}.pp-tags .t-out{background:#FDECEC;color:var(--c-err)}.pp-tags .t-low{background:#FFF4E0;color:#9A5B00}.pp-tags .t-in{background:#E8F7EF;color:#14674A}
+.pp-price{text-align:right;font-weight:700;font-size:14px}
+.pp-price small{font-weight:400;color:var(--c-muted);font-size:11.5px;margin-left:2px}
+.t-ask{font-style:normal;font-size:12px;color:#B5461C}
+.pp-qty{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:0}
+.pp-qty button{width:30px;height:32px;border:1px solid var(--c-line);background:#fff;font-size:16px}
+.pp-qty input{width:56px;height:32px;border:1px solid var(--c-line);border-left:0;border-right:0;text-align:center;font-weight:700;border-radius:0}
+.pp-qty small{flex-basis:100%;text-align:right;font-size:11.5px}
+.pp-none{padding:24px 16px;text-align:center;color:var(--c-muted)}
+.pp-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--c-line);background:#FCFBF9;font-size:13px;color:var(--c-muted)}
+.pp-foot b{color:var(--c-ink)}
+.pp-foot .spacer{flex:1}
+@media (max-width:640px){
+  .pp-back{padding:0}
+  .pp{max-height:100vh;height:100%}
+  .pp-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"p p" "r q"}
+  .pp-pick{grid-area:p}.pp-price{grid-area:r;text-align:left}.pp-qty,.pp-qty-ph{grid-area:q}
+  .de-foot-sum b{font-size:15px}
+}
+/* แก้ (2026-11-11): ช่องตัวเลขยืดตามพื้นที่ — ยอด "รวม" ไม่ล้นกรอบเมื่อแสดงตัวอย่าง A4 ข้าง ๆ */
+.de-line .ln-nums{grid-template-columns:minmax(52px,.8fr) minmax(56px,.8fr) minmax(76px,1.15fr) minmax(76px,1fr) minmax(72px,1fr)}
+.de-line .ln-nums input{padding:0 8px}
+.ln-amt b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pp-head,.pp-tools,.pp-cats,.pp-foot{flex:none}
+/* แถบล่าง: ยอดรวมบรรทัดบน · ปุ่มบรรทัดล่าง */
+.de-foot{row-gap:6px}
+.de-foot .de-foot-sum{flex-basis:100%;order:-1;justify-content:flex-end}
