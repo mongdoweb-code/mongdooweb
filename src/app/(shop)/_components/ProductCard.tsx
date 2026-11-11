@@ -16,6 +16,20 @@ export const canBuy = (p: Pick<CatalogItem, "price" | "inStock">) => p.price > 0
 /** รูปย่อ (-sm) กว้าง/สูงไม่เกิน 480px — ใส่ขนาดไว้กันหน้าเลื่อน (กล่องรูปเป็นสี่เหลี่ยมจัตุรัส object-fit: contain) */
 export const THUMB_SIZE = 480;
 
+/** รถเข็น — สื่อว่ากดเพื่อสั่งซื้อ */
+const CartIcon = () => (
+  <svg className="add-ic" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3 4h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.1" />
+    <circle cx="9.5" cy="19.5" r="1.3" />
+    <circle cx="16.5" cy="19.5" r="1.3" />
+  </svg>
+);
+const MoreIcon = () => (
+  <svg className="add-ic" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+
 /** options = จำนวนตัวเลือกของสินค้า (สินค้าหลายตัวเลือกแสดงการ์ดเดียว) */
 export function ProductCard({ p, eager = false, note, options }: { p: CatalogItem; eager?: boolean; note?: string; options?: number }) {
   const href = `/product/${encodeURIComponent(p.id)}`;
@@ -23,7 +37,8 @@ export function ProductCard({ p, eager = false, note, options }: { p: CatalogIte
   const pv = { price: p.price, compareAt: p.compareAt ?? null, sale: p.sale ?? null, badge: p.badge ?? null };
   return (
     <article className="prod-card" id={`prod-${p.id}`}>
-      <a className="prod-img" href={href} tabIndex={-1} aria-hidden="true">
+      {/* data-more = รูปอื่นของสินค้า — ชี้เมาส์ค้างแล้วเลื่อนแสดงทีละรูปแบบ fade (public/js/shell.js) */}
+      <a className="prod-img" href={href} tabIndex={-1} aria-hidden="true" data-more={p.more?.length ? p.more.join(" ") : undefined}>
         <PriceBadge p={pv} />
         {p.img ? (
           // eslint-disable-next-line @next/next/no-img-element -- รูปย่อ WebP จาก /media อยู่แล้ว
@@ -42,19 +57,6 @@ export function ProductCard({ p, eager = false, note, options }: { p: CatalogIte
         )}
         {p.price > 0 && !p.inStock && <span className="stock-out">สินค้าหมดชั่วคราว</span>}
       </a>
-      {/* รายการโปรด / เปรียบเทียบ — สถานะและการกดจัดการใน public/js/shell.js (localStorage) */}
-      <div className="wc-tools">
-        <button type="button" className="wc-btn" data-wish={p.id} aria-pressed="false" aria-label={`เพิ่มในรายการโปรด: ${p.name}`} title="รายการโปรด">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />
-          </svg>
-        </button>
-        <button type="button" className="wc-btn" data-compare={p.id} aria-pressed="false" aria-label={`เปรียบเทียบ: ${p.name}`} title="เปรียบเทียบ">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 4v16M17 4v16M3 8h8M13 16h8" />
-          </svg>
-        </button>
-      </div>
       <div className="prod-body">
         {note ? <div className="prod-note">{note}</div> : <div className="prod-cat">{p.cat}</div>}
         <h3 className="prod-name">
@@ -69,12 +71,14 @@ export function ProductCard({ p, eager = false, note, options }: { p: CatalogIte
         <div className="prod-foot">
           <CardPrice p={pv} />
           {canBuy(p) ? (
-            <button className="add-btn" type="button" data-add={p.id} aria-label={`ใส่ตะกร้า: ${p.name}`}>
-              ใส่ตะกร้า
+            <button className="add-btn" type="button" data-add={p.id} aria-label={`ใส่ตะกร้า: ${p.name}`} title="ใส่ตะกร้า">
+              <CartIcon />
+              <span className="add-lbl">ใส่ตะกร้า</span>
             </button>
           ) : (
-            <a className="add-btn" href={href} aria-label={`${p.price > 0 ? "สินค้าหมด" : "ดูรายละเอียด"}: ${p.name}`}>
-              {p.price > 0 ? "สินค้าหมด" : "ดูรายละเอียด"}
+            <a className="add-btn add-more" href={href} aria-label={`${p.price > 0 ? "สินค้าหมด" : "ดูรายละเอียด"}: ${p.name}`} title={p.price > 0 ? "สินค้าหมด" : "ดูรายละเอียด"}>
+              <MoreIcon />
+              <span className="add-lbl">{p.price > 0 ? "สินค้าหมด" : "ดูรายละเอียด"}</span>
             </a>
           )}
         </div>

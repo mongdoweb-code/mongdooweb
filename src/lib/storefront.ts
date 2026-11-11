@@ -31,6 +31,8 @@ export type CatalogItem = {
   price: number;
   compareAt?: number;
   img?: string;
+  /** รูปอื่นของสินค้า (สูงสุด 7) ใช้เลื่อนแสดงบนการ์ดตอนชี้เมาส์ — ไม่ส่งใน mdw-data (layout ตัดออก) */
+  more?: string[];
   inStock: boolean;
   maxQty?: number;
   badge?: string;
@@ -112,6 +114,7 @@ export async function getShopData() {
 
   const catalog: CatalogItem[] = products.map((p) => {
     const img = mediaUrl(p.images[0], "sm");
+    const more = p.images.slice(1, 8).map((k) => mediaUrl(k, "sm")).filter((u): u is string => !!u);
     const dp = displayPrice(p, now);
     const sale = saleInfo(p, now);
     const tiers = tierInfo(p);
@@ -126,6 +129,7 @@ export async function getShopData() {
       ...(sale ? { sale } : {}),
       ...(tiers.length ? { tiers } : {}),
       ...(img ? { img } : {}),
+      ...(img && more.length ? { more } : {}),
       inStock: available(p),
       ...(p.trackStock ? { maxQty: p.stock } : {}),
       ...(p.badge ? { badge: p.badge } : {}),

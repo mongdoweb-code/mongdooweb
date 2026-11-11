@@ -5,13 +5,6 @@
 
 /* ---------- การ์ดสินค้า: ปุ่มรายการโปรด/เปรียบเทียบ ---------- */
 .prod-card{position:relative}
-.wc-tools{position:absolute;top:10px;right:10px;z-index:3;display:flex;flex-direction:column;gap:6px}
-.wc-btn{width:36px;height:36px;display:grid;place-items:center;background:rgba(255,255,255,.94);border:1px solid var(--c-line);border-radius:50%;color:var(--c-ink);transition:background .15s,color .15s,border-color .15s}
-.wc-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.wc-btn:hover{border-color:var(--c-ink)}
-.wc-btn[data-wish][aria-pressed="true"]{color:#C0392B;border-color:#C0392B}
-.wc-btn[data-wish][aria-pressed="true"] svg{fill:#C0392B}
-.wc-btn[data-compare][aria-pressed="true"]{background:var(--c-black);border-color:var(--c-black);color:#fff}
 .prod-opts{font-size:12px;font-weight:600;color:#6B5200;margin:-2px 0 4px}
 
 /* ---------- หน้าสินค้า: ราคา ส่วนลด นับถอยหลัง ราคาขายส่ง ---------- */

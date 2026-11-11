@@ -250,12 +250,17 @@ test("U6 สเปกแบบมีโครงสร้าง: ตาราง
   await expect(page).toHaveURL(/\/category\/underwater-light$/);
 });
 
-test("U5 เปรียบเทียบสินค้า: เลือกจากการ์ด, แถบด้านล่าง, ตาราง, แสดงเฉพาะที่ต่างกัน, สูงสุด 4, ลิงก์แชร์", async ({ page, browser }) => {
+test("U5 เปรียบเทียบสินค้า: เลือกจากหน้าสินค้า, แถบด้านล่าง, ตาราง, แสดงเฉพาะที่ต่างกัน, สูงสุด 4, ลิงก์แชร์", async ({ page, browser }) => {
   await shop(page);
+  // การ์ดสินค้าไม่มีปุ่มเปรียบเทียบ/รายการโปรดแล้ว (ไม่รก) — เลือกจากหน้าสินค้า
   await page.goto("/category/underwater-light");
-  await page.locator(`#prod-${S.v1} [data-compare]`).click();
-  await page.locator(`#prod-${S.psu1} [data-compare]`).click();
-  await expect(page.locator(`#prod-${S.v1} [data-compare]`)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(`#prod-${S.v1}`)).toBeVisible();
+  await expect(page.locator(".prod-card [data-compare], .prod-card [data-wish]")).toHaveCount(0);
+  await page.goto(`/product/${S.v1}`);
+  await page.click(".pdp-tool[data-compare]");
+  await expect(page.locator(".pdp-tool[data-compare]")).toHaveAttribute("aria-pressed", "true");
+  await page.goto(`/product/${S.psu1}`);
+  await page.click(".pdp-tool[data-compare]");
   const tray = page.locator("#cmpTray");
   await expect(tray).toBeVisible();
   await expect(tray.locator(".cmp-t")).toContainText("2/4");
@@ -305,8 +310,8 @@ test("U7 รายการโปรด: กดหัวใจ, ไอคอน�
   await page.click(".pdp-tool[data-wish]");
   await expect(page.locator(".pdp-tool[data-wish]")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#wishCount")).toHaveText("1");
-  await page.goto("/category/underwater-light");
-  await page.locator(`#prod-${S.psu1} [data-wish]`).click();
+  await page.goto(`/product/${S.psu1}`);
+  await page.click(".pdp-tool[data-wish]");
   await expect(page.locator("#wishCount")).toHaveText("2");
   await page.goto("/wishlist");
   await expect(page.locator("[data-wish-item]")).toHaveCount(2);

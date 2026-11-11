@@ -15,7 +15,7 @@ const IMG_KEYS = ["products/e2e/fx-red-1.webp", "products/e2e/fx-red-2.webp", "p
 const ASK_KEY = "products/e2e/fx-ask-1.webp";
 const COLORS = ["#d23c2c", "#2c7bd2", "#2cd27b", "#d2b02c"];
 
-async function writeImage(key: string, color: string) {
+export async function writeImage(key: string, color: string) {
   const dir = process.env.UPLOAD_DIR ?? "uploads";
   for (const [k, size] of [[key, 800], [key.replace(/\.webp$/, "-sm.webp"), 480]] as const) {
     const buf = await sharp({ create: { width: size, height: size, channels: 3, background: color } }).webp({ quality: 70 }).toBuffer();

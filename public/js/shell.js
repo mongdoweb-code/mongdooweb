@@ -598,12 +598,76 @@ document.addEventListener('click', e => {
   if (!b) return;
   addToCart(b.dataset.add, 1, 'silent');
   if (b.classList.contains('add-btn')){
+    // ปุ่มบนการ์ดมีไอคอนรถเข็น + ป้ายข้อความ (.add-lbl) — เปลี่ยนเฉพาะข้อความ ไอคอนอยู่เหมือนเดิม
+    const lbl = b.querySelector('.add-lbl') || b;
     clearTimeout(b._t);
-    b.classList.add('added'); b.textContent = '✓ เพิ่มแล้ว';
-    b._t = setTimeout(() => { b.classList.remove('added'); b.textContent = 'ใส่ตะกร้า'; }, 1500);
+    if (!b._lbl) b._lbl = lbl.textContent;
+    b.classList.add('added'); lbl.textContent = '✓ เพิ่มแล้ว';
+    b._t = setTimeout(() => { b.classList.remove('added'); lbl.textContent = b._lbl; }, 1500);
   }
   openCart(b);
 });
+
+/* ---------- การ์ดสินค้า: ชี้เมาส์ค้าง → รูปทั้งหมดของสินค้าเลื่อนไปทางซ้ายแบบ fade ทีละรูป + ตัวนับ "2 จาก 5" ----------
+   รูปอยู่ใน data-more ของ .prod-img (โหลดเมื่อชี้ครั้งแรกเท่านั้น) · เฉพาะอุปกรณ์ที่มีเมาส์ · ลดการเคลื่อนไหว = เปลี่ยนรูปแบบ fade อย่างเดียว */
+(() => {
+  if (!matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+  const STEP = 1300;
+  const start = card => {
+    const box = card.querySelector('.prod-img[data-more]');
+    const cover = box && box.querySelector('img');
+    if (!box || !cover || box._run) return;
+    if (!box._slides){
+      const urls = [cover.currentSrc || cover.src, ...box.dataset.more.split(' ').filter(Boolean)];
+      const layer = document.createElement('span');
+      layer.className = 'pi-slides'; layer.setAttribute('aria-hidden', 'true');
+      box._slides = urls.map((u, i) => {
+        const im = document.createElement('img');
+        im.alt = ''; im.decoding = 'async'; im.dataset.src = u;
+        if (i === 0){ im.src = u; im.className = 'on'; }
+        layer.appendChild(im);
+        return im;
+      });
+      const count = document.createElement('span');
+      count.className = 'pi-count'; count.setAttribute('aria-hidden', 'true');
+      box.append(layer, count);
+      box._count = count; box._i = 0;
+    }
+    const sl = box._slides, n = sl.length;
+    const load = im => { if (!im.src) im.src = im.dataset.src; };
+    load(sl[1 % n]);
+    box.classList.add('pi-play');
+    box._count.textContent = `${box._i + 1} จาก ${n}`;
+    const next = () => {
+      const cur = sl[box._i], ni = (box._i + 1) % n, nx = sl[ni];
+      load(nx); load(sl[(ni + 1) % n]); // โหลดรูปถัดไปไว้ก่อน
+      const go = () => {
+        if (!box._run) return;
+        cur.className = 'off'; nx.className = 'on';
+        box._i = ni; box._count.textContent = `${ni + 1} จาก ${n}`;
+      };
+      if (nx.complete) go(); else { nx.addEventListener('load', go, { once: true }); nx.addEventListener('error', go, { once: true }); }
+    };
+    box._run = setTimeout(function tick(){ next(); box._run = setTimeout(tick, STEP); }, 650);
+  };
+  const stop = card => {
+    const box = card.querySelector('.prod-img[data-more]');
+    if (!box || !box._run) return;
+    clearTimeout(box._run); box._run = 0;
+    box.classList.remove('pi-play');
+    // กลับไปภาพปก (fade)
+    box._slides.forEach((im, i) => { im.className = i === 0 ? 'on' : ''; });
+    box._i = 0;
+  };
+  document.addEventListener('mouseover', e => {
+    const card = e.target.closest && e.target.closest('.prod-card');
+    if (card && !card.contains(e.relatedTarget)) start(card);
+  });
+  document.addEventListener('mouseout', e => {
+    const card = e.target.closest && e.target.closest('.prod-card');
+    if (card && !card.contains(e.relatedTarget)) stop(card);
+  });
+})();
 
 /* ---------- Cart hover preview (U20, เดสก์ท็อป) ---------- */
 const CartPop = (() => {

@@ -16,6 +16,8 @@ import "./lot10.css";
 
 export default async function ShopLayout({ children }: LayoutProps<"/">) {
   const [data, info, extras] = await Promise.all([getShopData(), getPublicShopInfo(), getStorefrontExtras()]);
+  // รูปอื่นของสินค้า (more) ใช้แค่บนการ์ดที่ render จาก server — ไม่ต้องส่งซ้ำในข้อมูลทุกหน้า
+  const pub = { ...data, catalog: data.catalog.map((c) => (c.more ? { ...c, more: undefined } : c)) };
   const freeShipMinBaht = info.freeShipMinSatang != null ? info.freeShipMinSatang / 100 : null;
   const hasFaq = extras.faq.length > 0;
   const lineUrl = lineAddUrl(info);
@@ -29,7 +31,7 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
       <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderShellTop({ announcement: extras.announcement, freeShipMinBaht, hasFaq }) }} />
       {children}
       <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderFooter(info, { hasFaq, lineQrSvg }) }} />
-      <script id="mdw-data" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(data) }} />
+      <script id="mdw-data" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(pub) }} />
       <script id="mdw-shop" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(shop) }} />
       <script
         id="mdw-analytics"
