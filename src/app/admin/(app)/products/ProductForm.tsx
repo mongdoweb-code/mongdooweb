@@ -204,23 +204,38 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
           </div>
         </div>
       </form>
-      {children}
-      {v.id && (
-        <form action={duplicateProduct} className="box" id="sec-dup" style={{ marginTop: 16, maxWidth: 520 }}>
-          <input type="hidden" name="id" value={v.id} />
-          <h3>ทำสำเนาสินค้า</h3>
-          <p className="sub">สร้างสินค้าใหม่จากข้อมูลนี้ (ชื่อ ราคา รูป สเปก คำอธิบาย) — สำเนาจะปิดขายไว้ก่อนและสต็อกเป็น 0</p>
-          <div><button className="btn btn-outline" type="submit" id="dupBtn">ทำสำเนา</button></div>
-        </form>
-      )}
-      {v.id && owner && (
-        <form action={deleteProduct} className="box" style={{ marginTop: 16, maxWidth: 520 }}>
-          <input type="hidden" name="id" value={v.id} />
-          <h3>ลบสินค้า</h3>
-          <p className="sub">{v.orders ? `สินค้านี้อยู่ในคำสั่งซื้อ/เอกสาร ${v.orders} รายการ ระบบจะปิดขายแทนการลบ เพื่อเก็บประวัติไว้` : "ลบถาวร กู้คืนไม่ได้"}</p>
-          <div><ConfirmSubmit className="btn btn-danger" title="ลบสินค้านี้?" body={`${v.name} — ${v.orders ? "จะถูกปิดขาย" : "จะถูกลบถาวร"}`} confirmLabel="ยืนยันลบ">{v.orders ? "ปิดขายสินค้า" : "ลบสินค้า"}</ConfirmSubmit></div>
-        </form>
-      )}
+      {/* ส่วนท้ายฟอร์ม: ไฟล์ดาวน์โหลด (เต็มกว้าง) · ทำสำเนา + ลบสินค้า (คู่กัน ขนาดเท่ากัน) */}
+      <div className="pform-tail">
+        {children}
+        {v.id && (
+          <div className="pform-acts">
+            <form action={duplicateProduct} className="box pa-card" id="sec-dup">
+              <input type="hidden" name="id" value={v.id} />
+              <div className="pa-head">
+                <span className="pa-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></svg></span>
+                <h3>ทำสำเนาสินค้า</h3>
+              </div>
+              <p className="sub">สร้างสินค้าใหม่จากข้อมูลนี้ (ชื่อ ราคา รูป สเปก คำอธิบาย) — สำเนาจะปิดขายไว้ก่อนและสต็อกเป็น 0 แก้แล้วค่อยเปิดขาย</p>
+              <div className="pa-btn"><button className="btn btn-outline" type="submit" id="dupBtn">ทำสำเนา</button></div>
+            </form>
+            <form action={deleteProduct} className="box pa-card pa-danger" id="sec-del">
+              <input type="hidden" name="id" value={v.id} />
+              <div className="pa-head">
+                <span className="pa-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" /></svg></span>
+                <h3>{v.orders ? "ปิดขายสินค้า" : "ลบสินค้า"}</h3>
+              </div>
+              <p className="sub">{!owner ? "ลบ/ปิดขายได้เฉพาะเจ้าของร้าน" : v.orders ? `สินค้านี้อยู่ในคำสั่งซื้อ/เอกสาร ${v.orders} รายการ — ระบบจะปิดขายแทนการลบ เพื่อเก็บประวัติไว้` : "ลบถาวร กู้คืนไม่ได้ — ถ้าแค่ไม่อยากให้ขาย ให้ปิด \"เปิดขายบนหน้าร้าน\" แทน"}</p>
+              <div className="pa-btn">
+                {owner ? (
+                  <ConfirmSubmit className="btn btn-danger" title={v.orders ? "ปิดขายสินค้านี้?" : "ลบสินค้านี้?"} body={`${v.name} — ${v.orders ? "จะถูกปิดขาย (ประวัติยังอยู่)" : "จะถูกลบถาวร"}`} confirmLabel="ยืนยันลบ">{v.orders ? "ปิดขายสินค้า" : "ลบสินค้า"}</ConfirmSubmit>
+                ) : (
+                  <button className="btn btn-danger" type="button" disabled>ลบสินค้า</button>
+                )}
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
     </>
   );
 }

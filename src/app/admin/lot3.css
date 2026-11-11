@@ -389,3 +389,41 @@ a.ar-kpi:hover{border-top-color:var(--c-ink)}
 /* รูปสินค้ามาตรฐาน 1:1 (2026-11-11): กรอบจัตุรัส พื้นขาว แสดงทั้งภาพไม่ครอป ไม่ยืด (object-fit:contain) — ทุกมุมมองการ์ด */
 .pcard-img,.pcards-small .pcard-img{aspect-ratio:1/1;background:#fff;border-bottom:1px solid var(--c-line)}
 .pcard-img img{width:100%;height:100%;object-fit:contain;padding:6px}
+
+/* ---------- ส่วนท้ายฟอร์มสินค้า (2026-11-11): ไฟล์ดาวน์โหลดเต็มกว้าง · ทำสำเนา + ลบสินค้า คู่กัน ---------- */
+.pform-tail{display:grid;gap:16px;margin-top:16px}
+.dlf-box{display:grid;gap:12px}
+.dlf-head{display:flex;justify-content:space-between;align-items:baseline;gap:6px 16px;flex-wrap:wrap}
+.dlf-head h3{display:flex;align-items:center;gap:8px;margin:0}
+.dlf-count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--c-cream);font-size:12px;font-weight:700;color:var(--c-ink)}
+.dlf-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.dlf-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--c-line);background:#fff;transition:border-color .15s,box-shadow .15s}
+.dlf-item:hover{border-color:#D6D1C6;box-shadow:0 2px 10px rgba(20,20,20,.05)}
+.dlf-item form{display:contents}
+.dlf-ic{flex:none;width:36px;height:36px;display:grid;place-items:center}
+.dlf-ic svg{width:34px;height:34px}
+.dlf-info{display:grid;gap:1px;min-width:0;flex:1}
+.dlf-info b,.dlf-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--c-ink)}
+.dlf-name:hover{color:#B5461C;text-decoration:underline}
+.dlf-up{display:grid;gap:10px}
+.dlf-drop{display:flex;align-items:center;gap:14px;padding:18px 16px;border:1.5px dashed #CFC9BC;background:#FCFBF9;cursor:pointer;transition:border-color .15s,background .15s}
+.dlf-drop:hover,.dlf-drop.over{border-color:var(--c-orange);background:#FFF7F2}
+.dlf-drop.has{border-style:solid;border-color:#9ED8B8;background:#F3FBF6}
+.dlf-drop.bad{border-color:var(--c-err);background:#FFF8F7}
+.dlf-up-ic{flex:none;width:36px;height:36px;color:var(--c-orange)}
+#dlFile:focus-visible + .dlf-row,.dlf-up:focus-within .dlf-drop{outline:none}
+.dlf-up:has(#dlFile:focus-visible) .dlf-drop{outline:2px solid var(--c-orange);outline-offset:2px}
+.dlf-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
+.dlf-row .field{margin:0}
+.dlf-btns{display:flex;gap:8px}
+.pform-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.pa-card{display:grid;grid-template-rows:auto 1fr auto;gap:8px;margin:0}
+.pa-head{display:flex;align-items:center;gap:10px}
+.pa-head h3{margin:0}
+.pa-ic{flex:none;width:36px;height:36px;display:grid;place-items:center;background:var(--c-cream);color:var(--c-ink)}
+.pa-ic svg{width:20px;height:20px}
+.pa-card .sub{margin:0}
+.pa-btn{display:flex;justify-content:flex-start}
+.pa-danger{border-top:3px solid var(--c-err)}
+.pa-danger .pa-ic{background:#FDECEC;color:var(--c-err)}
+@media (max-width:760px){.pform-acts{grid-template-columns:1fr}.dlf-row{grid-template-columns:1fr}.dlf-btns{justify-content:flex-end}}
