@@ -405,6 +405,12 @@ model ShopSetting {
   termsInvoice   String? @db.Text
   termsReceipt   String? @db.Text
   showSignature  Boolean @default(true) // แสดงช่องลงชื่อท้ายเอกสาร
+  signatureKey   String? // รูปลายเซ็นผู้มีอำนาจ (PNG พื้นใส) — พิมพ์ในช่องลงนามฝั่งร้านเมื่อออกเอกสารแล้ว
+  stampKey       String? // รูปตราประทับบริษัท/ร้าน
+  signerName     String  @default("") // ชื่อผู้ลงนามฝั่งร้าน ใต้เส้นลงชื่อ เช่น "นายสมชาย ใจดี"
+  signerTitle    String  @default("") // ตำแหน่ง เช่น "ผู้จัดการฝ่ายขาย"
+  quotePayInfo   Boolean @default(true) // ใบเสนอราคา: แสดงบัญชีธนาคาร
+  quoteOnlineQr  Boolean @default(true) // ใบเสนอราคา/ใบแจ้งหนี้: QR เปิดดู/ยืนยันออนไลน์
 
   // หน้าร้าน: แถบประกาศ + วิเคราะห์การใช้งาน (โหลดเมื่อลูกค้ายินยอมคุกกี้เท่านั้น)
   announcementEnabled Boolean @default(true)

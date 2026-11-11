@@ -96,6 +96,21 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
     }
   }
 
+  // ลายเซ็น / ตราประทับ (ไม่บังคับ) — เก็บเป็น WebP พื้นใส ไม่ทำรูปย่อหลายขนาด
+  const upImg = async (field: string, label: string, max: number) => {
+    const file = f.get(field);
+    if (!(file instanceof File) || file.size === 0) return { key: undefined as string | undefined };
+    try {
+      return { key: await saveImage(Buffer.from(await file.arrayBuffer()), "logo", { full: max, thumb: 240 }) };
+    } catch (e) {
+      return { error: e instanceof MediaError ? `${label}: ${e.message}` : `อัปโหลด${label}ไม่สำเร็จ` };
+    }
+  };
+  const sig = await upImg("signature", "ลายเซ็น", 800);
+  if ("error" in sig) return { error: sig.error, fields: ["signature"] };
+  const stamp = await upImg("stamp", "ตราประทับ", 600);
+  if ("error" in stamp) return { error: stamp.error, fields: ["stamp"] };
+
   const before = await prisma.shopSetting.findUnique({ where: { id: "shop" } });
   const after = await prisma.shopSetting.update({
     where: { id: "shop" },
@@ -137,6 +152,12 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
       lineDailySummary: f.get("lineDailySummary") === "on",
       ...(logoKey ? { logoKey } : {}),
       ...(f.get("removeLogo") === "on" && !logoKey ? { logoKey: null } : {}),
+      signerName: String(f.get("signerName") ?? "").replace(/\s+/g, " ").trim().slice(0, 80),
+      signerTitle: String(f.get("signerTitle") ?? "").replace(/\s+/g, " ").trim().slice(0, 60),
+      quotePayInfo: f.get("quotePayInfo") === "on",
+      quoteOnlineQr: f.get("quoteOnlineQr") === "on",
+      ...(sig.key ? { signatureKey: sig.key } : f.get("removeSignature") === "on" ? { signatureKey: null } : {}),
+      ...(stamp.key ? { stampKey: stamp.key } : f.get("removeStamp") === "on" ? { stampKey: null } : {}),
     },
   });
   // A29: บันทึกค่าก่อน/หลังของช่องที่เปลี่ยน (ไม่มีความลับในตารางนี้ — โทเคน LINE/SMTP อยู่ใน env)

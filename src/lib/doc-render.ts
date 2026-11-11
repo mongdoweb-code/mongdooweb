@@ -11,6 +11,10 @@ export type DocLine = { sku: string; name: string; detail: string; unit: string;
 export type ShopHead = {
   name: string; address: string; phone: string; line: string; email: string; taxId: string; branch: string; logo: string;
   era: "AD" | "BE"; showSignature: boolean; banks: { name: string; account: string; holder: string }[]; promptpayName: string;
+  /** ลายเซ็น/ตราประทับ (ลิงก์รูป) + ชื่อ/ตำแหน่งผู้ลงนามฝั่งร้าน — พิมพ์เฉพาะเอกสารที่ออกแล้ว */
+  signature?: string; stamp?: string; signerName?: string; signerTitle?: string;
+  /** ใบเสนอราคา: แสดงบัญชีธนาคาร */
+  quotePayInfo?: boolean;
 };
 export type DocView = {
   type: DocTypeT; no: string | null; status: string; issueDate: string; validUntil: string; dueDate: string;
@@ -21,6 +25,8 @@ export type DocView = {
   signDate?: string;
   /** ใบลดหนี้: เหตุผล + มูลค่าตามเอกสารเดิม (สตางค์) — มูลค่าที่ถูกต้อง = เดิม − ลดหนี้ */
   credit?: { reason: string; original: number } | null;
+  /** QR + ลิงก์ให้ลูกค้าเปิดดู/ยืนยัน/ชำระออนไลน์ (ใบเสนอราคา/ใบแจ้งหนี้ที่ออกแล้ว) */
+  online?: { qr: string; url: string } | null;
 };
 
 export const DOC_META: Record<DocTypeT, { th: string; en: string; short: string; path: string }> = {
@@ -33,6 +39,13 @@ const SIGN: Record<DocTypeT, [string, string]> = { QUOTATION: ["ผู้เส�
 
 export const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const nl2br = (s: string) => esc(s).replace(/\n/g, "<br>");
+/** จำนวน: จำนวนเต็มแสดง "2" (ไม่ใช่ "2.00") · ทศนิยมแสดงตามเดิม */
+const qtyShow = (m: number) => (m % 1000 === 0 ? (m / 1000).toLocaleString("en-US") : qtyFmt(m));
+/** จำนวนวันระหว่าง YYYY-MM-DD สองวัน */
+const daysBetween = (a: string, b: string) => {
+  const x = Date.parse(`${a}T00:00:00Z`), y = Date.parse(`${b}T00:00:00Z`);
+  return Number.isFinite(x) && Number.isFinite(y) ? Math.round((y - x) / 864e5) : NaN;
+};
 /** ไอคอนเล็กหน้าข้อมูลติดต่อร้าน (โทร · LINE · อีเมล) — เส้นสีเทา พิมพ์ขาวดำได้ชัด */
 const CT_ICON = {
   phone: '<path d="M5 3h3.5l1.7 4.3-2.2 1.4a11 11 0 0 0 5.3 5.3l1.4-2.2L19 13.5V17a2 2 0 0 1-2 2A15 15 0 0 1 3 5a2 2 0 0 1 2-2Z"/>',
@@ -73,6 +86,16 @@ export function buildDocParts(d: DocView): DocParts {
 
   const isCn = d.type === "CREDIT_NOTE";
   const info: [string, string][] = [[isCn ? "คืนเงินโดย" : "การชำระเงิน", esc(d.paymentMethod || "—")]];
+  if (d.type === "QUOTATION") {
+    const n = daysBetween(d.issueDate, d.validUntil);
+    if (n > 0) info.push(["ยืนราคา", `${n} วัน`]);
+  }
+  if (d.type === "INVOICE") {
+    const n = daysBetween(d.issueDate, d.dueDate);
+    if (n > 0) info.push(["เครดิต", `${n} วัน`]);
+  }
+  // ผู้ติดต่อฝั่งร้าน (ผู้ลงนาม) — ลูกค้าโทรหาคนที่ถูกต้อง
+  if (s.signerName && (d.type === "QUOTATION" || d.type === "INVOICE")) info.push(["ผู้ติดต่อ", `${esc(s.signerName)}${s.phone ? ` <span class="nw">${esc(s.phone)}</span>` : ""}`]);
   if (d.type === "INVOICE") info.push(["ยอดค้างชำระ", `<b>${money(outstanding)}</b>`]);
   if (d.carrier && d.type !== "QUOTATION") info.push(["ขนส่ง", esc(d.carrier)]);
   info.push(["หน้า", "{{P}} / {{N}}"]);
@@ -96,16 +119,17 @@ export function buildDocParts(d: DocView): DocParts {
   const thead = `<thead><tr><th class="c w-no">ลำดับ</th><th class="w-sku">รหัสสินค้า</th><th>รายการสินค้า</th><th class="w-unit">หน่วย</th><th class="n w-price">ราคาขาย/บาท</th><th class="n w-qty">จำนวน</th>${hasDisc ? '<th class="n w-disc">ส่วนลด</th>' : ""}<th class="n w-amt">ราคารวม/บาท</th></tr></thead>`;
   const rows = d.items.length
     ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td><td class="nm"><div class="nm-row">${imgCell(it)}<div>${esc(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${esc(it.detail)}</small>` : ""}</div></div></td><td>${esc(it.unit)}</td>
-      <td class="n">${money(it.priceSatang)}</td><td class="n">${qtyFmt(it.qtyMilli)}</td>${hasDisc ? `<td class="n">${it.discountSatang ? money(it.discountSatang) : ""}</td>` : ""}<td class="n">${money(lineSatang(it))}</td></tr>`)
+      <td class="n">${money(it.priceSatang)}</td><td class="n">${qtyShow(it.qtyMilli)}</td>${hasDisc ? `<td class="n">${it.discountSatang ? money(it.discountSatang) : ""}</td>` : ""}<td class="n">${money(lineSatang(it))}</td></tr>`)
     : [`<tr class="empty-row"><td colspan="${hasDisc ? 8 : 7}">ยังไม่มีรายการสินค้า</td></tr>`];
 
-  const tot: [string, number][] = [["ราคารวมสินค้า", t.subtotal], ["ส่วนลด", t.discount]];
-  if (t.discount) tot.push(["ราคาหลังหักส่วนลด", t.afterDiscount]);
+  // แถวส่วนลดแสดงเฉพาะเมื่อมีส่วนลด (ไม่พิมพ์ "ส่วนลด 0.00")
+  const tot: [string, number][] = [["ราคารวมสินค้า", t.subtotal]];
+  if (t.discount) tot.push(["ส่วนลด", t.discount], ["ราคาหลังหักส่วนลด", t.afterDiscount]);
   if (vatOn) tot.push(["มูลค่าก่อนภาษีมูลค่าเพิ่ม", t.beforeVat], [`ภาษีมูลค่าเพิ่ม ${d.vatRateBp / 100}%`, t.vat]);
   let payBox = "";
   if (d.type === "INVOICE") {
     payBox = `<div class="sh-pay">${d.qr ? `<img class="sh-qr" src="${esc(d.qr)}" alt="PromptPay QR">` : ""}<div><h5>ช่องทางชำระเงิน</h5>
-      ${s.banks.map((b) => `<div>${esc(b.name)} เลขที่บัญชี <b>${esc(b.account)}</b>${b.holder ? ` ชื่อบัญชี ${esc(b.holder)}` : ""}</div>`).join("")}
+      ${s.banks.map((b) => `<div>${esc(b.name)} เลขที่บัญชี <b>${esc(b.account)}</b>${b.holder ? ` ชื่อบัญชี <span class="nw">${esc(b.holder)}</span>` : ""}</div>`).join("")}
       ${d.qr ? `<div>สแกนพร้อมเพย์${s.promptpayName ? " " + esc(s.promptpayName) : ""} ยอด <b>${money(outstanding)}</b> บาท</div>` : ""}
       <div class="mut">โอนแล้วกรุณาแจ้งสลิป${s.line ? " ทาง LINE " + esc(s.line) : ""} พร้อมเลขที่ ${esc(label)}</div></div></div>`;
   }
@@ -117,13 +141,32 @@ export function buildDocParts(d: DocView): DocParts {
     payBox = `<div class="sh-cn"><h5>เหตุผลการลดหนี้</h5><p>${nl2br(d.credit?.reason || "—")}</p>
       <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${money(v)}</dd>`).join("")}</dl></div>`;
   }
+  if (d.type === "QUOTATION" && ((s.quotePayInfo && s.banks.length) || d.online)) {
+    // ใบเสนอราคา: บัญชีธนาคาร (ตั้งค่าได้) + QR เปิดดู/ยืนยันออนไลน์
+    payBox = `<div class="sh-pay sh-qpay">${d.online ? `<figure class="sh-oqr"><img class="sh-qr" src="${esc(d.online.qr)}" alt="QR เปิดใบเสนอราคาออนไลน์"><figcaption>สแกนเพื่อดู<br>และยืนยันสั่งซื้อ</figcaption></figure>` : ""}<div>
+      ${s.quotePayInfo && s.banks.length ? `<h5>ช่องทางชำระเงิน (เมื่อยืนยันสั่งซื้อ)</h5>${s.banks.map((b) => `<div>${esc(b.name)} เลขที่บัญชี <b>${esc(b.account)}</b>${b.holder ? ` ชื่อบัญชี <span class="nw">${esc(b.holder)}</span>` : ""}</div>`).join("")}` : ""}
+      ${d.online ? `<div class="mut">ยืนยันสั่งซื้อออนไลน์ได้ทันทีจาก QR นี้${s.line ? ` หรือแจ้งทาง LINE ${esc(s.line)}` : ""} พร้อมเลขที่ ${esc(label)}</div>` : s.line ? `<div class="mut">ยืนยันสั่งซื้อ/สอบถามทาง LINE ${esc(s.line)} พร้อมเลขที่ ${esc(label)}</div>` : ""}</div></div>`;
+  }
+  if (d.type === "INVOICE" && d.online && payBox) {
+    payBox = payBox.replace('<div class="mut">', `<div class="mut">ดูใบแจ้งหนี้และแนบสลิปออนไลน์: สแกน QR มุมขวาล่าง · `);
+  }
   if (d.type === "RECEIPT") payBox = `<div class="sh-paid"><b>ได้รับเงินถูกต้องแล้ว</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}</div>`;
   const terms = d.paymentTerms.trim(), note = d.note.trim();
   // ช่องลงนาม: ฝั่งร้านใส่วันที่ให้ (วันที่ลงนามที่ตั้งไว้ หรือวันที่เอกสาร) · ฝั่งลูกค้าเว้นให้เขียนเอง
   const signDay = d.signDate || d.issueDate;
+  // ลายเซ็น/ตราประทับฝั่งร้าน: เฉพาะเอกสารที่ออกแล้ว (ฉบับร่างไม่พิมพ์ — กันนำร่างไปใช้แทนเอกสารจริง)
+  const issued = d.status !== "DRAFT";
+  const sigImg = issued && s.signature ? `<img class="sg-sig" src="${esc(s.signature)}" alt="">` : "";
+  const stampImg = issued && s.stamp ? `<img class="sg-stamp" src="${esc(s.stamp)}" alt="">` : "";
   const sign = s.showSignature
-    ? `<section class="sh-sign">${SIGN[d.type].map((l, i) => `<div><div class="sg-line"></div><b>${l}</b><span>วันที่ ${i === 0 && signDay ? `<b class="sg-date">${esc(docDate(signDay, era))}</b>` : "______/______/__________"}</span></div>`).join("")}</section>`
+    ? `<section class="sh-sign">${SIGN[d.type].map((l, i) => {
+        const me = i === 0;
+        const who = me && s.signerName ? `<em class="sg-name">( ${esc(s.signerName)} )</em>${s.signerTitle ? `<em class="sg-title">${esc(s.signerTitle)}</em>` : ""}` : "";
+        return `<div class="sg-slot${me && (sigImg || stampImg) ? " has-sig" : ""}"><div class="sg-line">${me ? sigImg + stampImg : ""}</div>${who}<b>${l}</b><span>วันที่ ${me && signDay ? `<b class="sg-date">${esc(docDate(signDay, era))}</b>` : "______/______/__________"}</span></div>`;
+      }).join("")}</section>`
     : "";
+  // ใบแจ้งหนี้: QR เปิดดู/แนบสลิปออนไลน์ อยู่ใต้ยอดรวม (QR พร้อมเพย์อยู่ในกล่องชำระเงินแล้ว)
+  const ivOnline = d.type === "INVOICE" && d.online ? `<figure class="sh-oqr sh-oqr-iv"><img class="sh-qr" src="${esc(d.online.qr)}" alt="QR เปิดใบแจ้งหนี้ออนไลน์"><figcaption>ดู/แนบสลิปออนไลน์</figcaption></figure>` : "";
   const tail = `<div class="sh-end">
       <section class="sh-tail">
         <div class="sh-tl">
@@ -132,9 +175,10 @@ export function buildDocParts(d: DocView): DocParts {
           ${terms ? `<div class="sh-note"><h5>${d.type === "QUOTATION" ? "เงื่อนไข" : "เงื่อนไขการชำระเงิน"}</h5><p>${nl2br(terms)}</p></div>` : ""}
           ${payBox}
         </div>
-        <dl class="sh-tot">${tot.map(([k, v]) => `<dt>${k}</dt><dd>${money(v)}</dd>`).join("")}
+        <div class="sh-tr"><dl class="sh-tot">${tot.map(([k, v]) => `<dt>${k}</dt><dd>${money(v)}</dd>`).join("")}
           <dt class="g">${isCn ? "มูลค่าลดหนี้สุทธิ/บาท" : "ราคารวมสุทธิ/บาท"}</dt><dd class="g">${money(t.grand)}</dd>
           ${d.type === "INVOICE" && d.paidSatang ? `<dt>ชำระแล้ว</dt><dd>${money(d.paidSatang)}</dd><dt class="o">คงค้างชำระ</dt><dd class="o">${money(outstanding)}</dd>` : ""}</dl>
+        ${ivOnline}</div>
       </section>
       ${sign}
       <div class="sh-thanks">*** ขอบคุณที่ใช้บริการ ***</div>

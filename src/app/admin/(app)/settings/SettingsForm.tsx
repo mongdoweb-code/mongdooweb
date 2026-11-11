@@ -16,6 +16,7 @@ export type SettingsValues = {
   prefixQuote: string; prefixInvoice: string; prefixReceipt: string; prefixCredit: string; dateEra: string;
   quoteValidDays: number; invoiceDueDays: number; termsQuote: string; termsInvoice: string; termsReceipt: string; showSignature: boolean;
   logoUrl: string | null;
+  signatureUrl: string | null; stampUrl: string | null; signerName: string; signerTitle: string; quotePayInfo: boolean; quoteOnlineQr: boolean;
   announcementEnabled: boolean; announcementText: string; announcementHref: string;
   ga4Id: string; metaPixelId: string;
   autoCancelDays: number; lowStockThreshold: number; lineLowStock: boolean; lineDailySummary: boolean;
@@ -31,6 +32,8 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
   const [express, setExpress] = useState(v.expressEnabled);
   const [vat, setVat] = useState(v.vatEnabled);
   const [logoPreview, setLogoPreview] = useState<string | null>(v.logoUrl);
+  const [sigPreview, setSigPreview] = useState<string | null>(v.signatureUrl);
+  const [stampPreview, setStampPreview] = useState<string | null>(v.stampUrl);
   const [pp, setPp] = useState(v.promptpayId);
   const [annOn, setAnnOn] = useState(v.announcementEnabled);
   const [annText, setAnnText] = useState(v.announcementText);
@@ -232,6 +235,45 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
             <div className="field"><label htmlFor="termsReceipt">ข้อความ ใบเสร็จ</label><textarea id="termsReceipt" name="termsReceipt" defaultValue={v.termsReceipt} maxLength={600} rows={4} placeholder="ไม่บังคับ" /></div>
           </div>
           <label className="chk-row"><input type="checkbox" name="showSignature" defaultChecked={v.showSignature} /> แสดงช่องลงชื่อท้ายเอกสาร</label>
+          <fieldset className="set-sign">
+            <legend>ลายเซ็นและตราประทับ (พิมพ์ในช่องลงนามฝั่งร้าน)</legend>
+            <div className="two">
+              <div className="field"><label htmlFor="signerName">ชื่อผู้ลงนาม</label><input id="signerName" name="signerName" defaultValue={v.signerName} maxLength={80} placeholder="เช่น นายสมชาย ใจดี" /><small>พิมพ์ใต้เส้นลงชื่อ และเป็น &quot;ผู้ติดต่อ&quot; บนใบเสนอราคา/ใบแจ้งหนี้</small></div>
+              <div className="field"><label htmlFor="signerTitle">ตำแหน่ง</label><input id="signerTitle" name="signerTitle" defaultValue={v.signerTitle} maxLength={60} placeholder="เช่น ผู้จัดการฝ่ายขาย" /></div>
+            </div>
+            <div className="sig-grid">
+              <div className="field">
+                <span className="lbl">รูปลายเซ็น</span>
+                <div className="sig-prev">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {sigPreview ? <img src={sigPreview} alt="ลายเซ็นปัจจุบัน" /> : <span className="sub">ยังไม่มีลายเซ็น</span>}
+                </div>
+                <div className="logo-row">
+                  <label className="btn btn-outline btn-sm" htmlFor="signature">อัปโหลดลายเซ็น</label>
+                  <input id="signature" name="signature" type="file" accept="image/png,image/webp,image/jpeg" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setSigPreview(URL.createObjectURL(f)); }} />
+                  {v.signatureUrl && <label className="chk-row"><input type="checkbox" name="removeSignature" /> ลบลายเซ็น</label>}
+                </div>
+              </div>
+              <div className="field">
+                <span className="lbl">รูปตราประทับ</span>
+                <div className="sig-prev stamp">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {stampPreview ? <img src={stampPreview} alt="ตราประทับปัจจุบัน" /> : <span className="sub">ยังไม่มีตราประทับ</span>}
+                </div>
+                <div className="logo-row">
+                  <label className="btn btn-outline btn-sm" htmlFor="stamp">อัปโหลดตราประทับ</label>
+                  <input id="stamp" name="stamp" type="file" accept="image/png,image/webp,image/jpeg" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setStampPreview(URL.createObjectURL(f)); }} />
+                  {v.stampUrl && <label className="chk-row"><input type="checkbox" name="removeStamp" /> ลบตราประทับ</label>}
+                </div>
+              </div>
+            </div>
+            <small>ใช้ไฟล์ PNG พื้นใส (สแกน/ถ่ายลายเซ็นบนกระดาษขาว แล้วลบพื้นหลัง) · พิมพ์เฉพาะเอกสารที่<b>ออกแล้ว</b> — ฉบับร่างไม่แสดง กันนำร่างไปใช้แทนเอกสารจริง</small>
+          </fieldset>
+          <fieldset className="set-sign">
+            <legend>ใบเสนอราคา</legend>
+            <label className="chk-row"><input type="checkbox" name="quotePayInfo" defaultChecked={v.quotePayInfo} /> แสดงบัญชีธนาคารบนใบเสนอราคา</label>
+            <label className="chk-row"><input type="checkbox" name="quoteOnlineQr" defaultChecked={v.quoteOnlineQr} /> พิมพ์ QR ให้ลูกค้าสแกนเปิดดู/ยืนยันสั่งซื้อออนไลน์ (ใบเสนอราคา) และแนบสลิป (ใบแจ้งหนี้)</label>
+          </fieldset>
         </div>
       </div>
       <div className="set-foot">

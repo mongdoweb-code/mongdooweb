@@ -5,6 +5,7 @@
 import "server-only";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { DOC_INCLUDE } from "@/lib/docs";
+import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
@@ -77,4 +78,14 @@ export async function getPublicDoc(id: string, token: string | undefined) {
   const a = Buffer.from(d.publicToken), b = Buffer.from(token);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   return d;
+}
+
+/** QR + ลิงก์ลับสำหรับพิมพ์บนใบเสนอราคา/ใบแจ้งหนี้ที่ออกแล้ว (ลูกค้าสแกนเพื่อดู/ยืนยัน/แนบสลิป) — สร้างโทเคนถ้ายังไม่มี
+ *  null = ปิดในตั้งค่า / ฉบับร่าง / ยกเลิก / ชนิดเอกสารอื่น */
+export async function onlineQrFor(d: { id: string; type: string; status: string }, enabled: boolean): Promise<{ qr: string; url: string } | null> {
+  if (!enabled || (d.type !== "QUOTATION" && d.type !== "INVOICE") || d.status === "DRAFT" || d.status === "VOID") return null;
+  const token = await ensureDocToken(d.id);
+  if (!token) return null;
+  const url = `${(process.env.SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "")}${publicDocUrl(d, token)}`;
+  return { url, qr: await QRCode.toDataURL(url, { errorCorrectionLevel: "M", margin: 1, width: 280 }) };
 }
