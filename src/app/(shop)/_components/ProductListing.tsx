@@ -75,7 +75,7 @@ export function readListingParams(sp: Params): State {
 }
 
 /** รวมสินค้าหลายตัวเลือกเป็นการ์ดเดียว: ตัวหลักของกลุ่มถ้าผ่านตัวกรอง ไม่งั้นตัวแรกที่ผ่าน (คงลำดับเดิม) */
-function collapseVariants(list: CatalogItem[], extra: Record<string, ProductExtra>, groupSize: Record<string, number>) {
+export function collapseVariants(list: CatalogItem[], extra: Record<string, ProductExtra>, groupSize: Record<string, number>) {
   const pick = new Map<string, CatalogItem>();
   for (const p of list) {
     const e = extra[p.id];

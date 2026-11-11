@@ -58,7 +58,7 @@ export async function verifiedOrder(orderNoRaw: string, phoneRaw: string, produc
 
 /** สร้างรีวิว (รออนุมัติ) จากฟอร์มหน้าร้าน */
 export async function createReview(form: FormData) {
-  const slug = String(form.get("product") ?? "").trim().slice(0, 120);
+  const slug = String(form.get("product") ?? "").trim().slice(0, 200);
   const product = slug ? await prisma.product.findFirst({ where: { slug, isActive: true }, select: { id: true, name: true } }) : null;
   if (!product) throw new ReviewError("ไม่พบสินค้า", 404);
   const rating = Math.floor(Number(form.get("rating")));

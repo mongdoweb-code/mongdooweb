@@ -42,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/`, changeFrequency: "daily", priority: 1 },
     { url: `${base}/products`, changeFrequency: "daily", priority: 0.9 },
     ...categories.map((slug) => ({ url: `${base}/category/${slug}`, changeFrequency: "weekly" as const, priority: 0.8 })),
-    ...products.map((p) => ({ url: `${base}/product/${p.slug}`, lastModified: p.at, changeFrequency: "weekly" as const, priority: 0.7 })),
+    ...products.map((p) => ({ url: `${base}/product/${encodeURIComponent(p.slug)}`, lastModified: p.at, changeFrequency: "weekly" as const, priority: 0.7 })),
     ...(content.projects.length ? [{ url: `${base}/projects`, changeFrequency: "weekly" as const, priority: 0.6 }] : []),
     ...content.projects.map((p) => ({ url: `${base}/projects/${p.slug}`, lastModified: p.at, changeFrequency: "monthly" as const, priority: 0.5 })),
     ...(posts.length ? [{ url: `${base}/blog`, changeFrequency: "weekly" as const, priority: 0.6 }] : []),

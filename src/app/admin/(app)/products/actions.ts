@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { queueRestockIfAvailableNow } from "@/lib/stock-alerts";
 import { setStock } from "@/lib/stock";
 import { recordSlugChange } from "@/lib/redirects";
+import { cleanProductSlug, isProductSlug } from "@/lib/slug";
 import { parseCsv } from "@/lib/csv";
 import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
 import { readProductExtras } from "@/lib/product-extras";
@@ -35,8 +36,9 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
   const bad: string[] = [];
   const name = str(f, "name", 250);
   if (name.length < 2) bad.push("name");
-  const slug = str(f, "slug", 100).toLowerCase();
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) bad.push("slug");
+  // ลิงก์สินค้า: ภาษาไทย/อังกฤษตัวเล็ก/ตัวเลข คั่นด้วย - (เว้นวรรค → -) — เหมือน URL ของเว็บเดิม
+  const slug = cleanProductSlug(str(f, "slug", 400));
+  if (!isProductSlug(slug)) bad.push("slug");
   const sku = str(f, "sku", 60);
   if (!sku) bad.push("sku");
   const categoryId = str(f, "categoryId", 40);
@@ -262,11 +264,11 @@ export async function duplicateProduct(f: FormData) {
   if (!p) redirect("/admin/products");
   let n = 1;
   let sku = `${p.sku}-copy`.slice(0, 60);
-  let slug = `${p.slug}-copy`.slice(0, 100);
+  let slug = `${p.slug.slice(0, 180).replace(/-+$/, "")}-copy`;
   while (await prisma.product.findFirst({ where: { OR: [{ sku: { equals: sku, mode: "insensitive" } }, { slug }] }, select: { id: true } })) {
     n++;
     sku = `${p.sku}-copy${n}`.slice(0, 60);
-    slug = `${p.slug}-copy${n}`.slice(0, 100);
+    slug = `${p.slug.slice(0, 180).replace(/-+$/, "")}-copy${n}`;
   }
   // สำเนาไม่รับรีวิว/คะแนน ไม่อยู่ในกลุ่มตัวเลือกเดิม (ค่าตัวเลือกจะซ้ำกัน)
   const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, ratingAvg: _ra, ratingCount: _rc, variantGroupId: _vg, variantOptions: _vo, specs, tierPrices, attrs, downloads, ...rest } = p;

@@ -94,9 +94,12 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
     return (await faqEmpty()) ? shop404(req) : pass(req);
   }
   if (pathname.startsWith("/product/")) {
-    const slug = decode(pathname.slice("/product/".length).replace(/\/+$/, ""));
-    // slug ใหม่เป็น a-z 0-9 - เท่านั้น; มีอักษรอื่น (เช่นภาษาไทย) = URL เดิม (ตาราง redirect ก่อน แล้วค่อยค้น legacyPath)
+    const slug = decode(pathname.slice("/product/".length).replace(/\/+$/, "")).normalize("NFC");
+    // slug เป็นภาษาไทยได้ (เหมือน URL เว็บเดิม) → สินค้าที่มี slug นี้จริงแสดงเลย
+    // ไม่พบ + มีอักษรนอก ASCII = URL เดิมแบบอื่น (ตาราง redirect ก่อน แล้วค่อยค้น legacyPath → 301 หรือไป /products)
     if (/[^\x00-\x7F]/.test(slug)) {
+      const c = await checkProduct(slug);
+      if (c.kind !== "missing" || c.exists) return detail(req, event, c);
       const r = await tableRedirect(req, event);
       if (r) return r;
       const url = req.nextUrl.clone();

@@ -5,10 +5,11 @@ import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { parseFaq } from "@/lib/shop-public";
 
-export type RouteCheck = { kind: "ok" } | { kind: "missing" } | { kind: "redirect"; to: string };
+/** missing.exists = มีรายการนี้จริงแต่ปิดอยู่ (ตอบ 404 เลย ไม่ต้องลองหา URL เดิม) */
+export type RouteCheck = { kind: "ok" } | { kind: "missing"; exists?: boolean } | { kind: "redirect"; to: string };
 const OK: RouteCheck = { kind: "ok" };
 
-/** /product/<slug> (slug ใหม่ a-z0-9-): เปิดขายอยู่ = ok · slug เดิมของเว็บเก่า = 301 · ไม่มี/ปิดขาย = 404 */
+/** /product/<slug> (ไทย/a-z0-9-): เปิดขายอยู่ = ok · slug เดิมของเว็บเก่า = 301 · ไม่มี/ปิดขาย = 404 */
 export async function checkProduct(slug: string): Promise<RouteCheck> {
   if (!slug || slug.length > 200 || slug.includes("/")) return { kind: "missing" };
   try {
@@ -16,7 +17,7 @@ export async function checkProduct(slug: string): Promise<RouteCheck> {
       where: { slug },
       select: { isActive: true, isService: true, category: { select: { isActive: true } } },
     });
-    if (p) return p.isActive && !p.isService && p.category.isActive ? OK : { kind: "missing" };
+    if (p) return p.isActive && !p.isService && p.category.isActive ? OK : { kind: "missing", exists: true };
     // URL เดิมของ WooCommerce ที่เป็นอักษรอังกฤษ (legacyPath เก็บแบบ /product/<slug>)
     const legacy = await prisma.product.findFirst({
       where: { legacyPath: { in: [`/product/${slug}`, `/product/${slug}/`] }, isActive: true },
