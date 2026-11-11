@@ -9,7 +9,7 @@ import { moveStock } from "@/lib/stock";
 import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
-import { custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, ymdOf, type Tx } from "@/lib/docs";
+import { LOST_REASONS, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, ymdOf, type Tx } from "@/lib/docs";
 import { DocUserError, issueDocTx, recordInvoicePaymentTx } from "@/lib/doc-payments";
 import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";
@@ -196,8 +196,40 @@ async function setQuoteStatus(f: FormData, to: DocStatus, label: string, ev: Doc
   refresh();
 }
 export async function acceptQuote(f: FormData) { await setQuoteStatus(f, "ACCEPTED", "ลูกค้าตอบรับ", "ACCEPTED"); }
-export async function rejectQuote(f: FormData) { await setQuoteStatus(f, "REJECTED", "ลูกค้าไม่ตอบรับ", "REJECTED"); }
-export async function reopenQuote(f: FormData) { await setQuoteStatus(f, "ISSUED", "กลับเป็นรอตอบรับ", "NOTE"); }
+/** ลูกค้าไม่ตอบรับ + เหตุผล (เลือกจากรายการ หรือพิมพ์เพิ่ม) — ใช้ดูว่าเสียงานเพราะอะไร */
+export async function rejectQuote(f: FormData) {
+  const pick = str(f, "reason", 60);
+  const more = str(f, "reasonNote", 200);
+  const reason = [LOST_REASONS.includes(pick) ? pick : "", more].filter(Boolean).join(" — ").slice(0, 240);
+  await setQuoteStatus(f, "REJECTED", reason ? `ลูกค้าไม่ตอบรับ: ${reason}` : "ลูกค้าไม่ตอบรับ", "REJECTED");
+  await prisma.salesDocument.updateMany({ where: { id: str(f, "id", 40), type: "QUOTATION", status: "REJECTED" }, data: { lostReason: reason || null, followUpAt: null } });
+}
+export async function reopenQuote(f: FormData) {
+  await setQuoteStatus(f, "ISSUED", "กลับเป็นรอตอบรับ", "NOTE");
+  await prisma.salesDocument.updateMany({ where: { id: str(f, "id", 40), type: "QUOTATION", status: "ISSUED" }, data: { lostReason: null } });
+}
+
+/** ตั้งวันนัดติดตาม (ใบเสนอราคาที่รอตอบรับ): days = +n วันจากวันนี้ · date = วันที่เลือก · clear = ล้าง · note = บันทึกการคุยกับลูกค้า (ไม่บังคับ) */
+export async function setFollowUp(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const days = Number(str(f, "days", 4));
+  const date = str(f, "date", 10);
+  const note = str(f, "note", 500);
+  const clear = str(f, "clear", 2) === "1";
+  const ymdOk = /^\d{4}-\d{2}-\d{2}$/;
+  const target = clear ? null : Number.isInteger(days) && days >= 0 && days <= 365 && str(f, "days", 4) !== "" ? ymdBkk(new Date(fromYmd(todayYmd()).getTime() + days * 864e5)) : ymdOk.test(date) && date >= todayYmd() ? date : undefined;
+  if (target === undefined && !note) return;
+  const d = await prisma.salesDocument.findUnique({ where: { id }, select: { type: true, status: true, docNo: true } });
+  if (!d || d.type !== "QUOTATION" || d.status !== "ISSUED") return;
+  if (target !== undefined) await prisma.salesDocument.update({ where: { id }, data: { followUpAt: target ? fromYmd(target) : null } });
+  const when = target ? `นัดติดตาม ${target.split("-").reverse().join("/")}` : target === null ? "ยกเลิกนัดติดตาม" : "";
+  await prisma.salesDocumentEvent.create({
+    data: { documentId: id, type: target !== undefined ? "FOLLOW_UP" : "NOTE", adminId: admin.id, note: [when, note].filter(Boolean).join(" · ").slice(0, 600) },
+  });
+  await logAdmin(admin.id, "DOC", `${d.docNo} ${[when, note && "บันทึกการติดตาม"].filter(Boolean).join(" · ")}`);
+  refresh();
+}
 
 /** สร้างเอกสารใหม่ (ฉบับร่าง) โดยคัดลอกรายการจากเอกสารเดิม */
 async function copyToDraft(srcId: string, type: DocTypeT, adminId: string, link: { sourceId?: string; orderId?: string | null }, note: string) {

@@ -282,10 +282,12 @@ export function labelSetHtml(list: LabelData[], o: LabelOpts, s: Sender) {
 export const DOC_ST = {
   draft: ["ฉบับร่าง", "gray"], open: ["รอตอบรับ", "pend"], accepted: ["ตอบรับแล้ว", "ok"], rejected: ["ไม่ตอบรับ", "bad"], expired: ["หมดอายุ", "gray"],
   unpaid: ["ค้างชำระ", "pend"], partial: ["ชำระบางส่วน", "info"], paid: ["ชำระแล้ว", "ok"], overdue: ["เกินกำหนด", "bad"], issued: ["ออกแล้ว", "ok"], void: ["ยกเลิก", "void"],
+  // แท็บติดตามใบเสนอราคา (ไม่ใช่สถานะของเอกสาร — ใช้กรองรายการเท่านั้น)
+  follow: ["ต้องติดตาม", "pend"], expiring: ["ใกล้หมดอายุ", "pend"],
 } as const;
 export type DocSt = keyof typeof DOC_ST;
 export const DOC_TABS: Record<DocTypeT, [DocSt | "all", string][]> = {
-  QUOTATION: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["open", "รอตอบรับ"], ["accepted", "ตอบรับแล้ว"], ["rejected", "ไม่ตอบรับ"], ["expired", "หมดอายุ"], ["void", "ยกเลิก"]],
+  QUOTATION: [["all", "ทั้งหมด"], ["follow", "ต้องติดตาม"], ["expiring", "ใกล้หมดอายุ"], ["draft", "ฉบับร่าง"], ["open", "รอตอบรับ"], ["accepted", "ตอบรับแล้ว"], ["rejected", "ไม่ตอบรับ"], ["expired", "หมดอายุ"], ["void", "ยกเลิก"]],
   INVOICE: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["unpaid", "ค้างชำระ"], ["partial", "ชำระบางส่วน"], ["overdue", "เกินกำหนด"], ["paid", "ชำระแล้ว"], ["void", "ยกเลิก"]],
   RECEIPT: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["issued", "ออกแล้ว"], ["void", "ยกเลิก"]],
   CREDIT_NOTE: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["issued", "ออกแล้ว"], ["void", "ยกเลิก"]],

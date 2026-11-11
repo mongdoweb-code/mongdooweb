@@ -1964,3 +1964,32 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .sig-prev img{max-width:90%;max-height:80px;object-fit:contain;mix-blend-mode:multiply}
 .sig-prev.stamp img{max-height:84px}
 @media (max-width:640px){.sig-grid{grid-template-columns:1fr}}
+
+/* ---------- ติดตามใบเสนอราคา (2026-11-11) ---------- */
+@media (min-width:1200px){.kpis:has(> :nth-child(5)){grid-template-columns:repeat(5,minmax(0,1fr))}}
+.qt-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.qc{font-style:normal;font-size:11.5px;font-weight:600;line-height:1.2;padding:2px 7px;background:#F1EFEA;color:#57534C;white-space:nowrap}
+.qc.ok{background:#E8F7EF;color:#14674A}.qc.warn{background:#FFF4E0;color:#8A5300}.qc.bad{background:#FDECEC;color:#B42318}
+.qt-track .qt-facts{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px}
+.qt-facts li{display:grid;gap:1px;padding:8px 10px;border-left:3px solid var(--c-line);background:#FCFBF9}
+.qt-facts li.ok{border-left-color:#16A37B}.qt-facts li.warn{border-left-color:#E7A33E}.qt-facts li.bad{border-left-color:var(--c-err);background:#FFF8F7}
+.qt-facts b{font-size:14px}
+.qt-fu{display:grid;gap:8px}
+.qt-fu label{font-size:12.5px;font-weight:600;color:var(--c-muted)}
+.qt-fu textarea{border:1.5px solid var(--c-line);padding:8px 10px;font:inherit;font-size:14px;resize:vertical;border-radius:0}
+.qt-fu-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.qt-fu-row .lbl{font-size:12.5px;color:var(--c-muted);font-weight:600;margin-right:2px}
+.qt-fu-row input[type=date]{height:34px;border:1.5px solid var(--c-line);padding:0 8px;border-radius:0}
+.qt-lost{display:contents}
+.qt-lost > summary{list-style:none;cursor:pointer}
+.qt-lost > summary::-webkit-details-marker{display:none}
+.qt-lost[open] > summary{border-color:var(--c-err);color:var(--c-err)}
+.qt-lost-f{grid-column:1/-1;flex-basis:100%;display:grid;gap:6px;padding:10px;border:1px solid #F1C6C1;background:#FFF8F7}
+.qt-lost-f label{font-size:12.5px;font-weight:600;color:var(--c-muted)}
+.qt-lost-f select,.qt-lost-f input{height:36px;border:1.5px solid var(--c-line);padding:0 8px;background:#fff;border-radius:0}
+.qt-lost-f .btn{justify-self:start}
+/* ปุ่มนัดติดตามเรียงแถวเดียว (ไม่ยืดเต็มกว้างแบบปุ่มหลักในแผงด้านข้าง) */
+.qt-fu-row{display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));gap:6px}
+.qt-fu-row + .qt-fu-row{grid-template-columns:minmax(0,1fr) auto auto}
+.qt-fu-row .btn{width:auto;min-width:0;padding:0 8px;white-space:nowrap}
+.qt-fu-row input[type=date]{width:100%;min-width:0}

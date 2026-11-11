@@ -5,13 +5,13 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { docDate, docDateTime, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST } from "@/lib/doc-render";
-import { DOC_INCLUDE, PAY_METHODS, asSnap, docPath, isDocType, statusOf, toView, todayYmd, ymdOf } from "@/lib/docs";
+import { DOC_INCLUDE, LOST_REASONS, PAY_METHODS, asSnap, docPath, isDocType, statusOf, toView, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { ConfirmSubmit } from "../../../../_components/AdminClient";
 import { DocSheets } from "../../../../_components/DocSheets";
 import { LabelOptions } from "../../../../_components/LabelOptions";
-import { acceptQuote, convertQuote, createCreditNote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, returnCreditStock, reviseQuote, setSignDate } from "../../actions";
+import { acceptQuote, convertQuote, createCreditNote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, returnCreditStock, reviseQuote, setFollowUp, setSignDate } from "../../actions";
 import { PaymentForm, QuoteToReceiptForm, VoidForm } from "../../DocForms";
 import { DocOnline } from "../../DocOnline";
 
@@ -19,7 +19,9 @@ export const instant = false;
 
 const SIGNER = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ" } as const;
 
-const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป", STOCK_RETURNED: "รับคืนเข้าสต็อก" };
+const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป", STOCK_RETURNED: "รับคืนเข้าสต็อก", VIEWED: "ลูกค้าเปิดดู", FOLLOW_UP: "นัดติดตาม" };
+/** จำนวนวันจาก a ถึง b (YYYY-MM-DD) */
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
 
 export default async function DocViewPage({ params, searchParams }: PageProps<"/admin/docs/[type]/[id]">) {
   await requireAdmin();
@@ -91,6 +93,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
             <div className="dv-kv">
               <span>ลูกค้า</span><b>{d.customer ? <Link className="link" href={`/admin/customers/${d.customer.id}`}>{d.customer.code} {d.customer.name}</Link> : c.name ?? "—"}</b>
               {d.type === "QUOTATION" && <><span>ยืนราคาถึง</span><b>{docDate(ymdOf(d.validUntil), era)}</b></>}
+              {d.type === "QUOTATION" && d.status === "REJECTED" && d.lostReason && <><span>เหตุผลที่ไม่ได้งาน</span><b className="owe">{d.lostReason}</b></>}
               {d.type === "INVOICE" && <><span>ครบกำหนด</span><b className={st === "overdue" ? "owe" : ""}>{docDate(ymdOf(d.dueDate), era)}</b></>}
               {d.paymentMethod && <><span>การชำระเงิน</span><b>{d.paymentMethod}</b></>}
               {d.carrier && <><span>ขนส่ง</span><b>{d.carrier}</b></>}
@@ -122,7 +125,22 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
                     <QuoteToReceiptForm id={d.id} total={money(d.grandSatang)} today={today} minDate={ymdOf(d.issueDate)} methods={PAY_METHODS} defaultMethod={d.paymentMethod ?? ""} />
                   </>
                 ))}
-              {d.type === "QUOTATION" && d.status === "ISSUED" && <>{act(acceptQuote, st === "expired" ? "ลูกค้าตอบรับ (หมดอายุแล้ว)" : "ลูกค้าตอบรับ")}{act(rejectQuote, "ลูกค้าไม่ตอบรับ")}</>}
+              {d.type === "QUOTATION" && d.status === "ISSUED" && (
+                <>
+                  {act(acceptQuote, st === "expired" ? "ลูกค้าตอบรับ (หมดอายุแล้ว)" : "ลูกค้าตอบรับ")}
+                  <details className="qt-lost">
+                    <summary className="btn btn-outline">ลูกค้าไม่ตอบรับ…</summary>
+                    <form action={rejectQuote} className="qt-lost-f">
+                      {idInput}
+                      <label htmlFor="lostReason">เหตุผลที่ไม่ได้งาน</label>
+                      <select id="lostReason" name="reason" defaultValue={LOST_REASONS[0]}>{LOST_REASONS.map((r) => <option key={r}>{r}</option>)}</select>
+                      <label htmlFor="lostNote" className="sr-only">รายละเอียดเพิ่มเติม</label>
+                      <input id="lostNote" name="reasonNote" maxLength={200} placeholder="รายละเอียด เช่น คู่แข่งเสนอ ฿12,000" />
+                      <button className="btn btn-danger btn-sm" type="submit">บันทึกว่าไม่ตอบรับ</button>
+                    </form>
+                  </details>
+                </>
+              )}
               {d.type === "QUOTATION" && ["ACCEPTED", "REJECTED"].includes(d.status) && !liveIv && !liveRc && act(reopenQuote, "กลับเป็นรอตอบรับ", "btn btn-ghost")}
               {d.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.status) && (draftRevision ? <Link className="btn btn-outline" href={`${docPath(draftRevision)}/edit`}>ฉบับแก้ไขที่ร่างไว้</Link> : act(reviseQuote, "สร้างฉบับแก้ไข"))}
               {d.type === "RECEIPT" && d.status === "ISSUED" && (cnDraft ? (
@@ -135,6 +153,55 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
               {d.status !== "DRAFT" && d.type !== "CREDIT_NOTE" && act(duplicateDoc, "ทำสำเนาเป็นฉบับใหม่", "btn btn-ghost")}
             </div>
           </div>
+
+          {d.type === "QUOTATION" && d.status !== "DRAFT" && (() => {
+            const vu = ymdOf(d.validUntil);
+            const left = vu ? dayDiff(today, vu) : null;
+            const fu = ymdOf(d.followUpAt);
+            const fuIn = fu ? dayDiff(today, fu) : null;
+            return (
+              <section className="dv-sec qt-track" id="qtTrack">
+                <h3>ติดตามการขาย</h3>
+                <ul className="qt-facts">
+                  <li className={d.viewCount ? "ok" : "warn"}>
+                    <b>{d.viewCount ? `ลูกค้าเปิดดูแล้ว ${d.viewCount} ครั้ง` : "ลูกค้ายังไม่เปิดดูลิงก์"}</b>
+                    <span className="sub">{d.lastViewedAt ? `ล่าสุด ${docDateTime(d.lastViewedAt, era)}${d.firstViewedAt && d.viewCount > 1 ? ` · ครั้งแรก ${docDateTime(d.firstViewedAt, era)}` : ""}` : "ส่งลิงก์ด้านล่างให้ลูกค้าทาง LINE — ระบบจะบอกเมื่อลูกค้าเปิด"}</span>
+                  </li>
+                  {d.status === "ISSUED" && left !== null && (
+                    <li className={left < 0 ? "bad" : left <= 3 ? "warn" : ""}>
+                      <b>{left < 0 ? `หมดอายุแล้ว ${-left} วัน` : left === 0 ? "ยืนราคาวันสุดท้าย (วันนี้)" : `ยืนราคาเหลือ ${left} วัน`}</b>
+                      <span className="sub">{left < 0 ? "ถ้าลูกค้ายังสนใจ กด \"สร้างฉบับแก้ไข\" เพื่อออกราคาใหม่" : `ถึง ${docDate(vu, era)}`}</span>
+                    </li>
+                  )}
+                  {d.status === "ISSUED" && (
+                    <li className={fuIn !== null && fuIn <= 0 ? "bad" : ""}>
+                      <b>{fu ? `นัดติดตาม ${docDate(fu, era)}` : "ยังไม่ได้นัดติดตาม"}</b>
+                      <span className="sub">{fuIn === null ? "ตั้งวันนัดเพื่อให้ขึ้นในแท็บ \"ต้องติดตาม\"" : fuIn < 0 ? `เลยนัดมา ${-fuIn} วัน` : fuIn === 0 ? "วันนี้" : `อีก ${fuIn} วัน`}</span>
+                    </li>
+                  )}
+                </ul>
+                {d.status === "ISSUED" && (
+                  <form action={setFollowUp} className="qt-fu">
+                    {idInput}
+                    <label htmlFor="fuNote">บันทึกการติดตาม (ไม่บังคับ)</label>
+                    <textarea id="fuNote" name="note" rows={2} maxLength={500} placeholder="เช่น โทรคุยแล้ว ลูกค้าขอเทียบราคา จะตอบภายในศุกร์" />
+                    <div className="qt-fu-row" role="group" aria-label="นัดติดตามครั้งถัดไป">
+                      <span className="lbl">นัดครั้งถัดไป</span>
+                      <button className="btn btn-outline btn-sm" type="submit" name="days" value="1">พรุ่งนี้</button>
+                      <button className="btn btn-outline btn-sm" type="submit" name="days" value="3">อีก 3 วัน</button>
+                      <button className="btn btn-outline btn-sm" type="submit" name="days" value="7">อีก 7 วัน</button>
+                    </div>
+                    <div className="qt-fu-row">
+                      <label htmlFor="fuDate" className="sr-only">เลือกวันนัด</label>
+                      <input id="fuDate" type="date" name="date" min={today} defaultValue={fu && fu >= today ? fu : ""} />
+                      <button className="btn btn-primary btn-sm" type="submit">บันทึก</button>
+                      {fu && <button className="btn btn-ghost btn-sm" type="submit" name="clear" value="1">ยกเลิกนัด</button>}
+                    </div>
+                  </form>
+                )}
+              </section>
+            );
+          })()}
 
           <DocOnline doc={d} era={era} />
 
@@ -204,7 +271,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
             <h3>ประวัติเอกสาร</h3>
             <ul className="timeline">
               {d.events.map((e) => (
-                <li key={e.id} className={`t-${e.type === "VOIDED" ? "REJECTED" : e.type === "PAYMENT" || e.type === "ISSUED" ? "APPROVED" : e.type}`}>
+                <li key={e.id} className={`t-${e.type === "VOIDED" ? "REJECTED" : e.type === "PAYMENT" || e.type === "ISSUED" || e.type === "CUSTOMER_ACCEPTED" ? "APPROVED" : e.type}`}>
                   <b>{EV[e.type] ?? e.type}</b>{e.note ? ` — ${e.note}` : ""}
                   <small>{docDateTime(e.createdAt, era)} · {e.admin?.displayName ?? "ระบบ"}</small>
                 </li>

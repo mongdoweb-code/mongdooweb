@@ -1,9 +1,12 @@
 // /track/doc/:id?t=<token> — ใบเสนอราคา (ลูกค้ายืนยันออนไลน์ U25) / ใบแจ้งหนี้ (QR พร้อมเพย์ยอดคงค้าง + แนบสลิป U26)
 // ไม่มีโทเคน / โทเคนผิด / ฉบับร่าง = 404 · ร้านสร้างลิงก์ได้จากหน้าเอกสารในหลังบ้าน
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
+import { getCurrentAdmin } from "@/lib/auth";
 import { todayYmd, toView, ymdOf } from "@/lib/docs";
-import { getPublicDoc } from "@/lib/public-docs";
+import { getPublicDoc, recordDocView } from "@/lib/public-docs";
 import { getSettings } from "@/lib/settings";
 import { DocOnlineView } from "./DocOnlineView";
 
@@ -22,6 +25,10 @@ export default async function PublicDocPage({ params, searchParams }: PageProps<
   const token = tokenOf(sp);
   const d = await getPublicDoc(id, token);
   if (!d || !token) notFound();
+  // ติดตามการขาย: บันทึกว่าลูกค้าเปิดดู (หลังส่งหน้าแล้ว ไม่ทำให้หน้าช้า) — ไม่นับบอตพรีวิวลิงก์/แอดมิน
+  const ua = (await headers()).get("user-agent") ?? "";
+  const isAdmin = !!(await getCurrentAdmin().catch(() => null));
+  after(() => recordDocView(d, ua, isAdmin).catch(() => undefined));
   const s = await getSettings();
   const view = await toView(d, s);
   const expired = d.type === "QUOTATION" && !!d.validUntil && ymdOf(d.validUntil) < todayYmd();
