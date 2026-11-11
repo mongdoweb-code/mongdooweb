@@ -143,6 +143,24 @@ test("หลังบ้าน: วันที่เพิ่ม · 20/50/100 �
   await expect(page.locator(".pcards-cards" + V)).toBeVisible();
   await page.getByRole("button", { name: "มุมมองการ์ดเล็ก" }).click();
   await expect(page.locator(".pcards-small" + V)).toBeVisible();
+  // ราคา/สต็อกบรรทัดเดียว (ป้ายซ้าย ค่าขวา) และอยู่แนวเดียวกันทุกการ์ดในแถว
+  const rowsY = await page.locator(".pcards-small" + V).evaluate((g) => {
+    const cards = [...g.querySelectorAll<HTMLElement>(".pcard")];
+    const top0 = cards[0].getBoundingClientRect().top;
+    const first = cards.filter((c) => Math.abs(c.getBoundingClientRect().top - top0) < 2);
+    return first.map((c) => [...c.querySelectorAll<HTMLElement>(".pcard-f")].map((f) => {
+      const r = f.getBoundingClientRect();
+      const lab = (f.firstElementChild as HTMLElement).getBoundingClientRect();
+      const val = (f.lastElementChild as HTMLElement).getBoundingClientRect();
+      return { y: Math.round(r.top), oneLine: Math.abs(lab.top + lab.height / 2 - (val.top + val.height / 2)) < 6 };
+    }));
+  });
+  expect(rowsY.length).toBeGreaterThan(1);
+  for (const c of rowsY) {
+    expect(c.map((f) => f.oneLine)).toEqual([true, true]);
+    expect(Math.abs(c[0].y - rowsY[0][0].y)).toBeLessThanOrEqual(2);
+    expect(Math.abs(c[1].y - rowsY[0][1].y)).toBeLessThanOrEqual(2);
+  }
   await page.getByRole("button", { name: "มุมมองตาราง" }).click();
   await expect(page.locator("table.prod-tbl" + V)).toBeVisible();
   await expect(page.locator("[data-drag-handle]" + V).first()).toBeVisible();

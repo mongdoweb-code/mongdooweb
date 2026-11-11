@@ -348,3 +348,41 @@ a.ar-kpi:hover{border-top-color:var(--c-ink)}
 .pm-vbtns{display:flex;gap:6px;flex-wrap:wrap}
 .pm-verr{color:var(--c-err);font-size:13px}
 @media (max-width:640px){.pm-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.pm-acts{gap:0;justify-content:space-around}.pm-acts .icon-btn.sm{width:26px;height:30px;flex-shrink:1;min-width:0}.pm-set-cover{font-size:11px;left:4px;right:4px}.pm-add button{min-height:110px}.pm-vplayer{width:100%}}
+
+/* ---------- การ์ดสินค้าหลังบ้าน (2026-11-11): ราคา/สต็อกบรรทัดเดียว ตรงแนวเดียวกันทุกการ์ด · การ์ดเตี้ยลง ---------- */
+.pcard{transition:box-shadow .15s,border-color .15s}
+.pcard:hover{box-shadow:0 6px 18px rgba(20,20,20,.08);border-color:#D6D1C6}
+.pcard:has(input[name="ids"]:checked){border-color:var(--c-orange);box-shadow:0 0 0 2px var(--c-orange)}
+.pcard.pin:has(input[name="ids"]:checked){box-shadow:inset 0 3px 0 #F5B731,0 0 0 2px var(--c-orange)}
+.pcard-top{padding:4px 8px;min-height:36px}
+.pcard-img{aspect-ratio:4/3;background:#F7F5F0}
+.pcards-small .pcard-img{aspect-ratio:5/4}
+.pcard-ph{width:auto;aspect-ratio:auto;border-radius:0;background:none;font-size:12px;color:var(--c-muted)}
+.pcard-flags{position:absolute;left:6px;top:6px;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px)}
+.pf{font-size:11px;font-weight:700;line-height:1;padding:4px 6px;color:#fff;background:#6B6862}
+.pf-off{background:#57534C}.pf-out{background:var(--c-err)}.pf-low{background:#B45309}.pf-sale{background:#B5461C}.pf-soon{background:#1F6FB2}
+.pcard-media{position:absolute;right:6px;bottom:6px;display:flex;gap:4px}
+.pcard-media span{font-size:10.5px;font-weight:600;line-height:1;padding:3px 6px;background:rgba(20,20,20,.62);color:#fff}
+.pcard.off .pcard-img img{opacity:.4;filter:grayscale(.6)}
+.pcard-body{gap:4px;padding:10px 12px 10px}
+/* ชื่อ 2 บรรทัดเสมอ + รหัส 1 บรรทัด → แถวราคา/สต็อกอยู่แนวเดียวกันทุกการ์ด */
+.pcard-name{min-height:calc(2em * 1.4);font-size:13.5px}
+.pcard-meta{display:block}
+.pcard-meta b{font-weight:600;color:var(--c-ink)}
+.pcard-nums,.pcards-small .pcard-nums{display:grid;grid-template-columns:1fr;gap:0;margin-top:4px;border-top:1px solid var(--c-line)}
+.pcard-f{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:34px;padding:2px 0;border-bottom:1px solid var(--c-line);font-size:13.5px}
+.pcard-f > span:first-child{font-size:12px;color:var(--c-muted);display:inline-flex;align-items:center;gap:6px;flex:none}
+.pcard-f .ic{margin:0 -6px 0 0;padding:3px 6px;font-weight:700;max-width:100%}
+.pcard-f .ic-v{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard-f .ic-on{align-items:flex-end}
+.pcard-f .ic-in{width:96px;height:30px}
+.pcard-off{font-style:normal;font-size:10.5px;font-weight:700;color:#B5461C;background:#FFF1EA;padding:1px 5px}
+.pcard-foot{border-top:0;padding-top:8px;flex-wrap:nowrap}
+.pcard-foot .row-acts{flex-wrap:nowrap;gap:0}
+.pcards-small .pcard-foot .ra{width:26px;height:26px}
+.pcards-small .pcard-body{padding:8px 10px}
+.pcards-small .pcard-name{font-size:12.5px}
+.pcards-small .pcard-f{min-height:30px;font-size:13px}
+@media (max-width:640px){.pcard-foot{flex-wrap:wrap}.pcard-foot .row-acts{flex-wrap:wrap}}
+.pcard-f .chip{padding:2px 7px;font-size:11.5px;line-height:1.35}
+.pcard-f .ic-warn .ic-v{padding:0 6px}

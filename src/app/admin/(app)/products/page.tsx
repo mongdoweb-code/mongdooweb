@@ -35,6 +35,9 @@ const VIEWS = [
 ];
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
+/** เวลาปัจจุบัน (ms) — เช็กว่าลดราคาช่วงเวลากำลังใช้อยู่ไหม */
+const clockMs = () => Date.now();
+
 export default async function ProductsAdminPage({ searchParams }: PageProps<"/admin/products">) {
   const admin = await requireAdmin();
   const owner = admin.role === "OWNER";
@@ -220,9 +223,15 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
   });
 
   // มุมมองการ์ด / การ์ดเล็ก: แก้ราคา-สต็อกในการ์ด · ปักหมุด · ⤒⤓ ย้ายไปบนสุด/ล่างสุดของร้าน · เปิด/ปิดขาย · ปุ่มจัดการ
+  const nowMs = clockMs();
   const cardList = rows.map((p) => {
     const img = mediaUrl(p.images[0], "sm");
     const out = p.trackStock ? p.stock <= 0 : !p.inStock;
+    const low = p.trackStock && !out && p.stock <= T;
+    // ป้ายราคา: ลดจากราคาปกติ (compareAt) · ลดราคาช่วงเวลาที่กำลังใช้อยู่ / ตั้งเวลาไว้
+    const off = p.compareAtSatang && p.priceSatang && p.compareAtSatang > p.priceSatang ? Math.round((1 - p.priceSatang / p.compareAtSatang) * 100) : 0;
+    const saleOn = !!p.salePriceSatang && (!p.saleStartsAt || p.saleStartsAt.getTime() <= nowMs) && (!p.saleEndsAt || p.saleEndsAt.getTime() > nowMs);
+    const saleSoon = !!p.salePriceSatang && !!p.saleStartsAt && p.saleStartsAt.getTime() > nowMs;
     return (
       <article key={p.id} className={`pcard${p.isActive ? "" : " off"}${p.isPinned ? " pin" : ""}`} data-id={p.id}>
         <div className="pcard-top">
@@ -237,15 +246,25 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
         </div>
         <a className="pcard-img" href={`/admin/products/${p.id}`} tabIndex={-1} aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {img ? <img src={img} alt="" loading="lazy" /> : <span className="pcard-ph" />}
-          {out && <span className="chip bad pcard-out">หมด</span>}
+          {img ? <img src={img} alt="" loading="lazy" /> : <span className="pcard-ph">ไม่มีรูป</span>}
+          <span className="pcard-flags">
+            {!p.isActive && <span className="pf pf-off">ปิดขาย</span>}
+            {out && <span className="pf pf-out">หมด</span>}
+            {low && <span className="pf pf-low">ใกล้หมด</span>}
+            {saleOn && <span className="pf pf-sale">ลดราคา</span>}
+            {saleSoon && <span className="pf pf-soon">ตั้งเวลาลด</span>}
+          </span>
+          <span className="pcard-media">
+            {p.images.length > 1 && <span title={`${p.images.length} รูป`}>{p.images.length} รูป</span>}
+            {p.videoKey && <span title="มีวิดีโอ">▶ วิดีโอ</span>}
+          </span>
         </a>
         <div className="pcard-body">
-          <a className="pcard-name" href={`/admin/products/${p.id}`}>{p.name}</a>
-          <span className="sub">{p.sku} · {p.category.nameTh}</span>
+          <a className="pcard-name" href={`/admin/products/${p.id}`} title={p.name}>{p.name}</a>
+          <span className="sub pcard-meta" title={`${p.sku} · ${p.category.nameTh}`}><b>{p.sku}</b> · {p.category.nameTh}</span>
           <div className="pcard-nums">
             <label className="pcard-f">
-              <span>ราคา</span>
+              <span>ราคา{off ? <em className="pcard-off">-{off}%</em> : null}</span>
               <InlineCell
                 id={p.id} field="price" action={quickField} label={`ราคาขาย ${p.sku}`} value={p.priceSatang ? String(p.priceSatang / 100) : ""} placeholder="0 = สอบถามราคา"
                 display={p.priceSatang ? bahtText(p.priceSatang) : <span className="chip warn">สอบถามราคา</span>}
