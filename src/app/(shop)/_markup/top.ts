@@ -14,6 +14,8 @@ export type TopOptions = {
   announcement: { text: string; href: string | null } | null;
   freeShipMinBaht: number | null;
   hasFaq: boolean;
+  /** จำนวนสินค้าทั้งหมดที่หน้า /products แสดง (รวมตัวเลือกเป็นการ์ดเดียว) — 0 = ไม่แสดงป้าย */
+  productCount?: number;
 };
 
 const CLOSE_ICON =
@@ -34,6 +36,21 @@ export function renderTopbar(o: TopOptions) {
 `;
 }
 
+/** เมนู "สินค้าทั้งหมด" + ป้ายจำนวนสินค้าจริง (ฟองคำพูดสีส้มเหนือเมนู · มือถือ = ตัวเลขท้ายเมนู) */
+function allProductsLinks(n: number | undefined) {
+  if (!n || n < 1) return { nav: '<a href="/products">สินค้าทั้งหมด</a>', drawer: '<a href="/products">สินค้าทั้งหมด</a>' };
+  const num = n.toLocaleString("th-TH");
+  const sr = `<span class="sr-only"> (${num} รายการ)</span>`;
+  return {
+    nav: `<a href="/products" class="nav-all">สินค้าทั้งหมด${sr}<span class="nav-count" aria-hidden="true">${num}</span></a>`,
+    drawer: `<a href="/products" class="dr-all">สินค้าทั้งหมด${sr}<span class="dr-count" aria-hidden="true">${num}</span></a>`,
+  };
+}
+
 export function renderShellTop(o: TopOptions) {
-  return SHELL_TOP.replace("{{TOPBAR}}", renderTopbar(o)).replace("{{FAQ_DRAWER}}", o.hasFaq ? '\n        <a href="/faq">คำถามที่พบบ่อย</a>' : "");
+  const all = allProductsLinks(o.productCount);
+  return SHELL_TOP.replace("{{TOPBAR}}", renderTopbar(o))
+    .replace("{{FAQ_DRAWER}}", o.hasFaq ? '\n        <a href="/faq">คำถามที่พบบ่อย</a>' : "")
+    .replace("{{ALL_NAV}}", all.nav)
+    .replace("{{ALL_DRAWER}}", all.drawer);
 }

@@ -2,10 +2,12 @@
 // HTML/CSS/JS ย้ายมาจากต้นแบบแบบตรงๆ ก่อน (ขั้นต่อไปค่อยแยกเป็น React component)
 import Script from "next/script";
 import { assetUrl } from "@/lib/asset-version";
+import { getCatalogExtras } from "@/lib/product-data";
 import { getPublicShopInfo } from "@/lib/settings";
 import { getStorefrontExtras } from "@/lib/shop-public";
 import { getShopData, jsonForScript } from "@/lib/storefront";
 import QRCode from "qrcode";
+import { collapseVariants } from "./_components/ProductListing";
 import { lineAddUrl, renderFooter } from "./_markup/footer";
 import { renderShellTop } from "./_markup/top";
 import "./shop.css";
@@ -15,7 +17,9 @@ import "./lot9.css";
 import "./lot10.css";
 
 export default async function ShopLayout({ children }: LayoutProps<"/">) {
-  const [data, info, extras] = await Promise.all([getShopData(), getPublicShopInfo(), getStorefrontExtras()]);
+  const [data, info, extras, catExtras] = await Promise.all([getShopData(), getPublicShopInfo(), getStorefrontExtras(), getCatalogExtras()]);
+  // จำนวนเดียวกับ "พบ … รายการ" ในหน้าสินค้าทั้งหมด (สินค้าหลายตัวเลือก = 1 รายการ)
+  const productCount = collapseVariants(data.catalog, catExtras.bySlug, catExtras.groupSize).items.length;
   // รูปอื่นของสินค้า (more) ใช้แค่บนการ์ดที่ render จาก server — ไม่ต้องส่งซ้ำในข้อมูลทุกหน้า
   const pub = { ...data, catalog: data.catalog.map((c) => (c.more ? { ...c, more: undefined } : c)) };
   const freeShipMinBaht = info.freeShipMinSatang != null ? info.freeShipMinSatang / 100 : null;
@@ -28,7 +32,7 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
     <>
       {!extras.announcement && <style>{":root{--tb-h:0px}"}</style>}
       {/* display: contents → wrapper ไม่สร้างกล่อง ทำให้ header ยัง sticky ตาม body เหมือนต้นแบบ */}
-      <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderShellTop({ announcement: extras.announcement, freeShipMinBaht, hasFaq }) }} />
+      <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderShellTop({ announcement: extras.announcement, freeShipMinBaht, hasFaq, productCount }) }} />
       {children}
       <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderFooter(info, { hasFaq, lineQrSvg }) }} />
       <script id="mdw-data" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(pub) }} />

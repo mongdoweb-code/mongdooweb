@@ -170,10 +170,10 @@ test("เมนูบน: หมวดสินค้า → สินค้า 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   const labels = (await page.locator("nav.nav > a, nav.nav .t").allTextContents()).map((t) => t.trim());
-  const at = (t: string) => labels.indexOf(t);
+  const at = (t: string) => labels.findIndex((x) => x === t || x.startsWith(`${t} (`)); // "สินค้าทั้งหมด (182 รายการ)…" มีป้ายจำนวน
   expect(at("สินค้าทั้งหมด")).toBe(at("หมวดสินค้า") + 1);
   expect(at("ช่วยเลือกไฟ")).toBe(at("สินค้าขายดี") + 1);
-  await page.locator("nav.nav > a", { hasText: /^สินค้าทั้งหมด$/ }).click();
+  await page.locator("nav.nav > a", { hasText: /^สินค้าทั้งหมด/ }).click();
   await expect(page).toHaveURL(/\/products$/);
   await expect(page.getByRole("heading", { name: "สินค้าทั้งหมด", level: 1 })).toBeVisible();
   // มือถือ: ลิ้นชักเมนูมี "สินค้าทั้งหมด"

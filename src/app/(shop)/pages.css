@@ -372,3 +372,14 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 @media (prefers-reduced-motion:reduce){
   .pi-slides img,.pi-slides img.off,.prod-card:hover .pi-slides img.on,.prod-card:hover .prod-img img{transform:none}
 }
+
+/* --- เมนู "สินค้าทั้งหมด": ป้ายจำนวนสินค้าจริงแบบฟองคำพูดเหนือเมนู (_markup/top.ts) --- */
+.nav > a.nav-all{position:relative}
+.nav-count{position:absolute;left:100%;bottom:calc(100% - 4px);transform:translateX(-55%);min-width:24px;height:19px;padding:0 7px;border-radius:999px;background:var(--c-orange-ink);color:#fff;font-size:11px;font-weight:700;line-height:19px;text-align:center;letter-spacing:.2px;white-space:nowrap;box-shadow:0 3px 8px rgba(181,70,28,.35);pointer-events:none;animation:navCountIn .5s cubic-bezier(.2,.9,.3,1.4) both .3s}
+.nav-count::after{content:"";position:absolute;left:7px;bottom:-4px;border:5px solid transparent;border-bottom:0;border-top-color:var(--c-orange-ink);transform:skewX(-20deg)}
+.nav > a.nav-all:hover .nav-count{background:var(--c-orange-ink-dk)}
+.nav > a.nav-all:hover .nav-count::after{border-top-color:var(--c-orange-ink-dk)}
+@keyframes navCountIn{0%{transform:translateX(-55%) translateY(5px) scale(.55)}70%{transform:translateX(-55%) scale(1.12)}100%{transform:translateX(-55%)}}
+.dr-other a.dr-all{justify-content:space-between}
+.dr-count{min-width:28px;height:22px;padding:0 8px;border-radius:999px;background:var(--c-orange-ink);color:#fff;font-size:12px;font-weight:700;line-height:22px;text-align:center}
+@media (prefers-reduced-motion:reduce){.nav-count{animation:none}}
