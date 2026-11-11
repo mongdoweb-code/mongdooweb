@@ -159,3 +159,27 @@ test("บันทึก → ป๊อปอัป 'บันทึกสำเ�
   await page.keyboard.press("Escape");
   await expect(ok).toBeHidden();
 });
+
+test("ส่วนท้ายฟอร์ม: ไฟล์ดาวน์โหลดเต็มกว้าง · ทำสำเนา + ลบสินค้า อยู่คู่กันขนาดเท่ากัน (มือถือเรียงลงมา)", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  await page.goto(`/admin/products/${P.id}`);
+  const box = async (sel: string) => (await page.locator(sel + V).boundingBox())!;
+  const grid = await box(".pform-grid");
+  const dl = await box("#downloadsBox");
+  expect(Math.abs(dl.width - grid.width)).toBeLessThan(2);
+  const dup = await box("#sec-dup");
+  const del = await box("#sec-del");
+  expect(Math.abs(dup.y - del.y)).toBeLessThan(2);
+  expect(Math.abs(dup.height - del.height)).toBeLessThan(2);
+  expect(del.x).toBeGreaterThan(dup.x + dup.width - 1);
+  expect(Math.abs(dup.width + del.width + 16 - grid.width)).toBeLessThan(3);
+  await expect(page.locator("#sec-del")).toContainText("ลบสินค้า");
+  await expect(page.locator("#dlUpload" + V)).toBeDisabled();
+  // มือถือ: เรียงลงมา ไม่ล้นจอ
+  await page.setViewportSize({ width: 390, height: 844 });
+  const d2 = await box("#sec-dup"), x2 = await box("#sec-del");
+  expect(x2.y).toBeGreaterThan(d2.y + d2.height - 1);
+  const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(over).toBeLessThanOrEqual(1);
+});

@@ -386,14 +386,23 @@ test("A8 + U11 ไฟล์ดาวน์โหลด PDF: อัปโหล�
   await page.goto(`/admin/products/${ID.v1}`);
   // ไฟล์ปลอม (นามสกุล .pdf แต่ไม่ใช่ PDF) ถูกปฏิเสธ
   await page.setInputFiles("#dlFile", { name: "fake.pdf", mimeType: "application/pdf", buffer: Buffer.from("not a pdf at all") });
+  await expect(page.locator("#downloadsBox .dlf-drop")).toContainText("fake.pdf");
+  await expect(page.locator("#dlName")).toHaveValue("fake"); // เติมชื่อจากชื่อไฟล์ให้
   await page.click("#dlUpload");
+  await expect(page.locator("#downloadsBox .login-err")).toContainText("รองรับเฉพาะไฟล์ PDF");
+  // ไม่ใช่ .pdf → เตือนทันทีในเบราว์เซอร์ ไม่ส่งไป server
+  await page.setInputFiles("#dlFile", { name: "photo.png", mimeType: "image/png", buffer: Buffer.from("x") });
   await expect(page.locator("#downloadsBox .login-err")).toContainText("รองรับเฉพาะไฟล์ PDF");
   const pdf = Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n");
   await page.setInputFiles("#dlFile", { name: "spec-sheet.pdf", mimeType: "application/pdf", buffer: pdf });
   await page.fill("#dlName", "สเปกชีต โคมทดสอบ");
   await page.click("#dlUpload");
   await expect(page.locator("#downloadsBox .login-info")).toContainText("อัปโหลด");
-  await expect(page.locator("#downloadsBox tbody tr")).toHaveCount(1);
+  await expect(page.locator("#downloadsBox .dlf-item")).toHaveCount(1);
+  await expect(page.locator("#downloadsBox .dlf-item")).toContainText("สเปกชีต โคมทดสอบ.pdf");
+  // อัปโหลดสำเร็จ → กล่องเลือกไฟล์กลับเป็นว่าง ปุ่มอัปโหลดกดไม่ได้จนกว่าจะเลือกไฟล์ใหม่
+  await expect(page.locator("#downloadsBox .dlf-drop")).toContainText("ลากไฟล์ PDF มาวางที่นี่");
+  await expect(page.locator("#dlUpload")).toBeDisabled();
 
   await page.goto(`/product/${S.v1}`);
   const a = page.locator(".pdp-dl a");
@@ -409,8 +418,8 @@ test("A8 + U11 ไฟล์ดาวน์โหลด PDF: อัปโหล�
   expect((await page.request.get(`/download/${S.v2}/${href.split("/").pop()}`)).status()).toBe(404);
 
   await page.goto(`/admin/products/${ID.v1}`);
-  await confirmClick(page, '#downloadsBox button:has-text("ลบ")', "ยืนยันลบ");
-  await expect(page.locator("#downloadsBox tbody tr")).toHaveCount(0);
+  await confirmClick(page, '#downloadsBox button[aria-label^="ลบ "]', "ยืนยันลบ");
+  await expect(page.locator("#downloadsBox .dlf-item")).toHaveCount(0);
   expect((await page.request.get(href)).status()).toBe(404);
   const log = await one<{ note: string }>(`SELECT note FROM "AdminLog" WHERE note LIKE '%ไฟล์ดาวน์โหลด%E2E-L9-V1%' ORDER BY "createdAt" DESC LIMIT 1`);
   expect(log.note).toContain("ลบไฟล์ดาวน์โหลด");
