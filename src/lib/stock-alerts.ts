@@ -17,7 +17,7 @@ const available = (p: { trackStock: boolean; stock: number; inStock: boolean }) 
 
 /** รับคำขอจากหน้าสินค้า — ต้องมีช่องทางติดต่ออย่างน้อย 1 ช่อง · ซ้ำ (สินค้า + ช่องทางเดิมที่ยังรอ) = ไม่สร้างใหม่ */
 export async function createStockAlert(input: { product: string; name?: string; phone?: string; lineId?: string; email?: string }) {
-  const slug = String(input.product ?? "").trim().slice(0, 120);
+  const slug = String(input.product ?? "").trim().slice(0, 200);
   const p = slug ? await prisma.product.findFirst({ where: { slug, isActive: true }, select: { id: true, trackStock: true, stock: true, inStock: true } }) : null;
   if (!p) throw new StockAlertError("ไม่พบสินค้า", 404);
   if (available(p)) throw new StockAlertError("สินค้านี้มีของแล้ว สั่งซื้อได้เลย", 409);

@@ -427,3 +427,7 @@ a.ar-kpi:hover{border-top-color:var(--c-ink)}
 .pa-danger{border-top:3px solid var(--c-err)}
 .pa-danger .pa-ic{background:#FDECEC;color:var(--c-err)}
 @media (max-width:760px){.pform-acts{grid-template-columns:1fr}.dlf-row{grid-template-columns:1fr}.dlf-btns{justify-content:flex-end}}
+
+/* ลิงก์สินค้า (ภาษาไทยได้) + ปุ่ม "สร้างจากชื่อ" */
+.slug-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.slug-row .btn{white-space:nowrap;height:auto}

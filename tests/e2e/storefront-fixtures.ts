@@ -52,15 +52,16 @@ export async function ensureStorefrontFixtures(browser: Browser): Promise<Fixtur
       (await q(`SELECT 1 FROM "Product" p JOIN "Category" c ON c.id = p."categoryId" WHERE ${active} AND ${where} LIMIT 1`)).length > 0;
 
     // สินค้าที่มีรูปหลายรูป นับสต็อก เหลือน้อย และมี URL เดิมจาก WooCommerce
-    const needRed = !(await has(`p.slug = 'red-5050-led'`)) || !(await has(`p."priceSatang" > 0 AND cardinality(p.images) > 1 AND p."trackStock" AND p.stock BETWEEN 1 AND 5`));
-    if (needRed && !(await q(`SELECT 1 FROM "Product" WHERE slug = 'red-5050-led'`)).length) {
+    const needRed = !(await has(`p.slug = 'e2e-red-5050-led'`)) || !(await has(`p."priceSatang" > 0 AND cardinality(p.images) > 1 AND p."trackStock" AND p.stock BETWEEN 1 AND 5`));
+    if (needRed && !(await q(`SELECT 1 FROM "Product" WHERE slug = 'e2e-red-5050-led'`)).length) {
       for (const [i, k] of IMG_KEYS.entries()) await writeImage(k, COLORS[i]);
       const wooFree = !(await q(`SELECT 1 FROM "Product" WHERE "wooId" = 27`)).length;
-      const legacy = "/product/led-strip-ไฟเส้นแอลอีดีเส้นสีแดง-5050";
+      // URL เดิม (ภาษาไทย) เฉพาะของชุดทดสอบ — สินค้าจริงใช้ URL เดิมเป็น slug แล้ว จึงต้องไม่ชนกับของจริง
+      const legacy = "/product/e2e-ไฟเส้นสีแดง-ทดสอบ-5050";
       const legacyFree = !(await q(`SELECT 1 FROM "Product" WHERE "legacyPath" = $1`, [legacy])).length;
       const [r] = await q<{ id: string }>(
         `INSERT INTO "Product" (id, sku, slug, name, description, "shortDescription", "priceSatang", "trackStock", stock, "inStock", images, "lightColor", "useAreas", "categoryId", "wooId", "legacyPath", "sortOrder", "updatedAt")
-         VALUES ($1, 'E2E-RED-5050', 'red-5050-led', 'ไฟเส้น LED สีแดง 5050 12V กันน้ำ (ทดสอบ)', $2, $3, 25000, true, 3, true, $4, 'RGB', '{POOL,POND}', $5, $6, $7, -1, now()) RETURNING id`,
+         VALUES ($1, 'E2E-RED-5050', 'e2e-red-5050-led', 'ไฟเส้น LED สีแดง 5050 12V กันน้ำ (ทดสอบ)', $2, $3, 25000, true, 3, true, $4, 'RGB', '{POOL,POND}', $5, $6, $7, -1, now()) RETURNING id`,
         [
           `e2e-fx-red-${Date.now()}`,
           "<p>ไฟเส้น LED สีแดง ชนิด 5050 ใช้ไฟ 12V กันน้ำ IP65 ยาว 5 เมตร เหมาะกับงานตกแต่งสระและบ่อน้ำ</p>",

@@ -12,6 +12,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type CategoryGroup, type LightColor, type UseArea } from "../generated/prisma/client";
 import { htmlToText, sanitizeDescription } from "../src/lib/html";
 import { saveImage } from "../src/lib/media";
+import { isProductSlug } from "../src/lib/slug";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 const DATA = join(__dirname, "../data/woocommerce");
@@ -99,9 +100,10 @@ const num = (v: string | undefined) => {
 const clean = (s: string) => s.replace(/[“”"]/g, "").replace(/\s+/g, " ").trim();
 const ascii = (s: string) =>
   s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").replace(/-{2,}/g, "-");
-const asciiLegacy = (path: string | null) => {
-  const slug = path?.replace(/^\/product\//, "").replace(/\/$/, "");
-  return slug && /^[a-z0-9-]+$/.test(slug) ? slug : null;
+// URL เดิม /product/<slug> → ใช้เป็น slug ใหม่เลย (ภาษาไทยได้ — ลิงก์เก่าใช้ได้ทันทีไม่ต้อง 301)
+const legacySlug = (path: string | null) => {
+  const slug = path?.replace(/^\/product\//, "").replace(/\/$/, "").normalize("NFC").toLowerCase();
+  return slug && !slug.includes("/") && isProductSlug(slug) ? slug : null;
 };
 const decodePath = (p: string) => {
   try {
@@ -301,8 +303,8 @@ async function main() {
         data: {
           ...data,
           wooId: x.wooId,
-          // URL เดิมเป็นภาษาอังกฤษล้วน → ใช้ slug เดิมเลย (ลิงก์เก่าใช้ได้ทันที)
-          slug: unique(asciiLegacy(data.legacyPath) ?? x.slugBase.slice(0, 80), usedSlugs, String(x.wooId)),
+          // slug = URL เดิมของเว็บเก่า (ภาษาไทย/อังกฤษ) ถ้าไม่มีค่อยสร้างจาก SKU
+          slug: unique(legacySlug(data.legacyPath) ?? x.slugBase.slice(0, 80), usedSlugs, String(x.wooId)),
           sku: unique(x.skuBase, usedSkus, String(x.wooId)),
         },
       });

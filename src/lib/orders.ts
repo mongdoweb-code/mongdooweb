@@ -54,7 +54,7 @@ export type CartLine = {
   oldPrice?: number;
 };
 
-const SLUG_RE = /^[\w\u0E00-\u0E7F%.-]{1,120}$/;
+const SLUG_RE = /^[\w\u0E00-\u0E7F%.-]{1,200}$/; // slug สินค้าภาษาไทยยาวได้ถึง 200 ตัว (src/lib/slug.ts)
 
 /** ราคา/สต็อกปัจจุบันของสินค้าในตะกร้า + ค่าส่งโดยประมาณตามขั้นค่าส่งจริง (ส่งธรรมดา) */
 export async function validateCart(items: unknown, seenPrices: unknown) {

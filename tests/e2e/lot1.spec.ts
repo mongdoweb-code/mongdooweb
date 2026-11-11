@@ -463,7 +463,7 @@ test.describe("U13 redirect URL เดิมของ WordPress", () => {
     ["/category/" + encodeURIComponent("ไฟใต้น้ำ-underwater-light"), /\/category\/underwater-light$/],
     ["/feed", /\/$/],
     ["/comments/feed", /\/$/],
-    ["/product/red-5050-led/feed", /\/product\/red-5050-led$/],
+    ["/product/e2e-red-5050-led/feed", /\/product\/e2e-red-5050-led$/],
     ["/wp-login.php", /\/admin\/login$/],
     ["/wp-admin/edit.php", /\/admin\/login$/],
     ["/wp-content/uploads/2020/01/a.jpg", /\/$/],
@@ -481,7 +481,7 @@ test.describe("U13 redirect URL เดิมของ WordPress", () => {
     }
   });
   test("redirect จาก route handler ใช้ Location แบบ path (ไม่หลุด host ภายในของเซิร์ฟเวอร์ เช่น localhost:8080 หลัง proxy)", async ({ request }) => {
-    for (const from of ["/product/" + encodeURIComponent("led-strip-ไฟเส้นแอลอีดีเส้นสีแดง-5050"), "/product-category/" + encodeURIComponent("ไฟใต้น้ำ"), "/api/legacy-wp?p=27"]) {
+    for (const from of ["/product/" + encodeURIComponent("e2e-ไฟเส้นสีแดง-ทดสอบ-5050"), "/product-category/" + encodeURIComponent("ไฟใต้น้ำ"), "/api/legacy-wp?p=27"]) {
       const r = await request.get(from, { maxRedirects: 0, headers: { host: "internal-host:8080" } });
       expect(r.status(), from).toBe(301);
       expect(r.headers()["location"], from).toMatch(/^\//);
@@ -492,7 +492,7 @@ test.describe("U13 redirect URL เดิมของ WordPress", () => {
     const finals: [string, RegExp][] = [
       ["/?p=27", /\/product\//],
       ["/?p=99999999", /\/$/],
-      ["/?product=" + encodeURIComponent("led-strip-ไฟเส้นแอลอีดีเส้นสีแดง-5050"), /\/product\/red-5050-led$/],
+      ["/?product=" + encodeURIComponent("e2e-ไฟเส้นสีแดง-ทดสอบ-5050"), /\/product\/e2e-red-5050-led$/],
       ["/?s=" + encodeURIComponent("ไฟสระ"), /\/search\?q=/],
       ["/?product_cat=" + encodeURIComponent("ไฟใต้น้ำ-underwater-light"), /\/category\/underwater-light$/],
       ["/?post_type=product", /\/products$/],

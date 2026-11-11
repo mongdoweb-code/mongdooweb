@@ -38,7 +38,7 @@ export async function generateStaticParams() {
 
 const decode = (s: string) => {
   try {
-    return decodeURIComponent(s);
+    return decodeURIComponent(s).normalize("NFC");
   } catch {
     return s;
   }

@@ -39,7 +39,7 @@ async function parseItems(raw: string): Promise<InquiryItem[]> {
   }
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return [];
   const wanted = Object.entries(obj as Record<string, unknown>)
-    .map(([slug, q]) => [slug.slice(0, 120), Math.min(Math.max(1, Math.floor(Number(q) || 0)), 9999)] as const)
+    .map(([slug, q]) => [slug.slice(0, 200), Math.min(Math.max(1, Math.floor(Number(q) || 0)), 9999)] as const)
     .filter(([slug]) => slug)
     .slice(0, 30);
   if (!wanted.length) return [];

@@ -6,6 +6,7 @@ import { ConfirmSubmit } from "../../_components/AdminClient";
 import { RichEditor } from "../../_components/RichEditor";
 import { useFormAction } from "../../_components/useFormAction";
 import type { SpecDef } from "@/lib/specs";
+import { cleanProductSlug, PRODUCT_SLUG_MAX, slugFromName } from "@/lib/slug";
 import { deleteProduct, duplicateProduct, saveProduct, type ProductFormState } from "./actions";
 import { SaleTierFields, SpecFields, type ExtrasValues } from "./ProductExtras";
 import { ProductMedia, type VideoValue } from "./ProductMedia";
@@ -41,7 +42,6 @@ export type ProductValues = {
   extras: ExtrasValues;
 };
 
-const slugify = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 const USE = [["POOL", "สระว่ายน้ำ"], ["POND", "บ่อปลา/บ่อน้ำ"], ["FOUNTAIN", "น้ำพุ"], ["GARDEN", "สวน"]];
 
 export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText, specDefs, children }: {
@@ -94,12 +94,18 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
             <div className="box set-grid-inner" id="sec-info">
               <h3>ข้อมูลสินค้า</h3>
               <div className="field"><label htmlFor="name">ชื่อสินค้า</label>
-                <input id="name" name="name" value={name} required maxLength={250} {...bad("name")} onChange={(e) => { setName(e.target.value); if (!slugTouched) setSlug(slugify(e.target.value)); }} /></div>
+                <input id="name" name="name" value={name} required maxLength={250} {...bad("name")} onChange={(e) => { setName(e.target.value); if (!slugTouched) setSlug(slugFromName(e.target.value)); }} /></div>
               <div className="two">
                 <div className="field"><label htmlFor="sku">รหัสสินค้า (SKU)</label><input id="sku" name="sku" defaultValue={v.sku} required maxLength={60} {...bad("sku")} /></div>
                 <div className="field"><label htmlFor="slug">ลิงก์สินค้า /product/…</label>
-                  <input id="slug" name="slug" value={slug} required pattern="[a-z0-9]+(-[a-z0-9]+)*" title="a-z 0-9 และ - เท่านั้น" {...bad("slug")} onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); }} />
-                  <small>ภาษาอังกฤษตัวเล็ก ตัวเลข และ - (เปลี่ยนแล้วลิงก์เดิมจะใช้ไม่ได้)</small></div>
+                  <div className="slug-row">
+                    <input id="slug" name="slug" value={slug} required maxLength={PRODUCT_SLUG_MAX} {...bad("slug")} lang="th"
+                      onChange={(e) => { setSlugTouched(true); setSlug(e.target.value.toLowerCase()); }}
+                      onBlur={() => setSlug((x) => cleanProductSlug(x))} />
+                    <button type="button" className="btn btn-outline btn-sm" id="slugFromName" disabled={!name.trim()}
+                      data-tip="สร้างลิงก์ภาษาไทยจากชื่อสินค้า" onClick={() => { setSlug(slugFromName(name)); setSlugTouched(true); }}>สร้างจากชื่อ</button>
+                  </div>
+                  <small>ภาษาไทย อังกฤษตัวเล็ก ตัวเลข คั่นด้วย - (เว้นวรรคเปลี่ยนเป็น - ให้อัตโนมัติ) · เปลี่ยนแล้วลิงก์เดิมจะพามาหน้านี้อัตโนมัติ (301)</small></div>
               </div>
               <div className="two">
                 <div className="field"><label htmlFor="categoryId">หมวดหมู่</label>
