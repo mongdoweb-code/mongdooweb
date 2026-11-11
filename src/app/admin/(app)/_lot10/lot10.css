@@ -105,3 +105,5 @@
 .pce-bg .cp-pop button{width:auto;height:auto;border-radius:6px;box-shadow:none}
 .pce-bg .cp-pop .cp-sw,.pce-bg .cp-pop .cp-tool{width:22px;height:22px;border-radius:50%}
 .pce-bg .cp-pop .cp-sw[aria-checked="true"]{box-shadow:none}
+/* ตัวอย่างการ์ดหมวดยอดนิยมในหลังบ้าน = หน้าร้าน (รูป 1:1) */
+.pce-pv-img{height:auto;aspect-ratio:1/1;align-self:center}
