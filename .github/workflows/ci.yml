@@ -12,7 +12,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     services:
       postgres:
         image: postgres:16
@@ -50,11 +50,12 @@ jobs:
       - run: npm run test:unit
       - run: npm run build
       - name: ติดตั้ง Chromium สำหรับ e2e
-        # เครื่อง CI บางครั้งหา apt mirror ไม่เจอ (DNS ชั่วคราว) → ลองใหม่ แล้วค่อยติดตั้งแค่เบราว์เซอร์ (ไลบรารีหลักมีในเครื่องอยู่แล้ว)
+        # เครื่อง CI บางช่วงหา apt mirror ไม่เจอ (DNS) แล้วค้างนาน → จำกัดเวลาแต่ละรอบ ลอง 2 ครั้ง
+        # ไม่สำเร็จ = ติดตั้งแค่เบราว์เซอร์ (ไลบรารีหลักของ Chromium มีในเครื่อง CI อยู่แล้ว)
         run: |
-          for i in 1 2 3; do
-            npx playwright install --with-deps chromium && exit 0
-            echo "install --with-deps ล้มเหลว (ครั้งที่ $i) — รอแล้วลองใหม่"; sleep $((i * 20))
+          for i in 1 2; do
+            timeout 300 npx playwright install --with-deps chromium && exit 0
+            echo "::warning::install --with-deps ไม่สำเร็จ (ครั้งที่ $i)"; sleep 15
           done
           npx playwright install chromium
       - name: e2e
