@@ -635,6 +635,12 @@ model SalesDocument {
   publicToken     String?   @unique // ลิงก์ให้ลูกค้าดู/พิมพ์เอกสาร (/track/receipt/:id?t=) — สุ่ม 32 ไบต์
   acceptedAt      DateTime? // QT: ลูกค้ากดยืนยันออนไลน์ (U25)
   acceptedBy      String? // ชื่อผู้ยืนยันที่ลูกค้ากรอก
+  // ติดตามการขาย (ใบเสนอราคา): ลูกค้าเปิดลิงก์ (ไม่นับบอตพรีวิวลิงก์/แอดมิน) · วันนัดติดตาม · เหตุผลที่ไม่ได้งาน
+  viewCount       Int       @default(0)
+  firstViewedAt   DateTime?
+  lastViewedAt    DateTime?
+  followUpAt      DateTime? // วันนัดติดตาม (เที่ยงคืนเวลาไทย)
+  lostReason      String? // QT ไม่ตอบรับ: ราคาสูง / เลือกร้านอื่น / …
 
   // ความเชื่อมโยง QT → IV → RC และคำสั่งซื้อเว็บ
   sourceId String?
@@ -655,6 +661,7 @@ model SalesDocument {
   @@index([type, status, issueDate])
   @@index([customerId])
   @@index([dueDate])
+  @@index([type, status, followUpAt])
 }
 
 model SalesDocumentItem {
@@ -708,6 +715,8 @@ enum DocEventType {
   CUSTOMER_ACCEPTED // ลูกค้ายืนยันใบเสนอราคาผ่านลิงก์
   SLIP_UPLOADED // ลูกค้าแนบสลิปผ่านลิงก์ใบแจ้งหนี้
   STOCK_RETURNED // CN: รับสินค้าคืนเข้าสต็อก
+  VIEWED // ลูกค้าเปิดดูผ่านลิงก์ (บันทึกครั้งแรก และเมื่อห่างจากครั้งก่อน ≥ 6 ชม.)
+  FOLLOW_UP // ตั้ง/เปลี่ยนวันนัดติดตาม
 }
 
 model SalesDocumentEvent {

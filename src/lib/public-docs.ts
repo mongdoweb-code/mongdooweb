@@ -89,3 +89,24 @@ export async function onlineQrFor(d: { id: string; type: string; status: string 
   const url = `${(process.env.SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "")}${publicDocUrl(d, token)}`;
   return { url, qr: await QRCode.toDataURL(url, { errorCorrectionLevel: "M", margin: 1, width: 280 }) };
 }
+
+/** บอตพรีวิวลิงก์ (LINE / Facebook / Messenger / Slack …) — ไม่นับเป็นลูกค้าเปิดดู */
+const BOT_UA = /bot|crawl|spider|preview|facebookexternalhit|facebot|line\/|linespider|whatsapp|telegram|slack|discord|skype|embedly|vkshare|pinterest|google-?inspectiontool|headless/i;
+
+/** บันทึกว่าลูกค้าเปิดลิงก์ (ใบเสนอราคา/ใบแจ้งหนี้) — ไม่นับบอตและแอดมินที่ล็อกอินอยู่
+ *  นับครั้งละไม่ถี่กว่า 60 วินาที (กดรีเฟรช/หน้า render ซ้ำในคำขอเดียวไม่นับซ้ำ) — เงื่อนไขอยู่ใน UPDATE เดียว กันสองคำขอพร้อมกัน
+ *  ประวัติ VIEWED: ครั้งแรก และเมื่อห่างครั้งก่อน ≥ 6 ชม. */
+export async function recordDocView(d: { id: string; type: string; status: string; lastViewedAt: Date | null }, ua: string, isAdmin: boolean) {
+  if (isAdmin || !ua || BOT_UA.test(ua) || d.status === "VOID") return;
+  const now = new Date();
+  const r = await prisma.salesDocument.updateMany({
+    where: { id: d.id, OR: [{ lastViewedAt: null }, { lastViewedAt: { lt: new Date(now.getTime() - 60e3) } }] },
+    data: { viewCount: { increment: 1 }, lastViewedAt: now },
+  });
+  if (!r.count) return;
+  const first = !d.lastViewedAt;
+  if (first) await prisma.salesDocument.updateMany({ where: { id: d.id, firstViewedAt: null }, data: { firstViewedAt: now } });
+  if (first || now.getTime() - d.lastViewedAt!.getTime() >= 6 * 3600e3) {
+    await prisma.salesDocumentEvent.create({ data: { documentId: d.id, type: "VIEWED", note: first ? "ลูกค้าเปิดดูครั้งแรก" : "ลูกค้าเปิดดูอีกครั้ง" } });
+  }
+}

@@ -62,6 +62,9 @@ export function custSnapshot(c: Customer): CustSnap {
 }
 export const asSnap = (v: unknown): CustSnap => (v && typeof v === "object" && !Array.isArray(v) ? (v as CustSnap) : {});
 
+/** เหตุผลที่ลูกค้าไม่ตอบรับใบเสนอราคา (เก็บไว้ดูว่าเสียงานเพราะอะไร) */
+export const LOST_REASONS = ["ราคาสูงกว่าคู่แข่ง", "ลูกค้าเลือกร้านอื่น", "งบประมาณไม่พอ / เลื่อนโครงการ", "โครงการยกเลิก", "ลูกค้าไม่ตอบกลับ", "สเปก/สินค้าไม่ตรงความต้องการ", "ระยะเวลาส่งของนานเกินไป", "อื่น ๆ"];
+
 export function shopHead(s: ShopSetting): ShopHead {
   return {
     name: s.legalName, address: s.addressText, phone: s.phone, line: s.lineId ?? "", email: s.email ?? "", taxId: s.taxId ?? "", branch: s.branch ?? "",
@@ -149,6 +152,10 @@ export function statusWhere(st: DocSt | "all", today = todayYmd()): Prisma.Sales
     case "unpaid": return { status: "ISSUED", ...notPast("dueDate") };
     case "partial": return { status: "PARTIAL", ...notPast("dueDate") };
     case "overdue": return { status: { in: ["ISSUED", "PARTIAL"] }, dueDate: { lt: t0 } };
+    // ติดตาม: รอตอบรับที่ถึง/เลยวันนัดแล้ว
+    case "follow": return { type: "QUOTATION", status: "ISSUED", followUpAt: { lt: new Date(t0.getTime() + 864e5) } };
+    // ใกล้หมดอายุ: รอตอบรับที่ยืนราคาเหลือ 0–7 วัน
+    case "expiring": return { type: "QUOTATION", status: "ISSUED", validUntil: { gte: t0, lt: new Date(t0.getTime() + 8 * 864e5) } };
     default: return {};
   }
 }

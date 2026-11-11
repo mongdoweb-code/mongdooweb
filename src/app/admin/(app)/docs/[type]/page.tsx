@@ -30,12 +30,19 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   const counts = await Promise.all(DOC_TABS[type].map(([k]) => prisma.salesDocument.count({ where: { type, ...statusWhere(k) } })));
   let kpis: { label: string; value: string; sub: string; tab?: string; hot?: boolean }[] = [];
   if (type === "QUOTATION") {
-    const [open, acc, exp, draft] = await Promise.all([sum(statusWhere("open")), sum({ status: "ACCEPTED", issueDate: { gte: monthStart } }), sum(statusWhere("expired")), sum({ status: "DRAFT" })]);
+    // อัตราปิดการขาย 90 วัน = ตอบรับ ÷ ใบที่ออก (ไม่นับยกเลิก/ฉบับร่าง) ในช่วงนั้น
+    const d90 = new Date(fromYmd(today).getTime() - 90 * 864e5);
+    const [follow, open, expiring, exp, won, issued90] = await Promise.all([
+      sum(statusWhere("follow")), sum(statusWhere("open")), sum(statusWhere("expiring")), sum(statusWhere("expired")),
+      sum({ status: "ACCEPTED", issueDate: { gte: d90 } }), sum({ status: { in: ["ISSUED", "ACCEPTED", "REJECTED"] }, issueDate: { gte: d90 } }),
+    ]);
+    const n90 = issued90._count._all, w90 = won._count._all;
     kpis = [
-      { label: "รอตอบรับ", value: String(open._count._all), sub: `มูลค่า ฿${money(open._sum.grandSatang ?? 0)}`, tab: "open", hot: open._count._all > 0 },
-      { label: "ตอบรับแล้ว (เดือนนี้)", value: String(acc._count._all), sub: `฿${money(acc._sum.grandSatang ?? 0)}`, tab: "accepted" },
-      { label: "หมดอายุ (ยังไม่ตอบ)", value: String(exp._count._all), sub: "ควรติดตามลูกค้า", tab: "expired" },
-      { label: "ฉบับร่าง", value: String(draft._count._all), sub: "ยังไม่ออกเลขที่", tab: "draft" },
+      { label: "ต้องติดตามวันนี้", value: String(follow._count._all), sub: follow._count._all ? `มูลค่า ฿${money(follow._sum.grandSatang ?? 0)}` : "ไม่มีนัดค้าง", tab: "follow", hot: follow._count._all > 0 },
+      { label: "รอตอบรับ", value: String(open._count._all), sub: `มูลค่า ฿${money(open._sum.grandSatang ?? 0)}`, tab: "open" },
+      { label: "ใกล้หมดอายุ (7 วัน)", value: String(expiring._count._all), sub: expiring._count._all ? `฿${money(expiring._sum.grandSatang ?? 0)} · รีบติดตาม` : "—", tab: "expiring", hot: expiring._count._all > 0 },
+      { label: "อัตราปิดการขาย (90 วัน)", value: n90 ? `${Math.round((w90 / n90) * 100)}%` : "—", sub: `ได้งาน ${w90} จาก ${n90} ใบ · ฿${money(won._sum.grandSatang ?? 0)}`, tab: "accepted" },
+      { label: "หมดอายุ (ยังไม่ตอบ)", value: String(exp._count._all), sub: "สร้างฉบับแก้ไขเพื่อเสนอใหม่", tab: "expired" },
     ];
   } else if (type === "INVOICE") {
     const [owe, over, draft, paidMonth] = await Promise.all([
@@ -135,7 +142,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
               const [stl, stc] = DOC_ST[st];
               const href = `${base}/${d.id}`;
               const c4 =
-                type === "QUOTATION" ? docDate(ymdOf(d.validUntil), era)
+                type === "QUOTATION" ? <QuoteTrack d={d} today={today} era={era} />
                 : type === "INVOICE" ? (
                   <>{docDate(ymdOf(d.dueDate), era)}{d.status !== "DRAFT" && d.status !== "VOID" && d.grandSatang - d.paidSatang > 0 && <span className="sub owe">ค้าง ฿{money(d.grandSatang - d.paidSatang)}</span>}</>
                 ) : type === "CREDIT_NOTE" ? (
@@ -217,3 +224,24 @@ function DocActions({ d, href, label }: { d: { id: string; type: string; status:
 const VOID_ICON = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m5.7 5.7 12.6 12.6" /></svg>
 );
+
+/** คอลัมน์ "ยืนราคาถึง" ของใบเสนอราคา + สถานะการติดตาม: เหลือกี่วัน · ลูกค้าเปิดดูแล้วไหม · วันนัดติดตาม · เหตุผลที่ไม่ได้งาน */
+function QuoteTrack({ d, today, era }: { d: { status: string; validUntil: Date | null; viewCount: number; lastViewedAt: Date | null; followUpAt: Date | null; lostReason: string | null }; today: string; era: "AD" | "BE" }) {
+  const vu = ymdOf(d.validUntil);
+  const days = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
+  const live = d.status === "ISSUED";
+  const left = vu ? days(today, vu) : null;
+  const fu = ymdOf(d.followUpAt);
+  const fuIn = fu ? days(today, fu) : null;
+  return (
+    <>
+      {docDate(vu, era)}
+      <span className="qt-chips">
+        {live && left !== null && left >= 0 && left <= 7 && <i className="qc warn">{left === 0 ? "วันสุดท้าย" : `เหลือ ${left} วัน`}</i>}
+        {live && (d.viewCount ? <i className="qc ok" title={d.lastViewedAt ? `ล่าสุด ${docDate(ymdBkk(d.lastViewedAt), era)}` : undefined}>เปิดดู {d.viewCount} ครั้ง</i> : <i className="qc">ยังไม่เปิดดู</i>)}
+        {live && fu && <i className={`qc ${fuIn !== null && fuIn <= 0 ? "bad" : ""}`}>{fuIn !== null && fuIn < 0 ? `เลยนัด ${-fuIn} วัน` : fuIn === 0 ? "นัดวันนี้" : `นัด ${docDate(fu, era)}`}</i>}
+        {d.status === "REJECTED" && d.lostReason && <i className="qc bad" title={d.lostReason}>{d.lostReason.length > 26 ? `${d.lostReason.slice(0, 26)}…` : d.lostReason}</i>}
+      </span>
+    </>
+  );
+}

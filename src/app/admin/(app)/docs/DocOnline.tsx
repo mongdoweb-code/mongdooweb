@@ -9,8 +9,16 @@ import { approveDocSlipAction, rejectDocSlipAction } from "./slip-actions";
 
 const ST: Record<string, string> = { PENDING: "รอตรวจ", ACCEPTED: "อนุมัติแล้ว", REJECTED: "ไม่ผ่าน" };
 
+/** ข้อความพร้อมส่งให้ลูกค้าทาง LINE (ทักทาย + เลขที่ + ยอด + วันหมดอายุ/ครบกำหนด + ลิงก์) */
+function lineMessage(doc: { type: string; docNo?: string | null; grandSatang: number; paidSatang: number; validUntil?: Date | null; dueDate?: Date | null; customer?: { name: string } | null }, url: string, era: "AD" | "BE") {
+  const hi = `สวัสดีครับ${doc.customer?.name ? ` คุณ${doc.customer.name}` : ""}`;
+  if (doc.type === "QUOTATION")
+    return [hi, `ร้านมองดูเว็บขอส่งใบเสนอราคาเลขที่ ${doc.docNo ?? ""} ยอดรวม ฿${money(doc.grandSatang)}${doc.validUntil ? ` (ยืนราคาถึง ${docDateTime(doc.validUntil, era).split(" ")[0]})` : ""}`, `ดูรายละเอียดและกดยืนยันสั่งซื้อได้ที่ลิงก์นี้ครับ`, url, "สอบถามเพิ่มเติมทักแชตนี้ได้เลยครับ 🙏"].join("\n");
+  return [hi, `ร้านมองดูเว็บขอส่งใบแจ้งหนี้เลขที่ ${doc.docNo ?? ""} ยอดค้างชำระ ฿${money(Math.max(0, doc.grandSatang - doc.paidSatang))}${doc.dueDate ? ` (ครบกำหนด ${docDateTime(doc.dueDate, era).split(" ")[0]})` : ""}`, `สแกน QR ชำระและแนบสลิปได้ที่ลิงก์นี้ครับ`, url, "ขอบคุณครับ 🙏"].join("\n");
+}
+
 export async function DocOnline({ doc, era }: {
-  doc: { id: string; type: "QUOTATION" | "INVOICE" | "RECEIPT" | "CREDIT_NOTE"; status: string; acceptedAt: Date | null; acceptedBy: string | null; grandSatang: number; paidSatang: number };
+  doc: { id: string; type: "QUOTATION" | "INVOICE" | "RECEIPT" | "CREDIT_NOTE"; status: string; acceptedAt: Date | null; acceptedBy: string | null; grandSatang: number; paidSatang: number; docNo?: string | null; validUntil?: Date | null; dueDate?: Date | null; customer?: { name: string } | null };
   era: "AD" | "BE";
 }) {
   if (doc.type === "RECEIPT" || doc.type === "CREDIT_NOTE" || doc.status === "DRAFT") return null;
@@ -31,6 +39,7 @@ export async function DocOnline({ doc, era }: {
           <input className="dl-url" readOnly value={url} aria-label="ลิงก์สำหรับลูกค้า" style={{ width: "100%", height: 36, border: "1px solid var(--c-line)", padding: "0 8px", fontSize: 12 }} />
           <div className="mini-acts" style={{ marginTop: 8 }}>
             <CopyButton text={url} done="คัดลอกลิงก์แล้ว">คัดลอกลิงก์</CopyButton>
+            <CopyButton text={lineMessage(doc, url, era)} done="คัดลอกข้อความแล้ว — วางในแชต LINE ได้เลย">คัดลอกข้อความส่ง LINE</CopyButton>
             <a className="btn btn-ghost btn-sm" href={url} target="_blank" rel="noopener">เปิดดู</a>
           </div>
         </section>
