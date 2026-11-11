@@ -50,7 +50,13 @@ jobs:
       - run: npm run test:unit
       - run: npm run build
       - name: ติดตั้ง Chromium สำหรับ e2e
-        run: npx playwright install --with-deps chromium
+        # เครื่อง CI บางครั้งหา apt mirror ไม่เจอ (DNS ชั่วคราว) → ลองใหม่ แล้วค่อยติดตั้งแค่เบราว์เซอร์ (ไลบรารีหลักมีในเครื่องอยู่แล้ว)
+        run: |
+          for i in 1 2 3; do
+            npx playwright install --with-deps chromium && exit 0
+            echo "install --with-deps ล้มเหลว (ครั้งที่ $i) — รอแล้วลองใหม่"; sleep $((i * 20))
+          done
+          npx playwright install chromium
       - name: e2e
         run: npm run test:e2e
       - uses: actions/upload-artifact@v4
