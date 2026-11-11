@@ -641,6 +641,9 @@ model SalesDocument {
   lastViewedAt    DateTime?
   followUpAt      DateTime? // วันนัดติดตาม (เที่ยงคืนเวลาไทย)
   lostReason      String? // QT ไม่ตอบรับ: ราคาสูง / เลือกร้านอื่น / …
+  // ตัวเลือกต่อเอกสาร (ติ๊กในตัวแก้ไข) — ค่าเริ่มต้นของเอกสารใหม่มาจากตั้งค่าร้าน
+  signImage       Boolean   @default(true) // ใส่ลายเซ็น/ตราประทับอิเล็กทรอนิกส์ (ต้องอัปโหลดในตั้งค่าร้านก่อน)
+  showBank        Boolean   @default(true) // ใบเสนอราคา: แสดงเลขบัญชีธนาคาร
 
   // ความเชื่อมโยง QT → IV → RC และคำสั่งซื้อเว็บ
   sourceId String?

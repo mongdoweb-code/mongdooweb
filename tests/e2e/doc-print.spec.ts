@@ -61,11 +61,19 @@ test("ตั้งค่า: อัปโหลดลายเซ็น + ตร
   await l1.locator(".ln-nums input").nth(2).fill("1500");
   await page.getByRole("button", { name: "30 วัน" }).click();
   await expect(page.locator(".de-pv .sheet" + V).first()).toBeVisible();
-  await expect(page.locator(".de-pv .sg-sig")).toHaveCount(0); // ฉบับร่าง: ไม่พิมพ์ลายเซ็น
+  await expect(page.locator(".de-pv .sg-sig")).toHaveCount(1); // ตัวอย่างในตัวแก้ไขแสดงลายเซ็นตามที่ติ๊ก (มีลายน้ำ "ฉบับร่าง")
   await expect(page.locator(".de-pv .sg-name").first()).toContainText(`( นายทดสอบ ลงนาม ${TAG} )`);
-  await page.click(`button:has-text("บันทึกและออกเอกสาร")${V}`);
-  await page.waitForURL(/\/admin\/docs\/QUOTATION\/[^/?]+\?issued=1/);
+  // บันทึกเป็นฉบับร่างก่อน → หน้าพิมพ์ของฉบับร่างต้องไม่มีลายเซ็น (กันนำร่างไปใช้แทนเอกสารจริง)
+  await page.click(`button:has-text("บันทึกฉบับร่าง")${V}`);
+  await page.waitForURL(/\/admin\/docs\/QUOTATION\/[^/?]+\?saved=1/);
   qtId = page.url().split("/").pop()!.split("?")[0];
+  await page.goto(`/admin/print/doc/${qtId}`);
+  await expect(page.locator(".pp-sheets .sheet").first()).toBeVisible();
+  await expect(page.locator(".pp-sheets .sheet .sg-sig, .pp-sheets .sheet .sg-stamp")).toHaveCount(0);
+  await page.goto(`/admin/docs/QUOTATION/${qtId}`);
+  await page.getByRole("button", { name: "ออกเอกสาร (ออกเลขที่)" }).click();
+  await page.getByRole("button", { name: "ออกเอกสาร", exact: true }).click();
+  await expect.poll(async () => (await q<{ s: string }>(`SELECT status s FROM "SalesDocument" WHERE id=$1`, [qtId]))[0].s).toBe("ISSUED");
 
   await page.goto(`/admin/print/doc/${qtId}`);
   const sheet = page.locator(".pp-sheets .sheet").first();
@@ -95,6 +103,48 @@ test("ตั้งค่า: อัปโหลดลายเซ็น + ตร
   expect(errors).toEqual([]);
 });
 
+test("ตัวเลือกต่อเอกสาร: ติ๊ก/ไม่ติ๊ก ลายเซ็นอิเล็กทรอนิกส์ และเลขบัญชี → ตัวอย่าง + หน้าพิมพ์ตามที่เลือก", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  await page.goto("/admin/docs/QUOTATION/new/edit");
+  await page.getByRole("button", { name: "+ ลูกค้าใหม่" }).click();
+  await page.fill("#qcName" + V, `ลูกค้าตัวเลือกพิมพ์ ${TAG}`);
+  await page.getByRole("button", { name: "บันทึกลูกค้าและเลือก" }).click();
+  await expect(page.locator(".de-cust" + V)).toBeVisible();
+  const l1 = page.locator(".de-line" + V).first();
+  await l1.locator(".ac-wrap input").fill(`รายการตัวเลือก ${TAG}`);
+  await l1.locator(".ln-nums input").nth(2).fill("990");
+  const sig = page.getByRole("checkbox", { name: /ใส่ลายเซ็นอิเล็กทรอนิกส์/ });
+  const bank = page.getByRole("checkbox", { name: /แสดงเลขบัญชีธนาคาร/ });
+  // ค่าเริ่มต้น: มีลายเซ็นในตั้งค่า + เปิดเลขบัญชี → ติ๊กไว้ และตัวอย่างแสดงทั้งคู่ (ฉบับร่างมีลายน้ำ)
+  await expect(sig).toBeChecked();
+  await expect(bank).toBeChecked();
+  const pv = page.locator(".de-pv .sheet" + V).first();
+  await expect(pv.locator(".sg-sig")).toHaveCount(1);
+  await expect(pv.locator(".sh-qpay")).toContainText("ช่องทางชำระเงิน");
+  await sig.uncheck();
+  await bank.uncheck();
+  await expect(pv.locator(".sg-sig, .sg-stamp")).toHaveCount(0);
+  await expect(pv.locator(".sh-qpay")).toHaveCount(0); // ไม่มีเลขบัญชี และตัวอย่างไม่มี QR ออนไลน์ → ไม่มีกล่องเลย
+  await page.click(`button:has-text("บันทึกและออกเอกสาร")${V}`);
+  await page.waitForURL(/\/admin\/docs\/QUOTATION\/[^/?]+\?issued=1/);
+  const id2 = page.url().split("/").pop()!.split("?")[0];
+  const [f] = await q<{ s: boolean; b: boolean }>(`SELECT "signImage" s, "showBank" b FROM "SalesDocument" WHERE id=$1`, [id2]);
+  expect(f).toEqual({ s: false, b: false });
+  await page.goto(`/admin/print/doc/${id2}`);
+  const sheet = page.locator(".pp-sheets .sheet").first();
+  await expect(sheet).toBeVisible();
+  await expect(sheet.locator(".sg-sig, .sg-stamp")).toHaveCount(0);
+  await expect(sheet.locator(".sg-name")).toBeVisible();
+  await expect(sheet).not.toContainText("ช่องทางชำระเงิน");
+  await expect(sheet.locator(".sh-oqr")).toHaveCount(1); // QR ออนไลน์ยังอยู่ (ตั้งค่าแยก)
+  // ทำสำเนาเป็นฉบับใหม่ → ตัวเลือกติดไปด้วย
+  await page.goto(`/admin/docs/QUOTATION/${id2}`);
+  await page.getByRole("button", { name: "ทำสำเนาเป็นฉบับใหม่" }).click();
+  await page.waitForURL(/\/edit$/);
+  await expect(page.getByRole("checkbox", { name: /ใส่ลายเซ็นอิเล็กทรอนิกส์/ })).not.toBeChecked();
+});
+
 test("ปิดบัญชีธนาคาร/QR และลบลายเซ็น/ตรา ในตั้งค่า → หน้าพิมพ์ไม่แสดง", async ({ page }) => {
   await login(page);
   await page.goto("/admin/settings");
@@ -107,6 +157,13 @@ test("ปิดบัญชีธนาคาร/QR และลบลายเ�
   await page.goto(`/admin/print/doc/${qtId}`);
   const sheet = page.locator(".pp-sheets .sheet").first();
   await expect(sheet).toBeVisible();
-  await expect(sheet.locator(".sg-sig, .sg-stamp, .sh-qpay, .sh-oqr")).toHaveCount(0);
+  // ลบลายเซ็น/ตรา + ปิด QR ออนไลน์ → ไม่แสดง · เลขบัญชีเป็นตัวเลือกของแต่ละใบ (ตั้งค่าร้าน = ค่าเริ่มต้นของใบใหม่) จึงยังแสดงในใบเดิม
+  await expect(sheet.locator(".sg-sig, .sg-stamp, .sh-oqr")).toHaveCount(0);
+  await expect(sheet.locator(".sh-qpay")).toContainText("ช่องทางชำระเงิน");
   await expect(sheet.locator(".sg-name")).toBeVisible();
+  // ใบใหม่: ค่าเริ่มต้นเลขบัญชี = ไม่ติ๊ก (ตามตั้งค่า) · ลายเซ็นติ๊กไม่ได้ (ยังไม่มีรูป)
+  await page.goto("/admin/docs/QUOTATION/new/edit");
+  await expect(page.getByRole("checkbox", { name: /แสดงเลขบัญชีธนาคาร/ })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /ใส่ลายเซ็นอิเล็กทรอนิกส์/ })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "อัปโหลดลายเซ็นที่ตั้งค่าร้าน" })).toBeVisible();
 });

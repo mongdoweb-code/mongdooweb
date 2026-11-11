@@ -1993,3 +1993,9 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .qt-fu-row + .qt-fu-row{grid-template-columns:minmax(0,1fr) auto auto}
 .qt-fu-row .btn{width:auto;min-width:0;padding:0 8px;white-space:nowrap}
 .qt-fu-row input[type=date]{width:100%;min-width:0}
+/* ตัวเลือกพิมพ์บนเอกสาร (ลายเซ็นอิเล็กทรอนิกส์ · เลขบัญชี) ข้างหัวข้อ "หมายเหตุและเงื่อนไข" */
+.de-opts-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px 16px;flex-wrap:wrap}
+.de-opts{display:grid;gap:4px;justify-items:start;padding:8px 12px;border:1px solid var(--c-line);background:#FCFBF9}
+.de-opts .chk-row{font-size:13.5px;font-weight:600;min-height:28px}
+.de-opts .chk-row.off{color:var(--c-muted);font-weight:400}
+.de-opts .link{font-size:12.5px}

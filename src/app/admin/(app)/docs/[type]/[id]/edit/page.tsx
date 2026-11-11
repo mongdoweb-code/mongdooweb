@@ -32,6 +32,8 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       type, customerId: c?.id ?? "", customer: c ? custSnapshot(c) : null, issueDate: today,
       validUntil: type === "QUOTATION" ? plus(s.quoteValidDays) : "", dueDate: type === "INVOICE" ? plus(s.invoiceDueDays) : "",
       items: [], discount: "", vatMode: s.vatEnabled ? s.vatMode : "NONE", signDate: "",
+      // ค่าเริ่มต้นของเอกสารใหม่: มีลายเซ็น/ตราในตั้งค่า = ใส่ · เลขบัญชีตามตั้งค่าร้าน
+      signImage: !!(s.signatureKey || s.stampKey), showBank: s.quotePayInfo,
       paymentMethod: type === "QUOTATION" ? "โอนเงินผ่านธนาคาร" : PAY_METHODS[0], paymentTerms: defaultTerms(s, type), carrier: "", note: "", internalNote: "",
     };
   } else {
@@ -45,6 +47,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       issueDate: ymdOf(d.issueDate) || today, validUntil: ymdOf(d.validUntil), dueDate: ymdOf(d.dueDate),
       items: d.items.map((i) => ({ productId: i.productId ?? "", sku: i.sku ?? "", name: i.name, detail: i.detail ?? "", unit: i.unit, qty: String(i.qtyMilli / 1000), price: (i.priceSatang / 100).toFixed(2), discount: i.discountSatang ? (i.discountSatang / 100).toFixed(2) : "", image: i.image })),
       discount: d.discountSatang ? (d.discountSatang / 100).toFixed(2) : "", vatMode: s.vatEnabled ? d.vatMode : "NONE", signDate: ymdOf(d.signDate),
+      signImage: d.signImage, showBank: d.showBank,
       paymentMethod: d.paymentMethod ?? "", paymentTerms: d.paymentTerms ?? "", carrier: d.carrier ?? "", note: d.note ?? "", internalNote: d.internalNote ?? "",
     };
     if (type === "CREDIT_NOTE" && d.source) {

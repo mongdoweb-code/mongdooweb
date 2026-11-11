@@ -267,11 +267,11 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
                 </div>
               </div>
             </div>
-            <small>ใช้ไฟล์ PNG พื้นใส (สแกน/ถ่ายลายเซ็นบนกระดาษขาว แล้วลบพื้นหลัง) · พิมพ์เฉพาะเอกสารที่<b>ออกแล้ว</b> — ฉบับร่างไม่แสดง กันนำร่างไปใช้แทนเอกสารจริง</small>
+            <small>เลือกใส่/ไม่ใส่ลายเซ็นได้ในแต่ละเอกสาร (ช่อง &quot;ใส่ลายเซ็นอิเล็กทรอนิกส์&quot; ในหน้าสร้างเอกสาร) · ใช้ไฟล์ PNG พื้นใส (สแกน/ถ่ายลายเซ็นบนกระดาษขาว แล้วลบพื้นหลัง) · พิมพ์เฉพาะเอกสารที่<b>ออกแล้ว</b> — ฉบับร่างไม่แสดง กันนำร่างไปใช้แทนเอกสารจริง</small>
           </fieldset>
           <fieldset className="set-sign">
             <legend>ใบเสนอราคา</legend>
-            <label className="chk-row"><input type="checkbox" name="quotePayInfo" defaultChecked={v.quotePayInfo} /> แสดงบัญชีธนาคารบนใบเสนอราคา</label>
+            <label className="chk-row"><input type="checkbox" name="quotePayInfo" defaultChecked={v.quotePayInfo} /> แสดงบัญชีธนาคารบนใบเสนอราคา (ค่าเริ่มต้นของใบใหม่ — ติ๊กเปิด/ปิดได้ในแต่ละใบ)</label>
             <label className="chk-row"><input type="checkbox" name="quoteOnlineQr" defaultChecked={v.quoteOnlineQr} /> พิมพ์ QR ให้ลูกค้าสแกนเปิดดู/ยืนยันสั่งซื้อออนไลน์ (ใบเสนอราคา) และแนบสลิป (ใบแจ้งหนี้)</label>
           </fieldset>
         </div>

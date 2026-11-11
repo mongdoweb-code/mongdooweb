@@ -34,6 +34,8 @@ type Payload = {
   id?: string; type: DocTypeT; customerId: string; issueDate: string; validUntil: string; dueDate: string;
   items: { productId?: string | null; sku: string; name: string; detail: string; unit: string; qtyMilli: number; priceSatang: number; discountSatang: number; image?: string | null }[];
   signDate?: string;
+  /** ใส่ลายเซ็น/ตราอิเล็กทรอนิกส์ · แสดงเลขบัญชี (ใบเสนอราคา) — ไม่ส่ง = true */
+  signImage?: boolean; showBank?: boolean;
   discountSatang: number; vatMode: VatMode; paymentMethod: string; paymentTerms: string; carrier: string; note: string; internalNote: string;
   sourceId?: string | null; orderId?: string | null;
   creditReason?: string;
@@ -120,6 +122,7 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
     carrier: String(p.carrier ?? "").trim().slice(0, 60) || null, note: String(p.note ?? "").trim().slice(0, 2000) || null,
     internalNote: String(p.internalNote ?? "").trim().slice(0, 2000) || null,
     ...(p.type === "CREDIT_NOTE" ? { creditReason: creditReason || null } : {}),
+    signImage: p.signImage !== false, showBank: p.showBank !== false,
   };
 
   let id = p.id ? String(p.id) : "";
@@ -248,6 +251,7 @@ async function copyToDraft(srcId: string, type: DocTypeT, adminId: string, link:
         ...totalsFor(items, src.discountSatang, vatMode, s.vatRateBp), vatMode, vatRateBp: vatMode === "NONE" ? 0 : s.vatRateBp,
         paymentMethod: src.paymentMethod, paymentTerms: type === src.type ? src.paymentTerms : defaultTerms(s, type) || null, carrier: src.carrier, note: src.note,
         internalNote: src.internalNote, sourceId: link.sourceId ?? null, orderId: link.orderId ?? null,
+        signImage: src.signImage, showBank: src.showBank,
         items: { create: items },
       },
     });
