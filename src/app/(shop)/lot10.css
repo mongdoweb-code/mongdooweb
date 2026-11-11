@@ -174,3 +174,5 @@
   .pc-img{max-width:120px}
 }
 @media (prefers-reduced-motion:reduce){.pc-card,.pc-img img,.pc-progress span{transition:none}.pc-card:hover{transform:none}}
+/* รูปสินค้ามาตรฐาน 1:1 (2026-11-11): การ์ดหมวดหมู่ยอดนิยม */
+.pc-img{aspect-ratio:1/1;align-self:flex-start}

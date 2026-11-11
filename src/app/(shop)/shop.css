@@ -665,3 +665,5 @@ main .pdp-bar .btn-primary:hover{background:var(--c-orange-ink-dk)}
 body .prose a,body .prose-desc a,body .faq-list .faq-a a,body .trk-docs a,body .sg-empty a{color:var(--c-orange-ink)}
 body a.btn-line{color:#fff}
 
+/* รูปสินค้ามาตรฐาน 1:1 (2026-11-11): การ์ดหมวดหน้าแรก — กรอบรูปจัตุรัสเสมอ ไม่ยืดตามความสูงข้อความ */
+.cat-media{aspect-ratio:1/1;min-height:0;align-self:center;height:auto}

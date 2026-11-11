@@ -386,3 +386,6 @@ a.ar-kpi:hover{border-top-color:var(--c-ink)}
 @media (max-width:640px){.pcard-foot{flex-wrap:wrap}.pcard-foot .row-acts{flex-wrap:wrap}}
 .pcard-f .chip{padding:2px 7px;font-size:11.5px;line-height:1.35}
 .pcard-f .ic-warn .ic-v{padding:0 6px}
+/* รูปสินค้ามาตรฐาน 1:1 (2026-11-11): กรอบจัตุรัส พื้นขาว แสดงทั้งภาพไม่ครอป ไม่ยืด (object-fit:contain) — ทุกมุมมองการ์ด */
+.pcard-img,.pcards-small .pcard-img{aspect-ratio:1/1;background:#fff;border-bottom:1px solid var(--c-line)}
+.pcard-img img{width:100%;height:100%;object-fit:contain;padding:6px}
