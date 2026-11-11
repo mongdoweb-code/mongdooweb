@@ -27,6 +27,10 @@ export type DocView = {
   credit?: { reason: string; original: number } | null;
   /** QR + ลิงก์ให้ลูกค้าเปิดดู/ยืนยัน/ชำระออนไลน์ (ใบเสนอราคา/ใบแจ้งหนี้ที่ออกแล้ว) */
   online?: { qr: string; url: string } | null;
+  /** ตัวเลือกของเอกสารนี้: ใส่ลายเซ็น/ตราประทับ (ค่าเริ่มต้น true) · แสดงเลขบัญชีบนใบเสนอราคา (ไม่ระบุ = ตามตั้งค่าร้าน) */
+  signImage?: boolean; showBank?: boolean;
+  /** ตัวอย่างในตัวแก้ไข: แสดงลายเซ็นแม้เป็นฉบับร่าง (มีลายน้ำ "ฉบับร่าง" — พิมพ์จริงยังต้องออกเอกสารก่อน) */
+  previewSign?: boolean;
 };
 
 export const DOC_META: Record<DocTypeT, { th: string; en: string; short: string; path: string }> = {
@@ -141,10 +145,11 @@ export function buildDocParts(d: DocView): DocParts {
     payBox = `<div class="sh-cn"><h5>เหตุผลการลดหนี้</h5><p>${nl2br(d.credit?.reason || "—")}</p>
       <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${money(v)}</dd>`).join("")}</dl></div>`;
   }
-  if (d.type === "QUOTATION" && ((s.quotePayInfo && s.banks.length) || d.online)) {
+  const bankOn = (d.showBank ?? s.quotePayInfo) !== false && s.banks.length > 0;
+  if (d.type === "QUOTATION" && (bankOn || d.online)) {
     // ใบเสนอราคา: บัญชีธนาคาร (ตั้งค่าได้) + QR เปิดดู/ยืนยันออนไลน์
     payBox = `<div class="sh-pay sh-qpay">${d.online ? `<figure class="sh-oqr"><img class="sh-qr" src="${esc(d.online.qr)}" alt="QR เปิดใบเสนอราคาออนไลน์"><figcaption>สแกนเพื่อดู<br>และยืนยันสั่งซื้อ</figcaption></figure>` : ""}<div>
-      ${s.quotePayInfo && s.banks.length ? `<h5>ช่องทางชำระเงิน (เมื่อยืนยันสั่งซื้อ)</h5>${s.banks.map((b) => `<div>${esc(b.name)} เลขที่บัญชี <b>${esc(b.account)}</b>${b.holder ? ` ชื่อบัญชี <span class="nw">${esc(b.holder)}</span>` : ""}</div>`).join("")}` : ""}
+      ${bankOn ? `<h5>ช่องทางชำระเงิน (เมื่อยืนยันสั่งซื้อ)</h5>${s.banks.map((b) => `<div>${esc(b.name)} เลขที่บัญชี <b>${esc(b.account)}</b>${b.holder ? ` ชื่อบัญชี <span class="nw">${esc(b.holder)}</span>` : ""}</div>`).join("")}` : ""}
       ${d.online ? `<div class="mut">ยืนยันสั่งซื้อออนไลน์ได้ทันทีจาก QR นี้${s.line ? ` หรือแจ้งทาง LINE ${esc(s.line)}` : ""} พร้อมเลขที่ ${esc(label)}</div>` : s.line ? `<div class="mut">ยืนยันสั่งซื้อ/สอบถามทาง LINE ${esc(s.line)} พร้อมเลขที่ ${esc(label)}</div>` : ""}</div></div>`;
   }
   if (d.type === "INVOICE" && d.online && payBox) {
@@ -155,9 +160,10 @@ export function buildDocParts(d: DocView): DocParts {
   // ช่องลงนาม: ฝั่งร้านใส่วันที่ให้ (วันที่ลงนามที่ตั้งไว้ หรือวันที่เอกสาร) · ฝั่งลูกค้าเว้นให้เขียนเอง
   const signDay = d.signDate || d.issueDate;
   // ลายเซ็น/ตราประทับฝั่งร้าน: เฉพาะเอกสารที่ออกแล้ว (ฉบับร่างไม่พิมพ์ — กันนำร่างไปใช้แทนเอกสารจริง)
-  const issued = d.status !== "DRAFT";
-  const sigImg = issued && s.signature ? `<img class="sg-sig" src="${esc(s.signature)}" alt="">` : "";
-  const stampImg = issued && s.stamp ? `<img class="sg-stamp" src="${esc(s.stamp)}" alt="">` : "";
+  const issued = d.status !== "DRAFT" || !!d.previewSign;
+  const useSig = issued && d.signImage !== false;
+  const sigImg = useSig && s.signature ? `<img class="sg-sig" src="${esc(s.signature)}" alt="">` : "";
+  const stampImg = useSig && s.stamp ? `<img class="sg-stamp" src="${esc(s.stamp)}" alt="">` : "";
   const sign = s.showSignature
     ? `<section class="sh-sign">${SIGN[d.type].map((l, i) => {
         const me = i === 0;

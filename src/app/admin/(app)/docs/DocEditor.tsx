@@ -24,6 +24,8 @@ export type EditorInit = {
   items: LineIn[]; discount: string; vatMode: VatModeT; paymentMethod: string; paymentTerms: string; carrier: string; note: string; internalNote: string;
   /** วันที่ในช่องลงนามฝั่งร้าน — ว่าง = ใช้วันที่เอกสาร */
   signDate: string;
+  /** ใส่ลายเซ็น/ตราประทับอิเล็กทรอนิกส์ · แสดงเลขบัญชี (ใบเสนอราคา) */
+  signImage: boolean; showBank: boolean;
   /** ใบลดหนี้: เหตุผล · ยอดใบเสร็จเดิม · ลดได้อีกสูงสุด (สตางค์) */
   creditReason?: string; creditOriginal?: number; creditMax?: number;
 };
@@ -151,13 +153,14 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
     discountSatang: discount, vatMode: v.vatMode, vatRateBp, paymentMethod: v.paymentMethod, paymentTerms: v.paymentTerms, carrier: v.carrier, note: v.note,
     ref: refText, voidReason: "", paidSatang: 0, payRef: "", qr: null, printedAt, shop, signDate: v.signDate,
     credit: isCn ? { reason: v.creditReason ?? "", original: init.creditOriginal ?? 0 } : null,
+    signImage: v.signImage, showBank: v.showBank, previewSign: true,
   };
   const overCredit = isCn && init.creditMax !== undefined && t.grand > init.creditMax;
 
   const payload = JSON.stringify({
     id: init.id, type: v.type, customerId: v.customerId, issueDate: v.issueDate, validUntil: v.validUntil, dueDate: v.dueDate,
     items: v.items.map((l, i) => ({ productId: l.productId || null, sku: l.sku, name: l.name, detail: l.detail, unit: l.unit, image: l.image ?? null, ...items[i] })),
-    signDate: v.signDate,
+    signDate: v.signDate, signImage: v.signImage, showBank: v.showBank,
     discountSatang: Number.isNaN(billDiscSat) ? -1 : billDiscSat, vatMode: v.vatMode, paymentMethod: v.paymentMethod, paymentTerms: v.paymentTerms, carrier: v.carrier, note: v.note, internalNote: v.internalNote,
     ...(isCn ? { creditReason: v.creditReason ?? "" } : {}),
   });
@@ -426,7 +429,22 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
             )}
 
             <section className="box">
-              <h3>หมายเหตุและเงื่อนไข</h3>
+              <div className="de-opts-head">
+                <h3>หมายเหตุและเงื่อนไข</h3>
+                <div className="de-opts" role="group" aria-label="ตัวเลือกที่พิมพ์บนเอกสาร">
+                  <label className={`chk-row${shop.signature || shop.stamp ? "" : " off"}`} title={shop.signature || shop.stamp ? undefined : "ยังไม่ได้อัปโหลดลายเซ็น/ตราประทับ — ตั้งค่าร้าน › เอกสารขาย"}>
+                    <input type="checkbox" checked={v.signImage && !!(shop.signature || shop.stamp)} disabled={!(shop.signature || shop.stamp)} onChange={(e) => set("signImage", e.target.checked)} />
+                    ใส่ลายเซ็นอิเล็กทรอนิกส์{shop.stamp ? " + ตราประทับ" : ""}
+                  </label>
+                  {v.type === "QUOTATION" && (
+                    <label className={`chk-row${shop.banks.length ? "" : " off"}`} title={shop.banks.length ? undefined : "ยังไม่มีบัญชีธนาคาร — ตั้งค่าร้าน › การชำระเงิน"}>
+                      <input type="checkbox" checked={v.showBank && shop.banks.length > 0} disabled={!shop.banks.length} onChange={(e) => set("showBank", e.target.checked)} />
+                      แสดงเลขบัญชีธนาคาร (ช่องทางชำระเงิน)
+                    </label>
+                  )}
+                  {!(shop.signature || shop.stamp) && <a className="link sub" href="/admin/settings#signerName" target="_blank" rel="noopener">อัปโหลดลายเซ็นที่ตั้งค่าร้าน</a>}
+                </div>
+              </div>
               <div className="field"><label htmlFor="terms">{v.type === "QUOTATION" ? "เงื่อนไข (แสดงบนเอกสาร)" : "เงื่อนไขการชำระเงิน (แสดงบนเอกสาร)"}</label><textarea id="terms" rows={4} maxLength={2000} value={v.paymentTerms} onChange={(e) => set("paymentTerms", e.target.value)} />
                 <span className="de-snips" role="group" aria-label="ข้อความเงื่อนไขที่ใช้บ่อย">
                   {snippets.map((t) => {

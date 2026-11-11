@@ -117,6 +117,7 @@ export async function toView(d: FullDoc, s: ShopSetting): Promise<DocView> {
     qr: d.type === "INVOICE" && d.status !== "VOID" && d.status !== "DRAFT" ? await invoiceQr(s, d.grandSatang - d.paidSatang) : null,
     printedAt: docDateTime(new Date(), s.dateEra), shop: shopHead(s), signDate: ymdOf(d.signDate),
     credit: d.type === "CREDIT_NOTE" ? { reason: d.creditReason ?? "", original: d.source?.grandSatang ?? 0 } : null,
+    signImage: d.signImage, showBank: d.showBank,
   };
 }
 
