@@ -1,4 +1,5 @@
 // /admin/docs/:type/:id — ดูเอกสาร: ตัวอย่าง A4 จริง, สถานะ/ยอดค้าง, ปุ่มตามขั้นตอน (ออก → ตอบรับ → แปลง → รับชำระ → ใบเสร็จ), ใบปะหน้า, ประวัติ
+import { onlineQrFor } from "@/lib/public-docs";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
@@ -29,7 +30,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
   if (!d) notFound();
   if (d.type !== type) redirect(docPath(d));
   const s = await getSettings();
-  const view = await toView(d, s);
+  const view = { ...(await toView(d, s)), online: await onlineQrFor(d, s.quoteOnlineQr) };
   const today = todayYmd();
   const st = statusOf(d, today);
   const [stl, stc] = DOC_ST[st];

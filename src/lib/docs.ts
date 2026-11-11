@@ -68,6 +68,8 @@ export function shopHead(s: ShopSetting): ShopHead {
     logo: (s.logoKey && mediaUrl(s.logoKey)) || DEFAULT_LOGO, era: s.dateEra, showSignature: s.showSignature,
     banks: parseBankAccounts(s.bankAccounts).map((b) => ({ name: bankLabel(b.bank), account: b.account, holder: b.holder })),
     promptpayName: s.promptpayName,
+    signature: (s.signatureKey && mediaUrl(s.signatureKey)) || "", stamp: (s.stampKey && mediaUrl(s.stampKey)) || "",
+    signerName: s.signerName, signerTitle: s.signerTitle, quotePayInfo: s.quotePayInfo,
   };
 }
 export const senderOf = (s: ShopSetting): Sender => ({ name: s.legalName, phone: s.phone, address: s.addressText, logo: (s.logoKey && mediaUrl(s.logoKey)) || DEFAULT_LOGO });

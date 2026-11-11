@@ -1,4 +1,5 @@
 // /admin/print/doc/:id — เอกสาร A4 พร้อมพิมพ์ (?auto=1 เปิดหน้าต่างพิมพ์ทันที, ?both=1 ต้นฉบับ + สำเนา)
+import { onlineQrFor } from "@/lib/public-docs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
@@ -20,6 +21,7 @@ export default async function PrintDocPage({ params, searchParams }: PageProps<"
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const d = await prisma.salesDocument.findUnique({ where: { id }, include: DOC_INCLUDE });
   if (!d) notFound();
-  const view = await toView(d, await getSettings());
+  const s = await getSettings();
+  const view = { ...(await toView(d, s)), online: await onlineQrFor(d, s.quoteOnlineQr) };
   return <PrintDoc view={view} id={d.id} back={docPath(d)} auto={sp.auto === "1"} both={sp.both === "1"} />;
 }

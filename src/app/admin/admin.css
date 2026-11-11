@@ -1940,3 +1940,27 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 /* แถบล่าง: ยอดรวมบรรทัดบน · ปุ่มบรรทัดล่าง */
 .de-foot{row-gap:6px}
 .de-foot .de-foot-sum{flex-basis:100%;order:-1;justify-content:flex-end}
+
+/* ---------- เอกสาร A4 (2026-11-11): ลายเซ็น/ตราประทับ · QR ออนไลน์ · ช่องทางชำระเงินในใบเสนอราคา ---------- */
+.sh-tr{display:grid;gap:3mm;min-width:0}
+.sh-sign .sg-slot{position:relative}
+.sh-sign .sg-line{position:relative}
+.sh-sign .has-sig .sg-line{height:16mm}
+.sg-sig{position:absolute;left:50%;bottom:-1mm;transform:translateX(-50%);max-width:44mm;max-height:15mm;object-fit:contain;mix-blend-mode:multiply}
+.sg-stamp{position:absolute;right:-4mm;bottom:-6mm;width:24mm;height:24mm;object-fit:contain;opacity:.88;mix-blend-mode:multiply}
+.sh-sign em{display:block;font-style:normal}
+.sh-sign .sg-name{font-size:8.6pt;color:#161616;margin-bottom:.3mm}
+.sh-sign .sg-title{font-size:7.8pt;color:#555;margin-bottom:.6mm}
+.sh-oqr{margin:0;display:grid;justify-items:center;gap:.8mm;flex-shrink:0}
+.sh-oqr figcaption{font-size:7pt;line-height:1.25;color:#444;text-align:center}
+.sh-qpay{align-items:flex-start}
+.sh-qpay h5{margin-bottom:1mm}
+.sh-oqr-iv{justify-self:end}
+.sh-oqr-iv .sh-qr{width:20mm;height:20mm}
+.set-sign{border:1px solid var(--c-line);padding:12px 14px;display:grid;gap:10px;margin:0}
+.set-sign legend{font-weight:700;font-size:14px;padding:0 6px}
+.sig-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.sig-prev{height:90px;border:1px dashed var(--c-line);background:#fff;display:grid;place-items:center;margin-bottom:6px}
+.sig-prev img{max-width:90%;max-height:80px;object-fit:contain;mix-blend-mode:multiply}
+.sig-prev.stamp img{max-height:84px}
+@media (max-width:640px){.sig-grid{grid-template-columns:1fr}}

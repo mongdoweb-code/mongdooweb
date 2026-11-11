@@ -42,6 +42,8 @@ export default async function SettingsPage() {
             quoteValidDays: s.quoteValidDays, invoiceDueDays: s.invoiceDueDays,
             termsQuote: s.termsQuote ?? "", termsInvoice: s.termsInvoice ?? "", termsReceipt: s.termsReceipt ?? "", showSignature: s.showSignature,
             logoUrl: mediaUrl(s.logoKey),
+            signatureUrl: mediaUrl(s.signatureKey), stampUrl: mediaUrl(s.stampKey), signerName: s.signerName, signerTitle: s.signerTitle,
+            quotePayInfo: s.quotePayInfo, quoteOnlineQr: s.quoteOnlineQr,
             announcementEnabled: s.announcementEnabled, announcementText: s.announcementText, announcementHref: s.announcementHref ?? "",
             ga4Id: s.ga4Id ?? "", metaPixelId: s.metaPixelId ?? "",
             autoCancelDays: s.autoCancelDays, lowStockThreshold: s.lowStockThreshold, lineLowStock: s.lineLowStock, lineDailySummary: s.lineDailySummary,
