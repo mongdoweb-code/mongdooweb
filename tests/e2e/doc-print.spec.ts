@@ -87,6 +87,13 @@ test("ตั้งค่า: อัปโหลดลายเซ็น + ตร
   // กล่องข้อมูล
   await expect(sheet.locator(".sh-info")).toContainText("ยืนราคา30 วัน");
   await expect(sheet.locator(".sh-info")).toContainText(`ผู้ติดต่อนายทดสอบ ลงนาม ${TAG}`);
+  // ไม่พิมพ์เบอร์โทรในช่องผู้ติดต่อ · ไม่มีบรรทัด "ยืนยันสั่งซื้อ/สอบถามทาง LINE … พร้อมเลขที่" · แถบท้ายเป็นรายการสินค้าของร้าน
+  expect(await sheet.locator(".sh-info").innerText()).not.toMatch(/\d{2,3}-\d{3}-\d{4}/);
+  await expect(sheet.locator(".sh-qpay")).not.toContainText("พร้อมเลขที่");
+  await expect(sheet.locator(".sh-qpay")).not.toContainText("สอบถามทาง LINE");
+  // แถบท้ายพอดีบรรทัดเดียว (เหมือนตัวอย่างของร้าน)
+  expect(await sheet.locator(".sh-thanks").evaluate((e) => e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight))).toBeLessThan(2.2);
+  await expect(sheet.locator(".sh-thanks")).toHaveText("ไฟใต้น้ำ | ไฟส่องน้ำพุ | ไฟสระน้ำ Pool villa | โคมไฟส่องต้นไม้ | ไฟส่องถนน | ไฟฝังพื้น | ไฟย้อมสีตึก | ดาวไลท์ฝังฝ้า ไฟแอลอีดีงานแสงสีทุกประเภท");
   // ไม่มีแถวส่วนลด · จำนวน "2"
   await expect(sheet.locator(".sh-tot")).not.toContainText("ส่วนลด");
   await expect(sheet.locator(".sh-tbl tbody tr").first().locator("td").nth(5)).toHaveText("2");

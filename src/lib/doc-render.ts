@@ -33,6 +33,9 @@ export type DocView = {
   previewSign?: boolean;
 };
 
+/** แถบท้ายเอกสารทุกใบ — สินค้า/บริการของร้าน */
+export const DOC_TAGLINE = "ไฟใต้น้ำ | ไฟส่องน้ำพุ | ไฟสระน้ำ Pool villa | โคมไฟส่องต้นไม้ | ไฟส่องถนน | ไฟฝังพื้น | ไฟย้อมสีตึก | ดาวไลท์ฝังฝ้า ไฟแอลอีดีงานแสงสีทุกประเภท";
+
 export const DOC_META: Record<DocTypeT, { th: string; en: string; short: string; path: string }> = {
   QUOTATION: { th: "ใบเสนอราคา", en: "QUOTATION", short: "QT", path: "QUOTATION" },
   INVOICE: { th: "ใบแจ้งหนี้ / ใบวางบิล", en: "INVOICE / BILLING NOTE", short: "IV", path: "INVOICE" },
@@ -99,7 +102,8 @@ export function buildDocParts(d: DocView): DocParts {
     if (n > 0) info.push(["เครดิต", `${n} วัน`]);
   }
   // ผู้ติดต่อฝั่งร้าน (ผู้ลงนาม) — ลูกค้าโทรหาคนที่ถูกต้อง
-  if (s.signerName && (d.type === "QUOTATION" || d.type === "INVOICE")) info.push(["ผู้ติดต่อ", `${esc(s.signerName)}${s.phone ? ` <span class="nw">${esc(s.phone)}</span>` : ""}`]);
+  // (ไม่พิมพ์เบอร์โทรซ้ำตรงนี้ — เบอร์ร้านอยู่ที่หัวเอกสารแล้ว)
+  if (s.signerName && (d.type === "QUOTATION" || d.type === "INVOICE")) info.push(["ผู้ติดต่อ", esc(s.signerName)]);
   if (d.type === "INVOICE") info.push(["ยอดค้างชำระ", `<b>${money(outstanding)}</b>`]);
   if (d.carrier && d.type !== "QUOTATION") info.push(["ขนส่ง", esc(d.carrier)]);
   info.push(["หน้า", "{{P}} / {{N}}"]);
@@ -150,7 +154,7 @@ export function buildDocParts(d: DocView): DocParts {
     // ใบเสนอราคา: บัญชีธนาคาร (ตั้งค่าได้) + QR เปิดดู/ยืนยันออนไลน์
     payBox = `<div class="sh-pay sh-qpay">${d.online ? `<figure class="sh-oqr"><img class="sh-qr" src="${esc(d.online.qr)}" alt="QR เปิดใบเสนอราคาออนไลน์"><figcaption>สแกนเพื่อดู<br>และยืนยันสั่งซื้อ</figcaption></figure>` : ""}<div>
       ${bankOn ? `<h5>ช่องทางชำระเงิน (เมื่อยืนยันสั่งซื้อ)</h5>${s.banks.map((b) => `<div>${esc(b.name)} เลขที่บัญชี <b>${esc(b.account)}</b>${b.holder ? ` ชื่อบัญชี <span class="nw">${esc(b.holder)}</span>` : ""}</div>`).join("")}` : ""}
-      ${d.online ? `<div class="mut">ยืนยันสั่งซื้อออนไลน์ได้ทันทีจาก QR นี้${s.line ? ` หรือแจ้งทาง LINE ${esc(s.line)}` : ""} พร้อมเลขที่ ${esc(label)}</div>` : s.line ? `<div class="mut">ยืนยันสั่งซื้อ/สอบถามทาง LINE ${esc(s.line)} พร้อมเลขที่ ${esc(label)}</div>` : ""}</div></div>`;
+      </div></div>`;
   }
   if (d.type === "INVOICE" && d.online && payBox) {
     payBox = payBox.replace('<div class="mut">', `<div class="mut">ดูใบแจ้งหนี้และแนบสลิปออนไลน์: สแกน QR มุมขวาล่าง · `);
@@ -187,7 +191,7 @@ export function buildDocParts(d: DocView): DocParts {
         ${ivOnline}</div>
       </section>
       ${sign}
-      <div class="sh-thanks">*** ขอบคุณที่ใช้บริการ ***</div>
+      <div class="sh-thanks">${DOC_TAGLINE}</div>
     </div>`;
   const foot = `<footer class="sh-foot"><span>${esc(label)} · พิมพ์เมื่อ ${esc(d.printedAt)}</span><span>หน้า {{P}} / {{N}}</span></footer>`;
   const mark = d.status === "VOID" ? `<div class="sh-mark void"><span>ยกเลิก</span>${d.voidReason ? `<em>${esc(d.voidReason)}</em>` : ""}</div>` : d.status === "DRAFT" ? '<div class="sh-mark draft"><span>ฉบับร่าง</span></div>' : "";
