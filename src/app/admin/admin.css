@@ -816,7 +816,8 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .sh-ct{display:inline-flex;align-items:center;gap:1.4mm;white-space:nowrap}
 .sh-ct svg{width:3.4mm;height:3.4mm;flex-shrink:0;color:#6b6b6b}
 .sh-tbox{text-align:right;flex-shrink:0;width:80mm;display:flex;flex-direction:column;align-items:flex-end}
-.sh-title{font-size:18pt;font-weight:800;line-height:1.15;letter-spacing:-.2pt}
+/* line-height ต้องพอสำหรับวรรณยุกต์ซ้อนสระบน (เช่น "หนี้") — .sh-body ตัดส่วนที่ล้นด้านบนทิ้ง */
+.sh-title{font-size:18pt;font-weight:800;line-height:1.5;letter-spacing:-.2pt}
 .sh-title.long{font-size:15pt;white-space:nowrap}
 .nw{white-space:nowrap}
 .sh-title small{display:block;font-size:7.5pt;font-weight:700;color:#777;letter-spacing:2pt;margin-top:.8mm}
@@ -2005,3 +2006,31 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .rq-main{display:inline-flex;align-items:center}
 .ra .bolt-ic{margin:0;width:16px;height:16px}
 .qd-kicker .bolt-ic{margin-right:5px}
+
+/* ---------- ช่องทางชำระเงินบนเอกสาร (ใบแจ้งหนี้ + ใบเสนอราคา): หัวข้อ + ยอด · ชื่อบัญชี · ธนาคารพร้อมไอคอน ---------- */
+.sh-ivpay{align-items:stretch;gap:4mm;padding:3mm 3.5mm}
+.sh-ppqr{margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2mm;flex-shrink:0;padding-right:4mm;border-right:.2mm solid #e3e3e3}
+.sh-ppqr figcaption{font-size:7.2pt;line-height:1.35;color:#555;text-align:center;max-width:30mm}
+.sh-ppqr figcaption b{display:block;color:#161616;font-size:7.8pt}
+.pay-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1.4mm}
+.sh-qpay > div{flex:1;min-width:0}
+.pay-hd{display:flex;align-items:center;justify-content:space-between;gap:3mm;padding-bottom:1.4mm;border-bottom:.25mm solid #e3e3e3}
+.sh-pay .pay-hd h5{margin:0;font-size:9.6pt;font-weight:800;line-height:1.4}
+.pay-amt{flex-shrink:0;background:#E8F6EE;border:.25mm solid #86CBA2;color:#155D34;border-radius:1.6mm;padding:.5mm 2.4mm;font-size:8pt;white-space:nowrap;line-height:1.5}
+.pay-amt b{font-size:9.6pt;font-variant-numeric:tabular-nums}
+.bk-holder{font-size:8.4pt;color:#555}
+.bk-holder b{color:#161616;font-weight:700}
+.bk-list{list-style:none;margin:0;padding:0}
+.bk-list li{display:grid;grid-template-columns:6.2mm minmax(0,1fr) auto;align-items:center;column-gap:2.6mm;padding:1.3mm 0;border-top:.2mm dashed #dedede}
+.bk-list li:first-child{border-top:0;padding-top:.6mm}
+.bk-ic{width:6.2mm;height:6.2mm;border-radius:50%;display:grid;place-items:center;color:#fff;background:#6b6b6b}
+.bk-ic svg{width:3.6mm;height:3.6mm}
+.bk-name{font-weight:600;font-size:8.8pt}
+.bk-acc{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bk-acc small{color:#777;font-size:7.4pt;margin-right:1mm}
+.bk-acc b{font-size:10pt;font-weight:800;letter-spacing:.3pt}
+.bk-h{grid-column:2 / -1;font-size:7.6pt;color:#555;margin-top:-.4mm}
+/* สีประจำธนาคาร */
+.bk-KBANK{background:#138F2D}.bk-SCB{background:#4E2E7F}.bk-BBL{background:#1E4598}.bk-KTB{background:#1BA5E1}
+.bk-BAY{background:#FEC43B;color:#4B3A00}.bk-TTB{background:#0050F0}.bk-GSB{background:#EB198D}.bk-BAAC{background:#4B9B1D}
+.bk-UOB{background:#0B3979}.bk-CIMB{background:#7E2F36}.bk-LHB{background:#6D6E71}.bk-KKP{background:#635F98}

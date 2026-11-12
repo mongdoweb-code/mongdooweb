@@ -69,7 +69,7 @@ export function shopHead(s: ShopSetting): ShopHead {
   return {
     name: s.legalName, address: s.addressText, phone: s.phone, line: s.lineId ?? "", email: s.email ?? "", taxId: s.taxId ?? "", branch: s.branch ?? "",
     logo: (s.logoKey && mediaUrl(s.logoKey)) || DEFAULT_LOGO, era: s.dateEra, showSignature: s.showSignature,
-    banks: parseBankAccounts(s.bankAccounts).map((b) => ({ name: bankLabel(b.bank), account: b.account, holder: b.holder })),
+    banks: parseBankAccounts(s.bankAccounts).map((b) => ({ code: b.bank, name: bankLabel(b.bank), account: b.account, holder: b.holder })),
     promptpayName: s.promptpayName,
     signature: (s.signatureKey && mediaUrl(s.signatureKey)) || "", stamp: (s.stampKey && mediaUrl(s.stampKey)) || "",
     signerName: s.signerName, signerTitle: s.signerTitle, quotePayInfo: s.quotePayInfo,
