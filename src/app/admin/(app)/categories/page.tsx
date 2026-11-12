@@ -13,6 +13,7 @@ import { applyCategorySort, deleteCategory, moveCategory, quickSaveCategory, rol
 import { QuickEditCategory, type QuickCategory } from "./QuickEditCategory";
 import { CAT_SORT_LABEL, isCatSortKey, sortCategories, type CatSortKey } from "./sort";
 import { CategoryForm, type CatValues } from "./CategoryForm";
+import { BoltIcon } from "../../_components/BoltIcon";
 
 const GROUP = { WATER: "งานน้ำ", OUTDOOR: "สวนและภายนอก", BUILDING: "อาคารและภายใน", DECO: "อุปกรณ์และตกแต่ง" } as const;
 const Ico = ({ k }: { k: string | null }) => (
@@ -106,7 +107,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
           {/* เมนูจัดการรวดเร็ว (แสดงเมื่อชี้แถว) */}
           <div className="row-quick cat-quick">
             <span className="rq-links">
-              <button type="button" className="rq rq-main" data-qe-open={JSON.stringify(quick(c))}>⚡ แก้ไขด่วน</button>
+              <button type="button" className="rq rq-main" data-qe-open={JSON.stringify(quick(c))}><BoltIcon />แก้ไขด่วน</button>
               <Link className="rq" href={`/admin/categories?edit=${c.id}`}>แก้ไขทั้งหมด</Link>
               <Link className="rq" href={`/admin/products?cat=${c.id}`}>ดูสินค้าในหมวด</Link>
               {c.isActive && <a className="rq" href={`/category/${c.slug}`} target="_blank" rel="noopener">ดูหน้าร้าน</a>}
