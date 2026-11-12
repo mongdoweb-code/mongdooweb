@@ -892,7 +892,7 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .sh-sign .sg-line{border-bottom:.3mm dotted #161616;height:11mm;margin-bottom:1.5mm}
 .sh-sign b{display:block}
 .sh-sign span{display:block;font-size:8pt;color:#555;margin-top:1mm}
-.sh-thanks{border:.3mm solid #a3a3a3;border-radius:2.5mm;text-align:center;padding:1.8mm;margin-top:6mm;font-size:9pt;background:#FAFAFA}
+.sh-thanks{border:.3mm solid #a3a3a3;border-radius:2.5mm;text-align:center;padding:1.8mm 2mm;margin-top:6mm;font-size:7.8pt;font-weight:600;line-height:1.45;letter-spacing:-.05pt;background:#FAFAFA}
 .sh-foot{display:flex;justify-content:space-between;font-size:7.3pt;color:#777;padding-top:1.8mm;border-top:.2mm solid #ddd;margin-top:2mm;flex-shrink:0}
 .sh-mark{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;transform:rotate(-24deg)}
 .sh-mark span{font-size:68pt;font-weight:800;color:rgba(192,57,43,.2);border:2mm solid rgba(192,57,43,.2);padding:0 9mm;border-radius:5mm;line-height:1.3}
