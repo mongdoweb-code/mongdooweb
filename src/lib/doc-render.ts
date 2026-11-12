@@ -10,7 +10,7 @@ export type CustSnap = {
 export type DocLine = { sku: string; name: string; detail: string; unit: string; qtyMilli: number; priceSatang: number; discountSatang: number; img?: string };
 export type ShopHead = {
   name: string; address: string; phone: string; line: string; email: string; taxId: string; branch: string; logo: string;
-  era: "AD" | "BE"; showSignature: boolean; banks: { name: string; account: string; holder: string }[]; promptpayName: string;
+  era: "AD" | "BE"; showSignature: boolean; banks: { code?: string; name: string; account: string; holder: string }[]; promptpayName: string;
   /** ลายเซ็น/ตราประทับ (ลิงก์รูป) + ชื่อ/ตำแหน่งผู้ลงนามฝั่งร้าน — พิมพ์เฉพาะเอกสารที่ออกแล้ว */
   signature?: string; stamp?: string; signerName?: string; signerTitle?: string;
   /** ใบเสนอราคา: แสดงบัญชีธนาคาร */
@@ -32,6 +32,20 @@ export type DocView = {
   /** ตัวอย่างในตัวแก้ไข: แสดงลายเซ็นแม้เป็นฉบับร่าง (มีลายน้ำ "ฉบับร่าง" — พิมพ์จริงยังต้องออกเอกสารก่อน) */
   previewSign?: boolean;
 };
+
+/** ไอคอนธนาคาร: วงกลมสีประจำธนาคาร + รูปอาคารธนาคารสีขาว (ไม่ใช้โลโก้จริง) — สีอยู่ใน admin.css (.bk-KBANK …) */
+const BANK_ICON = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 7.5V9h18V7.5L12 3Z" fill="currentColor"/><path d="M5 10.5h2.2v6.5H5zM10.9 10.5h2.2v6.5h-2.2zM16.8 10.5H19v6.5h-2.2zM3 18.5h18V20H3z" fill="currentColor"/></svg>`;
+
+/** รายการบัญชีธนาคาร: ชื่อบัญชีแสดงครั้งเดียวเมื่อทุกบัญชีชื่อเดียวกัน · ไอคอน · ชื่อธนาคาร · เลขที่บัญชี (ตัวหนา ชิดขวา) */
+function bankList(banks: ShopHead["banks"]) {
+  const holders = [...new Set(banks.map((b) => b.holder.trim()))];
+  const same = holders.length === 1 && holders[0] !== "";
+  const li = banks.map((b) => {
+    const code = (b.code ?? "").replace(/[^A-Z]/g, "");
+    return `<li><span class="bk-ic${code ? ` bk-${code}` : ""}">${BANK_ICON}</span><span class="bk-name">${esc(b.name.replace(/^ธนาคาร/, ""))}</span><span class="bk-acc"><small>เลขที่บัญชี</small> <b>${esc(b.account)}</b></span>${!same && b.holder ? `<span class="bk-h">ชื่อบัญชี ${esc(b.holder)}</span>` : ""}</li>`;
+  });
+  return `${same ? `<div class="bk-holder">ชื่อบัญชี <b>${esc(holders[0])}</b></div>` : ""}<ul class="bk-list">${li.join("")}</ul>`;
+}
 
 /** แถบท้ายเอกสารทุกใบ — สินค้า/บริการของร้าน */
 export const DOC_TAGLINE = "ไฟใต้น้ำ | ไฟส่องน้ำพุ | ไฟสระน้ำ Pool villa | โคมไฟส่องต้นไม้ | ไฟส่องถนน | ไฟฝังพื้น | ไฟย้อมสีตึก | ดาวไลท์ฝังฝ้า ไฟแอลอีดีงานแสงสีทุกประเภท";
@@ -136,10 +150,10 @@ export function buildDocParts(d: DocView): DocParts {
   if (vatOn) tot.push(["มูลค่าก่อนภาษีมูลค่าเพิ่ม", t.beforeVat], [`ภาษีมูลค่าเพิ่ม ${d.vatRateBp / 100}%`, t.vat]);
   let payBox = "";
   if (d.type === "INVOICE") {
-    payBox = `<div class="sh-pay">${d.qr ? `<img class="sh-qr" src="${esc(d.qr)}" alt="PromptPay QR">` : ""}<div><h5>ช่องทางชำระเงิน</h5>
-      ${s.banks.map((b) => `<div>${esc(b.name)} เลขที่บัญชี <b>${esc(b.account)}</b>${b.holder ? ` ชื่อบัญชี <span class="nw">${esc(b.holder)}</span>` : ""}</div>`).join("")}
-      ${d.qr ? `<div>สแกนพร้อมเพย์${s.promptpayName ? " " + esc(s.promptpayName) : ""} ยอด <b>${money(outstanding)}</b> บาท</div>` : ""}
-      <div class="mut">โอนแล้วกรุณาแจ้งสลิป${s.line ? " ทาง LINE " + esc(s.line) : ""} พร้อมเลขที่ ${esc(label)}</div></div></div>`;
+    // ใบแจ้งหนี้: QR พร้อมเพย์ (ยอดค้างชำระ) ซ้าย · หัวข้อ + ยอดชำระ · ชื่อบัญชี · รายการธนาคารพร้อมไอคอน
+    payBox = `<div class="sh-pay sh-ivpay">${d.qr ? `<figure class="sh-ppqr"><img class="sh-qr" src="${esc(d.qr)}" alt="PromptPay QR"><figcaption><b>สแกนจ่ายพร้อมเพย์</b>${s.promptpayName ? `<span>${esc(s.promptpayName)}</span>` : ""}</figcaption></figure>` : ""}
+      <div class="pay-main"><div class="pay-hd"><h5>ช่องทางชำระเงิน</h5>${outstanding > 0 ? `<span class="pay-amt">ยอดชำระ <b>${money(outstanding)}</b> บาท</span>` : ""}</div>
+      ${s.banks.length ? bankList(s.banks) : ""}</div></div>`;
   }
   if (isCn) {
     // ใบลดหนี้ตามมาตรา 86/10: มูลค่าเดิม · มูลค่าที่ถูกต้อง · ผลต่าง (+ VAT ของผลต่างเมื่อเปิด VAT) · เหตุผล
@@ -153,7 +167,7 @@ export function buildDocParts(d: DocView): DocParts {
   if (d.type === "QUOTATION" && (bankOn || d.online)) {
     // ใบเสนอราคา: บัญชีธนาคาร (ตั้งค่าได้) + QR เปิดดู/ยืนยันออนไลน์
     payBox = `<div class="sh-pay sh-qpay">${d.online ? `<figure class="sh-oqr"><img class="sh-qr" src="${esc(d.online.qr)}" alt="QR เปิดใบเสนอราคาออนไลน์"><figcaption>สแกนเพื่อดู<br>และยืนยันสั่งซื้อ</figcaption></figure>` : ""}<div>
-      ${bankOn ? `<h5>ช่องทางชำระเงิน (เมื่อยืนยันสั่งซื้อ)</h5>${s.banks.map((b) => `<div>${esc(b.name)} เลขที่บัญชี <b>${esc(b.account)}</b>${b.holder ? ` ชื่อบัญชี <span class="nw">${esc(b.holder)}</span>` : ""}</div>`).join("")}` : ""}
+      ${bankOn ? `<div class="pay-main"><div class="pay-hd"><h5>ช่องทางชำระเงิน (เมื่อยืนยันสั่งซื้อ)</h5></div>${bankList(s.banks)}</div>` : ""}
       </div></div>`;
   }
   if (d.type === "INVOICE" && d.online && payBox) {

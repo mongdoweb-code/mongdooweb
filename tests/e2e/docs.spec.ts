@@ -44,6 +44,19 @@ test("วงจร QT → IV → รับชำระบางส่วน/ค�
   const grandText = (await page.locator(".dv-amt b" + V).innerText()).replace(/[฿,]/g, "");
   const grand = Number(grandText);
   expect(grand).toBeGreaterThan(1000);
+  // หน้าเอกสาร: หัว "ใบแจ้งหนี้" วรรณยุกต์ไม่ถูกตัด (กล่องหัวสูงพอ) · กล่องชำระเงินแบบใหม่ ไม่มีบรรทัด "โอนแล้วกรุณาแจ้งสลิป"
+  const sheet = page.locator(".sheet").first();
+  await expect(sheet.locator(".sh-title")).toContainText("ใบแจ้งหนี้ / ใบวางบิล");
+  const [title, body] = await Promise.all([sheet.locator(".sh-title").boundingBox(), sheet.locator(".sh-body").boundingBox()]);
+  expect(title!.y).toBeGreaterThanOrEqual(body!.y);
+  const lh = await sheet.locator(".sh-title").evaluate((e) => parseFloat(getComputedStyle(e).lineHeight) / parseFloat(getComputedStyle(e).fontSize));
+  expect(lh).toBeGreaterThanOrEqual(1.4);
+  const pay = sheet.locator(".sh-ivpay");
+  await expect(pay.locator(".pay-hd h5")).toHaveText("ช่องทางชำระเงิน");
+  await expect(pay.locator(".pay-amt")).toContainText(grandText.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+  expect(await pay.locator(".bk-list li").count()).toBeGreaterThan(0);
+  await expect(pay.locator(".bk-list li .bk-ic svg").first()).toBeVisible();
+  await expect(pay).not.toContainText("แจ้งสลิป");
 
   // งวดที่ 1: 1,000 บาท → ชำระบางส่วน · ยอดเกินต้องถูกปฏิเสธ
   await page.fill("#amount" + V, "1000");
