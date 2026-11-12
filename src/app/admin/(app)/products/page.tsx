@@ -19,6 +19,7 @@ import { InlineCell } from "../../_components/InlineCell";
 import { QuickEditProduct, type QuickProduct } from "./QuickEditProduct";
 import { quickField, quickSaveProduct } from "./quick-actions";
 import "../../lot3.css";
+import { BoltIcon } from "../../_components/BoltIcon";
 
 const STATUS = { all: "ทั้งหมด", pinned: "ปักหมุด", active: "เปิดขาย", inactive: "ปิดขาย", out: "สินค้าหมด", inquire: "สอบถามราคา", low: "สต็อกใกล้หมด" } as const;
 type Status = keyof typeof STATUS;
@@ -161,7 +162,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
             <span className="sub">{p.sku}{p.isBestSeller ? " · ขายดี" : ""}</span>
             {/* เมนูจัดการรวดเร็ว (แสดงเมื่อชี้แถว / แสดงตลอดบนจอสัมผัส) */}
             <span className="rq-links">
-              <button type="button" className="rq rq-main" data-qe-open={JSON.stringify(quick(p, img))}>⚡ แก้ไขด่วน</button>
+              <button type="button" className="rq rq-main" data-qe-open={JSON.stringify(quick(p, img))}><BoltIcon />แก้ไขด่วน</button>
               <a className="rq" href={`/admin/products/${p.id}`}>แก้ไข</a>
               {p.isActive && <a className="rq" href={`/product/${p.slug}`} target="_blank" rel="noopener">ดูหน้าร้าน</a>}
               {p.trackStock && <a className="rq" href={`/admin/stock/${p.id}`}>ประวัติสต็อก</a>}
@@ -288,7 +289,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
             </form>
             <RowActions
               name={p.sku}
-              before={<button type="button" className="ra ra-dup" data-qe-open={JSON.stringify(quick(p, mediaUrl(p.images[0], "sm")))} data-tip="แก้ไขด่วน" aria-label={`แก้ไขด่วน ${p.sku}`}>⚡</button>}
+              before={<button type="button" className="ra ra-dup" data-qe-open={JSON.stringify(quick(p, mediaUrl(p.images[0], "sm")))} data-tip="แก้ไขด่วน" aria-label={`แก้ไขด่วน ${p.sku}`}><BoltIcon /></button>}
               viewHref={`/product/${p.slug}`}
               viewDisabled={p.isActive ? undefined : "ปิดขายอยู่ — ไม่แสดงหน้าร้าน"}
               editHref={`/admin/products/${p.id}`}

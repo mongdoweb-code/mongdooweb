@@ -2,6 +2,7 @@
 // แผงแก้ไขด่วนเลื่อนออกจากด้านขวา — ใช้ร่วมกันหลายหน้า (สินค้า / หมวดหมู่)
 // เปิดจากปุ่มในตาราง: <button data-qe-open='{"kind":"product",...}'> → host ของหน้านั้นรับข้อมูลไปแสดง (ไม่ต้องสร้าง client component ทุกแถว)
 import { useEffect, useRef } from "react";
+import { BoltIcon } from "./BoltIcon";
 
 export function useQuickOpen<T>(kind: string, onOpen: (data: T) => void) {
   const cb = useRef(onOpen);
@@ -46,7 +47,7 @@ export function QuickDrawer({ open, title, sub, onClose, children, footer }: { o
       <div className="qd-panel" ref={panel}>
         <div className="qd-head">
           <div>
-            <span className="qd-kicker">⚡ แก้ไขด่วน</span>
+            <span className="qd-kicker"><BoltIcon />แก้ไขด่วน</span>
             <h2>{title}</h2>
             {sub && <div className="qd-sub">{sub}</div>}
           </div>
