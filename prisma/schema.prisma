@@ -52,6 +52,7 @@ model Admin {
   sessions   AdminSession[]
 
   notifSeenAt    DateTime? // อ่านศูนย์แจ้งเตือนถึงเวลานี้ (A28)
+  quickMenu      Json? // แถบเมนูด่วนด้านบน: ["qt-new", …] — null = ค่าเริ่มต้น (src/lib/quick-menu.ts)
   notes          InternalNote[]
   tasksCreated   AdminTask[]     @relation("TaskCreator")
   tasksAssigned  AdminTask[]     @relation("TaskAssignee")

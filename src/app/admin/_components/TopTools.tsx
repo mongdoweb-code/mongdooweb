@@ -170,7 +170,7 @@ function Bell() {
   );
 }
 
-export function TopTools() {
+export function TopTools({ quick }: { quick?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -182,6 +182,7 @@ export function TopTools() {
   }, []);
   return (
     <div className="gtools">
+      {quick}
       <button type="button" className="gs-btn" id="gsOpen" onClick={() => setOpen(true)} aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         <span>ค้นหาทั้งระบบ…</span>
