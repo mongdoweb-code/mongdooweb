@@ -57,6 +57,7 @@ model Admin {
   tasksCreated   AdminTask[]     @relation("TaskCreator")
   tasksAssigned  AdminTask[]     @relation("TaskAssignee")
   purchaseOrders PurchaseOrder[]
+  docsWork       SalesDocument[] @relation("DocWorkBy")
   stockCounts    StockCount[]    @relation("StockCountCreated")
   stockApplied   StockCount[]    @relation("StockCountApplied")
 }
@@ -642,6 +643,12 @@ model SalesDocument {
   lastViewedAt    DateTime?
   followUpAt      DateTime? // วันนัดติดตาม (เที่ยงคืนเวลาไทย)
   lostReason      String? // QT ไม่ตอบรับ: ราคาสูง / เลือกร้านอื่น / …
+  // สถานะงานภายในร้าน (ไม่พิมพ์บนเอกสาร/ไม่แสดงให้ลูกค้า) — ต้องดำเนินการ / เสร็จสิ้น · null = ยังไม่ระบุ
+  workState       DocWork?
+  workNote        String? // สิ่งที่ต้องทำ/หมายเหตุสั้นๆ
+  workAt          DateTime?
+  workById        String?
+  workBy          Admin?    @relation("DocWorkBy", fields: [workById], references: [id], onDelete: SetNull)
   // ตัวเลือกต่อเอกสาร (ติ๊กในตัวแก้ไข) — ค่าเริ่มต้นของเอกสารใหม่มาจากตั้งค่าร้าน
   signImage       Boolean   @default(true) // ใส่ลายเซ็น/ตราประทับอิเล็กทรอนิกส์ (ต้องอัปโหลดในตั้งค่าร้านก่อน)
   showBank        Boolean   @default(true) // ใบเสนอราคา: แสดงเลขบัญชีธนาคาร
@@ -666,6 +673,7 @@ model SalesDocument {
   @@index([customerId])
   @@index([dueDate])
   @@index([type, status, followUpAt])
+  @@index([type, workState])
 }
 
 model SalesDocumentItem {
@@ -721,6 +729,13 @@ enum DocEventType {
   STOCK_RETURNED // CN: รับสินค้าคืนเข้าสต็อก
   VIEWED // ลูกค้าเปิดดูผ่านลิงก์ (บันทึกครั้งแรก และเมื่อห่างจากครั้งก่อน ≥ 6 ชม.)
   FOLLOW_UP // ตั้ง/เปลี่ยนวันนัดติดตาม
+  WORK // เปลี่ยนสถานะงานภายในร้าน (ต้องดำเนินการ / เสร็จสิ้น / ล้าง)
+}
+
+/// สถานะงานภายในร้านของเอกสารขาย (แบบป้ายในแชต LINE OA)
+enum DocWork {
+  TODO // ต้องดำเนินการ
+  DONE // เสร็จสิ้น
 }
 
 model SalesDocumentEvent {

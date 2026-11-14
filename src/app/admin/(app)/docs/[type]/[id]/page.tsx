@@ -14,12 +14,13 @@ import { LabelOptions } from "../../../../_components/LabelOptions";
 import { acceptQuote, convertQuote, createCreditNote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, returnCreditStock, reviseQuote, setFollowUp, setSignDate } from "../../actions";
 import { PaymentForm, QuoteToReceiptForm, VoidForm } from "../../DocForms";
 import { DocOnline } from "../../DocOnline";
+import { WorkPanel } from "../../WorkTag";
 
 export const instant = false;
 
 const SIGNER = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ" } as const;
 
-const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป", STOCK_RETURNED: "รับคืนเข้าสต็อก", VIEWED: "ลูกค้าเปิดดู", FOLLOW_UP: "นัดติดตาม" };
+const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป", STOCK_RETURNED: "รับคืนเข้าสต็อก", VIEWED: "ลูกค้าเปิดดู", FOLLOW_UP: "นัดติดตาม", WORK: "สถานะงาน" };
 /** จำนวนวันจาก a ถึง b (YYYY-MM-DD) */
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
 
@@ -28,7 +29,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
   const [{ type, id }, sp] = await Promise.all([params, searchParams]);
   if (!isDocType(type)) notFound();
   if (id === "new") redirect(`/admin/docs/${type}/new/edit`);
-  const d = await prisma.salesDocument.findUnique({ where: { id }, include: { ...DOC_INCLUDE, events: { orderBy: { createdAt: "desc" }, include: { admin: { select: { displayName: true } } } } } });
+  const d = await prisma.salesDocument.findUnique({ where: { id }, include: { ...DOC_INCLUDE, workBy: { select: { displayName: true } }, events: { orderBy: { createdAt: "desc" }, include: { admin: { select: { displayName: true } } } } } });
   if (!d) notFound();
   if (d.type !== type) redirect(docPath(d));
   const s = await getSettings();
@@ -154,6 +155,8 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
             </div>
           </div>
 
+          <WorkPanel id={d.id} state={d.workState} note={d.workNote} by={d.workBy?.displayName} at={d.workAt ? docDateTime(d.workAt, era) : null} />
+
           {d.type === "QUOTATION" && d.status !== "DRAFT" && (() => {
             const vu = ymdOf(d.validUntil);
             const left = vu ? dayDiff(today, vu) : null;
@@ -271,7 +274,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
             <h3>ประวัติเอกสาร</h3>
             <ul className="timeline">
               {d.events.map((e) => (
-                <li key={e.id} className={`t-${e.type === "VOIDED" ? "REJECTED" : e.type === "PAYMENT" || e.type === "ISSUED" || e.type === "CUSTOMER_ACCEPTED" ? "APPROVED" : e.type}`}>
+                <li key={e.id} className={`t-${e.type === "VOIDED" ? "REJECTED" : e.type === "PAYMENT" || e.type === "ISSUED" || e.type === "CUSTOMER_ACCEPTED" ? "APPROVED" : e.type === "WORK" ? (e.note?.startsWith("เสร็จสิ้น") ? "APPROVED" : "WORK") : e.type}`}>
                   <b>{EV[e.type] ?? e.type}</b>{e.note ? ` — ${e.note}` : ""}
                   <small>{docDateTime(e.createdAt, era)} · {e.admin?.displayName ?? "ระบบ"}</small>
                 </li>
