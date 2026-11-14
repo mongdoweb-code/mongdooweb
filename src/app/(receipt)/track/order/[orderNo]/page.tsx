@@ -10,6 +10,12 @@ import { bankLabel, getSettings, parseBankAccounts } from "@/lib/settings";
 import { PrintBar } from "./PrintBar";
 import "./order-sheet.css";
 
+/** 4982105000 → 498-2-10500-0 (เลขบัญชี 10 หลักแบบธนาคารไทย) */
+const fmtAcc = (a: string) => {
+  const d = a.replace(/\D/g, "");
+  return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 4)}-${d.slice(4, 9)}-${d.slice(9)}` : a;
+};
+
 export const instant = false;
 
 const tokenOf = (sp: Record<string, string | string[] | undefined>) => (typeof sp.t === "string" ? sp.t : undefined);
@@ -117,9 +123,22 @@ export default async function PublicOrderPage({ params, searchParams }: PageProp
             {unpaid && banks.length > 0 && (
               <section className="os-pay">
                 <h2>ช่องทางชำระเงิน</h2>
-                <ul>
-                  {banks.map((b) => <li key={b.account}>{bankLabel(b.bank)} · {b.account}{b.holder ? ` · ${b.holder}` : ""}</li>)}
-                  {s.promptpayId && <li>พร้อมเพย์ {s.promptpayId} · {s.promptpayName}</li>}
+                {/* แยกกล่องทีละบัญชี + สีประจำธนาคาร + เลขบัญชีตัวเด่น (กันสับสนระหว่างบัญชี) */}
+                <ul className="os-banks">
+                  {banks.map((b) => (
+                    <li key={b.account} className={`os-bank bk-${/^[A-Z]{2,6}$/.test(b.bank) ? b.bank : "OTHER"}`}>
+                      <span className="os-bk-name">{bankLabel(b.bank)}</span>
+                      <span className="os-bk-acc"><small>เลขที่บัญชี</small> <b>{fmtAcc(b.account)}</b></span>
+                      {b.holder && <span className="os-bk-h">ชื่อบัญชี {b.holder}</span>}
+                    </li>
+                  ))}
+                  {s.promptpayId && (
+                    <li className="os-bank bk-PROMPTPAY">
+                      <span className="os-bk-name">พร้อมเพย์</span>
+                      <span className="os-bk-acc"><small>หมายเลข</small> <b>{s.promptpayId}</b></span>
+                      {s.promptpayName && <span className="os-bk-h">ชื่อบัญชี {s.promptpayName}</span>}
+                    </li>
+                  )}
                 </ul>
                 <p>โอนแล้วแนบสลิปที่หน้าติดตามคำสั่งซื้อ ด้วยเลขที่คำสั่งซื้อและเบอร์โทร</p>
               </section>

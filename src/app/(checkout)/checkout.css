@@ -209,7 +209,35 @@ input,select,textarea{font-family:inherit;font-size:16px;color:var(--c-ink)}
 }
 
 /* ---------- เพิ่มสำหรับระบบจริง ---------- */
-.bank-card + .bank-card{margin-top:14px;padding-top:14px;border-top:1px dashed var(--c-line)}
+/* บัญชีรับโอน: การ์ดแยกทีละบัญชี · สีประจำธนาคาร (--bk พื้นไอคอน/แถบซ้าย, --bk-ink ตัวเลขบนพื้นอ่อน ≥ 4.5:1) */
+.bank-list{display:grid;gap:14px}
+.bank-card{--bk:#5B5853;--bk-ink:#4A4743;--bk-fg:#fff;position:relative;background:#fff;border:1.5px solid var(--c-line);border-left:6px solid var(--bk);border-radius:10px;padding:16px 18px 14px;box-shadow:0 2px 10px rgba(30,25,15,.05)}
+.bk-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.bk-ic{width:40px;height:40px;flex:0 0 40px;border-radius:50%;display:grid;place-items:center;background:var(--bk);color:var(--bk-fg)}
+.bk-ic svg{width:22px;height:22px;fill:currentColor}
+.bk-t{display:flex;flex-direction:column;line-height:1.35;min-width:0}
+.bk-name{font-size:17px;font-weight:700;color:var(--c-ink)}
+.bk-t small{font-size:12.5px;color:var(--c-muted)}
+.bk-accbox{background:color-mix(in srgb,var(--bk) 8%,#fff);border:1px solid color-mix(in srgb,var(--bk) 22%,#fff);border-radius:8px;padding:10px 14px 12px}
+.bk-lbl{display:block;font-size:13px;color:var(--c-muted);margin-bottom:2px}
+.bk-accline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.bk-acc{font-size:27px;font-weight:800;letter-spacing:.04em;color:var(--bk-ink);font-variant-numeric:tabular-nums;line-height:1.25;word-break:break-all}
+.copy.copy-acc{display:inline-flex;align-items:center;gap:6px;margin:0;padding:8px 14px;font-size:14px;border:1.5px solid var(--bk-ink);color:var(--bk-ink);background:#fff;border-radius:8px;min-height:40px;transition:background .15s,color .15s}
+.copy.copy-acc svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.copy.copy-acc:hover{background:var(--bk-ink);color:#fff}
+.copy.copy-acc.done{background:#15803D;border-color:#15803D;color:#fff}
+.bk-holder{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:15px}
+.bk-holder span{color:var(--c-muted);font-size:14px}
+.bk-holder b{font-weight:700}
+.bk-KBANK{--bk:#138F2D;--bk-ink:#0E7A25}.bk-SCB{--bk:#4E2E7F;--bk-ink:#4E2E7F}.bk-BBL{--bk:#1E4598;--bk-ink:#1E4598}.bk-KTB{--bk:#1BA5E1;--bk-ink:#0B6E9C}
+.bk-BAY{--bk:#FEC43B;--bk-ink:#7A5A00;--bk-fg:#4B3A00}.bk-TTB{--bk:#0050F0;--bk-ink:#0042C4}.bk-GSB{--bk:#EB198D;--bk-ink:#B5106A}.bk-BAAC{--bk:#4B9B1D;--bk-ink:#3B7A16}
+.bk-UOB{--bk:#0B3979;--bk-ink:#0B3979}.bk-CIMB{--bk:#7E2F36;--bk-ink:#7E2F36}.bk-LHB{--bk:#6D6E71;--bk-ink:#55565A}.bk-KKP{--bk:#635F98;--bk-ink:#524E85}
+.bk-PROMPTPAY{--bk:#1A3D7C;--bk-ink:#1A3D7C}
+@media (max-width:520px){
+  .bank-card{padding:14px 14px 12px}
+  .bk-acc{font-size:24px}
+  .bk-accline .copy-acc{width:100%;justify-content:center}
+}
 .si-thumb img{width:100%;height:100%;object-fit:contain;background:#fff}
 .ship-rates{margin-top:10px;font-size:14px;color:var(--c-muted)}
 .ship-rates summary{cursor:pointer;text-decoration:underline;text-underline-offset:3px;width:max-content}

@@ -226,6 +226,36 @@ test("U21–U22 สลิปใหญ่ถูกย่อก่อนอัป�
   await page.click("#step1 button[type=submit]");
   await expect(page.locator("#step2")).toBeVisible();
   const orderNo = (await page.locator("#orderNo").textContent())!.trim();
+  // บัญชีรับโอน: การ์ดแยกทีละบัญชี (ตรงกับตั้งค่าร้าน) · ชื่อธนาคาร · เลขบัญชีตัวใหญ่สีประจำธนาคาร · ปุ่มคัดลอกเลขล้วน
+  const [{ bankAccounts }] = await q<{ bankAccounts: { bank: string; account: string; holder?: string }[] }>(`SELECT "bankAccounts" FROM "ShopSetting" WHERE id='shop'`);
+  const accts = (bankAccounts ?? []).filter((b) => b && b.account);
+  await page.click("[data-tab='bank']");
+  const cards = page.locator("#bankBox .bank-card");
+  await expect(cards).toHaveCount(accts.length);
+  for (const [i, b] of accts.entries()) {
+    const card = cards.nth(i);
+    await expect(card).toHaveClass(new RegExp(`bk-${b.bank}`));
+    await expect(card.locator(".bk-acc")).toHaveText(new RegExp(b.account.replace(/\D/g, "").split("").join("-?")));
+    const fs = await card.locator(".bk-acc").evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+    expect(fs).toBeGreaterThanOrEqual(24);
+    expect(await card.locator(".bk-acc").evaluate((e) => getComputedStyle(e).color)).not.toBe("rgb(26, 26, 26)");
+    await expect(card.locator(".copy-acc")).toHaveAttribute("data-copy", b.account.replace(/\D/g, ""));
+    if (b.holder) await expect(card.locator(".bk-holder b")).toHaveText(b.holder);
+    if (accts.length > 1) await expect(card.locator(".bk-t small")).toHaveText(`บัญชีที่ ${i + 1} จาก ${accts.length}`);
+  }
+  if (accts.length) {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    const btn = cards.first().locator(".copy-acc");
+    await btn.click();
+    await expect(btn).toContainText("คัดลอกแล้ว");
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(accts[0].account.replace(/\D/g, ""));
+    // การ์ดแยกกันจริง (ไม่ซ้อน/ติดกัน)
+    if (accts.length > 1) {
+      const a = (await cards.nth(0).boundingBox())!, b2 = (await cards.nth(1).boundingBox())!;
+      expect(b2.y).toBeGreaterThanOrEqual(a.y + a.height + 8);
+    }
+  }
+  await page.screenshot({ path: "test-results/lot2-bank-cards.png", fullPage: true });
   await page.click("[data-goto='3']" + V);
   // รูปจากกล้องมือถือจำลอง: JPEG 4000×3000 ขนาด 8 MB ขึ้นไป
   const big = await sharp({ create: { width: 4000, height: 3000, channels: 3, background: "#808080", noise: { type: "gaussian", mean: 128, sigma: 40 } } }).jpeg({ quality: 95 }).toBuffer();
@@ -245,6 +275,7 @@ test("U21–U22 สลิปใหญ่ถูกย่อก่อนอัป�
   await expect(page.locator("#doneNo")).toHaveText(orderNo);
   await expect(page.locator("#doneItems")).toContainText(p.name.slice(0, 10));
   await expect(page.locator("#doneBanks .bank-card").first()).toBeVisible();
+  await expect(page.locator("#doneBanks .bank-card .bk-acc").first()).toBeVisible();
   await expect(page.locator("#doneTrack")).toHaveAttribute("href", `/track?no=${orderNo}`);
   expect(await page.evaluate(() => localStorage.getItem("mdw_cart"))).toBeNull();
   const dl = page.waitForEvent("download");

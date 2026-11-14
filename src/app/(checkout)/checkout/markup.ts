@@ -153,7 +153,7 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
         </div>
 
         <div class="pane" id="pane-bank">
-          <div class="bank" id="bankBox"></div>
+          <div class="bank-list" id="bankBox"></div>
           <p class="note">โปรดโอนยอดให้ตรงกับยอดคำสั่งซื้อ เพื่อให้ตรวจสอบได้รวดเร็ว</p>
         </div>
 
@@ -255,7 +255,7 @@ export const CHECKOUT_BODY = `<a href="#content" class="skip">ข้ามไป
     <section class="done-sec" aria-labelledby="dsPay" id="donePay">
       <h2 id="dsPay">ช่องทางชำระเงิน</h2>
       <p class="note" id="donePayNote"></p>
-      <div class="bank" id="doneBanks"></div>
+      <div class="bank-list" id="doneBanks"></div>
     </section>
 
     <section class="done-sec" aria-labelledby="dsNext">
