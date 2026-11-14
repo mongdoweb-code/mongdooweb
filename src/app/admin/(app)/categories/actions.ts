@@ -7,7 +7,7 @@ import { logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin, requireOwner } from "@/lib/auth";
 import { baseline, snapshot } from "@/lib/content-version";
 import { ICON_KEYS } from "@/lib/icons";
-import { MediaError, saveImage } from "@/lib/media";
+import { MediaError, saveIcon, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { recordSlugChange } from "@/lib/redirects";
 import { CAT_SORT_LABEL, isCatSortKey, sortCategories } from "./sort";
@@ -41,6 +41,16 @@ export async function saveCategory(_prev: CatState, f: FormData): Promise<CatSta
       return { error: e instanceof MediaError ? e.message : "อัปโหลดรูปไม่สำเร็จ", fields: ["image"] };
     }
   } else if (f.get("clearImage") === "on") imageKey = null;
+  // ไอคอนที่อัปโหลดเอง: อัปโหลดใหม่ / เอาออก (กลับไปใช้ไอคอนเส้น) / ไม่แตะ
+  let iconKey: string | null | undefined = undefined;
+  const iconFile = f.get("iconFile");
+  if (iconFile instanceof File && iconFile.size > 0) {
+    try {
+      iconKey = await saveIcon(Buffer.from(await iconFile.arrayBuffer()), "categories");
+    } catch (e) {
+      return { error: e instanceof MediaError ? `ไอคอน: ${e.message}` : "อัปโหลดไอคอนไม่สำเร็จ", fields: ["iconFile"] };
+    }
+  } else if (f.get("clearIcon") === "on") iconKey = null;
   const popular = str(f, "popular", 400).split(/[,\n]/).map((s) => s.trim().slice(0, 40)).filter(Boolean).slice(0, 4);
   const data = {
     nameTh,
@@ -54,6 +64,7 @@ export async function saveCategory(_prev: CatState, f: FormData): Promise<CatSta
     showOnHome: f.get("showOnHome") === "on",
     isActive: f.get("isActive") === "on",
     ...(imageKey !== undefined ? { imageKey } : {}),
+    ...(iconKey !== undefined ? { iconKey } : {}),
   };
   if (id) {
     const prev = await prisma.category.findUnique({ where: { id }, select: { slug: true } });
@@ -64,7 +75,7 @@ export async function saveCategory(_prev: CatState, f: FormData): Promise<CatSta
     await prisma.category.create({ data: { ...data, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
   }
   await snapshot("CATEGORIES", admin.displayName);
-  await logAdmin(admin.id, "CATEGORY", `${id ? "แก้ไข" : "เพิ่ม"}หมวด ${nameTh}${imageKey ? " · อัปโหลดรูปหมวด" : imageKey === null ? " · เอารูปหมวดออก" : ""}`);
+  await logAdmin(admin.id, "CATEGORY", `${id ? "แก้ไข" : "เพิ่ม"}หมวด ${nameTh}${imageKey ? " · อัปโหลดรูปหมวด" : imageKey === null ? " · เอารูปหมวดออก" : ""}${iconKey ? " · อัปโหลดไอคอน" : iconKey === null ? " · เอาไอคอนที่อัปโหลดออก" : ""}`);
   refreshStorefront();
   if (!id) redirect("/admin/categories?saved=1");
   refresh();
@@ -140,13 +151,13 @@ export async function rollbackCategories(f: FormData) {
   const admin = await requireAdmin();
   const v = await prisma.contentVersion.findUnique({ where: { id: str(f, "versionId", 40) } });
   if (!v || v.kind !== "CATEGORIES" || !Array.isArray(v.snapshot)) redirect("/admin/categories");
-  const rows = v.snapshot as { id: string; nameTh: string; nameEn: string; icon: string | null; group: CategoryGroup; popular: string[]; sortOrder: number; isActive: boolean; showOnHome?: boolean; description?: string | null; imageKey?: string | null }[];
+  const rows = v.snapshot as { id: string; nameTh: string; nameEn: string; icon: string | null; group: CategoryGroup; popular: string[]; sortOrder: number; isActive: boolean; showOnHome?: boolean; description?: string | null; imageKey?: string | null; iconKey?: string | null }[];
   const existing = new Set((await prisma.category.findMany({ select: { id: true } })).map((c) => c.id));
   await prisma.$transaction(
     rows.filter((r) => existing.has(r.id)).map((r) =>
       prisma.category.update({
         where: { id: r.id },
-        data: { nameTh: r.nameTh, nameEn: r.nameEn, icon: r.icon, group: r.group, popular: r.popular, sortOrder: r.sortOrder, isActive: r.isActive, showOnHome: r.showOnHome ?? true, description: r.description ?? null, ...(r.imageKey !== undefined ? { imageKey: r.imageKey } : {}) },
+        data: { nameTh: r.nameTh, nameEn: r.nameEn, icon: r.icon, group: r.group, popular: r.popular, sortOrder: r.sortOrder, isActive: r.isActive, showOnHome: r.showOnHome ?? true, description: r.description ?? null, ...(r.imageKey !== undefined ? { imageKey: r.imageKey } : {}), ...(r.iconKey !== undefined ? { iconKey: r.iconKey } : {}) },
       }),
     ),
   );

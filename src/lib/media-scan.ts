@@ -21,12 +21,15 @@ export async function imageRefs(): Promise<ImageRef[]> {
     prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { logoKey: true } }),
     prisma.post.findMany({ where: { coverKey: { not: null } }, select: { id: true, title: true, coverKey: true } }),
     prisma.project.findMany({ where: { images: { isEmpty: false } }, select: { id: true, title: true, images: true } }),
-    prisma.category.findMany({ where: { imageKey: { not: null } }, select: { id: true, nameTh: true, imageKey: true } }),
+    prisma.category.findMany({ where: { OR: [{ imageKey: { not: null } }, { iconKey: { not: null } }] }, select: { id: true, nameTh: true, imageKey: true, iconKey: true } }),
     prisma.product.findMany({ where: { videoPosterKey: { not: null } }, select: { id: true, sku: true, name: true, videoPosterKey: true } }),
   ]);
   const ext = (k: string) => /^https?:\/\//i.test(k);
   return [
-    ...cats.map((c) => ({ where: "หมวดหมู่", label: c.nameTh, href: `/admin/categories?edit=${c.id}`, key: c.imageKey!, external: false })),
+    ...cats.flatMap((c) => [
+      ...(c.imageKey ? [{ where: "หมวดหมู่", label: c.nameTh, href: `/admin/categories?edit=${c.id}`, key: c.imageKey, external: false }] : []),
+      ...(c.iconKey ? [{ where: "หมวดหมู่ (ไอคอน)", label: c.nameTh, href: `/admin/categories?edit=${c.id}`, key: c.iconKey, external: false }] : []),
+    ]),
     ...products.flatMap((p) => p.images.map((k, i) => ({ where: "สินค้า", label: `${p.sku} · ${p.name} (รูปที่ ${i + 1})`, href: `/admin/products/${p.id}`, key: k, external: ext(k) }))),
     ...posters.map((p) => ({ where: "สินค้า", label: `${p.sku} · ${p.name} (ภาพปกวิดีโอ)`, href: `/admin/products/${p.id}`, key: p.videoPosterKey!, external: false })),
     ...slides.flatMap((s) => {

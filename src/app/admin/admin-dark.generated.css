@@ -1444,6 +1444,76 @@ html[data-adm-theme="dark"] .icon-pick button[aria-checked="true"] {
     background: #261912;
     color: var(--c-orange-dk)
 }
+html[data-adm-theme="dark"] .cat-thumb {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ip-preview {
+    border: 1px solid var(--c-line);
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .ip-preview .ip-mi {
+    background: #261912;
+    color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .ip-preview b {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ip-preview small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ip-preview em {
+    color: var(--c-muted);
+    background: #1E2127;
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ip-tabs {
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ip-tabs button {
+    background: #1E2127;
+    border: 0;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ip-tabs button+button {
+    border-left: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ip-tabs button[aria-selected="true"] {
+    background: #261912;
+    color: var(--c-orange-dk)
+}
+html[data-adm-theme="dark"] .ip-tabs button span {
+    background: #14161A;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ip-body {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ip-note {
+    color: #F1B155;
+    background: #241E12
+}
+html[data-adm-theme="dark"] .ip-gl {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .icon-pick .ip-items button span {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .icon-pick .ip-items button[aria-checked="true"] span {
+    color: var(--c-orange-dk)
+}
+html[data-adm-theme="dark"] .icon-pick .ip-items button:hover {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .ip-none {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ip-up-prev {
+    border: 1.5px dashed var(--c-line);
+    background: #1B1D22;
+    color: var(--c-muted)
+}
 html[data-adm-theme="dark"] .ver-list li {
     border-bottom: 1px solid var(--c-line)
 }
