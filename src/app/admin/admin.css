@@ -1161,7 +1161,7 @@ th.r .th-sort{justify-content:flex-end}
 .col-order{width:150px}
 .sort-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:10px 14px;background:#FFF6EF;border:1px solid #F7D6C6;font-size:14px}
 .sort-bar-acts{display:flex;gap:8px;flex-wrap:wrap}
-.cat-cell{display:flex;gap:12px;align-items:center}
+.cat-cell,.tbl tbody tr > td > a.row-link.cat-cell{display:flex;gap:12px;align-items:center}
 .cat-ico{width:28px;height:28px;color:var(--c-orange);flex-shrink:0}
 .cat-form{display:grid;gap:12px}
 .cat-form .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -1169,6 +1169,38 @@ th.r .th-sort{justify-content:flex-end}
 .icon-pick button{width:42px;height:42px;border:1.5px solid var(--c-line);background:#fff;display:grid;place-items:center}
 .icon-pick button[aria-checked="true"]{border-color:var(--c-orange);background:#FFF1EA;color:var(--c-orange-dk)}
 .icon-pick svg{width:22px;height:22px}
+/* ตัวเลือกไอคอนหมวด (คลัง + อัปโหลด) */
+.cat-ico-img{object-fit:contain;border-radius:4px}
+.cat-thumb{width:36px;height:36px;object-fit:contain;border:1px solid var(--c-line);border-radius:6px;background:#fff;flex-shrink:0}
+.ip-field{gap:10px}
+.ip-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.ip-preview{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--c-line);border-radius:10px;background:#FAFAF7;min-width:260px}
+.ip-preview .ip-mi{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;background:#FFF1EA;color:var(--c-orange)}
+.ip-preview .ip-mi svg,.ip-preview .ip-mi img{width:28px;height:28px;object-fit:contain}
+.ip-preview b{display:block;font-size:14px;color:var(--c-ink)}
+.ip-preview small{display:block;font-size:12px;color:var(--c-muted)}
+.ip-preview em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--c-muted);background:#fff;border:1px solid var(--c-line);border-radius:99px;padding:2px 9px}
+.ip-tabs{display:inline-flex;border:1px solid var(--c-line);border-radius:9px;overflow:hidden}
+.ip-tabs button{padding:8px 14px;background:#fff;border:0;font-size:13px;color:var(--c-ink);display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.ip-tabs button+button{border-left:1px solid var(--c-line)}
+.ip-tabs button[aria-selected="true"]{background:#FFF1EA;color:var(--c-orange-dk);font-weight:600}
+.ip-tabs button span{font-size:11px;background:#F0EEE8;border-radius:99px;padding:0 7px;color:var(--c-muted)}
+.ip-body{border:1px solid var(--c-line);border-radius:10px;padding:12px;background:#fff}
+.ip-search{width:100%;margin-bottom:10px}
+.ip-note{font-size:12.5px;color:#9A5B00;background:#FFF7E6;border-radius:8px;padding:7px 10px;margin:0 0 10px}
+.ip-grid{display:block;max-height:380px;overflow:auto;padding-right:4px}
+.ip-grp+.ip-grp{margin-top:12px}
+.ip-gl{display:block;font-size:12px;font-weight:600;color:var(--c-muted);margin-bottom:6px}
+.ip-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px}
+.icon-pick .ip-items button{width:auto;height:auto;min-height:72px;padding:8px 4px;border-radius:8px;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;cursor:pointer}
+.icon-pick .ip-items button span{font-size:11px;line-height:1.3;text-align:center;color:var(--c-muted)}
+.icon-pick .ip-items button[aria-checked="true"] span{color:var(--c-orange-dk);font-weight:600}
+.icon-pick .ip-items button:hover{border-color:var(--c-orange)}
+.ip-none{font-size:13px;color:var(--c-muted);padding:14px 4px;margin:0}
+.ip-body[hidden]{display:none}
+.ip-up{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.ip-up-prev{width:88px;height:88px;border:1.5px dashed var(--c-line);border-radius:12px;display:grid;place-items:center;background:#FAFAF7;color:var(--c-muted);font-size:26px;flex-shrink:0}
+.ip-up-prev img{width:64px;height:64px;object-fit:contain}
 .ver-list{list-style:none;display:grid;gap:8px}
 .ver-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--c-line);font-size:14px;flex-wrap:wrap}
 .sl-list{display:grid;gap:10px;max-width:980px}

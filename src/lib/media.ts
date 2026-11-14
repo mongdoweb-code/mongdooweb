@@ -122,6 +122,26 @@ export async function saveImage(buf: Buffer, prefix: MediaPrefix, opts: { full?:
 }
 
 /** URL สาธารณะของรูป: key ที่อัปโหลด → /media/..., URL https ภายนอกใช้ตามเดิม */
+/** ไอคอนที่อัปโหลดเอง (หมวดสินค้า): PNG/JPG/WEBP หรือ SVG — SVG ถูกแปลงเป็นรูป (ไม่เก็บไฟล์ SVG = ไม่มีสคริปต์แฝง)
+ *  ย่อให้พอดี 192×192 พื้นโปร่งใสคงไว้ · ไม่ทำรูปหลายขนาด */
+export const ICON_MAX_BYTES = 2 * 1024 * 1024;
+export async function saveIcon(buf: Buffer, prefix: MediaPrefix) {
+  if (buf.length > ICON_MAX_BYTES) throw new MediaError("ไฟล์ไอคอนใหญ่เกิน 2 MB");
+  const head = buf.subarray(0, 512).toString("utf8").trimStart().toLowerCase();
+  let src = buf;
+  if (head.startsWith("<svg") || (/^<(\?xml|!doctype|!--)/.test(head) && head.includes("<svg"))) {
+    try {
+      src = await sharp(buf, { density: 384, limitInputPixels: 4096 * 4096 })
+        .resize(192, 192, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+    } catch {
+      throw new MediaError("อ่านไฟล์ SVG ไม่ได้ — ลองบันทึกเป็น PNG แล้วอัปโหลดใหม่");
+    }
+  }
+  return saveImage(src, prefix, { full: 192, thumb: 96, variants: false });
+}
+
 export function mediaUrl(keyOrUrl: string | null | undefined, size: "full" | "sm" = "full") {
   if (!keyOrUrl) return null;
   if (/^https:\/\//i.test(keyOrUrl)) return keyOrUrl;

@@ -1,0 +1,47 @@
+/* ธีมหลังบ้าน: สว่าง / มืด / ตามเครื่อง — สลับที่ปุ่มข้างกระดิ่ง (ThemeToggle) จำไว้ในคุกกี้ mdw_admin_theme
+   <html data-adm-theme="dark|light"> ตั้งโดยสคริปต์ใน admin/layout.tsx ก่อนหน้าแสดง (ไม่กะพริบ) · หน้าพิมพ์ /admin/print สว่างเสมอ
+   ส่วนนี้ = ตัวแปรสี + จุดที่แปลงอัตโนมัติไม่ได้ · กฎที่เหลือสร้างอัตโนมัติใน admin-dark.generated.css (scripts/gen-admin-dark.mjs) */
+html[data-adm-theme="dark"]{
+  color-scheme:dark;
+  --c-white:#1E2127; --c-cream:#16171B; --c-cream-dk:#111215; --c-black:#0B0C0F;
+  --c-ink:#E7E7E7; --c-muted:#ACA9A4; --c-line:#2B2F37;
+  --c-err:#E57B70; --c-ok:#5CCB97; --c-warn:#F1BB55;
+  --st-pending-bg:#291B14; --st-pending:#E68761;
+  --st-paid-bg:#131E25;    --st-paid:#64A9E2;
+  --st-ship-bg:#16201B;    --st-ship:#6CDBA4;
+  --st-rej-bg:#1E1615;     --st-rej:#DE7669;
+}
+html[data-adm-theme="dark"] body{background:var(--c-cream);color:var(--c-ink)}
+/* ช่องกรอก: ตัวอักษร/placeholder/ปฏิทินในตัว */
+html[data-adm-theme="dark"] :is(input,select,textarea){color:var(--c-ink)}
+html[data-adm-theme="dark"] ::placeholder{color:#7D7A75}
+html[data-adm-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.85)}
+/* รูปสินค้า/โลโก้พื้นขาวบนพื้นมืด: ลดแสงจ้าเล็กน้อย (ไม่ใช้กับแผ่นเอกสาร A4) */
+html[data-adm-theme="dark"] .main img:not(.sheet img){filter:brightness(.94)}
+/* ตัวอย่าง A4 / ใบปะหน้าในหน้าจอ = กระดาษขาวเสมอ (สีตัวแปรของกระดาษคงแบบสว่าง) */
+html[data-adm-theme="dark"] :is(.sheet,.label,.lsheet,#docMeasure){
+  color-scheme:light;
+  --c-white:#FFFFFF; --c-cream:#F2F0EB; --c-cream-dk:#E8E5DD; --c-black:#141414;
+  --c-ink:#1C1C1C; --c-muted:#6B6862; --c-line:#E3E0D8;
+  --c-err:#C0392B; --c-ok:#1E8E5A; --c-warn:#9A6400;
+}
+html[data-adm-theme="dark"] .sheet img{filter:none}
+/* เงาบนพื้นมืดต้องเข้มขึ้นจึงมองเห็นชั้น */
+html[data-adm-theme="dark"] :is(.wt-pop,.qb-dlg,.gs-dlg,.bell-pop,.pp,.dlg,.stb-menu){box-shadow:0 18px 50px rgba(0,0,0,.55)}
+/* ปุ่มสลับธีมเอง */
+.thm{position:relative}
+.thm-btn{display:grid;place-items:center;width:38px;height:38px;background:#fff;border:1.5px solid var(--c-line);color:var(--c-ink)}
+.thm-btn:hover{border-color:var(--c-ink)}
+.thm-btn svg{width:18px;height:18px}
+html[data-adm-theme="dark"] .thm-btn{background:var(--c-white)}
+.thm-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:190px;background:var(--c-white);border:1px solid var(--c-line);box-shadow:0 14px 36px rgba(20,20,20,.16);padding:6px;display:grid;gap:2px}
+.thm-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;font-size:14px;color:var(--c-ink);text-align:left;border-radius:4px}
+.thm-menu button:hover{background:var(--c-cream)}
+.thm-menu button[aria-checked="true"]{background:#FFF1EA;color:#B5461C;font-weight:700}
+html[data-adm-theme="dark"] .thm-menu button[aria-checked="true"]{background:#2C1D15;color:#FF9C72}
+.thm-menu svg{width:17px;height:17px;flex:none}
+.thm-menu small{margin-left:auto;font-size:11.5px;color:var(--c-muted);font-weight:500}
+/* หน้าเข้าสู่ระบบ: ปุ่มมุมขวาบนของฝั่งฟอร์ม */
+.lg-side{position:relative}
+.lg-thm{position:absolute;top:16px;right:16px}
+@media (prefers-reduced-motion:no-preference){html[data-adm-theme] body,html[data-adm-theme] .box,html[data-adm-theme] .panel{transition:background-color .25s,color .25s,border-color .25s}}

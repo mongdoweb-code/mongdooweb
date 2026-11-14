@@ -108,6 +108,7 @@ model Category {
   showOnHome  Boolean         @default(true) // แสดงในเมนูและการ์ดหมวดของหน้าแรก (สินค้าที่ไม่ใช่ไฟ = false)
   description String?         @db.Text
   imageKey    String? // รูปหมวด (อัปโหลดในหลังบ้าน) — ว่าง = ใช้รูปสินค้าตัวแรกของหมวด
+  iconKey     String? // ไอคอนที่อัปโหลดเอง (categories/…webp) — ว่าง = ใช้ไอคอนเส้น icon
   products    Product[]
   specAttrs   SpecAttribute[]
 }

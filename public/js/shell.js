@@ -88,6 +88,10 @@ function safeImg(u){
   return '';
 }
 const RM = matchMedia('(prefers-reduced-motion: reduce)');
+/** ไอคอนหมวด: รูปที่อัปโหลดเอง → ไอคอนเส้นจากคลัง → ชุดสำรองในไฟล์นี้ */
+const catIcon = c => c.iconImg
+  ? `<img class="ci-img" src="${esc(c.iconImg)}" alt="" width="24" height="24" loading="lazy" decoding="async">`
+  : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${c.iconSvg || ICONS[c.icon] || ICONS.deco}</svg>`;
 const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k] || ICONS.deco}</svg>`;
 const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
@@ -195,6 +199,9 @@ function normCat(c, i){
   return {
     id: str(c.id, 64) || ('cat' + i), th, en: str(c.en, 80),
     icon: ICONS[c.icon] ? c.icon : 'deco',
+    // ไอคอนจากคลังของเซิร์ฟเวอร์ (src/lib/icons.ts) — รับเฉพาะรูปทรง SVG พื้นฐาน · ไอคอนที่อัปโหลดเอง = ลิงก์รูปใน /media/ เท่านั้น
+    iconSvg: typeof c.iconSvg === 'string' && /^(?:<(?:path|circle|rect|ellipse|line|polyline|polygon)\s[^<>]*\/>)+$/.test(c.iconSvg) && !/\son\w+\s*=|javascript:/i.test(c.iconSvg) ? c.iconSvg : '',
+    iconImg: typeof c.iconImg === 'string' && /^\/media\/[\w\/.-]+$/.test(c.iconImg) ? c.iconImg : '',
     group: CATEGORY_GROUPS[c.group] ? c.group : 'deco',
     slug: str(c.slug, 600).replace(/^\/+/, ''),
     popular: Array.isArray(c.popular) ? c.popular.map(p => str(p, 40)).filter(Boolean).slice(0, 4) : [],
@@ -223,7 +230,7 @@ function renderCats(){
   if ($('#catGrid')) $('#catGrid').innerHTML = CATS.map((c, i) => {
     const media = c.img
       ? `<img src="${esc(c.img)}"${srcsetOf(c.img) ? ` srcset="${esc(srcsetOf(c.img))}" sizes="(max-width: 640px) 46vw, (max-width: 900px) 46vw, 160px"` : ''} alt="" width="480" height="480" loading="${i < 4 ? 'eager' : 'lazy'}" decoding="async">`
-      : `<span class="cat-ph" aria-hidden="true">${svg(c.icon)}</span>`;
+      : `<span class="cat-ph" aria-hidden="true">${catIcon(c)}</span>`;
     const meta = c.count ? `${c.count.toLocaleString('th-TH')} รายการ` : 'สอบถามทางร้าน';
     const chips = c.tags.length
       ? `<span class="cat-tags" aria-label="ยอดนิยมใน${esc(c.th)}">${c.tags.map(t => `<a class="cat-tag" href="${esc(t.h)}">${esc(t.t)}</a>`).join('')}</span>`
@@ -246,7 +253,7 @@ function renderCats(){
         ${groups.map(g => `<div class="mega-col">
           <p class="mega-gh">${esc(g.label)}</p>
           <ul>${g.items.map(c => `<li><a class="mega-link" href="${esc(catHref(c))}">
-            <span class="mi">${svg(c.icon)}</span><span><b>${esc(c.th)}</b><small>${esc(c.en)}</small></span></a></li>`).join('')}</ul>
+            <span class="mi">${catIcon(c)}</span><span><b>${esc(c.th)}</b><small>${esc(c.en)}</small></span></a></li>`).join('')}</ul>
         </div>`).join('')}
       </div>
       <aside class="mega-promo" aria-label="แนะนำ">
@@ -271,7 +278,7 @@ function renderCats(){
         <span>${esc(g.label)}<span class="n">${g.items.length} หมวด</span></span>${CHEV}
       </button>
       <div class="acc-panel" id="acc-${g.g}" role="region" aria-labelledby="accb-${g.g}"><div>
-        ${g.items.map(c => `<a href="${esc(catHref(c))}" data-close><span class="mi">${svg(c.icon)}</span><span>${esc(c.th)}<small>${esc(c.en)}</small></span></a>`).join('')}
+        ${g.items.map(c => `<a href="${esc(catHref(c))}" data-close><span class="mi">${catIcon(c)}</span><span>${esc(c.th)}<small>${esc(c.en)}</small></span></a>`).join('')}
       </div></div>
     </div>`).join('');
 

@@ -12,6 +12,7 @@ import { STOREFRONT_TAG, getPublicShopInfo } from "@/lib/settings";
 import { defsFor, formatAttr, parseAttrs } from "@/lib/specs";
 import { readOptions, type VariantGroupView } from "@/lib/variants";
 import type { Prisma } from "../../generated/prisma/client";
+import { iconPath } from "@/lib/icons";
 
 /** ลำดับ "แนะนำ" ของหน้าร้าน = ปักหมุดก่อน แล้วตามลำดับที่ร้านลากจัดในหลังบ้าน */
 export const PRODUCT_ORDER: Prisma.ProductOrderByWithRelationInput[] = [{ isPinned: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }];
@@ -65,6 +66,10 @@ export type ShopCategory = {
   count: number;
   /** รูปตัวแทนหมวด = รูปสินค้าขายดี/ยอดเข้าชมสูงสุดในหมวด (ขนาดย่อ) */
   img?: string;
+  /** ไอคอนเส้น (เนื้อใน <svg>) จากคลังไอคอน */
+  iconSvg?: string;
+  /** ไอคอนที่อัปโหลดเอง (URL รูป) — ใช้แทน iconSvg */
+  iconImg?: string;
   /** ชิปยอดนิยมบนการ์ดหมวด { t: ข้อความ, h: ลิงก์ } — ตัวกรองหน้าหมวด (สีแสง/การใช้งาน) หรือผลค้นหา */
   tags?: { t: string; h: string }[];
 };
@@ -110,6 +115,9 @@ export async function getShopData() {
     count: 0,
     // รูปหมวดที่อัปโหลดเองมาก่อน ไม่มีจึงใช้รูปสินค้า (ด้านล่าง)
     ...(c.imageKey ? { img: mediaUrl(c.imageKey, "sm") ?? undefined } : {}),
+    // ไอคอน: ที่อัปโหลดเอง (รูป) มาก่อน · ไม่มี = ไอคอนเส้นจากคลัง (src/lib/icons.ts) — shell.js ใช้ค่าเหล่านี้ตรงๆ
+    iconSvg: iconPath(c.icon),
+    ...(c.iconKey ? { iconImg: mediaUrl(c.iconKey) ?? undefined } : {}),
   }));
 
   const catalog: CatalogItem[] = products.map((p) => {

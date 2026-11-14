@@ -8,6 +8,7 @@ import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { getShopData } from "@/lib/storefront";
 import { LoginForm } from "./LoginForm";
+import { ThemeToggle } from "../_components/ThemeToggle";
 import { HeroGallery, HeroStats } from "./LoginHero";
 import "./login.css";
 
@@ -74,6 +75,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/admin/logi
       </section>
 
       <main className="lg-side">
+        <ThemeToggle className="lg-thm" />
         <div className="lg-side-in">
           <LoginForm idle={idle} pending2fa={pending?.username} welcome={c.welcome} welcomeSub={c.welcomeSub} notice={c.notice} />
           {(cats.length > 0 || prods.length > 0) && (

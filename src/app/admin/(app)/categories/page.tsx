@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { listVersions } from "@/lib/content-version";
-import { CATEGORY_ICONS } from "@/lib/icons";
+import { CATEGORY_ICON_LIST, iconPath } from "@/lib/icons";
 import { mediaUrl } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { PRODUCT_ORDER } from "@/lib/storefront";
@@ -16,9 +16,14 @@ import { CategoryForm, type CatValues } from "./CategoryForm";
 import { BoltIcon } from "../../_components/BoltIcon";
 
 const GROUP = { WATER: "งานน้ำ", OUTDOOR: "สวนและภายนอก", BUILDING: "อาคารและภายใน", DECO: "อุปกรณ์และตกแต่ง" } as const;
-const Ico = ({ k }: { k: string | null }) => (
-  <svg className="cat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{ __html: CATEGORY_ICONS[k ?? "deco"] ?? CATEGORY_ICONS.deco }} />
-);
+/** ไอคอนหมวดในรายการ: ไอคอนที่อัปโหลดเอง (รูป) → ไอคอนเส้นจากคลัง — แสดงแบบเดียวกับเมนูหน้าร้าน */
+const Ico = ({ k, img }: { k: string | null; img?: string | null }) =>
+  img ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img className="cat-ico cat-ico-img" src={img} alt="" width={24} height={24} />
+  ) : (
+    <svg className="cat-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" dangerouslySetInnerHTML={{ __html: iconPath(k) }} />
+  );
 
 export default async function CategoriesPage({ searchParams }: PageProps<"/admin/categories">) {
   const owner = (await requireAdmin()).role === "OWNER";
@@ -101,7 +106,9 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
         </td>
         <td className="p-name">
           <Link className="row-link cat-cell" href={`/admin/categories?edit=${c.id}`}>
-            <Ico k={c.icon} />
+            <Ico k={c.icon} img={mediaUrl(c.iconKey)} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {c.imageKey && <img className="cat-thumb" src={mediaUrl(c.imageKey, "sm")!} alt="" width={36} height={36} loading="lazy" title="รูปหมวด" />}
             <span><b>{c.nameTh}</b><span className="sub">{c.nameEn} · /category/{c.slug}</span></span>
           </Link>
           {/* เมนูจัดการรวดเร็ว (แสดงเมื่อชี้แถว) */}
@@ -148,9 +155,9 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
     ? (await prisma.product.findFirst({ where: { categoryId: cur.id, isActive: true, isService: false, images: { isEmpty: false } }, orderBy: PRODUCT_ORDER, select: { images: true } }))?.images[0]
     : undefined;
   const v: CatValues | null = cur
-    ? { imageUrl: mediaUrl(cur.imageKey, "sm") ?? "", fallbackUrl: mediaUrl(firstImg, "sm") ?? "", id: cur.id, nameTh: cur.nameTh, nameEn: cur.nameEn, slug: cur.slug, legacySlug: cur.legacySlug ?? "", icon: cur.icon ?? "deco", group: cur.group, popular: cur.popular.join(", "), description: cur.description ?? "", showOnHome: cur.showOnHome, isActive: cur.isActive }
+    ? { imageUrl: mediaUrl(cur.imageKey, "sm") ?? "", fallbackUrl: mediaUrl(firstImg, "sm") ?? "", id: cur.id, nameTh: cur.nameTh, nameEn: cur.nameEn, slug: cur.slug, legacySlug: cur.legacySlug ?? "", icon: cur.icon ?? "deco", iconUrl: mediaUrl(cur.iconKey) ?? "", group: cur.group, popular: cur.popular.join(", "), description: cur.description ?? "", showOnHome: cur.showOnHome, isActive: cur.isActive }
     : edit === "new"
-      ? { imageUrl: "", fallbackUrl: "", id: "", nameTh: "", nameEn: "", slug: "", legacySlug: "", icon: "deco", group: "DECO", popular: "", description: "", showOnHome: true, isActive: true }
+      ? { imageUrl: "", fallbackUrl: "", id: "", nameTh: "", nameEn: "", slug: "", legacySlug: "", icon: "deco", iconUrl: "", group: "DECO", popular: "", description: "", showOnHome: true, isActive: true }
       : null;
 
   return (
@@ -209,7 +216,7 @@ export default async function CategoriesPage({ searchParams }: PageProps<"/admin
         </section>
         {v && (
           <div className="d-col">
-            <CategoryForm key={`${v.id || "new"}:${v.imageUrl}`} v={v} icons={CATEGORY_ICONS} />
+            <CategoryForm key={`${v.id || "new"}:${v.imageUrl}:${v.iconUrl}`} v={v} icons={CATEGORY_ICON_LIST} />
             {v.id && owner && (
               <form action={deleteCategory} className="box">
                 <input type="hidden" name="id" value={v.id} />
