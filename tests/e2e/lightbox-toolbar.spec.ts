@@ -1,5 +1,8 @@
 // ดูรูปสินค้าเต็มจอแบบ Fancybox: ตัวนับซ้ายบน · แถบเครื่องมือ (ขยาย/ย่อ/1:1/หมุน/พลิก/รีเซ็ต) · เล่นสไลด์ · รูปย่อด้านล่าง · ล้อเมาส์/ลากดู
 import { expect, test, type Page } from "@playwright/test";
+import os from "node:os";
+import path from "node:path";
+import sharp from "sharp";
 import pg from "pg";
 import { ensureStorefrontFixtures } from "./storefront-fixtures";
 import { trackErrors } from "./helpers";
@@ -20,6 +23,27 @@ test.beforeAll(async ({ browser }) => {
   }
 });
 
+// รูปจริงทุกไฟล์ใน /media (เครื่องทดสอบอาจไม่มีไฟล์รูปสินค้า → รูปแตกแล้วตรวจขนาดไม่ได้)
+//   ใช้รูปขนาดเท่ารูปสินค้าจริง (1600×1600) — รูปเล็กไม่ล้นจอ จึงจับบั๊กรูปล้นทับรูปย่อไม่ได้
+const BIG = path.join(os.tmpdir(), `mdw-lb-${process.pid}.png`);
+test.beforeAll(async () => {
+  await sharp({ create: { width: 1600, height: 1600, channels: 3, background: "#3a7bd5" } }).png().toFile(BIG);
+});
+test.beforeEach(async ({ page }) => {
+  await page.route(/\/media\/.+\.(webp|avif|png|jpe?g)(\?.*)?$/, (r) => r.fulfill({ path: BIG, contentType: "image/png" }));
+});
+/** รูปต้องอยู่ในพื้นที่ระหว่างแถบบนกับแถบรูปย่อ (ไม่ล้นทับรูปย่อ) */
+async function imageInsideStage(page: Page) {
+  await expect.poll(() => page.locator(".lb-stage img").evaluate((e) => (e as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  const img = (await page.locator(".lb-stage img").boundingBox())!;
+  const st = (await page.locator(".lb-stage").boundingBox())!;
+  const th = (await page.locator(".lb-thumbs").boundingBox())!;
+  expect(img.height).toBeGreaterThan(100);
+  expect(img.y).toBeGreaterThanOrEqual(st.y - 1);
+  expect(img.y + img.height).toBeLessThanOrEqual(st.y + st.height + 1);
+  expect(img.y + img.height).toBeLessThanOrEqual(th.y + 1);
+}
+
 const tf = (page: Page) => page.locator(".lb-stage img").evaluate((e) => (e as HTMLElement).style.transform);
 const tool = (page: Page, name: string) => page.locator(".lb-top").getByRole("button", { name, exact: true });
 
@@ -32,6 +56,7 @@ test("แถบเครื่องมือ: ขยาย/ย่อ · หม�
   await expect(lb).toBeVisible();
   const n = await page.locator(".lb-thumb").count();
   expect(n).toBeGreaterThan(1);
+  await imageInsideStage(page);
   // ตัวนับมุมซ้ายบน
   const cnt = page.locator(".lb-count");
   await expect(cnt).toHaveText(`1 / ${n}`);
@@ -107,6 +132,7 @@ test("มือถือ: แถบเครื่องมืออยู่ใ
   await page.goto(`/product/${encodeURIComponent(slug)}`);
   await page.locator(".gal-slide").first().click();
   await expect(page.locator("dialog.lb")).toBeVisible();
+  await imageInsideStage(page);
   const tb = (await page.locator(".lb-toolbar").boundingBox())!;
   expect(tb.x).toBeGreaterThanOrEqual(0);
   expect(tb.x + tb.width).toBeLessThanOrEqual(390.5);
