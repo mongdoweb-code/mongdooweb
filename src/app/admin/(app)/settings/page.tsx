@@ -23,6 +23,7 @@ export default async function SettingsPage() {
           <p>ค่าที่บันทึกใช้กับหน้าร้าน หน้าชำระเงิน ใบปะหน้า และเอกสารขายทันที</p>
         </div>
         <div className="head-actions">
+          <Link className="btn btn-outline" href="/admin/settings/login">หน้าเข้าสู่ระบบ</Link>
           <Link className="btn btn-outline" href="/admin/users">ผู้ใช้หลังบ้าน</Link>
           <Link className="btn btn-outline" href="/admin/system">สถานะระบบ / สำรองข้อมูล</Link>
         </div>

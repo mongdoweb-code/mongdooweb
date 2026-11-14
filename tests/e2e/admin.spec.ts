@@ -49,7 +49,7 @@ test("ทุกเมนูหลังบ้านเปิดได้", async
   for (const href of links) {
     const res = await page.goto(href);
     expect(res?.status(), href).toBe(200);
-    await expect(page, href).not.toHaveURL(/denied=1|\/login/);
+    await expect(page, href).not.toHaveURL(/denied=1|\/admin\/login/);
   }
   expect(errors).toEqual([]);
 });

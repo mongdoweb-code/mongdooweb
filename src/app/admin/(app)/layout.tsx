@@ -80,6 +80,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             ...(owner
               ? [
                   { href: "/admin/settings", label: "ตั้งค่าร้าน", icon: <Ico k="settings" />, group: "ระบบ" },
+                  { href: "/admin/settings/login", label: "หน้าเข้าสู่ระบบ", icon: <Ico k="login" />, group: "ระบบ" },
                   { href: "/admin/users", label: "ผู้ใช้หลังบ้าน", icon: <Ico k="users" />, group: "ระบบ" },
                   { href: "/admin/line", label: "แจ้งเตือน LINE", icon: <Ico k="line" />, group: "ระบบ" },
                   { href: "/admin/system", label: "สถานะระบบ", icon: <Ico k="system" />, group: "ระบบ" },
