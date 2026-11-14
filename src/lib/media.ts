@@ -9,7 +9,7 @@ import { IMG_WIDTHS } from "@/lib/img-srcset";
 import { sniffImage, storage } from "@/lib/storage";
 
 export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
-export const MEDIA_PREFIXES = ["products", "slides", "logo", "categories", "reviews", "projects", "posts", "trust", "videos"] as const;
+export const MEDIA_PREFIXES = ["products", "slides", "logo", "categories", "reviews", "projects", "posts", "trust", "videos", "login"] as const;
 export type MediaPrefix = (typeof MEDIA_PREFIXES)[number];
 export type VariantFormat = "webp" | "avif";
 

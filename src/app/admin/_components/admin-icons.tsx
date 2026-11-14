@@ -40,6 +40,7 @@ export const ICON = {
   po: <path d="M3 4h2l2 11h11l2-8H7M9 20h.01M17 20h.01M12 9v4M10 11h4" />,
   backup: <><ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" /></>,
   shield: <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6zM9 12l2 2 4-4" />,
+  login: <><path d="M14 4h5v16h-5M10 8l4 4-4 4M14 12H3" /></>,
   image: <><rect x="3" y="5" width="18" height="14" /><circle cx="9" cy="10" r="1.6" /><path d="m3 17 6-5 4 4 3-2 5 4" /></>,
 };
 export type IconKey = keyof typeof ICON;

@@ -4,7 +4,7 @@
 import { useActionState } from "react";
 import { loginAction, type LoginState } from "../actions";
 
-export function LoginForm({ idle, pending2fa }: { idle: boolean; pending2fa?: string }) {
+export function LoginForm({ idle, pending2fa, welcome = "เข้าสู่ระบบ", welcomeSub = "สำหรับผู้ดูแลร้านเท่านั้น", notice = "" }: { idle: boolean; pending2fa?: string; welcome?: string; welcomeSub?: string; notice?: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginAction, pending2fa ? { step: "2fa", username: pending2fa } : {});
   const twoFa = state.step === "2fa";
   return (
@@ -17,8 +17,9 @@ export function LoginForm({ idle, pending2fa }: { idle: boolean; pending2fa?: st
           มองดูเว็บ<small>ระบบหลังร้าน</small>
         </div>
       </div>
-      <h1>{twoFa ? "ยืนยันตัวตน 2 ขั้น" : "เข้าสู่ระบบ"}</h1>
-      <p>{twoFa ? `เปิดแอปยืนยันตัวตน (เช่น Google Authenticator) แล้วกรอกรหัส 6 หลักของบัญชี ${state.username ?? ""}` : "สำหรับผู้ดูแลร้านเท่านั้น"}</p>
+      <h1>{twoFa ? "ยืนยันตัวตน 2 ขั้น" : welcome}</h1>
+      <p>{twoFa ? `เปิดแอปยืนยันตัวตน (เช่น Google Authenticator) แล้วกรอกรหัส 6 หลักของบัญชี ${state.username ?? ""}` : welcomeSub}</p>
+      {notice && !twoFa && <div className="lg-notice" role="note">{notice}</div>}
       {idle && !twoFa && !state.error && !state.locked && (
         <div className="login-info" role="status">
           ออกจากระบบอัตโนมัติเพราะไม่มีการใช้งานนาน กรุณาเข้าสู่ระบบอีกครั้ง

@@ -1,0 +1,128 @@
+/* หน้าเข้าสู่ระบบหลังบ้าน — ซ้าย: โซนการตลาด + แอนิเมชันแสง LED (CSS ล้วน ใช้ transform/opacity) · ขวา: ฟอร์ม + หมวด/สินค้าแนะนำ
+   ธีม: lg-orange (สีร้าน) · lg-ocean (ฟ้าใต้น้ำ) · lg-rgb (เปลี่ยนสี) · ปิดแอนิเมชัน: ไม่มีคลาส lg-anim หรือผู้ใช้ตั้งลดการเคลื่อนไหว */
+.lg{--lg-a:#FF7A3D;--lg-b:#FFC46B;--lg-bg:#07080D;min-height:100vh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(400px,.85fr);background:#fff;position:relative}
+.lg-ocean{--lg-a:#22C4FF;--lg-b:#7CF3E0}
+.lg-rgb{--lg-a:#FF4FD8;--lg-b:#4FD1FF}
+.lg-preview{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:20;background:#141414;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:0 0 8px 8px}
+
+/* ---------- ซ้าย: โซนการตลาด ---------- */
+.lg-hero{position:sticky;top:0;height:100vh;overflow:hidden;background:var(--lg-bg);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:56px clamp(28px,5vw,72px) 92px;isolation:isolate}
+.lg-fx{position:absolute;inset:0;z-index:-1;pointer-events:none}
+.lg-fx::before{content:"";position:absolute;inset:0;background:radial-gradient(80% 60% at 18% 0%,color-mix(in srgb,var(--lg-a) 28%,transparent),transparent 60%),radial-gradient(70% 55% at 100% 100%,color-mix(in srgb,var(--lg-b) 22%,transparent),transparent 62%)}
+/* ลำแสงสปอตไลต์ส่ายไปมา */
+.lg-beam{position:absolute;top:-30%;width:70%;height:150%;transform-origin:50% 0;filter:blur(18px);opacity:.55;mix-blend-mode:screen}
+.lg-beam.b1{left:-8%;background:conic-gradient(from 168deg at 50% 0%,transparent 0deg,color-mix(in srgb,var(--lg-a) 70%,transparent) 12deg,transparent 26deg);transform:rotate(-14deg)}
+.lg-beam.b2{right:-14%;background:conic-gradient(from 172deg at 50% 0%,transparent 0deg,color-mix(in srgb,var(--lg-b) 60%,transparent) 10deg,transparent 22deg);transform:rotate(16deg)}
+/* หลอดไฟเรืองแสง */
+.lg-orb{position:absolute;right:8%;top:12%;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,#fff 0 6%,color-mix(in srgb,var(--lg-b) 85%,#fff) 10%,color-mix(in srgb,var(--lg-a) 55%,transparent) 32%,transparent 68%);filter:blur(2px);opacity:.75}
+/* พื้นตารางเส้นแสง (มุมมองเพอร์สเปกทีฟ) */
+.lg-grid{position:absolute;left:-20%;right:-20%;bottom:-6%;height:46%;background-image:linear-gradient(color-mix(in srgb,var(--lg-a) 40%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--lg-a) 40%,transparent) 1px,transparent 1px);background-size:56px 56px;transform:perspective(420px) rotateX(62deg);transform-origin:50% 100%;mask-image:linear-gradient(to top,#000 10%,transparent 85%);-webkit-mask-image:linear-gradient(to top,#000 10%,transparent 85%);opacity:.5}
+/* ละอองแสงลอยขึ้น */
+.lg-parts i{position:absolute;bottom:-12px;width:var(--s,3px);height:var(--s,3px);border-radius:50%;background:var(--lg-b);box-shadow:0 0 8px 2px color-mix(in srgb,var(--lg-b) 70%,transparent);opacity:0}
+
+.lg-hero-in{position:relative;max-width:620px;display:grid;gap:22px}
+.lg-eyebrow{justify-self:start;display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);backdrop-filter:blur(6px);border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.3px;color:rgba(255,255,255,.88)}
+.lg-eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--lg-a);box-shadow:0 0 10px 3px color-mix(in srgb,var(--lg-a) 70%,transparent)}
+.lg-head{font-size:clamp(30px,3.6vw,50px);line-height:1.22;font-weight:800;letter-spacing:-.3px;margin:0;text-wrap:pretty}
+.lg-glow{background:linear-gradient(100deg,var(--lg-a),#fff 45%,var(--lg-b) 70%,var(--lg-a));background-size:220% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px color-mix(in srgb,var(--lg-a) 55%,transparent))}
+.lg-sub{margin:0;font-size:16.5px;line-height:1.7;color:rgba(255,255,255,.74);max-width:540px}
+.lg-hl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lg-hl li{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02));border-radius:10px;font-size:14px;line-height:1.5;color:rgba(255,255,255,.9)}
+.lg-hl svg{width:18px;height:18px;flex:none;margin-top:1px;color:var(--lg-a);filter:drop-shadow(0 0 6px var(--lg-a))}
+.lg-stats{display:flex;gap:12px;margin:0}
+.lg-stats > div{flex:1;padding:14px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);display:flex;flex-direction:column-reverse;gap:2px}
+.lg-stats dt{font-size:12.5px;color:rgba(255,255,255,.62)}
+.lg-stats dd{margin:0;font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 18px color-mix(in srgb,var(--lg-a) 60%,transparent)}
+/* กรอบรูปผลงาน: ขอบแสงหมุนรอบ */
+.lg-gal{margin:4px 0 0;position:relative;border-radius:14px;padding:2px;background:conic-gradient(from var(--lg-ang,0deg),var(--lg-a),transparent 30%,var(--lg-b) 50%,transparent 80%,var(--lg-a));box-shadow:0 20px 60px rgba(0,0,0,.45),0 0 40px color-mix(in srgb,var(--lg-a) 25%,transparent);max-width:560px}
+.lg-gal-frame{position:relative;aspect-ratio:16/8;border-radius:12px;overflow:hidden;background:#111}
+.lg-gal-frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity .9s ease,transform 5s ease}
+.lg-gal-frame img.on{opacity:1;transform:scale(1)}
+.lg-gal figcaption{position:absolute;left:2px;right:2px;bottom:2px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:26px 14px 10px;border-radius:0 0 12px 12px;background:linear-gradient(transparent,rgba(0,0,0,.72));font-size:13px;font-weight:600;color:#fff}
+.lg-dots{display:flex;gap:6px}
+.lg-dots button{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);padding:0}
+.lg-dots button[aria-pressed="true"]{background:#fff;width:20px;border-radius:4px}
+/* แถบไฟ LED วิ่ง (chase) */
+.lg-strip{position:absolute;left:0;right:0;bottom:30px;display:flex;justify-content:space-between;padding:0 clamp(20px,4vw,56px)}
+.lg-strip::before{content:"";position:absolute;left:clamp(20px,4vw,56px);right:clamp(20px,4vw,56px);top:50%;height:4px;margin-top:-2px;border-radius:2px;background:rgba(255,255,255,.08)}
+.lg-strip i{position:relative;width:8px;height:8px;border-radius:50%;background:var(--lg-a);box-shadow:0 0 6px 2px color-mix(in srgb,var(--lg-a) 60%,transparent);opacity:.35}
+.lg-rgb .lg-strip i{filter:hue-rotate(calc(var(--i) * 10deg))}
+
+/* ---------- แอนิเมชัน (เฉพาะ lg-anim และผู้ใช้ไม่ได้ขอลดการเคลื่อนไหว) ---------- */
+@media (prefers-reduced-motion:no-preference){
+  .lg-anim .lg-beam.b1{animation:lgSweepL 9s ease-in-out infinite alternate}
+  .lg-anim .lg-beam.b2{animation:lgSweepR 11s ease-in-out infinite alternate}
+  .lg-anim .lg-orb{animation:lgPulse 4.2s ease-in-out infinite}
+  .lg-anim .lg-grid{animation:lgGrid 6s linear infinite}
+  .lg-anim .lg-parts i{animation-name:lgRise;animation-timing-function:linear;animation-iteration-count:infinite}
+  .lg-anim .lg-glow{animation:lgShine 5s linear infinite}
+  .lg-anim .lg-eyebrow i{animation:lgBlink 1.8s ease-in-out infinite}
+  .lg-anim .lg-strip i{animation:lgChase 2.6s ease-in-out infinite;animation-delay:calc(var(--i) * 72ms)}
+  .lg-anim .lg-gal{animation:lgSpin 8s linear infinite}
+  .lg-anim.lg-rgb .lg-fx{animation:lgHue 14s linear infinite}
+  .lg-anim .lg-hero-in > *{animation:lgIn .8s cubic-bezier(.2,.7,.2,1) both}
+  .lg-anim .lg-hero-in > :nth-child(2){animation-delay:.08s}
+  .lg-anim .lg-hero-in > :nth-child(3){animation-delay:.16s}
+  .lg-anim .lg-hero-in > :nth-child(4){animation-delay:.24s}
+  .lg-anim .lg-hero-in > :nth-child(5){animation-delay:.32s}
+  .lg-anim .lg-hero-in > :nth-child(6){animation-delay:.4s}
+}
+@property --lg-ang{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes lgSweepL{from{transform:rotate(-22deg)}to{transform:rotate(-4deg)}}
+@keyframes lgSweepR{from{transform:rotate(22deg)}to{transform:rotate(6deg)}}
+@keyframes lgPulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.12);opacity:.95}}
+@keyframes lgGrid{from{background-position:0 0,0 0}to{background-position:0 56px,0 0}}
+@keyframes lgRise{0%{transform:translateY(0);opacity:0}10%{opacity:.9}80%{opacity:.6}100%{transform:translateY(-105vh);opacity:0}}
+@keyframes lgShine{from{background-position:0% 50%}to{background-position:220% 50%}}
+@keyframes lgBlink{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes lgChase{0%,100%{opacity:.3;transform:scale(1)}18%{opacity:1;transform:scale(1.45);box-shadow:0 0 14px 5px color-mix(in srgb,var(--lg-a) 75%,transparent)}36%{opacity:.3;transform:scale(1)}}
+@keyframes lgSpin{to{--lg-ang:360deg}}
+@keyframes lgHue{to{filter:hue-rotate(360deg)}}
+@keyframes lgIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- ขวา: ต้อนรับ + ฟอร์ม ---------- */
+.lg-side{display:flex;align-items:center;justify-content:center;padding:40px clamp(20px,4vw,56px);background:#fff;min-width:0}
+.lg-side-in{width:100%;max-width:420px;display:grid;gap:26px}
+.lg .login-card{max-width:none;padding:0;background:transparent}
+.lg .login-card .logo{margin-bottom:24px}
+.lg .login-card h1{font-size:28px;line-height:1.3;margin-bottom:6px}
+.lg .login-card p{margin-bottom:20px}
+.lg .login-card .btn-primary{border-radius:8px;box-shadow:0 10px 24px color-mix(in srgb,var(--c-orange) 35%,transparent);transition:transform .15s,box-shadow .15s}
+.lg .login-card .btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 30px color-mix(in srgb,var(--c-orange) 45%,transparent)}
+.lg .login-card input{border-radius:8px}
+.lg-notice{background:#FFF6EE;border-left:3px solid var(--c-orange);padding:10px 12px;font-size:13.5px;line-height:1.5;margin-bottom:16px;color:var(--c-ink)}
+.lg-explore{display:grid;gap:18px;padding-top:20px;border-top:1px solid var(--c-line)}
+.lg-explore h3{font-size:13px;font-weight:700;color:var(--c-muted);letter-spacing:.3px;margin:0 0 10px}
+.lg-cats{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.lg-cats a{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 10px 0 4px;border:1px solid var(--c-line);border-radius:999px;font-size:13px;font-weight:600;color:var(--c-ink);text-decoration:none;background:#fff;transition:border-color .15s,background .15s}
+.lg-cats a:hover{border-color:var(--c-orange);background:#FFF6EE}
+.lg-cats img,.lg-cats a > i{width:26px;height:26px;border-radius:50%;object-fit:contain;background:var(--c-cream)}
+.lg-cats em{font-style:normal;font-size:11px;color:var(--c-muted);background:var(--c-cream);padding:0 6px;border-radius:9px}
+.lg-prods{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.lg-prods a{display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--c-line);border-radius:10px;text-decoration:none;color:var(--c-ink);transition:border-color .15s,box-shadow .15s}
+.lg-prods a:hover{border-color:var(--c-orange);box-shadow:0 6px 16px rgba(20,20,20,.06)}
+.lg-prods img{width:52px;height:52px;object-fit:contain;border-radius:8px;background:var(--c-cream);flex:none}
+.lg-prods span{min-width:0;display:grid;gap:2px}
+.lg-prods b{font-size:13.5px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.lg-prods small{font-size:13px;font-weight:700;color:var(--c-orange-dk)}
+.lg-foot{display:flex;justify-content:space-between;font-size:12.5px;color:var(--c-muted)}
+.lg-foot a{color:var(--c-ink);font-weight:600}
+
+/* ---------- จอแคบ ---------- */
+@media (max-width:1100px){
+  .lg-hl{grid-template-columns:1fr}
+}
+/* จอเตี้ย: โซนซ้ายสูงเท่าจอ (ติดอยู่ขณะเลื่อนฝั่งขวา) → ซ่อนส่วนที่ล้น */
+@media (min-width:901px) and (max-height:820px){.lg-gal{display:none}}
+@media (min-width:901px) and (max-height:640px){.lg-hl,.lg-stats{display:none}}
+@media (max-width:900px){
+  .lg{grid-template-columns:1fr}
+  .lg-hero{position:relative;height:auto;padding:36px 20px 70px;min-height:0}
+  .lg-hl,.lg-gal,.lg-stats{display:none}
+  .lg-head{font-size:28px}
+  .lg-sub{font-size:15px}
+  .lg-orb{width:160px;height:160px;right:-20px;top:-10px}
+  .lg-strip{bottom:22px}
+  .lg-side{padding:28px 20px 36px}
+}
+@media (max-width:480px){.lg-strip i:nth-child(even){display:none}}
