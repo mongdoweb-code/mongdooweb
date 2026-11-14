@@ -140,7 +140,7 @@ export function buildDocParts(d: DocView): DocParts {
   const imgCell = (it: DocLine) => (hasImg ? `<span class="it-img">${it.img ? `<img src="${esc(it.img)}" alt="">` : ""}</span>` : "");
   const thead = `<thead><tr><th class="c w-no">ลำดับ</th><th class="w-sku">รหัสสินค้า</th><th>รายการสินค้า</th><th class="w-unit">หน่วย</th><th class="n w-price">ราคาขาย/บาท</th><th class="n w-qty">จำนวน</th>${hasDisc ? '<th class="n w-disc">ส่วนลด</th>' : ""}<th class="n w-amt">ราคารวม/บาท</th></tr></thead>`;
   const rows = d.items.length
-    ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td><td class="nm"><div class="nm-row">${imgCell(it)}<div>${esc(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${esc(it.detail)}</small>` : ""}</div></div></td><td>${esc(it.unit)}</td>
+    ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td><td class="nm"><div class="nm-row">${imgCell(it)}<div>${esc(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${nl2br(it.detail)}</small>` : ""}</div></div></td><td>${esc(it.unit)}</td>
       <td class="n">${money(it.priceSatang)}</td><td class="n">${qtyShow(it.qtyMilli)}</td>${hasDisc ? `<td class="n">${it.discountSatang ? money(it.discountSatang) : ""}</td>` : ""}<td class="n">${money(lineSatang(it))}</td></tr>`)
     : [`<tr class="empty-row"><td colspan="${hasDisc ? 8 : 7}">ยังไม่มีรายการสินค้า</td></tr>`];
 

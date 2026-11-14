@@ -83,7 +83,7 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
     if (!ok) bad.push(`line${i}`);
     return {
       sortOrder: i + 1, productId: it.productId ? String(it.productId) : null, sku: String(it.sku ?? "").trim().slice(0, 60) || null, name,
-      detail: String(it.detail ?? "").trim().slice(0, 300) || null, unit: String(it.unit ?? "").trim().slice(0, 20) || "ชิ้น",
+      detail: String(it.detail ?? "").replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, 1000) || null, unit: String(it.unit ?? "").trim().slice(0, 20) || "ชิ้น",
       qtyMilli: Number(it.qtyMilli) || 0, priceSatang: Number(it.priceSatang) || 0, discountSatang: Number(it.discountSatang) || 0,
       image: docImage(it.image),
     };

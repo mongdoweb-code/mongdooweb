@@ -82,6 +82,13 @@ const withKey = (l: LineIn): Line => ({ ...l, key: K++ });
 const strip = ({ key, ...l }: Line): LineIn => (void key, l);
 const blank = (): Line => withKey({ productId: "", sku: "", name: "", detail: "", unit: "ชิ้น", qty: "1", price: "", discount: "", image: null });
 
+/** รายละเอียดใต้ชื่อรายการ: หลายบรรทัดได้ (ตรงกับที่เซิร์ฟเวอร์รับใน docs/actions.ts) */
+const DETAIL_MAX = 1000;
+/** กล่องข้อความสูงขึ้นตามเนื้อหา (ไม่หดเล็กกว่าที่ผู้ใช้ลากขยายไว้) */
+const growToFit = (t: HTMLTextAreaElement) => {
+  if (t.scrollHeight > t.clientHeight + 1) t.style.height = `${t.scrollHeight + 2}px`;
+};
+
 export function DocEditor({ init, title, back, customers: cust0, products, shop, vatEnabled, vatRateBp, refText, printedAt, lists, showCost = false }: {
   init: EditorInit; title: string; back: string; customers: Cust[]; products: Prod[]; shop: ShopHead; vatEnabled: boolean; vatRateBp: number;
   refText: string; printedAt: string; lists: { methods: string[]; carriers: string[]; units: string[]; reasons?: string[] };
@@ -350,7 +357,9 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                         onPick={(p) => setLine(l.key, { productId: p.id, sku: p.sku, name: p.name, unit: p.unit || "ชิ้น", price: priceFor(p, l.qty), image: null })} label={`ชื่อรายการที่ ${i + 1}`} />
                       <div className="ln-sub">
                         <input aria-label="รหัสสินค้า" placeholder="รหัสสินค้า" value={l.sku} maxLength={60} onChange={(e) => setLine(l.key, { sku: e.target.value })} />
-                        <input aria-label="รายละเอียด" placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)" value={l.detail} maxLength={300} onChange={(e) => setLine(l.key, { detail: e.target.value })} />
+                        {/* หลายบรรทัด (Enter ขึ้นบรรทัดใหม่) · ลากมุมขวาล่างเพื่อขยาย · พิมพ์/วางข้อความยาวแล้วกล่องสูงขึ้นเอง */}
+                        <textarea className="ln-detail" aria-label="รายละเอียด" placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ) — Enter ขึ้นบรรทัดใหม่" value={l.detail} maxLength={DETAIL_MAX} rows={1}
+                          onChange={(e) => { setLine(l.key, { detail: e.target.value }); growToFit(e.currentTarget); }} onFocus={(e) => growToFit(e.currentTarget)} />
                       </div>
                     </div>
                     <div className="row-acts">
