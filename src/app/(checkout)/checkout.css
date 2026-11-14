@@ -248,7 +248,18 @@ input,select,textarea{font-family:inherit;font-size:16px;color:var(--c-ink)}
 .btn-ghost{color:var(--c-muted);text-decoration:underline;text-underline-offset:3px}
 /* หน้าสั่งซื้อสำเร็จ */
 .done.success{max-width:720px;text-align:center}
+/* สำเร็จ = เขียวเด่น: วงกลมเขียวทึบ + เครื่องหมายถูกสีขาว (วาดเส้น) + วงแสงกระจาย · หัวข้อสีเขียว */
+.done:not(.pending) .ico{position:relative;width:76px;height:76px;background:#16A34A;color:#fff;box-shadow:0 0 0 8px #DCFCE7,0 10px 24px rgba(22,163,74,.35);margin-bottom:26px;animation:doneIco .45s cubic-bezier(.2,1.4,.4,1) both}
+.done:not(.pending) .ico svg{width:38px;height:38px;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.done:not(.pending) .ico svg path{stroke-dasharray:24;stroke-dashoffset:24;animation:doneTick .4s .25s ease-out forwards}
+.done:not(.pending) .ico::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid #22C55E;opacity:0;animation:doneRing 1.1s .35s ease-out}
+.done:not(.pending) h1{color:#15803D}
+@keyframes doneIco{from{transform:scale(.4);opacity:0}}
+@keyframes doneTick{to{stroke-dashoffset:0}}
+@keyframes doneRing{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
+@media (prefers-reduced-motion:reduce){.done:not(.pending) .ico,.done:not(.pending) .ico svg path,.done:not(.pending) .ico::after{animation:none;stroke-dashoffset:0}}
 .done.pending .ico{background:#FFF5E0;color:#9A6400}
+.done.pending h1{color:#8A5A00}
 .done h1:focus{outline:none}
 .done-ids{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 20px}
 .done-ids div{background:var(--c-cream);padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:4px}

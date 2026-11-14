@@ -237,7 +237,11 @@ test("U21–U22 สลิปใหญ่ถูกย่อก่อนอัป�
   await expect(page.locator("#doneView")).toBeVisible({ timeout: 30_000 });
   const [slip] = await q<{ sizeBytes: number }>(`SELECT s."sizeBytes" FROM "PaymentSlip" s JOIN "Order" o ON o.id = s."orderId" WHERE o."orderNo" = $1`, [orderNo]);
   expect(slip.sizeBytes).toBeLessThanOrEqual(1.5 * 1024 * 1024);
-  // หน้าสำเร็จ
+  // หน้าสำเร็จ: หัวข้อ + ไอคอนสีเขียวเด่น (สื่อว่าสำเร็จ)
+  await expect(page.locator("#doneTitle")).toHaveText("ได้รับคำสั่งซื้อและสลิปแล้ว ขอบคุณครับ");
+  await expect(page.locator("#doneTitle")).toHaveCSS("color", "rgb(21, 128, 61)");
+  await expect(page.locator("#doneCard .ico")).toHaveCSS("background-color", "rgb(22, 163, 74)");
+  await expect(page.locator("#doneCard .ico")).toHaveCSS("color", "rgb(255, 255, 255)");
   await expect(page.locator("#doneNo")).toHaveText(orderNo);
   await expect(page.locator("#doneItems")).toContainText(p.name.slice(0, 10));
   await expect(page.locator("#doneBanks .bank-card").first()).toBeVisible();
@@ -250,6 +254,8 @@ test("U21–U22 สลิปใหญ่ถูกย่อก่อนอัป�
   await expect(page.locator("#doneImage")).toBeHidden();
   await page.screenshot({ path: info.outputPath("done-print.png"), fullPage: true });
   await page.emulateMedia({ media: "screen" });
+  // เครื่องหมายถูกวาดเสร็จแล้ว (แอนิเมชันจบ เส้นแสดงครบ)
+  await expect.poll(() => page.locator("#doneCard .ico svg path").evaluate((e) => getComputedStyle(e).strokeDashoffset)).toBe("0px");
   await page.screenshot({ path: "test-results/lot2-done-desktop.png", fullPage: true });
   // ลิงก์ติดตาม: แท็บเดียวกันค้นหาให้อัตโนมัติ
   await page.click("#doneTrack");
@@ -270,6 +276,9 @@ test("U22 โอนทีหลัง → หน้าสำเร็จแบ�
   await page.click("#step1 button[type=submit]");
   await page.click("#payLater");
   await expect(page.locator("#doneTitle")).toContainText("รอการชำระเงิน");
+  // รอชำระ = สีเหลืองอำพัน ไม่ใช่สีเขียวสำเร็จ
+  await expect(page.locator("#doneCard .ico")).toHaveCSS("background-color", "rgb(255, 245, 224)");
+  await expect(page.locator("#doneTitle")).toHaveCSS("color", "rgb(138, 90, 0)");
   await expect(page.locator("#doneUpload")).toBeVisible();
   await expect(page.locator("#donePayNote")).toContainText("โอนยอด");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
