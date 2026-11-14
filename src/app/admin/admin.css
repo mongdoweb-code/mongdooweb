@@ -2038,3 +2038,69 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .bk-KBANK{background:#138F2D}.bk-SCB{background:#4E2E7F}.bk-BBL{background:#1E4598}.bk-KTB{background:#1BA5E1}
 .bk-BAY{background:#FEC43B;color:#4B3A00}.bk-TTB{background:#0050F0}.bk-GSB{background:#EB198D}.bk-BAAC{background:#4B9B1D}
 .bk-UOB{background:#0B3979}.bk-CIMB{background:#7E2F36}.bk-LHB{background:#6D6E71}.bk-KKP{background:#635F98}
+
+/* ---------- สถานะงานภายในร้านของเอกสารขาย (WorkTag/WorkPanel) — แบบป้ายในแชต LINE OA ---------- */
+.st-cell{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.wtag{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px 0 6px;border:1.5px solid;border-radius:6px;background:#fff;font:600 12px/1 var(--font);white-space:nowrap;cursor:pointer;position:relative;transition:background .15s,border-color .15s,color .15s}
+.wtag svg{width:15px;height:15px;flex:none}
+.wt-todo{color:#B5461C;border-color:#F0B49B;background:#FFF5EF}
+.wt-todo:hover{border-color:#B5461C}
+.wt-done{color:#1F7A4D;border-color:#9ED3B5;background:#F0FAF4}
+.wt-done:hover{border-color:#1F7A4D}
+.wt-empty{color:var(--c-muted);border:1.5px dashed var(--c-line);background:transparent;opacity:0;padding:0 8px}
+.wt-empty span[aria-hidden]{font-size:14px;line-height:1}
+tr:hover .wt-empty,.wt-empty:focus-visible,.wt-empty[aria-expanded="true"]{opacity:1}
+.wt-empty:hover{color:var(--c-ink);border-color:var(--c-ink)}
+@media (hover:none){.wt-empty{opacity:1}}
+.wt-dot{position:absolute;top:-4px;right:-4px;width:8px;height:8px;border-radius:50%;background:var(--c-orange);box-shadow:0 0 0 2px #fff}
+.wt-pop{position:fixed;z-index:400;width:280px;background:#fff;border:1px solid var(--c-line);box-shadow:0 14px 36px rgba(20,20,20,.18);padding:12px;display:grid;gap:10px;border-top:3px solid var(--c-orange)}
+.wt-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.wt-opt{display:flex;align-items:center;justify-content:center;gap:6px;height:38px;border:1.5px solid;border-radius:6px;font:600 13px/1 var(--font);background:#fff}
+.wt-opt svg{width:16px;height:16px}
+.wt-opt.wt-todo{color:#B5461C;border-color:#F0B49B}
+.wt-opt.wt-done{color:#1F7A4D;border-color:#9ED3B5}
+.wt-opt.on.wt-todo{background:#B5461C;border-color:#B5461C;color:#fff}
+.wt-opt.on.wt-done{background:#1F7A4D;border-color:#1F7A4D;color:#fff}
+.wt-opt.on svg path[stroke="#fff"]{stroke:currentColor}
+.wt-opt.on svg path[fill="currentColor"]{fill:#fff}
+.wt-opt.on.wt-todo svg path[stroke]{stroke:#B5461C}
+.wt-opt.on.wt-done svg path[stroke]{stroke:#1F7A4D}
+.wt-lbl{display:grid;gap:4px;font-size:12px;color:var(--c-muted);font-weight:600}
+.wt-lbl input{height:36px;padding:0 10px;border:1.5px solid var(--c-line);font-size:13.5px;color:var(--c-ink);width:100%}
+.wt-err{color:var(--c-err);font-size:12.5px}
+.wt-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--c-muted)}
+.wt-foot .link{font-size:12.5px;color:var(--c-err)}
+/* ตัวกรองสถานะงานในหน้ารายการ */
+.work-filter{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid var(--c-line)}
+.work-filter .lbl{font-size:12.5px;font-weight:700;color:var(--c-muted);margin-right:4px}
+.wf{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1.5px solid var(--c-line);background:#fff;font-size:13px;font-weight:600;color:var(--c-ink);text-decoration:none}
+.wf svg{width:15px;height:15px}
+.wf em{font-style:normal;font-size:11.5px;background:var(--c-cream);padding:1px 7px;border-radius:9px;color:var(--c-muted)}
+.wf:hover{border-color:var(--c-ink)}
+.wf-todo svg{color:#B5461C}.wf-done svg{color:#1F7A4D}
+.wf.on{background:var(--c-ink);border-color:var(--c-ink);color:#fff}
+.wf.on em{background:rgba(255,255,255,.2);color:#fff}
+.wf-todo.on{background:#B5461C;border-color:#B5461C}.wf-done.on{background:#1F7A4D;border-color:#1F7A4D}
+.wf.on svg{color:#fff}
+.wf.on svg path[stroke="#fff"]{stroke:currentColor}
+.wf-todo.on svg path[fill]{fill:#fff}.wf-todo.on svg path[stroke]{stroke:#B5461C}
+.wf-done.on svg path[fill]{fill:#fff}.wf-done.on svg path[stroke]{stroke:#1F7A4D}
+/* กล่องสถานะงานในหน้าเอกสาร */
+.wpanel h3 small{font-size:11.5px;font-weight:600;color:var(--c-muted);margin-left:6px}
+.wp-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 10px}
+.wp-btn{display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border:1.5px solid;border-radius:6px;background:#fff;font:700 14px/1 var(--font)}
+.wp-btn svg{width:18px;height:18px}
+.wp-btn.wt-todo{color:#B5461C;border-color:#F0B49B}
+.wp-btn.wt-done{color:#1F7A4D;border-color:#9ED3B5}
+.wp-btn:hover:not(:disabled){filter:brightness(.97)}
+.wp-btn.on.wt-todo{background:#B5461C;border-color:#B5461C;color:#fff}
+.wp-btn.on.wt-done{background:#1F7A4D;border-color:#1F7A4D;color:#fff}
+.wp-btn.on svg path[fill="currentColor"]{fill:#fff}
+.wp-btn.on.wt-todo svg path[stroke]{stroke:#B5461C}
+.wp-btn.on.wt-done svg path[stroke]{stroke:#1F7A4D}
+.wp-lbl{display:block;font-size:12.5px;font-weight:600;color:var(--c-muted);margin-bottom:4px}
+.wp-note{display:flex;gap:6px;margin-bottom:8px}
+.wp-note input{flex:1;min-width:0;height:38px;padding:0 10px;border:1.5px solid var(--c-line);font-size:14px}
+.wpanel .sub{display:block;line-height:1.5}
+.timeline li.t-WORK::before{background:#B5461C}
+.wp-note .btn{width:auto;flex:none}

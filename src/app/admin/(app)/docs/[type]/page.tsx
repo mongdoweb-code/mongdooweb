@@ -7,11 +7,13 @@ import { VoidIcon } from "../DocForms";
 import { Pagination } from "../../../_components/Pagination";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
-import { docDate, fromYmd, money, ymdBkk } from "@/lib/doc-calc";
+import { docDate, docDateTime, fromYmd, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST, DOC_TABS } from "@/lib/doc-render";
 import { listDocs, parseDocFilter } from "@/lib/doc-list";
 import { isDocType, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
+import { WORK_FILTERS, workWhere } from "@/lib/doc-work";
+import { WorkIcon as WorkTagIcon, WorkTag } from "../WorkTag";
 
 export default async function DocsListPage({ params, searchParams }: PageProps<"/admin/docs/[type]">) {
   await requireAdmin();
@@ -28,6 +30,8 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   const sum = (w: Parameters<typeof prisma.salesDocument.aggregate>[0]["where"]) =>
     prisma.salesDocument.aggregate({ where: { type, ...w }, _count: { _all: true }, _sum: { grandSatang: true, paidSatang: true } });
   const counts = await Promise.all(DOC_TABS[type].map(([k]) => prisma.salesDocument.count({ where: { type, ...statusWhere(k) } })));
+  // สถานะงาน: นับในแท็บสถานะเอกสารที่เลือกอยู่ (ไม่สนตัวกรองงานเอง) — ตัวเลขบนปุ่มตรงกับผลที่จะเห็นเมื่อกด
+  const workCounts = await Promise.all(WORK_FILTERS.map(([k]) => prisma.salesDocument.count({ where: { AND: [{ type }, statusWhere(f.tab), workWhere(k)] } })));
   let kpis: { label: string; value: string; sub: string; tab?: string; hot?: boolean }[] = [];
   if (type === "QUOTATION") {
     // อัตราปิดการขาย 90 วัน = ตอบรับ ÷ ใบที่ออก (ไม่นับยกเลิก/ฉบับร่าง) ในช่วงนั้น
@@ -67,7 +71,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   }
 
   const qs = (patch: Record<string, string | number>) => {
-    const v = new URLSearchParams(Object.entries({ tab: f.tab === "all" ? "" : f.tab, q: f.q, from: f.from, to: f.to, per: f.per === 20 ? "" : f.per, page: "", ...patch }).map(([k, x]) => [k, String(x)]).filter(([, x]) => x));
+    const v = new URLSearchParams(Object.entries({ tab: f.tab === "all" ? "" : f.tab, work: f.work, q: f.q, from: f.from, to: f.to, per: f.per === 20 ? "" : f.per, page: "", ...patch }).map(([k, x]) => [k, String(x)]).filter(([, x]) => x));
     const s = v.toString();
     return s ? `?${s}` : "";
   };
@@ -113,8 +117,17 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
             ))}
           </div>
         </div>
+        <div className="work-filter" role="group" aria-label="กรองตามสถานะงาน">
+          <span className="lbl">สถานะงาน</span>
+          {WORK_FILTERS.map(([k, l], i) => (
+            <Link key={k || "all"} className={`wf wf-${k || "all"}${f.work === k ? " on" : ""}`} aria-current={f.work === k ? "true" : undefined} href={`${base}${qs({ work: k })}`}>
+              {k === "todo" || k === "done" ? <WorkTagIcon state={k === "todo" ? "TODO" : "DONE"} /> : null}{l}<em>{workCounts[i]}</em>
+            </Link>
+          ))}
+        </div>
         <form className="toolbar2 doc-filter" action={base}>
           {f.tab !== "all" && <input type="hidden" name="tab" value={f.tab} />}
+          {f.work && <input type="hidden" name="work" value={f.work} />}
           <label className="search" style={{ flex: 1, minWidth: 220 }}>
             <span className="sr-only">ค้นหาเอกสาร</span>
             <input name="q" type="search" defaultValue={f.q} placeholder="เลขที่, ชื่อ/รหัสลูกค้า, เบอร์โทร, เลขผู้เสียภาษี, สินค้า" />
@@ -161,7 +174,12 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                   <td><b>{d.customer?.name ?? "—"}</b>{d.customer && <span className="sub">รหัส {d.customer.code}</span>}</td>
                   <td className="num" style={{ fontSize: 13.5 }}>{c4}</td>
                   <td className="r num"><b style={st === "void" ? { textDecoration: "line-through" } : undefined}>{money(d.grandSatang)}</b></td>
-                  <td><span className={`dst dst-${stc}`}>{stl}</span></td>
+                  <td>
+                    <div className="st-cell">
+                      <span className={`dst dst-${stc}`}>{stl}</span>
+                      <WorkTag id={d.id} state={d.workState} note={d.workNote} by={d.workBy?.displayName} at={d.workAt ? docDateTime(d.workAt, era) : null} label={`${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} />
+                    </div>
+                  </td>
                   <td className="r">
                     <DocActions d={d} href={href} label={`${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} />
                   </td>
@@ -172,7 +190,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
         </table>
         {!rows.length && (
           <div className="empty">
-            <b>{f.q || f.from || f.to || f.tab !== "all" ? "ไม่พบเอกสารตามตัวกรอง" : `ยังไม่มี${meta.th.split(" /")[0]}`}</b>
+            <b>{f.q || f.from || f.to || f.tab !== "all" || f.work ? "ไม่พบเอกสารตามตัวกรอง" : `ยังไม่มี${meta.th.split(" /")[0]}`}</b>
             {type === "RECEIPT" ? "ใบเสร็จจะออกอัตโนมัติเมื่อบันทึกรับชำระในใบแจ้งหนี้ หรือกด “ออกใบเสร็จ” ในคำสั่งซื้อ" : type === "CREDIT_NOTE" ? <>เปิดใบเสร็จรับเงินที่ต้องการลดหนี้ แล้วกด “ออกใบลดหนี้ / คืนเงิน” · <Link className="link" href="/admin/docs/RECEIPT?tab=issued">ไปที่ใบเสร็จรับเงิน</Link></> : <Link className="link" href={`${base}/new/edit`}>สร้างฉบับแรก</Link>}
           </div>
         )}

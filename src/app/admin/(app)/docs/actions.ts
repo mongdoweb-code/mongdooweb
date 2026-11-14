@@ -14,6 +14,7 @@ import { DocUserError, issueDocTx, recordInvoicePaymentTx } from "@/lib/doc-paym
 import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { WORK_META, WORK_NOTE_MAX, parseWorkState, workEventNote } from "@/lib/doc-work";
 import { getSettings } from "@/lib/settings";
 import { afterOrderPaid, type ConfirmResult } from "@/lib/order-confirm";
 
@@ -568,4 +569,27 @@ export async function returnCreditStock(f: FormData) {
     refreshStorefront();
   }
   redirect(`${docPath({ type: "CREDIT_NOTE", id })}?${msg ? `err=${encodeURIComponent(msg)}` : "stock=1"}`);
+}
+
+/**
+ * สถานะงานภายในร้าน (ต้องดำเนินการ / เสร็จสิ้น / ล้าง) — ใช้ได้ทุกประเภทเอกสาร ทุกสถานะ · พนักงานตั้งได้
+ * ไม่กระทบเลขที่/ยอด/สถานะเอกสาร · บันทึกประวัติเอกสาร + บันทึกการใช้งาน · ค่าเดิมซ้ำ (สถานะ+หมายเหตุเดิม) ไม่บันทึกซ้ำ
+ */
+export async function setDocWork(f: FormData): Promise<{ ok?: string; error?: string }> {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const state = parseWorkState(str(f, "state", 8));
+  if (!id || state === undefined) return { error: "ข้อมูลไม่ถูกต้อง" };
+  const note = state ? str(f, "note", WORK_NOTE_MAX).replace(/\s+/g, " ").trim() : "";
+  const d = await prisma.salesDocument.findUnique({ where: { id }, select: { type: true, docNo: true, workState: true, workNote: true } });
+  if (!d) return { error: "ไม่พบเอกสาร" };
+  if (d.workState === state && (d.workNote ?? "") === note) return { ok: "ไม่มีการเปลี่ยนแปลง" };
+  await prisma.$transaction([
+    prisma.salesDocument.update({ where: { id }, data: { workState: state, workNote: note || null, workAt: state ? new Date() : null, workById: state ? admin.id : null } }),
+    prisma.salesDocumentEvent.create({ data: { documentId: id, type: "WORK", adminId: admin.id, note: workEventNote(state, note) } }),
+  ]);
+  const name = `${DOC_META[d.type].th.split(" /")[0]} ${d.docNo ?? "(ฉบับร่าง)"}`;
+  await logAdmin(admin.id, "DOC", `${name}: ${workEventNote(state, note)}`);
+  refresh();
+  return { ok: state ? `ตั้งเป็น "${WORK_META[state].label}" แล้ว` : "ล้างสถานะงานแล้ว" };
 }

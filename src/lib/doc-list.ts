@@ -4,17 +4,20 @@ import type { Prisma } from "../../generated/prisma/client";
 import { fromYmd, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_TABS, type DocSt } from "@/lib/doc-render";
 import { statusWhere } from "@/lib/docs";
+import { parseWorkFilter, workWhere, type WorkFilter } from "@/lib/doc-work";
 import { phoneDigits } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const ymdRe = /^\d{4}-\d{2}-\d{2}$/;
-export type DocFilter = { tab: DocSt | "all"; q: string; from: string; to: string; page: number; per: number };
+/** work = สถานะงานภายในร้าน (ตัวกรองแยกจากแท็บสถานะเอกสาร ใช้ร่วมกันได้) */
+export type DocFilter = { tab: DocSt | "all"; work: WorkFilter; q: string; from: string; to: string; page: number; per: number };
 
 export function parseDocFilter(type: DocTypeT, sp: Record<string, string | string[] | undefined>): DocFilter {
   const tab = one(sp.tab);
   return {
     tab: DOC_TABS[type].some(([k]) => k === tab) ? (tab as DocSt) : "all",
+    work: parseWorkFilter(one(sp.work)),
     q: one(sp.q).trim().slice(0, 80),
     from: ymdRe.test(one(sp.from)) ? one(sp.from) : "",
     to: ymdRe.test(one(sp.to)) ? one(sp.to) : "",
@@ -23,9 +26,10 @@ export function parseDocFilter(type: DocTypeT, sp: Record<string, string | strin
   };
 }
 
-export function docWhere(type: DocTypeT, f: DocFilter, withTab = true): Prisma.SalesDocumentWhereInput {
+export function docWhere(type: DocTypeT, f: DocFilter, withTab = true, withWork = true): Prisma.SalesDocumentWhereInput {
   const and: Prisma.SalesDocumentWhereInput[] = [{ type }];
   if (withTab) and.push(statusWhere(f.tab));
+  if (withWork && f.work) and.push(workWhere(f.work));
   if (f.q) {
     const digits = phoneDigits(f.q);
     and.push({
@@ -58,7 +62,7 @@ export async function listDocs(type: DocTypeT, f: DocFilter, size = f.per) {
     orderBy: [{ issueDate: { sort: "desc", nulls: "first" } }, { docNo: "desc" }, { createdAt: "desc" }],
     skip: (page - 1) * size,
     take: size,
-    include: { customer: { select: { code: true, name: true } }, _count: { select: { items: true } }, order: { select: { orderNo: true } }, source: { select: { docNo: true } } },
+    include: { customer: { select: { code: true, name: true } }, _count: { select: { items: true } }, order: { select: { orderNo: true } }, source: { select: { docNo: true } }, workBy: { select: { displayName: true } } },
   });
   return { rows, total, page, pages };
 }
