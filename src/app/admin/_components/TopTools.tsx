@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { markAllReadAction } from "../(app)/notifications/actions";
+import { ThemeToggle } from "./ThemeToggle";
 
 type Hit = { group: string; title: string; detail: string; href: string };
 type Notif = { id: string; kind: string; title: string; detail: string; at: string; href: string; unread: boolean };
@@ -188,6 +189,7 @@ export function TopTools({ quick }: { quick?: React.ReactNode }) {
         <span>ค้นหาทั้งระบบ…</span>
         <kbd>Ctrl K</kbd>
       </button>
+      <ThemeToggle />
       <Bell />
       {open && <SearchDialog onClose={() => setOpen(false)} />}
     </div>

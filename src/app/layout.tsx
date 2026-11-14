@@ -20,7 +20,7 @@ export const viewport: Viewport = { themeColor: "#F26B38" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="th" className={notoSansThai.variable}>
+    <html lang="th" className={notoSansThai.variable} suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );
