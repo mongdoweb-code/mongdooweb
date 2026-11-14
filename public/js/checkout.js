@@ -326,10 +326,17 @@ $('#step1').addEventListener('submit', async e => {
 });
 
 /* ---------- STEP 2: payment ---------- */
-const bankCards = () => SHOP.banks.length ? SHOP.banks.map(b => `<div class="bank-card">
-    <div class="bank-row"><span>ธนาคาร</span><b>${esc(b.bankName)}</b></div>
-    <div class="bank-row"><span>เลขที่บัญชี</span><div><b>${esc(fmtAcc(b.account))}</b><button type="button" class="copy" data-copy="${esc(digits(b.account) || b.account)}" aria-label="คัดลอกเลขบัญชี ${esc(b.bankName)}">คัดลอก</button></div></div>
-    ${b.holder ? `<div class="bank-row"><span>ชื่อบัญชี</span><b>${esc(b.holder)}</b></div>` : ''}</div>`).join('')
+/* บัญชีรับโอน: การ์ดแยกทีละธนาคาร (แถบ/ไอคอนสีประจำธนาคาร) · เลขบัญชีตัวใหญ่สีเด่น + ปุ่มคัดลอกเลขล้วน — กันลูกค้าสับสนระหว่างบัญชี */
+const BANK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 7.5V9h18V7.5L12 3Z"/><path d="M5 10.5h2.2v6.5H5zM10.9 10.5h2.2v6.5h-2.2zM16.8 10.5H19v6.5h-2.2zM3 18.5h18V20H3z"/></svg>';
+const COPY_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
+const bankCode = b => /^[A-Z]{2,6}$/.test(b.bank || '') ? b.bank : 'OTHER';
+const bankCard = (b, i, n) => `<section class="bank-card bk-${bankCode(b)}" aria-label="บัญชีที่ ${i + 1} ${esc(b.bankName)}">
+    <div class="bk-head"><span class="bk-ic">${BANK_SVG}</span><div class="bk-t"><b class="bk-name">${esc(b.bankName)}</b>${n > 1 ? `<small>บัญชีที่ ${i + 1} จาก ${n}</small>` : ''}</div></div>
+    <div class="bk-accbox"><span class="bk-lbl">เลขที่บัญชี</span>
+      <div class="bk-accline"><b class="bk-acc">${esc(fmtAcc(b.account))}</b><button type="button" class="copy copy-acc" data-copy="${esc(digits(b.account) || b.account)}" aria-label="คัดลอกเลขบัญชี ${esc(b.bankName)}">${COPY_SVG}<span>คัดลอก</span></button></div></div>
+    ${b.holder ? `<div class="bk-holder"><span>ชื่อบัญชี</span><b>${esc(b.holder)}</b></div>` : ''}
+  </section>`;
+const bankCards = () => SHOP.banks.length ? SHOP.banks.map((b, i) => bankCard(b, i, SHOP.banks.length)).join('')
   : '<p class="note">ร้านยังไม่ได้ตั้งค่าบัญชีรับโอน กรุณาติดต่อร้านทาง LINE</p>';
 function renderPayment(){
   $('#payAmount').textContent = baht(total());
@@ -365,7 +372,12 @@ document.addEventListener('click', e => {
   const c = e.target.closest('[data-copy],[data-copy-amount],[data-copy-order]');
   if (!c) return;
   const text = c.hasAttribute('data-copy-amount') ? total().toFixed(2) : c.hasAttribute('data-copy-order') ? orderNo : c.dataset.copy;
-  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('คัดลอกแล้ว: ' + text), () => toast(text));
+  (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => {
+    toast('คัดลอกแล้ว: ' + text);
+    // ปุ่มคัดลอกเลขบัญชี: เปลี่ยนเป็น "คัดลอกแล้ว ✓" ชั่วครู่ (รู้ทันทีว่าคัดลอกบัญชีไหน)
+    const lbl = c.classList.contains('copy-acc') && c.querySelector('span');
+    if (lbl){ c.classList.add('done'); lbl.textContent = 'คัดลอกแล้ว'; clearTimeout(c._t); c._t = setTimeout(() => { c.classList.remove('done'); lbl.textContent = 'คัดลอก'; }, 1800); }
+  }, () => toast(text));
 });
 /* โอนทีหลัง: แจ้ง server (ส่งอีเมลยืนยันคำสั่งซื้อพร้อมลิงก์แนบสลิป ถ้าร้านเปิดใช้) แล้วไปหน้าสำเร็จ */
 $('#payLater').addEventListener('click', () => {
@@ -567,7 +579,12 @@ function showDone(mode){
       : `<span>จัดส่งถึง</span><b>${esc(a.name)}</b> · ${esc(fmtPhone(a.phone))}<br>${esc(shipAddrText(a))}`)
     + (doneInfo.tax ? `<span>ขอใบกำกับภาษีในนาม</span><b>${esc(doneInfo.tax.name)}</b> · เลขผู้เสียภาษี ${esc(doneInfo.tax.taxId)}${doneInfo.tax.branch ? ' · ' + esc(doneInfo.tax.branch) : ''}` : '');
   $('#donePayNote').textContent = paid ? 'ร้านได้รับสลิปแล้ว ข้อมูลบัญชีด้านล่างไว้สำหรับอ้างอิง' : `โอนยอด ${baht(doneInfo.total)} เข้าบัญชีใดก็ได้ด้านล่าง แล้วแนบสลิปที่หน้าติดตามคำสั่งซื้อ`;
-  $('#doneBanks').innerHTML = bankCards() + (SHOP.promptpay ? `<div class="bank-card"><div class="bank-row"><span>พร้อมเพย์</span><div><b>${esc(SHOP.promptpay)}</b><button type="button" class="copy" data-copy="${esc(digits(SHOP.promptpay))}">คัดลอก</button></div></div></div>` : '');
+  $('#doneBanks').innerHTML = bankCards() + (SHOP.promptpay ? `<section class="bank-card bk-PROMPTPAY" aria-label="พร้อมเพย์">
+    <div class="bk-head"><span class="bk-ic">${BANK_SVG}</span><div class="bk-t"><b class="bk-name">พร้อมเพย์ (PromptPay)</b></div></div>
+    <div class="bk-accbox"><span class="bk-lbl">หมายเลขพร้อมเพย์</span>
+      <div class="bk-accline"><b class="bk-acc">${esc(SHOP.promptpay)}</b><button type="button" class="copy copy-acc" data-copy="${esc(digits(SHOP.promptpay))}" aria-label="คัดลอกหมายเลขพร้อมเพย์">${COPY_SVG}<span>คัดลอก</span></button></div></div>
+    ${SHOP.promptpayName ? `<div class="bk-holder"><span>ชื่อบัญชี</span><b>${esc(SHOP.promptpayName)}</b></div>` : ''}
+  </section>` : '');
   $('#donePay').hidden = isCod;
   const when = doneInfo.at.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
   $('#doneTimeline').innerHTML = (isCod ? [
