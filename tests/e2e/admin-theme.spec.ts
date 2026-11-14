@@ -54,8 +54,13 @@ test("สลับเป็นมืด → เปลี่ยนทันที
   }
 
   // แผ่นเอกสาร A4 ในหน้าดูเอกสาร = กระดาษขาว
-  await page.goto("/admin/docs/QUOTATION");
-  const href = await page.locator("tbody a.row-link").first().getAttribute("href");
+  // (ฐานข้อมูลใหม่ใน CI อาจยังไม่มีใบเสนอราคา → ลองทุกประเภท ไม่รอแถวที่ไม่มี)
+  let href: string | null = null;
+  for (const t of ["QUOTATION", "INVOICE", "RECEIPT"]) {
+    await page.goto(`/admin/docs/${t}`);
+    const row = page.locator("tbody a.row-link").first();
+    if (await row.count()) { href = await row.getAttribute("href"); break; }
+  }
   if (href) {
     await page.goto(href);
     const sheet = page.locator(".sheet").first();
