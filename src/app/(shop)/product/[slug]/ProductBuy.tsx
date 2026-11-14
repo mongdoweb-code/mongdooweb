@@ -6,6 +6,7 @@ import { unitForQty, viewPrice, type SaleInfo, type TierInfo } from "@/lib/prici
 import { formatBaht } from "../../_components/format";
 import { useNow } from "../../_components/PriceBits";
 import { srcSetOf } from "@/lib/img-srcset";
+import { Lightbox } from "./Lightbox";
 
 type ShellWindow = Window & { addToCart?: (id: string, qty: number, mode: string) => boolean; openCart?: (from?: Element) => void };
 type Img = { full: string; sm: string };
@@ -251,116 +252,6 @@ export function Gallery({ images, video, alt, badge }: { images: Img[]; video?: 
         />
       )}
     </div>
-  );
-}
-
-/** ดูรูปเต็มจอ: ปิดด้วย Esc / ปุ่มปิด / คลิกพื้นหลัง / ปัดลง · เลื่อนรูปด้วยปุ่ม ลูกศร หรือปัดซ้าย-ขวา */
-function Lightbox({ images, alt, start, onClose }: { images: Img[]; alt: string; start: number; onClose: (k: number) => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const [k, setK] = useState(start);
-  const kRef = useRef(start);
-  useEffect(() => {
-    kRef.current = k;
-  }, [k]);
-  const n = images.length;
-  const drag = useRef<{ x: number; y: number; id: number } | null>(null);
-  const [dy, setDy] = useState(0);
-  const step = (d: number) => setK((x) => (x + d + n) % n);
-
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (!d.open) d.showModal();
-    const html = document.documentElement;
-    const prev = html.style.overflow;
-    html.style.overflow = "hidden";
-    // Esc → เหตุการณ์ cancel/close ของ <dialog> (โฟกัสกลับไปที่ปุ่มที่เปิดโดยอัตโนมัติ)
-    const onCloseEv = () => onClose(kRef.current);
-    d.addEventListener("close", onCloseEv);
-    return () => {
-      d.removeEventListener("close", onCloseEv);
-      html.style.overflow = prev;
-    };
-  }, [onClose]);
-
-  const close = () => ref.current?.close();
-  const im = images[k];
-
-  return (
-    <dialog
-      ref={ref}
-      className="lb"
-      aria-label={`รูปสินค้า ${k + 1} จาก ${n}`}
-      onKeyDown={(e) => {
-        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-        e.preventDefault();
-        step(e.key === "ArrowRight" ? 1 : -1);
-      }}
-      onClick={(e) => {
-        // คลิกพื้นหลัง (นอกรูป/ปุ่ม) = ปิด
-        if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains("lb-stage")) close();
-      }}
-    >
-      <div
-        className="lb-stage"
-        onPointerDown={(e) => {
-          if (e.pointerType === "mouse" && e.button !== 0) return;
-          drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
-        }}
-        onPointerMove={(e) => {
-          const s = drag.current;
-          if (s && s.id === e.pointerId && e.pointerType !== "mouse") setDy(Math.max(0, e.clientY - s.y));
-        }}
-        onPointerUp={(e) => {
-          const s = drag.current;
-          drag.current = null;
-          setDy(0);
-          if (!s || s.id !== e.pointerId) return;
-          const dx = e.clientX - s.x;
-          const ddy = e.clientY - s.y;
-          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(ddy)) step(dx < 0 ? 1 : -1);
-          else if (ddy > 90 && ddy > Math.abs(dx)) close();
-        }}
-        onPointerCancel={() => {
-          drag.current = null;
-          setDy(0);
-        }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          key={im.full}
-          src={im.full}
-          alt={k === 0 ? alt : `${alt} รูปที่ ${k + 1}`}
-          width={FULL}
-          height={FULL}
-          decoding="async"
-          draggable={false}
-          style={dy ? { transform: `translateY(${dy}px)`, opacity: Math.max(0.3, 1 - dy / 400) } : undefined}
-        />
-      </div>
-      <button type="button" className="lb-close" aria-label="ปิดรูปขยาย" onClick={close} autoFocus>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M6 6l12 12M18 6 6 18" />
-        </svg>
-      </button>
-      {n > 1 && (
-        <>
-          <button type="button" className="lb-nav prev" aria-label="รูปก่อนหน้า" onClick={() => step(-1)}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m15 5-7 7 7 7" />
-            </svg>
-          </button>
-          <button type="button" className="lb-nav next" aria-label="รูปถัดไป" onClick={() => step(1)}>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m9 5 7 7-7 7" />
-            </svg>
-          </button>
-          <span className="lb-count" aria-live="polite">
-            {k + 1} / {n}
-          </span>
-        </>
-      )}
-    </dialog>
   );
 }
 
