@@ -453,6 +453,8 @@ model ShopSetting {
   /// หมวดยอดนิยมหน้าแรก { title, items: [{ cat, bg, links: [{ label, href }] }] } — แก้ที่ /admin/home/popular · ว่าง = เลือกให้อัตโนมัติ
   popularCats         Json     @default("{}")
   loginPage           Json     @default("{}") // หน้าเข้าสู่ระบบหลังบ้าน (src/lib/login-page.ts) — {} = ค่าเริ่มต้น
+  /// ส่วน "ทำไมต้องมองดูเว็บ" หน้าแรก (src/lib/why-us.ts) — แก้ที่ /admin/home/why · {} = ข้อความเดิม
+  whyUs               Json     @default("{}")
   backupRetentionDays Int      @default(14)
 
   updatedAt DateTime @updatedAt

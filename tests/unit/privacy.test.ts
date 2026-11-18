@@ -2,7 +2,8 @@
 // รัน: npm run test:unit
 import assert from "node:assert/strict";
 import { SECRET_COLUMN, csvName, stripSecrets } from "../../src/lib/export-rules";
-import { withFeatureProject, withPayOptions } from "../../src/app/(shop)/_lot10/home-chunks";
+import { withPayOptions } from "../../src/app/(shop)/_lot10/home-chunks";
+import { WHY_DEFAULT, renderWhyHtml } from "../../src/lib/why-us";
 import { HOME_MAIN } from "../../src/app/(shop)/_markup/home";
 import { REDACTED, marketingAllowed, needlesOf, redactDiff, redactEventNote, redactLogNote, scrubText } from "../../src/lib/pdpa-rules";
 
@@ -53,12 +54,15 @@ assert.deepEqual(stripSecrets([{ id: "1", username: "a", passwordHash: "x", totp
 // ---------- หน้าแรก (D14) ----------
 assert.ok(!HOME_MAIN.includes("TODO"), "ไม่มี TODO ค้างในหน้าแรก");
 const proj = [{ title: "สระ <โรงแรม> A&B", kind: "สระว่ายน้ำ", location: "ภูเก็ต", cover: { full: "/media/p/1.webp", sm: "/media/p/1-sm.webp" } }];
-const why = withFeatureProject(HOME_MAIN, proj);
+const why = renderWhyHtml(WHY_DEFAULT, { projects: proj });
 assert.ok(why.includes('<a class="feature-visual reveal has-img" href="/projects"'));
 assert.ok(why.includes('src="/media/p/1.webp"') && why.includes("สระ &lt;โรงแรม&gt; A&amp;B") && why.includes("สระว่ายน้ำ · ภูเก็ต"));
 assert.ok(!why.includes("ภาพผลงาน / งานติดตั้งจากลูกค้า"));
-assert.equal(withFeatureProject(HOME_MAIN, []), HOME_MAIN); // ไม่มีผลงาน → ภาพเดิม
-assert.equal(withFeatureProject(HOME_MAIN, [{ ...proj[0], cover: null }]), HOME_MAIN); // ผลงานไม่มีรูป → ภาพเดิม
+// ไม่มีผลงาน / ผลงานไม่มีรูป → พื้นไล่สีเดิม + คำบรรยายเดิม
+for (const ps of [[], [{ ...proj[0], cover: null }]]) {
+  const h = renderWhyHtml(WHY_DEFAULT, { projects: ps });
+  assert.ok(h.includes('<div class="feature-visual reveal"><div class="cap"><b>แสงที่ทำงานได้จริงใต้น้ำ</b>'));
+}
 assert.equal(withPayOptions(HOME_MAIN, { codEnabled: false, pickupEnabled: false }), HOME_MAIN);
 const pay = withPayOptions(HOME_MAIN, { codEnabled: true, pickupEnabled: false });
 assert.ok(pay.includes('data-pay="cod"') && !pay.includes('data-pay="pickup"'));

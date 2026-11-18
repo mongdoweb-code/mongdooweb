@@ -1,0 +1,1 @@
+ALTER TABLE "ShopSetting" ADD COLUMN "whyUs" JSONB NOT NULL DEFAULT '{}';

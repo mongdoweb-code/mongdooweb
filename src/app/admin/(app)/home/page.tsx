@@ -50,7 +50,7 @@ export default async function HomeAdminPage({ searchParams }: PageProps<"/admin/
       <div className="l10-cols">
         <section className="box" aria-labelledby="order-h">
           <h3 id="order-h">ลำดับส่วนของหน้าแรก</h3>
-          <p className="l10-help" style={{ marginBottom: 10 }}>ติ๊กออก = ซ่อนส่วนนั้น · สไลด์ภาพหลักซ่อนไม่ได้ · ส่วนที่ยังไม่มีข้อมูล (เช่น ยังไม่มีผลงาน/บทความ) จะไม่แสดงเอง · แก้การ์ด/ลิงก์ของ “หมวดยอดนิยม” ที่ <Link className="link" href="/admin/home/popular">หมวดยอดนิยม (หน้าแรก)</Link></p>
+          <p className="l10-help" style={{ marginBottom: 10 }}>ติ๊กออก = ซ่อนส่วนนั้น · สไลด์ภาพหลักซ่อนไม่ได้ · ส่วนที่ยังไม่มีข้อมูล (เช่น ยังไม่มีผลงาน/บทความ) จะไม่แสดงเอง · แก้การ์ด/ลิงก์ของ “หมวดยอดนิยม” ที่ <Link className="link" href="/admin/home/popular">หมวดยอดนิยม (หน้าแรก)</Link> · แก้ข้อความ/รูปของ “ทำไมต้องมองดูเว็บ” ที่ <Link className="link" href="/admin/home/why">ทำไมต้องมองดูเว็บ (หน้าแรก)</Link></p>
           <SectionOrder rows={sections.map((x) => ({ key: x.key, label: HOME_SECTIONS[x.key], show: x.show }))} action={saveHomeSections} />
         </section>
 

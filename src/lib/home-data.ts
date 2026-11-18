@@ -7,15 +7,18 @@ import { prisma } from "@/lib/prisma";
 import { STOREFRONT_TAG } from "@/lib/settings";
 import { POPULAR_BG_KEYS, parsePopular, popularBgColor, type PopularItem } from "@/lib/popular-cats";
 import { getShopData } from "@/lib/storefront";
+import { parseWhyUs } from "@/lib/why-us";
 
 export async function getHomeConfig() {
   "use cache";
   cacheLife("hours");
   cacheTag(STOREFRONT_TAG);
-  const s = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { homeSections: true, trust: true } });
+  const s = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { homeSections: true, trust: true, whyUs: true } });
   const trust = parseTrust(s?.trust);
+  const why = parseWhyUs(s?.whyUs);
   return {
     sections: parseHomeSections(s?.homeSections),
+    why: { cfg: why, imageUrl: why.imageKey ? mediaUrl(why.imageKey) : null },
     trust: { ...trust, logos: trust.logos.map((l) => ({ ...l, url: mediaUrl(l.key, "sm")! })) },
   };
 }

@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { HOME_KEYS, hoursSummary, parseHomeSections, parseOpeningHours, parseTrust } from "../../src/lib/home";
 import { parsePopular, popularBgColor, popularImgUrl } from "../../src/lib/popular-cats";
+import * as whyUs from "../../src/lib/why-us";
 
 // ลำดับ: รับทั้ง string และ { key, show }, ตัดซ้ำ/ไม่รู้จัก, คงลำดับที่บันทึกไว้, สไลด์ซ่อนไม่ได้
 // ส่วนที่ขาด (เพิ่มใหม่ภายหลัง) แทรกต่อจากส่วนที่อยู่ก่อนหน้าในรายการเริ่มต้น
@@ -64,4 +65,38 @@ console.log("lot10-home: ผ่านทั้งหมด");
   assert.equal("img" in p.items[4], false, "ไม่มีรูป = ไม่มีคีย์ img");
   assert.equal(popularImgUrl(ok), "/media/popular/2026/11/mabc123def0-sm.webp");
   console.log("popular img: ok");
+}
+
+// ส่วน "ทำไมต้องมองดูเว็บ" (src/lib/why-us.ts)
+{
+  const { parseWhyUs, renderWhyHtml, WHY_DEFAULT, safeWhyHref } = whyUs;
+  assert.deepEqual(parseWhyUs({}), WHY_DEFAULT, "{} = ข้อความเดิม");
+  assert.deepEqual(parseWhyUs(null), WHY_DEFAULT);
+  const c = parseWhyUs({
+    eyebrow: "  จุดเด่น  ร้าน ", title: "บรรทัด 1\r\n\r\nบรรทัด 2\nบรรทัด 3\nบรรทัด 4",
+    items: [{ title: "ก", text: "x".repeat(300) }, { title: "" }, { title: "ข" }, ...Array.from({ length: 8 }, (_, i) => ({ title: `t${i}` }))],
+    imageMode: "upload", imageKey: "why/2026/11/abc123.webp", capTitle: "<b>", capSub: "", href: "javascript:alert(1)",
+  });
+  assert.equal(c.eyebrow, "จุดเด่น ร้าน");
+  assert.equal(c.title, "บรรทัด 1\nบรรทัด 2\nบรรทัด 3", "สูงสุด 3 บรรทัด ไม่มีบรรทัดว่าง");
+  assert.equal(c.items.length, 6, "สูงสุด 6 ข้อ · ข้อที่ไม่มีหัวข้อถูกตัด");
+  assert.equal(c.items[0].text.length, 200);
+  assert.equal(c.href, null, "ลิงก์อันตรายถูกตัด");
+  assert.equal(c.imageMode, "upload");
+  assert.equal(parseWhyUs({ imageMode: "upload", imageKey: "https://evil/x.webp" }).imageMode, "project", "อัปโหลดแต่รูปไม่ถูกต้อง = ใช้รูปผลงาน");
+  assert.equal(parseWhyUs({ imageMode: "none" }).imageMode, "none");
+  assert.equal(parseWhyUs({ capTitle: "" }).capTitle, "", "ลบคำบรรยายได้");
+  assert.equal(safeWhyHref("/projects"), "/projects");
+  assert.equal(safeWhyHref("//evil.com"), null);
+  const h = renderWhyHtml(c, { imageUrl: "/media/why/2026/11/abc123.webp" });
+  assert.ok(h.includes('<div class="feature-visual reveal has-img"><img src="/media/why/2026/11/abc123.webp"'), "รูปอัปโหลด ไม่มีลิงก์ = div");
+  assert.ok(h.includes("<b>&lt;b&gt;</b>") && !h.includes("<span></span>"), "escape + ไม่มีบรรทัดรองว่าง");
+  assert.ok(h.includes("บรรทัด 1<br>บรรทัด 2<br>บรรทัด 3"));
+  assert.ok(h.includes('<div class="num">06</div>') && !h.includes('<div class="num">07</div>'));
+  assert.ok(h.startsWith("<!-- ==================== WHY US") && h.includes('id="why"'));
+  const linked = renderWhyHtml({ ...c, href: "https://example.com/x" }, { imageUrl: "/media/why/2026/11/abc123.webp" });
+  assert.ok(linked.includes('<a class="feature-visual reveal has-img" href="https://example.com/x" target="_blank" rel="noopener"'));
+  const none = renderWhyHtml({ ...WHY_DEFAULT, imageMode: "none" }, { projects: [{ title: "P", kind: null, location: null, cover: { full: "/x.webp" } }] });
+  assert.ok(none.includes('<div class="feature-visual reveal"><div class="cap">'), "ไม่ใช้รูป = พื้นไล่สี แม้มีผลงาน");
+  console.log("why-us: ok");
 }
