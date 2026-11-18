@@ -1,4 +1,4 @@
-// /admin/home/popular — หมวดยอดนิยมหน้าแรก: เลือกหมวด เรียงลำดับ สีพื้นรูป และลิงก์ย่อย (สูงสุด 5 ต่อการ์ด)
+// /admin/home/popular — หมวดยอดนิยมหน้าแรก: เลือกหมวด เรียงลำดับ รูปการ์ด (อัปโหลดเอง) สีพื้นรูป และลิงก์ย่อย (สูงสุด 5 ต่อการ์ด)
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { parseHomeSections } from "@/lib/home";
@@ -60,7 +60,7 @@ export default async function PopularAdminPage() {
         <div>
           <p><Link className="link" href="/admin/home">← หน้าแรกและความน่าเชื่อถือ</Link></p>
           <h1>หมวดยอดนิยม (หน้าแรก)</h1>
-          <p>การ์ดหมวดพร้อมลิงก์ย่อยบนหน้าแรก — เลือกหมวด เรียงลำดับ สีพื้นรูป และลิงก์ (สูงสุด 5 ต่อการ์ด) · รูปใช้รูปหมวด (อัปโหลดที่ หมวดหมู่สินค้า) หรือรูปสินค้าตัวแรก</p>
+          <p>การ์ดหมวดพร้อมลิงก์ย่อยบนหน้าแรก — เลือกหมวด เรียงลำดับ สีพื้นรูป และลิงก์ (สูงสุด 5 ต่อการ์ด) · อัปโหลดรูปการ์ดเองได้ทุกใบ (ไม่ใส่ = ใช้รูปหมวดหรือรูปสินค้าตัวแรก)</p>
         </div>
         <div className="head-actions">
           <a className="btn btn-outline" href="/#pc-h" target="_blank" rel="noopener">ดูบนหน้าแรก</a>

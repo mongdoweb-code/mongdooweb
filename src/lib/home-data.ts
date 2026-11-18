@@ -39,7 +39,8 @@ export async function getPopularCards() {
   const cards = items.flatMap((it) => {
     const c = bySlug.get(it.cat);
     if (!c || c.count <= 0) return [];
-    return [{ slug: c.slug, title: c.th, en: c.en, img: c.img ?? null, count: c.count, bg: popularBgColor(it.bg), links: it.links }];
+    // รูปที่อัปโหลดให้การ์ดนี้ก่อน → รูปหมวด/รูปสินค้าตัวแรก
+    return [{ slug: c.slug, title: c.th, en: c.en, img: (it.img ? mediaUrl(it.img, "sm") : null) ?? c.img ?? null, custom: !!it.img, count: c.count, bg: popularBgColor(it.bg), links: it.links }];
   });
   return { title: cfg.title, cards, auto };
 }

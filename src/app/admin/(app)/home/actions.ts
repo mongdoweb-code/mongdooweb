@@ -106,7 +106,8 @@ export async function savePopular(f: FormData): Promise<{ ok?: string; error?: s
   cfg.items = cfg.items.filter((i) => cats.has(i.cat));
   if (!cfg.items.length) return { error: "เพิ่มหมวดอย่างน้อย 1 หมวด (หรือกด “ให้ระบบเลือกอัตโนมัติ”)" };
   await prisma.shopSetting.update({ where: { id: "shop" }, data: { popularCats: json(cfg) } });
-  await logAdmin(admin.id, "HOME", `หมวดยอดนิยมหน้าแรก: ${cfg.items.length} หมวด (${cfg.items.map((i) => i.cat).join(", ")})`);
+  const own = cfg.items.filter((i) => i.img).length;
+  await logAdmin(admin.id, "HOME", `หมวดยอดนิยมหน้าแรก: ${cfg.items.length} หมวด (${cfg.items.map((i) => i.cat).join(", ")})${own ? ` · รูปอัปโหลดเอง ${own} การ์ด` : ""}`);
   refreshStorefront();
   return { ok: `บันทึกแล้ว — หน้าแรกแสดง ${cfg.items.length} หมวด` };
 }

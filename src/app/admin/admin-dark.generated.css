@@ -3813,6 +3813,34 @@ html[data-adm-theme="dark"] .pce-item-head select {
 html[data-adm-theme="dark"] .pce-n {
     background: var(--c-cream)
 }
+html[data-adm-theme="dark"] .pce-img .lbl {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .pce-drop {
+    border: 2px dashed rgba(0,0,0,.14)
+}
+html[data-adm-theme="dark"] .pce-drop:hover,
+html[data-adm-theme="dark"] .pce-drop.over {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .pce-drop-ph {
+    color: rgba(0,0,0,.35)
+}
+html[data-adm-theme="dark"] .pce-drop-spin {
+    border: 3px solid rgba(242,101,34,.25);
+    border-top-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .pce-img-src {
+    background: #14161A;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .pce-img-src.own {
+    background: #141D18;
+    color: #61E593
+}
+html[data-adm-theme="dark"] .pce-img-err {
+    color: #E9675D
+}
 html[data-adm-theme="dark"] .pce-bg .lbl,
 html[data-adm-theme="dark"] .pce-links .lbl {
     color: var(--c-muted)

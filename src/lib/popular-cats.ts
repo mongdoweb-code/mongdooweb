@@ -1,5 +1,6 @@
 // หมวดยอดนิยมหน้าแรก (การ์ดหมวด + ลิงก์ย่อย) — ฟังก์ชันล้วน ใช้ได้ทั้งหน้าร้าน หลังบ้าน และเบราว์เซอร์
-// ค่าเก็บใน ShopSetting.popularCats: { title, items: [{ cat: slug, bg: สีพื้น, links: [{ label, href }] }] }
+// ค่าเก็บใน ShopSetting.popularCats: { title, items: [{ cat: slug, bg: สีพื้น, img?: รูปที่อัปโหลดเอง, links: [{ label, href }] }] }
+// img ว่าง = ใช้รูปหมวด (อัปโหลดที่ หมวดหมู่สินค้า) หรือรูปสินค้าตัวแรก
 // ค่าที่ผิดรูปแบบถูกข้ามอย่างนุ่มนวล — หน้าแรกต้องแสดงได้เสมอ
 
 /** สีพื้นหลังรูปบนการ์ด (โทนพาสเทลเข้ากับธีมครีม/ส้มของร้าน) */
@@ -27,7 +28,11 @@ export const POPULAR_MAX_LINKS = 5;
 export const POPULAR_DEFAULT_TITLE = "หมวดหมู่ยอดนิยม";
 
 export type PopularLink = { label: string; href: string };
-export type PopularItem = { cat: string; bg: PopularBg; links: PopularLink[] };
+export type PopularItem = { cat: string; bg: PopularBg; img?: string; links: PopularLink[] };
+/** รูปการ์ดที่อัปโหลดเอง: ต้องเป็นไฟล์ที่ระบบสร้างใน popular/YYYY/MM/*.webp เท่านั้น (กันลิงก์ภายนอก/ไฟล์อื่น) */
+/** ลิงก์รูปย่อของรูปการ์ด (ใช้ได้ในเบราว์เซอร์) */
+export const popularImgUrl = (key: string) => `/media/${key.replace(/\.webp$/, "-sm.webp")}`;
+export const POPULAR_IMG_RE = /^popular\/\d{4}\/\d{2}\/[a-z0-9]+\.webp$/;
 export type PopularConfig = { title: string; items: PopularItem[] };
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.normalize("NFC").replace(/\s+/g, " ").trim().slice(0, max) : "");
@@ -57,7 +62,8 @@ export function parsePopular(v: unknown): PopularConfig {
       .map((l) => ({ label: text(l.label, 40), href: safePopularHref(l.href) }))
       .filter((l): l is PopularLink => !!l.label && !!l.href)
       .slice(0, POPULAR_MAX_LINKS);
-    items.push({ cat, bg, links });
+    const img = typeof r.img === "string" && POPULAR_IMG_RE.test(r.img) ? r.img : undefined;
+    items.push({ cat, bg, ...(img ? { img } : {}), links });
     if (items.length >= POPULAR_MAX_ITEMS) break;
   }
   return { title: text(o.title, 60) || POPULAR_DEFAULT_TITLE, items };
