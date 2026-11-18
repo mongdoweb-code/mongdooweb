@@ -176,3 +176,6 @@
 @media (prefers-reduced-motion:reduce){.pc-card,.pc-img img,.pc-progress span{transition:none}.pc-card:hover{transform:none}}
 /* รูปสินค้ามาตรฐาน 1:1 (2026-11-11): การ์ดหมวดหมู่ยอดนิยม */
 .pc-img{aspect-ratio:1/1;align-self:flex-start}
+/* มุมรูปโค้งรับกับกรอบพื้นหลัง (กรอบ 10px · รูปเว้นขอบ 7% → มุมรูป 7px) · รูปที่อัปโหลดเอง (.pc-own) เต็มช่อง ตัดมุมโค้งเท่ากัน ไม่ผสมสีพื้น */
+.pc-img img{border-radius:7px}
+.pc-img img.pc-own{object-fit:cover;mix-blend-mode:normal}

@@ -62,6 +62,10 @@ test("อัปโหลดรูปการ์ด → บันทึก → �
   await page.goto("/");
   const home = page.locator(`.pc-card:has(a[href="/category/${CAT}"])`).first();
   await expect(home.locator(".pc-img img")).toHaveAttribute("src", /\/media\/popular\//);
+  // มุมรูปโค้งรับกับกรอบพื้นหลัง · รูปที่อัปโหลดเองเต็มช่อง (cover) ไม่ผสมสีพื้น
+  await expect(home.locator(".pc-img img")).toHaveClass(/pc-own/);
+  await expect(home.locator(".pc-img img")).toHaveCSS("border-top-left-radius", "7px");
+  await expect(home.locator(".pc-img img")).toHaveCSS("object-fit", "cover");
 
   // หน้าตรวจรูปภาพรู้จักรูปนี้ (ไม่ถูกมองเป็นไฟล์ขยะ)
   // กลับไปใช้รูปหมวด
