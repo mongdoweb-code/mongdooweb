@@ -187,10 +187,15 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
   /* ปุ่มใส่ตะกร้าเป็นไอคอนรถเข็นอยู่แถวเดียวกับราคา */
   .prod-grid[data-view="g6"] .prod-foot{flex-direction:row;align-items:center;justify-content:space-between;gap:8px}
   .prod-grid[data-view="g6"] .prod-price{font-size:16px}
-  .prod-grid[data-view="g6"] .add-btn{position:relative;flex:none;width:38px;min-width:38px;height:38px;padding:0}
+  /* ปุ่มเบา (ไม่มีพื้นดำ): วงกลมขอบส้มอ่อน ไอคอนส้มเข้ม · ชี้/โฟกัส = พื้นส้ม ไอคอนขาว · ใส่แล้ว = เขียว */
+  .prod-grid[data-view="g6"] .add-btn{position:relative;flex:none;width:36px;min-width:36px;height:36px;padding:0;border-radius:50%;background:#fff;color:var(--c-orange-dk);border:1.5px solid #F2D3C2;transition:background .2s,color .2s,border-color .2s,transform .15s}
+  .prod-grid[data-view="g6"] .add-btn svg{width:18px;height:18px}
+  .prod-grid[data-view="g6"] .add-btn:hover,.prod-grid[data-view="g6"] .add-btn:focus-visible{background:var(--c-orange);border-color:var(--c-orange);color:#fff}
+  .prod-grid[data-view="g6"] .add-btn:active{transform:scale(.94)}
+  .prod-grid[data-view="g6"] .add-btn.added{background:#E8F5EE;border-color:#B7DEC5;color:#15803D}
   .prod-grid[data-view="g6"] .add-btn .add-lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-  .prod-grid[data-view="g6"] .add-more{background:#fff;color:var(--c-ink);border:1px solid var(--c-line)}
-  .prod-grid[data-view="g6"] .add-more:hover{border-color:var(--c-orange);color:var(--c-orange-dk);background:#fff}
+  .prod-grid[data-view="g6"] .add-more{background:#fff;color:var(--c-muted);border:1.5px solid var(--c-line)}
+  .prod-grid[data-view="g6"] .add-more:hover,.prod-grid[data-view="g6"] .add-more:focus-visible{border-color:var(--c-orange);color:var(--c-orange-dk);background:#fff}
 }
 .prod-grid[data-view="list"]{grid-template-columns:1fr;gap:16px}
 .prod-grid[data-view="list"] .prod-card{flex-direction:row;position:relative}
