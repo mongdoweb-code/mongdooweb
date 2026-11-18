@@ -6,6 +6,7 @@ Live site today: WordPress/WooCommerce at mongdoweb.com (มองดูเว�
 
 ## Talk to the owner
 - Always answer in **Thai**. Briefly explain what code does. Ask before building when requirements are incomplete.
+- **Standing approval (2026-11-18):** after a PR's CI is green, merge it into `claude/trusting-mendel-riuxyn`, fast-forward `claude/round3`, wait for the Railway deploy, check the live site (https://www.mongdooweb.com) and report — without asking again. Fix red CI first.
 - The owner is non-technical on infrastructure; prefer clear choices over jargon.
 
 ## Target stack (decided)

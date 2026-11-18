@@ -75,8 +75,6 @@
 .pce-item-head{display:flex;align-items:center;gap:10px}
 .pce-item-head select{flex:1;min-width:0;height:40px;border:1.5px solid var(--c-line);padding:0 10px;background:#fff;font:inherit}
 .pce-n{width:26px;height:26px;border-radius:50%;background:var(--c-cream);display:grid;place-items:center;font-weight:700;font-size:13px;flex:0 0 26px}
-.pce-thumb{flex:0 0 40px;height:40px;border-radius:8px;display:grid;place-items:center;overflow:hidden}
-.pce-thumb img{width:86%;height:86%;object-fit:contain;mix-blend-mode:multiply}
 .pce-acts{display:flex;gap:4px}
 /* รูปการ์ด (อัปโหลดเอง/ลากวาง) */
 .pce-img{margin-bottom:12px}

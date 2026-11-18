@@ -151,7 +151,7 @@ test("หมวดยอดนิยม: สีพื้น 'สีอื่น'
   const pop = card.getByRole("dialog");
   await expect(pop.locator(".cp-pre .cp-sw")).toHaveCount(8);
   await pop.getByRole("radio", { name: "เขียว อ่อนมาก 3", exact: true }).click();
-  await expect(card.locator(".pce-thumb")).toHaveCSS("background-color", "rgb(217, 234, 211)");
+  await expect(card.locator(".pce-drop")).toHaveCSS("background-color", "rgb(217, 234, 211)");
   await expect(card.getByRole("button", { name: /สีอื่น \(ใช้อยู่ #D9EAD3\)/ })).toBeVisible();
   // เลือกพาสเทลจากป๊อปอัป = เก็บเป็นชื่อพาสเทลเหมือนเดิม
   await card.getByRole("button", { name: /สีอื่น/ }).click();
