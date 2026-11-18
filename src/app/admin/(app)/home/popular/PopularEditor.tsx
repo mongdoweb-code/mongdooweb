@@ -87,7 +87,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
                 <li key={it.key} className="pce-pv-card">
                   <span className="pce-pv-img" style={{ background: popularBgColor(it.bg) }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {imgOf(it) ? <img src={imgOf(it)!} alt="" /> : <span>{c?.th.slice(0, 1)}</span>}
+                    {imgOf(it) ? <img src={imgOf(it)!} alt="" className={it.img ? "own" : undefined} /> : <span>{c?.th.slice(0, 1)}</span>}
                   </span>
                   <span className="pce-pv-body">
                     <b>{c?.th ?? "—"}</b>
@@ -139,7 +139,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
                     onDragOver={(e) => { e.preventDefault(); setDragOn(it.key); }} onDragLeave={() => setDragOn(null)}
                     onDrop={(e) => { e.preventDefault(); setDragOn(null); void upload(it.key, e.dataTransfer.files?.[0]); }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {imgOf(it) ? <img src={imgOf(it)!} alt="" /> : <span className="pce-drop-ph">{c?.th.slice(0, 1)}</span>}
+                    {imgOf(it) ? <img src={imgOf(it)!} alt="" className={it.img ? "own" : undefined} /> : <span className="pce-drop-ph">{c?.th.slice(0, 1)}</span>}
                     {busy[it.key] && <span className="pce-drop-spin" aria-hidden="true" />}
                   </button>
                   <div className="pce-img-info">

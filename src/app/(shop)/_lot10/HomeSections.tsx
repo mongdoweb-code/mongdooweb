@@ -120,7 +120,7 @@ async function PopularSection() {
                 <a className="pc-img" href={href} style={{ background: c.bg }} tabIndex={-1} aria-hidden="true">
                   {c.img ? (
                     // eslint-disable-next-line @next/next/no-img-element -- รูปย่อ WebP จาก /media
-                    <img src={c.img} alt="" width={240} height={240} loading="lazy" decoding="async" />
+                    <img src={c.img} alt="" width={240} height={240} loading="lazy" decoding="async" className={c.custom ? "pc-own" : undefined} />
                   ) : (
                     <span className="pc-ph">{c.title.slice(0, 1)}</span>
                   )}
