@@ -1,7 +1,7 @@
 // ล็อต 10: ค่าหน้าแรก (ลำดับส่วน / ความน่าเชื่อถือ / เวลาทำการ) — ค่าผิดรูปแบบต้องถูกข้ามอย่างนุ่มนวล
 import assert from "node:assert/strict";
 import { HOME_KEYS, hoursSummary, parseHomeSections, parseOpeningHours, parseTrust } from "../../src/lib/home";
-import { parsePopular, popularBgColor } from "../../src/lib/popular-cats";
+import { parsePopular, popularBgColor, popularImgUrl } from "../../src/lib/popular-cats";
 
 // ลำดับ: รับทั้ง string และ { key, show }, ตัดซ้ำ/ไม่รู้จัก, คงลำดับที่บันทึกไว้, สไลด์ซ่อนไม่ได้
 // ส่วนที่ขาด (เพิ่มใหม่ภายหลัง) แทรกต่อจากส่วนที่อยู่ก่อนหน้าในรายการเริ่มต้น
@@ -46,4 +46,22 @@ console.log("lot10-home: ผ่านทั้งหมด");
   assert.equal(popularBgColor("#d9ead3"), "#D9EAD3");
   assert.equal(popularBgColor("red;background:url(x)"), "#F2EDE3");
   console.log("popular bg: ok");
+}
+
+// รูปการ์ดหมวดยอดนิยมที่อัปโหลดเอง: รับเฉพาะ popular/YYYY/MM/<id>.webp ที่ระบบสร้าง
+{
+
+  const ok = "popular/2026/11/mabc123def0.webp";
+  const p = parsePopular({ items: [
+    { cat: "pool-light", img: ok },
+    { cat: "garden-light", img: "https://evil.example/x.webp" },
+    { cat: "spot-light", img: "products/2026/11/abc.webp" },
+    { cat: "wall-light", img: "popular/2026/11/../../x.webp" },
+    { cat: "fountain-light" },
+  ] });
+  assert.equal(p.items[0].img, ok);
+  for (const it of p.items.slice(1)) assert.equal(it.img, undefined, `ไม่รับรูป ${it.cat}`);
+  assert.equal("img" in p.items[4], false, "ไม่มีรูป = ไม่มีคีย์ img");
+  assert.equal(popularImgUrl(ok), "/media/popular/2026/11/mabc123def0-sm.webp");
+  console.log("popular img: ok");
 }

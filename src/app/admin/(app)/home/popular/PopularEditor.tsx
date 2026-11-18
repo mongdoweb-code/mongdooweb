@@ -1,12 +1,14 @@
 "use client";
-// ตัวแก้ไขหมวดยอดนิยม: การ์ดละ 1 หมวด · เลือกสีพื้นรูป (พาสเทล 8 สี หรือ "สีอื่น" จากตารางสี) · ลิงก์ย่อย (พิมพ์เอง หรือกดลิงก์แนะนำ) · ขึ้น/ลง/ลบ · ตัวอย่างสด
+// ตัวแก้ไขหมวดยอดนิยม: การ์ดละ 1 หมวด · รูปการ์ด (อัปโหลดเอง/ลากวาง หรือใช้รูปหมวด) · เลือกสีพื้นรูป (พาสเทล 8 สี หรือ "สีอื่น" จากตารางสี) · ลิงก์ย่อย (พิมพ์เอง หรือกดลิงก์แนะนำ) · ขึ้น/ลง/ลบ · ตัวอย่างสด
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
-import { POPULAR_BG, POPULAR_BG_KEYS, POPULAR_MAX_ITEMS, POPULAR_MAX_LINKS, popularBgColor, type PopularBg, type PopularConfig } from "@/lib/popular-cats";
+import { useId, useRef, useState, useTransition } from "react";
+import { POPULAR_BG, POPULAR_BG_KEYS, POPULAR_MAX_ITEMS, POPULAR_MAX_LINKS, popularBgColor, popularImgUrl, type PopularBg, type PopularConfig } from "@/lib/popular-cats";
 import { ColorPopover } from "../../../_components/ColorPalette";
 
 export type CatOpt = { slug: string; th: string; img: string | null; count: number; visible: boolean; sug: { label: string; href: string }[] };
-type Item = { key: number; cat: string; bg: PopularBg; links: { label: string; href: string }[] };
+type Item = { key: number; cat: string; bg: PopularBg; img?: string; links: { label: string; href: string }[] };
+const IMG_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const IMG_MAX = 10 * 1024 * 1024;
 let K = 1;
 
 export function PopularEditor({ initial, cats, custom, action }: {
@@ -19,6 +21,33 @@ export function PopularEditor({ initial, cats, custom, action }: {
   const [pending, start] = useTransition();
   const [addCat, setAddCat] = useState("");
   const [colorFor, setColorFor] = useState<number | null>(null);
+  // อัปโหลดรูปการ์ด: key การ์ด → กำลังอัปโหลด / ข้อผิดพลาด / ลากไฟล์อยู่เหนือช่อง
+  const [busy, setBusy] = useState<Record<number, boolean>>({});
+  const [imgErr, setImgErr] = useState<Record<number, string>>({});
+  const [dragOn, setDragOn] = useState<number | null>(null);
+  const fileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const uploading = Object.values(busy).some(Boolean);
+  /** รูปที่การ์ดใช้: อัปโหลดเอง → รูปหมวด/รูปสินค้าตัวแรก */
+  const imgOf = (it: Item) => (it.img ? popularImgUrl(it.img) : catOf(it.cat)?.img ?? null);
+  const upload = async (key: number, file: File | undefined) => {
+    if (!file) return;
+    const bad = !IMG_TYPES.includes(file.type) ? "รองรับเฉพาะไฟล์ JPG, PNG, WEBP หรือ GIF" : file.size > IMG_MAX ? "ไฟล์รูปใหญ่เกิน 10 MB" : "";
+    setImgErr((e) => ({ ...e, [key]: bad }));
+    if (bad) return;
+    setBusy((b) => ({ ...b, [key]: true }));
+    try {
+      const fd = new FormData();
+      fd.set("file", file);
+      const r = await fetch("/admin/home/popular/upload", { method: "POST", body: fd });
+      const j = (await r.json().catch(() => ({}))) as { key?: string; error?: string };
+      if (!r.ok || !j.key) throw new Error(j.error || "อัปโหลดไม่สำเร็จ ลองใหม่อีกครั้ง");
+      set(key, { img: j.key });
+    } catch (e) {
+      setImgErr((x) => ({ ...x, [key]: e instanceof Error ? e.message : "อัปโหลดไม่สำเร็จ" }));
+    } finally {
+      setBusy((b) => ({ ...b, [key]: false }));
+    }
+  };
   const uid = useId();
   const catOf = (slug: string) => cats.find((c) => c.slug === slug);
   const unused = cats.filter((c) => !items.some((i) => i.cat === c.slug));
@@ -34,7 +63,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
   const submit = (intent: "save" | "reset") => {
     const fd = new FormData();
     fd.set("intent", intent);
-    fd.set("data", JSON.stringify({ title, items: items.map(({ cat, bg, links }) => ({ cat, bg, links: links.filter((l) => l.label.trim() || l.href.trim()) })) }));
+    fd.set("data", JSON.stringify({ title, items: items.map(({ cat, bg, img, links }) => ({ cat, bg, ...(img ? { img } : {}), links: links.filter((l) => l.label.trim() || l.href.trim()) })) }));
     start(async () => {
       const r = await action(fd);
       setMsg(r);
@@ -58,7 +87,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
                 <li key={it.key} className="pce-pv-card">
                   <span className="pce-pv-img" style={{ background: popularBgColor(it.bg) }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {c?.img ? <img src={c.img} alt="" /> : <span>{c?.th.slice(0, 1)}</span>}
+                    {imgOf(it) ? <img src={imgOf(it)!} alt="" /> : <span>{c?.th.slice(0, 1)}</span>}
                   </span>
                   <span className="pce-pv-body">
                     <b>{c?.th ?? "—"}</b>
@@ -87,10 +116,6 @@ export function PopularEditor({ initial, cats, custom, action }: {
             <li key={it.key} className="box pce-item" data-cat={it.cat}>
               <div className="pce-item-head">
                 <span className="pce-n">{i + 1}</span>
-                <span className="pce-thumb" style={{ background: popularBgColor(it.bg) }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {c?.img ? <img src={c.img} alt="" /> : null}
-                </span>
                 <label className="sr-only" htmlFor={`${uid}c${it.key}`}>หมวดของการ์ดที่ {i + 1}</label>
                 <select id={`${uid}c${it.key}`} value={it.cat} onChange={(e) => set(it.key, { cat: e.target.value, links: [] })}>
                   {[c, ...unused].filter((x): x is CatOpt => !!x).map((x) => (
@@ -102,6 +127,38 @@ export function PopularEditor({ initial, cats, custom, action }: {
                   <button type="button" className="icon-btn sm" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label={`เลื่อน ${c?.th} ลง`}>↓</button>
                   <button type="button" className="icon-btn sm x" onClick={() => setItems((xs) => xs.filter((x) => x.key !== it.key))} aria-label={`เอา ${c?.th} ออก`}>✕</button>
                 </span>
+              </div>
+
+              {/* รูปการ์ด: อัปโหลดเอง (คลิก/ลากวาง) หรือใช้รูปหมวดอัตโนมัติ */}
+              <div className="pce-img">
+                <span className="lbl">รูปการ์ด</span>
+                <div className="pce-img-row">
+                  <button type="button" className={`pce-drop${dragOn === it.key ? " over" : ""}${busy[it.key] ? " busy" : ""}`}
+                    style={{ background: popularBgColor(it.bg) }} aria-label={`${it.img ? "เปลี่ยนรูป" : "อัปโหลดรูป"}การ์ด ${c?.th ?? ""}`}
+                    disabled={busy[it.key]} onClick={() => fileRefs.current[it.key]?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setDragOn(it.key); }} onDragLeave={() => setDragOn(null)}
+                    onDrop={(e) => { e.preventDefault(); setDragOn(null); void upload(it.key, e.dataTransfer.files?.[0]); }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {imgOf(it) ? <img src={imgOf(it)!} alt="" /> : <span className="pce-drop-ph">{c?.th.slice(0, 1)}</span>}
+                    {busy[it.key] && <span className="pce-drop-spin" aria-hidden="true" />}
+                  </button>
+                  <div className="pce-img-info">
+                    <span className={`pce-img-src${it.img ? " own" : ""}`}>{it.img ? "รูปที่อัปโหลดเอง" : "รูปหมวด (อัตโนมัติ)"}</span>
+                    <div className="pce-img-btns">
+                      <button type="button" className="btn btn-outline btn-sm" disabled={busy[it.key]} onClick={() => fileRefs.current[it.key]?.click()}>
+                        {busy[it.key] ? "กำลังอัปโหลด…" : it.img ? "เปลี่ยนรูป" : "อัปโหลดรูป"}
+                      </button>
+                      {it.img && (
+                        <button type="button" className="btn btn-ghost btn-sm" disabled={busy[it.key]} onClick={() => set(it.key, { img: undefined })}>ใช้รูปหมวดแทน</button>
+                      )}
+                    </div>
+                    <small className="sub">JPG, PNG, WEBP ไม่เกิน 10 MB · แนะนำรูปสี่เหลี่ยมจัตุรัส พื้นโปร่งใสหรือพื้นขาว (จะวางบนสีพื้นด้านล่าง) · ลากไฟล์มาวางที่ช่องรูปได้</small>
+                    {imgErr[it.key] && <span className="pce-img-err" role="alert">{imgErr[it.key]}</span>}
+                  </div>
+                  <input ref={(el) => { fileRefs.current[it.key] = el; }} type="file" accept={IMG_TYPES.join(",")} className="sr-only" tabIndex={-1}
+                    aria-label={`ไฟล์รูปการ์ด ${c?.th ?? ""}`} data-pce-file={it.cat}
+                    onChange={(e) => { void upload(it.key, e.target.files?.[0]); e.target.value = ""; }} />
+                </div>
               </div>
 
               <div className="pce-bg" role="radiogroup" aria-label={`สีพื้นรูป ${c?.th}`}>
@@ -179,7 +236,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
           </button>
         )}
         <span className="sub">{items.length} การ์ด · การ์ดแรกๆ เห็นก่อนบนจอ (คอม 4 ใบ · มือถือ 1 ใบ)</span>
-        <button type="button" className="btn btn-primary" disabled={pending || !items.length} onClick={() => submit("save")}>{pending ? "กำลังบันทึก…" : "บันทึก"}</button>
+        <button type="button" className="btn btn-primary" disabled={pending || uploading || !items.length} onClick={() => submit("save")}>{pending ? "กำลังบันทึก…" : uploading ? "รออัปโหลดรูป…" : "บันทึก"}</button>
       </div>
     </div>
   );
