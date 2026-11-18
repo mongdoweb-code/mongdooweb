@@ -50,14 +50,30 @@ test("6 คอลัมน์: กรอบมน · ไม่มีหัวใ
   const [b, pr] = await Promise.all([btn.boundingBox(), card.locator(".prod-price").boundingBox()]);
   expect(Math.abs(b!.y + b!.height / 2 - (pr!.y + pr!.height / 2))).toBeLessThan(8); // แถวเดียวกัน
   expect(b!.x).toBeGreaterThan(pr!.x + pr!.width - 1); // อยู่ขวาของราคา
-  expect(Math.round(b!.width)).toBe(38);
+  expect(Math.round(b!.width)).toBe(36);
+  // ปุ่มเบา: วงกลม พื้นขาว ขอบส้มอ่อน ไอคอนส้ม (ไม่มีพื้นดำ)
+  await expect(btn).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(btn).toHaveCSS("border-top-left-radius", "50%");
+  await expect(btn).toHaveCSS("color", "rgb(217, 86, 42)");
+  await btn.hover();
+  await expect(btn).toHaveCSS("background-color", "rgb(242, 107, 56)");
+  await expect(btn).toHaveCSS("color", "rgb(255, 255, 255)");
   // การ์ดไม่ล้น
   expect(await card.evaluate((c) => c.scrollWidth <= c.clientWidth + 1)).toBe(true);
   await btn.click();
   await expect(btn).toHaveClass(/added/);
+  await page.mouse.move(5, 5);
+  await expect(btn).toHaveCSS("background-color", "rgb(232, 245, 238)"); // ใส่แล้ว = เขียวอ่อน
   await expect(btn.locator("svg.add-ic")).toBeVisible(); // ไอคอนยังอยู่
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mdw_cart") || "{}"))).toMatchObject({ [P.slug]: 1 });
   await page.evaluate(() => localStorage.removeItem("mdw_cart"));
+  // มุมมองอื่นไม่เปลี่ยน: 4 คอลัมน์ยังเป็นปุ่มดำมีข้อความ
+  await page.evaluate(() => { document.cookie = "mdw_shop_view=g4; path=/"; });
+  await page.goto(listing);
+  const b4 = page.locator(`#prod-${P.slug} .add-btn`);
+  await expect(b4).toHaveCSS("background-color", "rgb(20, 20, 20)");
+  await expect(b4.locator(".add-lbl")).not.toHaveCSS("width", "1px");
+  await page.evaluate(() => { document.cookie = "mdw_shop_view=; path=/; max-age=0"; });
 });
 
 test("ชี้ค้าง: รูปทั้งหมดเลื่อนไปทางซ้ายแบบ fade + ตัวนับ 'x จาก 3' · เอาเมาส์ออก = กลับภาพปก", async ({ page }) => {
