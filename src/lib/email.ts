@@ -24,7 +24,7 @@ export function smtpStatus() {
   return { configured: !!host && !!from && !placeholder, placeholder, host, port: Number(env("SMTP_PORT")) || 587, user: env("SMTP_USER"), from };
 }
 
-let transport: nodemailer.Transporter | null = null;
+let transport: ReturnType<typeof nodemailer.createTransport> | null = null;
 function mailer() {
   if (transport) return transport;
   const s = smtpStatus();
