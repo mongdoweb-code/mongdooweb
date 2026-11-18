@@ -3,6 +3,7 @@
 // แสดงผลสำเร็จ/ผิดพลาดตรงช่องนั้น แล้วโหลดข้อมูลหน้าใหม่ (ตัวเลขอื่นที่เกี่ยวข้อง เช่น ป้าย "หมด" อัปเดตตาม)
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { notifySave } from "./save-notify";
 
 type Result = { ok?: string; error?: string; display?: string };
 
@@ -69,6 +70,7 @@ export function InlineCell<F extends string>({
       const r = await action(id, field, text);
       saving.current = false;
       setMsg(r);
+      notifySave(r.error ? { ok: false, message: r.error } : { ok: true, message: `แก้ไข${label}แล้ว` });
       if (r.error) {
         input.current?.focus();
         return;

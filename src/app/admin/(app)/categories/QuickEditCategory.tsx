@@ -4,6 +4,7 @@ import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { QuickDrawer, useQuickOpen } from "../../_components/QuickDrawer";
 import type { CatState } from "./actions";
+import { notifySave } from "../../_components/save-notify";
 
 export type QuickCategory = { kind: "category"; id: string; nameTh: string; nameEn: string; slug: string; group: string; popular: string; showOnHome: boolean; isActive: boolean; count: number };
 const GROUPS = [["WATER", "งานน้ำ"], ["OUTDOOR", "สวนและภายนอก"], ["BUILDING", "อาคารและภายใน"], ["DECO", "อุปกรณ์และตกแต่ง"]] as const;
@@ -12,7 +13,6 @@ export function QuickEditCategory({ action }: { action: (f: FormData) => Promise
   const router = useRouter();
   const [c, setC] = useState<QuickCategory | null>(null);
   const [res, setRes] = useState<CatState>({});
-  const [toast, setToast] = useState("");
   const [pending, start] = useTransition();
   useQuickOpen<QuickCategory>("category", (d) => {
     setC(d);
@@ -27,9 +27,8 @@ export function QuickEditCategory({ action }: { action: (f: FormData) => Promise
     start(async () => {
       const r = await action(fd);
       setRes(r);
+      notifySave(r.error ? { ok: false, message: r.error, fields: r.fields } : { ok: true, message: `บันทึกหมวด ${fd.get("nameTh")} แล้ว` });
       if (r.ok) {
-        setToast(`✓ บันทึกหมวด ${fd.get("nameTh")} แล้ว`);
-        setTimeout(() => setToast(""), 2500);
         setC(null);
         router.refresh();
       }
@@ -38,7 +37,6 @@ export function QuickEditCategory({ action }: { action: (f: FormData) => Promise
 
   return (
     <>
-      {toast && <div className="sort-toast" role="status"><span className="sort-msg ok">{toast}</span></div>}
       <QuickDrawer
         open={!!c}
         title={c?.nameTh ?? ""}

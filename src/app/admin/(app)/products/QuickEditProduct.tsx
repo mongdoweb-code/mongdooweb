@@ -4,6 +4,7 @@ import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { QuickDrawer, useQuickOpen } from "../../_components/QuickDrawer";
 import type { QuickResult } from "./quick-actions";
+import { notifySave } from "../../_components/save-notify";
 
 export type QuickProduct = {
   kind: "product"; id: string; name: string; sku: string; categoryId: string; price: string; compareAt: string;
@@ -15,7 +16,6 @@ export function QuickEditProduct({ categories, action }: { categories: { id: str
   const [p, setP] = useState<QuickProduct | null>(null);
   const [track, setTrack] = useState(false);
   const [res, setRes] = useState<QuickResult & { fields?: string[] }>({});
-  const [toast, setToast] = useState("");
   const [pending, start] = useTransition();
   useQuickOpen<QuickProduct>("product", (d) => {
     setP(d);
@@ -31,9 +31,8 @@ export function QuickEditProduct({ categories, action }: { categories: { id: str
     start(async () => {
       const r = await action(fd);
       setRes(r);
+      notifySave(r.error ? { ok: false, message: r.error, fields: r.fields } : { ok: true, message: `บันทึกสินค้า ${fd.get("sku")} แล้ว` });
       if (r.ok) {
-        setToast(`✓ บันทึก ${fd.get("sku")} แล้ว`);
-        setTimeout(() => setToast(""), 2500);
         setP(null);
         router.refresh();
       }
@@ -42,7 +41,6 @@ export function QuickEditProduct({ categories, action }: { categories: { id: str
 
   return (
     <>
-      {toast && <div className="sort-toast" role="status"><span className="sort-msg ok">{toast}</span></div>}
       <QuickDrawer
         open={!!p}
         title={p?.name ?? ""}

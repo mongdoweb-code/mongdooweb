@@ -25,20 +25,27 @@ export function SaveResultPopup(props: {
   const [closed, setClosed] = useState<SaveResult>(null);
   const r = props.result;
   if (!r || (!r.ok && !r.error) || closed === r) return null;
-  return <Card key={idOf(r)} {...props} result={r} onClose={() => setClosed(r)} />;
+  const ok = !!r.ok && !r.error;
+  return (
+    <SavePopupCard key={idOf(r)} ok={ok} title={ok ? "บันทึกสำเร็จ" : "บันทึกไม่สำเร็จ"} message={(ok ? r.ok : r.error) ?? ""}
+      viewHref={props.viewHref} viewLabel={props.viewLabel} onFix={props.onFix} onClose={() => setClosed(r)} />
+  );
 }
 
-function Card({ result: shown, viewHref, viewLabel = "ดูหน้าสินค้า", onFix, onClose: close }: {
-  result: { ok?: string; error?: string };
+/** การ์ดป๊อปอัป (ใช้ร่วมกับ SaveCenter ที่แจ้งผลทุกเมนู) */
+export function SavePopupCard({ ok, title, message, viewHref, viewLabel = "ดูหน้าสินค้า", onFix, onClose: close }: {
+  ok: boolean;
+  title: string;
+  message: string;
   viewHref?: string;
   viewLabel?: string;
+  /** ตอนผิด: ปุ่ม "แก้ไขช่องที่ผิด" (ไม่ส่ง = ปุ่ม "ตกลง" อย่างเดียว) */
   onFix?: () => void;
   onClose: () => void;
 }) {
   const [left, setLeft] = useState(100);
   const paused = useRef(false);
   const fixBtn = useRef<HTMLButtonElement>(null);
-  const ok = !!shown.ok && !shown.error;
 
   // สำเร็จ: นับถอยหลัง 3 วินาทีแล้วปิด (แถบเวลาด้านล่าง)
   useEffect(() => {
@@ -66,7 +73,7 @@ function Card({ result: shown, viewHref, viewLabel = "ดูหน้าสิ�
         role={ok ? "status" : "alertdialog"}
         aria-live={ok ? "polite" : "assertive"}
         aria-labelledby="srp-t"
-        aria-describedby="srp-d"
+        aria-describedby={message ? "srp-d" : undefined}
         onMouseEnter={() => (paused.current = true)}
         onMouseLeave={() => (paused.current = false)}
         onFocus={() => (paused.current = true)}
@@ -80,8 +87,8 @@ function Card({ result: shown, viewHref, viewLabel = "ดูหน้าสิ�
             <svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="24" /><path d="m18 18 16 16M34 18 18 34" /></svg>
           )}
         </span>
-        <h2 id="srp-t">{ok ? "บันทึกสำเร็จ" : "บันทึกไม่สำเร็จ"}</h2>
-        <p id="srp-d">{ok ? shown.ok : shown.error}</p>
+        <h2 id="srp-t">{title}</h2>
+        {message && <p id="srp-d">{message}</p>}
         <div className="srp-acts">
           {ok ? (
             <>
@@ -90,8 +97,8 @@ function Card({ result: shown, viewHref, viewLabel = "ดูหน้าสิ�
             </>
           ) : (
             <>
-              <button type="button" className="btn btn-outline btn-sm" onClick={close}>ปิด</button>
-              <button ref={fixBtn} type="button" className="btn btn-primary btn-sm" onClick={() => { close(); onFix?.(); }}>แก้ไขช่องที่ผิด</button>
+              <button type="button" className="btn btn-outline btn-sm" onClick={close} ref={onFix ? undefined : fixBtn}>{onFix ? "ปิด" : "ตกลง"}</button>
+              {onFix && <button ref={fixBtn} type="button" className="btn btn-primary btn-sm" onClick={() => { close(); onFix(); }}>แก้ไขช่องที่ผิด</button>}
             </>
           )}
         </div>

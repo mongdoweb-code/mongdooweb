@@ -6,6 +6,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { WORK_META, WORK_NOTE_MAX, type WorkState } from "@/lib/doc-work";
 import { setDocWork } from "./actions";
+import { notifySave } from "../../_components/save-notify";
 
 const TodoIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="currentColor" /><path d="M8.5 9.5h7" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></svg>
@@ -27,6 +28,7 @@ function useSave(id: string) {
       f.set("state", state ?? "NONE");
       f.set("note", note);
       const r = await setDocWork(f);
+      notifySave(r.error ? { ok: false, message: r.error } : { ok: true, message: state === "DONE" ? "ตั้งสถานะงาน “เสร็จสิ้น” แล้ว" : state === "TODO" ? "ตั้งสถานะงาน “ต้องดำเนินการ” แล้ว" : "เอาสถานะงานออกแล้ว" });
       if (r.error) setErr(r.error);
       else { setErr(""); done?.(); }
     });

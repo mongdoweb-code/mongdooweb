@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 import { POPULAR_BG, POPULAR_BG_KEYS, POPULAR_MAX_ITEMS, POPULAR_MAX_LINKS, popularBgColor, popularImgUrl, type PopularBg, type PopularConfig } from "@/lib/popular-cats";
 import { ColorPopover } from "../../../_components/ColorPalette";
+import { notifySave } from "../../../_components/save-notify";
 
 export type CatOpt = { slug: string; th: string; img: string | null; count: number; visible: boolean; sug: { label: string; href: string }[] };
 type Item = { key: number; cat: string; bg: PopularBg; img?: string; links: { label: string; href: string }[] };
@@ -67,6 +68,7 @@ export function PopularEditor({ initial, cats, custom, action }: {
     start(async () => {
       const r = await action(fd);
       setMsg(r);
+      notifySave(r.error ? { ok: false, message: r.error } : { ok: true, title: intent === "reset" ? "คืนค่าสำเร็จ" : "บันทึกสำเร็จ", message: r.ok });
       if (r.ok) router.refresh();
     });
   };

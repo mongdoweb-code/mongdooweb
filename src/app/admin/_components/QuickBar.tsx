@@ -8,6 +8,7 @@ import { QUICK_DEFAULT, QUICK_MAX, type QuickItem } from "@/lib/quick-menu";
 import { saveQuickMenu } from "../quick-menu-actions";
 import { Ico, type IconKey } from "./admin-icons";
 import "./quickbar.css";
+import { notifySave } from "./save-notify";
 
 const Icon = ({ it }: { it: QuickItem }) => (
   <span className="qb-ic">
@@ -86,6 +87,7 @@ function QuickSettings({ selected, available, onClose }: { selected: string[]; a
     start(async () => {
       const r = await saveQuickMenu(keys);
       setMsg(r);
+      notifySave(r.error ? { ok: false, message: r.error } : { ok: true, message: r.ok || "บันทึกเมนูด่วนแล้ว" });
       if (r.ok) closeRef.current();
     });
   return (

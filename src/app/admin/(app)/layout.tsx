@@ -5,6 +5,7 @@ import { logoutAction } from "../actions";
 import { IdleGuard, SideToggle } from "../_components/AdminClient";
 import { AdminNav } from "../_components/AdminNav";
 import { TopTools } from "../_components/TopTools";
+import { SaveCenter } from "../_components/SaveCenter";
 import { Ico } from "../_components/admin-icons";
 import { QuickBar } from "../_components/QuickBar";
 import { availableQuickItems, parseQuickMenu } from "@/lib/quick-menu";
@@ -116,6 +117,8 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
         </div>
         {!admin.mustChangePassword && <TopTools quick={<QuickBar selected={parseQuickMenu(me?.quickMenu, owner)} available={availableQuickItems(owner)} />} />}
         {children}
+        {/* ป๊อปอัปแจ้งผลการบันทึกทุกเมนู */}
+        <SaveCenter />
       </div>
       <IdleGuard />
     </div>

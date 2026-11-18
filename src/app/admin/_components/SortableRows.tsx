@@ -4,6 +4,7 @@
 // groups (ถ้ามี) = กลุ่มของแต่ละแถว เช่น ปักหมุด/ไม่ปักหมุด — ลากข้ามกลุ่มไม่ได้
 import { Children, isValidElement, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { notifySave } from "./save-notify";
 
 type Result = { ok?: string; error?: string };
 
@@ -47,6 +48,7 @@ export function SortableRows({
       startTransition(async () => {
         const r = await action(next);
         setMsg(r);
+        notifySave(r.error ? { ok: false, title: "บันทึกลำดับไม่สำเร็จ", message: r.error } : { ok: true, title: "บันทึกลำดับแล้ว", message: r.ok || "ลำดับใหม่แสดงบนหน้าร้านทันที" });
         if (r.error) setOrder(ids);
         router.refresh();
       });
