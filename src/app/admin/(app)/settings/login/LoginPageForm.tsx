@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import { LOGIN_LIMITS, LOGIN_THEMES, type LoginPageConfig } from "@/lib/login-page";
 import { resetLoginPage, saveLoginPage, type LoginPageState } from "./actions";
 import "./login-settings.css";
+import { noticeFromState, notifySave } from "../../../_components/save-notify";
 
 type Img = { key: string; url: string };
 
@@ -36,6 +37,10 @@ export function LoginPageForm({ v, images }: { v: LoginPageConfig; images: Img[]
   const ver = Math.max(state.at ?? 0, resetState.at ?? 0); // บันทึก/คืนค่า → ฟอร์มและตัวอย่างโหลดใหม่
   const room = LOGIN_LIMITS.images - order.length;
   const msg = state.at && (!resetState.at || state.at > resetState.at) ? state : resetState;
+  // ผลบันทึก/คืนค่าเริ่มต้นแต่ละครั้ง → ป๊อปอัปกลาง
+  useEffect(() => {
+    if (msg.at) notifySave(noticeFromState(msg));
+  }, [msg]);
   const move = (i: number, d: -1 | 1) => setOrder((o) => { const j = i + d; if (j < 0 || j >= o.length) return o; const n = [...o]; [n[i], n[j]] = [n[j], n[i]]; return n; });
 
   return (

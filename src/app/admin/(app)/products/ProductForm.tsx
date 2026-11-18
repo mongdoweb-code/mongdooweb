@@ -48,7 +48,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
   v: ProductValues; categories: { id: string; name: string }[]; saved: boolean; copied?: boolean; owner?: boolean; siteHost?: string; shortText?: string;
   specDefs: SpecDef[]; children?: React.ReactNode;
 }) {
-  const [state, onSubmit, pending] = useFormAction<ProductFormState>(saveProduct, saved ? { ok: "เพิ่มสินค้าแล้ว" } : copied ? { ok: "ทำสำเนาแล้ว — สำเนานี้ปิดขายอยู่ แก้ไขแล้วเปิดขายได้" } : {});
+  const [state, onSubmit, pending] = useFormAction<ProductFormState>(saveProduct, saved ? { ok: "เพิ่มสินค้าแล้ว" } : copied ? { ok: "ทำสำเนาแล้ว — สำเนานี้ปิดขายอยู่ แก้ไขแล้วเปิดขายได้" } : {}, { popup: false }); // มีป๊อปอัปของตัวเอง (ดูหน้าสินค้า + ไปช่องที่ผิด)
   const [name, setName] = useState(v.name);
   const [seoTitle, setSeoTitle] = useState(v.seoTitle);
   const [seoDesc, setSeoDesc] = useState(v.seoDescription);

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 import { WHY_DEFAULT, WHY_IMAGE_MODES, WHY_LIMITS, WHY_MAX_ITEMS, WHY_MIN_ITEMS, type WhyImageMode, type WhyUs } from "@/lib/why-us";
+import { notifySave } from "../../../_components/save-notify";
 
 type Item = { key: number; title: string; text: string };
 type Project = { title: string; sub: string; img: string } | null;
@@ -89,6 +90,7 @@ export function WhyEditor({ initial, imageUrl, project, custom, action }: {
     start(async () => {
       const r = await action(fd);
       setMsg(r);
+      notifySave(r.error ? { ok: false, message: r.error, fields: r.field ? [`${uid}${r.field}`] : undefined } : { ok: true, title: intent === "reset" ? "คืนค่าสำเร็จ" : "บันทึกสำเร็จ", message: r.ok, viewHref: "/#why", viewLabel: "ดูบนหน้าแรก" });
       if (r.ok) {
         if (intent === "reset") loadDefault();
         router.refresh();
