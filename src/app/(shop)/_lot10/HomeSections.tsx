@@ -11,7 +11,8 @@ import { getShopRating } from "@/lib/reviews";
 import { getPublicShopInfo } from "@/lib/settings";
 import { HOME_MAIN } from "../_markup/home";
 import { Stars } from "../product/_reviews/ProductReviews";
-import { withFeatureProject, withPayOptions } from "./home-chunks";
+import { withPayOptions } from "./home-chunks";
+import { renderWhyHtml } from "@/lib/why-us";
 
 type Legacy = Exclude<HomeSectionKey, "trust" | "projects" | "posts" | "popular">;
 const MARKERS: [Legacy, string][] = [
@@ -217,11 +218,11 @@ async function PostsSection() {
 
 /** เนื้อหาหน้าแรกทั้งหมดตามลำดับที่ตั้งไว้ */
 export async function HomeSections() {
-  const [{ sections }, projects, info] = await Promise.all([getHomeConfig(), getProjects(), getPublicShopInfo()]);
-  // ส่วนเดิมที่ปรับตามข้อมูลจริง: รูปผลงานติดตั้ง (ทำไมต้องมองดูเว็บ) · ชิปเก็บเงินปลายทาง/รับที่ร้าน (วิธีสั่งซื้อ)
+  const [{ sections, why }, projects, info] = await Promise.all([getHomeConfig(), getProjects(), getPublicShopInfo()]);
+  // ส่วนที่ปรับตามข้อมูลจริง: "ทำไมต้องมองดูเว็บ" (ข้อความ/รูป ตั้งที่ /admin/home/why) · ชิปเก็บเงินปลายทาง/รับที่ร้าน (วิธีสั่งซื้อ)
   const live: Partial<Record<Legacy, string>> = {
     ...CHUNKS,
-    ...(CHUNKS.why ? { why: withFeatureProject(CHUNKS.why, projects) } : {}),
+    why: renderWhyHtml(why.cfg, { imageUrl: why.imageUrl, projects }),
     ...(CHUNKS.how ? { how: withPayOptions(CHUNKS.how, info) } : {}),
   };
   return (

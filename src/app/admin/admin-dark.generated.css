@@ -3890,6 +3890,72 @@ html[data-adm-theme="dark"] .cl-photos img {
     border: 1px solid var(--c-line);
     background: #16181C
 }
+/*  src/app/admin/(app)/home/why/why.css  */
+html[data-adm-theme="dark"] .wy-count {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .wy-count.near {
+    color: #F19955
+}
+html[data-adm-theme="dark"] .wy-sec [aria-invalid="true"] {
+    border-color: #B42318
+}
+html[data-adm-theme="dark"] .wy-item {
+    border: 1px solid var(--c-line);
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .wy-num {
+    color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .wy-item-fields input,
+html[data-adm-theme="dark"] .wy-item-fields textarea {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    outline: none;
+    color: inherit
+}
+html[data-adm-theme="dark"] .wy-item-fields input:focus,
+html[data-adm-theme="dark"] .wy-item-fields textarea:focus {
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .wy-mode {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .wy-mode small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .wy-mode.on {
+    border-color: var(--c-orange);
+    background: #291B14
+}
+html[data-adm-theme="dark"] .wy-drop {
+    border: 2px dashed rgba(0,0,0,.16);
+    background: #16181C
+}
+html[data-adm-theme="dark"] .wy-drop:hover,
+html[data-adm-theme="dark"] .wy-drop.over {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .wy-drop-ph {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .wy-spin {
+    border: 3px solid rgba(242,101,34,.25);
+    border-top-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .wy-err {
+    color: #E9675D
+}
+html[data-adm-theme="dark"] .wy-cap {
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .wy-cap legend {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .wy-sec input.bad {
+    border-color: #B42318
+}
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {
     color: var(--c-muted)

@@ -9,6 +9,7 @@ import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { storage } from "@/lib/storage";
 import { parsePopular, safePopularHref } from "@/lib/popular-cats";
+import { WHY_IMAGE_MODES, WHY_IMG_RE, WHY_MAX_ITEMS, parseWhyUs, safeWhyHref } from "@/lib/why-us";
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").normalize("NFC").trim().slice(0, max);
 const done = (flag: string, msg = ""): never => redirect(`/admin/home?done=${flag}${msg ? `&msg=${encodeURIComponent(msg.slice(0, 160))}` : ""}`);
@@ -110,4 +111,39 @@ export async function savePopular(f: FormData): Promise<{ ok?: string; error?: s
   await logAdmin(admin.id, "HOME", `หมวดยอดนิยมหน้าแรก: ${cfg.items.length} หมวด (${cfg.items.map((i) => i.cat).join(", ")})${own ? ` · รูปอัปโหลดเอง ${own} การ์ด` : ""}`);
   refreshStorefront();
   return { ok: `บันทึกแล้ว — หน้าแรกแสดง ${cfg.items.length} หมวด` };
+}
+
+/** ส่วน "ทำไมต้องมองดูเว็บ" (/admin/home/why) — บันทึก หรือคืนค่าเดิม (intent=reset) */
+export async function saveWhyUs(f: FormData): Promise<{ ok?: string; error?: string; field?: string }> {
+  const admin = await requireAdmin();
+  if (f.get("intent") === "reset") {
+    await prisma.shopSetting.update({ where: { id: "shop" }, data: { whyUs: json({}) } });
+    await logAdmin(admin.id, "HOME", "ทำไมต้องมองดูเว็บ: คืนค่าข้อความเดิม");
+    refreshStorefront();
+    return { ok: "คืนค่าข้อความเดิมแล้ว" };
+  }
+  let raw: Record<string, unknown> = {};
+  try {
+    raw = JSON.parse(String(f.get("data") ?? "{}"));
+  } catch {
+    return { error: "ข้อมูลไม่ถูกต้อง ลองโหลดหน้าใหม่" };
+  }
+  // ตรวจก่อนบันทึก (แจ้งให้แก้ ไม่ตัดทิ้งเงียบๆ)
+  const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  if (!str(raw.title)) return { error: "กรอกหัวข้อ", field: "title" };
+  const items = Array.isArray(raw.items) ? (raw.items as { title?: unknown; text?: unknown }[]) : [];
+  if (!items.some((i) => str(i?.title))) return { error: "ต้องมีจุดเด่นอย่างน้อย 1 ข้อ", field: "items" };
+  const blank = items.findIndex((i) => !str(i?.title) && str(i?.text));
+  if (blank >= 0) return { error: `จุดเด่นข้อที่ ${blank + 1}: กรอกหัวข้อ`, field: `item-${blank}` };
+  if (items.length > WHY_MAX_ITEMS) return { error: `จุดเด่นได้สูงสุด ${WHY_MAX_ITEMS} ข้อ`, field: "items" };
+  if (str(raw.href) && !safeWhyHref(raw.href)) return { error: "ลิงก์ต้องขึ้นต้นด้วย / หรือ https://", field: "href" };
+  if (raw.imageMode === "upload" && !(typeof raw.imageKey === "string" && WHY_IMG_RE.test(raw.imageKey))) return { error: "อัปโหลดรูปก่อน หรือเลือกแบบอื่น", field: "image" };
+  const cfg = parseWhyUs(raw);
+  const before = parseWhyUs((await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { whyUs: true } }))?.whyUs);
+  await prisma.shopSetting.update({ where: { id: "shop" }, data: { whyUs: json(cfg) } });
+  const changed = (Object.keys(cfg) as (keyof typeof cfg)[]).filter((k) => JSON.stringify(cfg[k]) !== JSON.stringify(before[k]));
+  const NAMES: Record<string, string> = { eyebrow: "หัวข้อเล็ก", title: "หัวข้อ", items: "จุดเด่น", imageMode: "รูป", imageKey: "รูป", capTitle: "คำบรรยายรูป", capSub: "คำบรรยายรูป", href: "ลิงก์" };
+  await logAdmin(admin.id, "HOME", `ทำไมต้องมองดูเว็บ: ${changed.length ? [...new Set(changed.map((k) => NAMES[k]))].join(", ") : "บันทึก (ไม่มีการเปลี่ยนแปลง)"} · จุดเด่น ${cfg.items.length} ข้อ · ${WHY_IMAGE_MODES[cfg.imageMode]}`);
+  refreshStorefront();
+  return { ok: "บันทึกแล้ว — หน้าแรกเปลี่ยนตามทันที" };
 }

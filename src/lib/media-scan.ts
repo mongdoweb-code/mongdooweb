@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { AVIF_SUPPORTED, generateVariants, variantKey } from "@/lib/media";
 import { IMG_WIDTHS } from "@/lib/img-srcset";
 import { parsePopular } from "@/lib/popular-cats";
+import { parseWhyUs } from "@/lib/why-us";
 import { prisma } from "@/lib/prisma";
 import { storage } from "@/lib/storage";
 
@@ -19,7 +20,7 @@ export async function imageRefs(): Promise<ImageRef[]> {
   const [products, slides, shop, posts, projects, cats, posters] = await Promise.all([
     prisma.product.findMany({ where: { images: { isEmpty: false } }, select: { id: true, sku: true, name: true, images: true } }),
     prisma.heroSlide.findMany({ select: { id: true, title: true, imageKey: true, imageUrl: true } }),
-    prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { logoKey: true, popularCats: true } }),
+    prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { logoKey: true, popularCats: true, whyUs: true } }),
     prisma.post.findMany({ where: { coverKey: { not: null } }, select: { id: true, title: true, coverKey: true } }),
     prisma.project.findMany({ where: { images: { isEmpty: false } }, select: { id: true, title: true, images: true } }),
     prisma.category.findMany({ where: { OR: [{ imageKey: { not: null } }, { iconKey: { not: null } }] }, select: { id: true, nameTh: true, imageKey: true, iconKey: true } }),
@@ -37,6 +38,7 @@ export async function imageRefs(): Promise<ImageRef[]> {
       const k = s.imageKey ?? s.imageUrl;
       return k ? [{ where: "สไลด์", label: s.title, href: `/admin/slides/${s.id}`, key: k, external: !s.imageKey }] : [];
     }),
+    ...(() => { const w = parseWhyUs(shop?.whyUs); return w.imageKey ? [{ where: "หน้าแรก", label: "ทำไมต้องมองดูเว็บ (รูปกล่องซ้าย)", href: "/admin/home/why", key: w.imageKey, external: false }] : []; })(),
     ...parsePopular(shop?.popularCats).items.flatMap((it) => (it.img ? [{ where: "หมวดยอดนิยม", label: `การ์ด ${it.cat}`, href: "/admin/home/popular", key: it.img, external: false }] : [])),
     ...(shop?.logoKey ? [{ where: "โลโก้", label: "โลโก้ร้าน", href: "/admin/settings", key: shop.logoKey, external: ext(shop.logoKey) }] : []),
     ...posts.map((p) => ({ where: "บทความ", label: p.title, href: `/admin/posts/${p.id}`, key: p.coverKey!, external: ext(p.coverKey!) })),
