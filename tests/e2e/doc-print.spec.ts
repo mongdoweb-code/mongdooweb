@@ -84,6 +84,9 @@ test("ตั้งค่า: อัปโหลดลายเซ็น + ตร
   expect(await sheet.locator(".sg-sig").evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
   await expect(sheet.locator(".sg-name")).toHaveText(`( นายทดสอบ ลงนาม ${TAG} )`);
   await expect(sheet.locator(".sg-title")).toHaveText("ผู้จัดการฝ่ายขาย");
+  // หัวเอกสาร: ไม่มีบาร์โค้ด (เพิ่มพื้นที่รายการ) · ที่อยู่ร้านบรรทัดเดียว
+  await expect(sheet.locator(".sh-bc, .sh-head svg.bc")).toHaveCount(0);
+  expect(await sheet.locator(".sh-addr").evaluate((e) => Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight)))).toBe(1);
   // กล่องข้อมูล
   await expect(sheet.locator(".sh-info")).toContainText("ยืนราคา30 วัน");
   await expect(sheet.locator(".sh-info")).toContainText(`ผู้ติดต่อนายทดสอบ ลงนาม ${TAG}`);

@@ -76,6 +76,13 @@ test("ลูกค้าใหม่ในใบเสนอราคา: หล
   await expect(picked).toContainText("โทรสาร 02-123-4568");
   await expect(picked).toContainText("อีเมล buy@test-shop.co.th");
   await expect(page.locator(".srp" + V)).toContainText("เพิ่มลูกค้าสำเร็จ");
+  // ตัวอย่าง A4: สาขาชิดขวาบรรทัดเดียวกับชื่อลูกค้า (ไม่ซ้ำในบรรทัดที่อยู่) · ทุกเบอร์ + โทรสาร + อีเมล
+  const pv = page.locator(".de-pv .sheet .sh-cust" + V).first();
+  await expect(pv.locator(".cust-top .cust-br")).toHaveText("สำนักงานใหญ่");
+  await expect(pv.locator(".cust-top .cust-name")).toHaveText(NAME);
+  await expect(pv).not.toContainText("(สำนักงานใหญ่)");
+  await expect(pv.locator(".cust-ct")).toContainText("โทร 086-309-9066, 044-251-234, 02-123-4567 ต่อ 12");
+  await expect(pv.locator(".cust-ct")).toContainText("โทรสาร 02-123-4568");
 
   const c = await cust();
   expect(c.phone).toBe("0863099066");
