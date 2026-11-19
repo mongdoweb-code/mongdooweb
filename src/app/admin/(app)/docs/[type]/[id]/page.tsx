@@ -12,7 +12,7 @@ import { ConfirmSubmit } from "../../../../_components/AdminClient";
 import { DocSheets } from "../../../../_components/DocSheets";
 import { LabelOptions } from "../../../../_components/LabelOptions";
 import { acceptQuote, convertQuote, createCreditNote, createDelivery, markDelivered, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, returnCreditStock, reviseQuote, setFollowUp, setSignDate } from "../../actions";
-import { PaymentForm, QuoteToReceiptForm, VoidForm } from "../../DocForms";
+import { DepositForm, PaymentForm, QuoteToReceiptForm, VoidForm } from "../../DocForms";
 import { DocOnline } from "../../DocOnline";
 import { WorkPanel } from "../../WorkTag";
 
@@ -43,7 +43,10 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
   const outstanding = Math.max(0, d.grandSatang - d.paidSatang);
   const livePays = d.payments.filter((p) => !p.voided);
   const liveIv = d.derived.find((x) => x.type === "INVOICE" && x.status !== "VOID");
-  const liveRc = d.derived.find((x) => x.type === "RECEIPT" && x.status !== "VOID");
+  const liveRc = d.derived.find((x) => x.type === "RECEIPT" && x.status !== "VOID" && !x.isDeposit);
+  // เงินมัดจำของใบเสนอราคา (ใบเสร็จมัดจำที่ยังไม่ยกเลิก)
+  const deposits = d.type === "QUOTATION" ? d.derived.filter((x) => x.type === "RECEIPT" && x.isDeposit && x.status !== "VOID") : [];
+  const depositSum = deposits.reduce((n, x) => n + x.grandSatang, 0);
   const draftRevision = d.derived.find((x) => x.type === "QUOTATION" && x.status === "DRAFT");
   // ใบเสร็จ: ใบลดหนี้ที่ออกแล้วรวมเท่าไร (ลดได้อีกเท่าไร)
   const credited = d.derived.filter((x) => x.type === "CREDIT_NOTE" && x.status === "ISSUED").reduce((sum, x) => sum + x.grandSatang, 0);
@@ -78,6 +81,11 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
           บันทึกรับชำระแล้ว — ออกใบเสร็จ <b>{sp.paid.slice(0, 40)}</b> · <Link className="link" href={`/admin/docs/RECEIPT/${encodeURIComponent(sp.rc)}`}>ดูใบเสร็จ</Link> · <a className="link" href={`/admin/print/doc/${encodeURIComponent(sp.rc)}?auto=1`} target="_blank" rel="noopener">พิมพ์ใบเสร็จ</a>
         </div>
       )}
+      {typeof sp.deposit === "string" && typeof sp.rc === "string" && (
+        <div className="login-info" role="status" style={{ marginBottom: 12 }}>
+          รับเงินมัดจำแล้ว — ออกใบเสร็จ <b>{sp.deposit.slice(0, 40)}</b> · <Link className="link" href={`/admin/docs/RECEIPT/${encodeURIComponent(sp.rc)}`}>ดูใบเสร็จมัดจำ</Link> · <a className="link" href={`/admin/print/doc/${encodeURIComponent(sp.rc)}?auto=1`} target="_blank" rel="noopener">พิมพ์</a>
+        </div>
+      )}
       {err && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>{err}</div>}
 
       <div className="de-cols dv">
@@ -105,6 +113,8 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
               {d.type === "CREDIT_NOTE" && <><span>เหตุผลลดหนี้</span><b>{d.creditReason ?? "—"}</b></>}
               {d.type === "CREDIT_NOTE" && d.source && <><span>อ้างอิงใบเสร็จ</span><b><Link className="link" href={docPath(d.source)}>{d.source.docNo}</Link> (฿{money(d.source.grandSatang)})</b></>}
               {d.type === "RECEIPT" && credited > 0 && <><span>ลดหนี้แล้ว</span><b className="owe">฿{money(credited)}</b></>}
+              {d.type === "RECEIPT" && d.isDeposit && <><span>ประเภท</span><b>ใบเสร็จรับเงินมัดจำ{d.source ? ` (${d.source.docNo})` : ""}</b></>}
+              {depositSum > 0 && <><span>รับมัดจำแล้ว</span><b>฿{money(depositSum)} <small className="sub">คงเหลือ ฿{money(d.grandSatang - depositSum)}</small></b></>}
             </div>
             <div className="dv-acts">
               {d.status === "DRAFT" && (
@@ -125,7 +135,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
                 ) : (
                   <>
                     {act(convertQuote, "แปลงเป็นใบแจ้งหนี้", "btn btn-primary")}
-                    <QuoteToReceiptForm id={d.id} total={money(d.grandSatang)} today={today} minDate={ymdOf(d.issueDate)} methods={PAY_METHODS} defaultMethod={d.paymentMethod ?? ""} />
+                    {!deposits.length && <QuoteToReceiptForm id={d.id} total={money(d.grandSatang)} today={today} minDate={ymdOf(d.issueDate)} methods={PAY_METHODS} defaultMethod={d.paymentMethod ?? ""} />}
                   </>
                 ))}
               {d.type === "QUOTATION" && d.status === "ISSUED" && (
@@ -240,6 +250,29 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
             </section>
           )}
 
+          {d.type === "QUOTATION" && (deposits.length > 0 || (["ISSUED", "ACCEPTED"].includes(d.status) && !liveIv)) && (
+            <section className="dv-sec" id="depositSec">
+              <h3>เงินมัดจำ{deposits.length ? ` (${deposits.length} ครั้ง · ฿${money(depositSum)})` : ""}</h3>
+              {deposits.length > 0 && (
+                <ul className="dv-pays">
+                  {deposits.map((x) => (
+                    <li key={x.id}>
+                      <span><b className="num">฿{money(x.grandSatang)}</b><span className="sub">{x.issueDate ? docDate(ymdBkk(x.issueDate), era) : ""}{x.paymentMethod ? ` · ${x.paymentMethod}` : ""}</span></span>
+                      <Link className="link" href={docPath(x)}>{x.docNo}</Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {["ISSUED", "ACCEPTED"].includes(d.status) && !liveIv && depositSum < d.grandSatang && (
+                <details className="dv-more">
+                  <summary className="btn btn-outline">{deposits.length ? "รับมัดจำเพิ่ม" : "รับเงินมัดจำ (ออกใบเสร็จมัดจำ)"}</summary>
+                  <DepositForm id={d.id} grand={d.grandSatang} received={depositSum} today={today} methods={PAY_METHODS} minDate={ymdOf(d.issueDate)} />
+                </details>
+              )}
+              {liveIv && deposits.length > 0 && <small className="sub">หักเงินมัดจำในใบแจ้งหนี้ <Link className="link" href={docPath(liveIv)}>{liveIv.docNo ?? "(ฉบับร่าง)"}</Link> {liveIv.docNo ? "แล้ว" : "เมื่อออกเลขที่"}</small>}
+            </section>
+          )}
+
           {d.type === "INVOICE" && ["ISSUED", "PARTIAL"].includes(d.status) && (
             <section className="dv-sec">
               <h3>บันทึกรับชำระ</h3>
@@ -287,7 +320,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
 
           {d.status !== "DRAFT" && d.status !== "VOID" && (
             <section className="dv-sec">
-              <VoidForm id={d.id} label={label} hint={d.type === "CREDIT_NOTE" && d.stockReturnedAt ? "สต็อกที่รับคืนไปแล้วไม่ถูกตัดกลับอัตโนมัติ — ปรับที่หน้าสต็อกถ้าจำเป็น" : d.type === "RECEIPT" && credited ? "ต้องยกเลิกใบลดหนี้ของใบเสร็จนี้ก่อน" : d.type === "RECEIPT" && d.receiptFor ? "ยอดรับชำระของงวดนี้จะถูกหักออกจากใบแจ้งหนี้ให้อัตโนมัติ" : d.type === "INVOICE" && livePays.length ? "ต้องยกเลิกใบเสร็จของทุกงวดก่อน" : undefined} />
+              <VoidForm id={d.id} label={label} hint={d.type === "CREDIT_NOTE" && d.stockReturnedAt ? "สต็อกที่รับคืนไปแล้วไม่ถูกตัดกลับอัตโนมัติ — ปรับที่หน้าสต็อกถ้าจำเป็น" : d.type === "RECEIPT" && credited ? "ต้องยกเลิกใบลดหนี้ของใบเสร็จนี้ก่อน" : d.type === "RECEIPT" && d.receiptFor ? "ยอดรับชำระของงวดนี้จะถูกหักออกจากใบแจ้งหนี้ให้อัตโนมัติ" : d.type === "INVOICE" && livePays.some((p) => !p.receipt?.isDeposit) ? "ต้องยกเลิกใบเสร็จของทุกงวดก่อน" : d.type === "INVOICE" && livePays.length ? "เงินมัดจำที่หักไว้จะกลับไปอยู่ที่ใบเสนอราคา (ใบเสร็จมัดจำยังใช้ได้)" : undefined} />
             </section>
           )}
 

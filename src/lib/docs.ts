@@ -83,10 +83,10 @@ export const senderOf = (s: ShopSetting): Sender => ({ name: s.legalName, phone:
 
 export const DOC_INCLUDE = {
   items: { orderBy: { sortOrder: "asc" }, include: { product: { select: { images: true } } } },
-  payments: { orderBy: { paidAt: "asc" }, include: { receipt: { select: { id: true, docNo: true, status: true } } } },
+  payments: { orderBy: { paidAt: "asc" }, include: { receipt: { select: { id: true, docNo: true, status: true, isDeposit: true } } } },
   receiptFor: { include: { invoice: { select: { id: true, docNo: true } } } },
   source: { select: { id: true, docNo: true, type: true, status: true, grandSatang: true } },
-  derived: { select: { id: true, docNo: true, type: true, status: true, grandSatang: true }, orderBy: { createdAt: "asc" } },
+  derived: { select: { id: true, docNo: true, type: true, status: true, grandSatang: true, isDeposit: true, issueDate: true, paymentMethod: true }, orderBy: { createdAt: "asc" } },
   order: { select: { orderNo: true } },
   customer: { select: { id: true, code: true, name: true } },
 } satisfies Prisma.SalesDocumentInclude;
@@ -118,6 +118,8 @@ export async function toView(d: FullDoc, s: ShopSetting): Promise<DocView> {
     discountSatang: d.discountSatang, vatMode: d.vatMode, vatRateBp: d.vatRateBp || s.vatRateBp,
     paymentMethod: d.paymentMethod ?? "", paymentTerms: d.paymentTerms ?? "", carrier: d.carrier ?? "", note: d.note ?? "", ref: refLine(d), voidReason: d.voidReason ?? "",
     paidSatang: d.paidSatang, payRef: pay?.reference ?? "",
+    deposits: d.type === "INVOICE" ? d.payments.filter((p) => !p.voided && p.receipt?.isDeposit).map((p) => ({ no: p.receipt?.docNo ?? "", amount: p.amountSatang })) : [],
+    deposit: d.type === "RECEIPT" && d.isDeposit,
     wht: pay && !pay.voided && pay.whtSatang > 0 ? { rateBp: pay.whtRateBp, satang: pay.whtSatang, certNo: pay.whtCertNo ?? "" } : null,
     qr: d.type === "INVOICE" && d.status !== "VOID" && d.status !== "DRAFT" ? await invoiceQr(s, d.grandSatang - d.paidSatang) : null,
     printedAt: docDateTime(new Date(), s.dateEra), shop: shopHead(s), signDate: ymdOf(d.signDate),

@@ -37,6 +37,8 @@ export async function issueDocTx(tx: Tx, id: string, adminId: string | null, s: 
       UPDATE "SalesDocumentItem" AS i SET "costSatang" = p."costSatang"
       FROM "Product" AS p
       WHERE i."documentId" = ${id} AND i."productId" = p."id" AND i."costSatang" IS NULL AND p."costSatang" IS NOT NULL`;
+  // ใบแจ้งหนี้จากใบเสนอราคาที่รับมัดจำไว้ → หักเงินมัดจำเป็นการรับชำระ (ใช้ใบเสร็จมัดจำเดิม ไม่ออกใบเสร็จใหม่)
+  if (d.type === "INVOICE" && d.source?.type === "QUOTATION") await applyDepositsTx(tx, id, d.source.id, adminId);
   // ฉบับแก้ไขของใบเสนอราคา → ยกเลิกฉบับเดิม (เลขเดิมยังเก็บไว้)
   if (d.type === "QUOTATION" && d.source?.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.source.status)) {
     await tx.salesDocument.update({ where: { id: d.source.id }, data: { status: "VOID", voidReason: `มีฉบับแก้ไข ${no}` } });
@@ -108,4 +110,69 @@ export async function recordInvoicePaymentTx(
   if (paid >= iv.grandSatang && order && UNPAID_STATUSES.includes(order.status))
     orderPaid = await confirmOrderPaidTx(tx, { orderId: order.id, from: UNPAID_STATUSES, adminId, note: `ชำระครบตามใบแจ้งหนี้ ${iv.docNo} (ใบเสร็จ ${rcNo})` });
   return { rcId: rc.id, rcNo, ivNo: iv.docNo!, paymentId: payment.id, fullyPaid: paid >= iv.grandSatang, orderPaid };
+}
+
+/** ใบเสร็จมัดจำของใบเสนอราคาที่ยังไม่ถูกหักในใบแจ้งหนี้ใด */
+export const openDepositsWhere = (quoteId: string) => ({ sourceId: quoteId, type: "RECEIPT" as const, isDeposit: true, status: "ISSUED" as const, receiptFor: null });
+
+/**
+ * หักเงินมัดจำในใบแจ้งหนี้ (เรียกตอนออกเลขที่ใบแจ้งหนี้ ภายใน transaction เดียวกัน)
+ * มัดจำแต่ละใบ = DocPayment 1 รายการที่ผูกใบเสร็จมัดจำเดิม · ยอดมัดจำรวมต้องไม่เกินยอดใบแจ้งหนี้
+ */
+export async function applyDepositsTx(tx: Tx, invoiceId: string, quoteId: string, adminId: string | null) {
+  await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${quoteId} FOR UPDATE`;
+  const deps = await tx.salesDocument.findMany({ where: openDepositsWhere(quoteId), orderBy: { issueDate: "asc" } });
+  if (!deps.length) return 0;
+  const iv = await tx.salesDocument.findUniqueOrThrow({ where: { id: invoiceId } });
+  const total = deps.reduce((n, r) => n + r.grandSatang, 0);
+  if (total > iv.grandSatang)
+    throw new DocUserError(`เงินมัดจำรวม ${money(total)} บาท มากกว่ายอดใบแจ้งหนี้ ${money(iv.grandSatang)} บาท — ปรับรายการในใบแจ้งหนี้ หรือยกเลิกใบเสร็จมัดจำที่เกินก่อน`);
+  for (const r of deps)
+    await tx.docPayment.create({
+      data: { invoiceId, receiptId: r.id, paidAt: r.issueDate ?? new Date(), amountSatang: r.grandSatang, method: r.paymentMethod || "เงินมัดจำ", reference: `มัดจำ ${r.docNo}` },
+    });
+  const paid = iv.paidSatang + total;
+  await tx.salesDocument.update({ where: { id: invoiceId }, data: { paidSatang: paid, status: paid >= iv.grandSatang ? "PAID" : "PARTIAL" } });
+  await tx.salesDocumentEvent.create({ data: { documentId: invoiceId, type: "PAYMENT", adminId, note: `หักเงินมัดจำ ${money(total)} บาท (${deps.map((r) => r.docNo).join(", ")})`.slice(0, 500) } });
+  return total;
+}
+
+/**
+ * รับเงินมัดจำจากใบเสนอราคา → ออกใบเสร็จรับเงินมัดจำทันที (1 บรรทัด "เงินมัดจำตามใบเสนอราคา …")
+ * VAT: ใบเสนอราคาคิด VAT → ใบเสร็จมัดจำเป็น VAT รวมใน (ใบกำกับภาษีของเงินมัดจำ) · มัดจำรวมต้องไม่เกินยอดใบเสนอราคา
+ */
+export async function recordDepositTx(
+  tx: Tx,
+  input: { quoteId: string; paidYmd: string; amountSatang: number; method: string; reference: string | null; adminId: string | null },
+  s: ShopSetting,
+) {
+  const { quoteId, paidYmd, amountSatang: amount, method, reference, adminId } = input;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidYmd) || paidYmd > todayYmd()) throw new DocUserError("วันที่รับเงินไม่ถูกต้อง (ห้ามเป็นวันในอนาคต)");
+  if (!Number.isInteger(amount) || amount <= 0) throw new DocUserError("กรุณาใส่ยอดเงินมัดจำ");
+  await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${quoteId} FOR UPDATE`;
+  const qt = await tx.salesDocument.findUnique({ where: { id: quoteId }, include: { derived: { where: { type: "INVOICE", status: { not: "VOID" } }, select: { docNo: true } } } });
+  if (!qt || qt.type !== "QUOTATION") throw new DocUserError("ไม่พบใบเสนอราคา");
+  if (!["ISSUED", "ACCEPTED"].includes(qt.status)) throw new DocUserError("รับมัดจำได้เฉพาะใบเสนอราคาที่ออกแล้วและยังไม่ยกเลิก");
+  if (qt.derived.length) throw new DocUserError(`ใบเสนอราคานี้มีใบแจ้งหนี้ ${qt.derived[0].docNo ?? "(ฉบับร่าง)"} แล้ว — บันทึกรับชำระที่ใบแจ้งหนี้แทน`);
+  if (paidYmd < ymdBkk(qt.issueDate ?? qt.createdAt)) throw new DocUserError("วันที่รับเงินต้องไม่ก่อนวันที่ใบเสนอราคา");
+  const prev = await tx.salesDocument.aggregate({ where: { sourceId: quoteId, type: "RECEIPT", isDeposit: true, status: "ISSUED" }, _sum: { grandSatang: true }, _count: { _all: true } });
+  const left = qt.grandSatang - (prev._sum.grandSatang ?? 0);
+  if (amount > left) throw new DocUserError(`ยอดมัดจำเกินยอดใบเสนอราคา (รับเพิ่มได้อีก ${money(Math.max(0, left))} บาท)`);
+  const seq = prev._count._all + 1;
+  const pct = Math.round((amount / qt.grandSatang) * 1000) / 10;
+  const items = [{ sortOrder: 1, productId: null, sku: null, name: `เงินมัดจำตามใบเสนอราคา ${qt.docNo}${seq > 1 ? ` (ครั้งที่ ${seq})` : ""}`, detail: `${pct}% ของยอด ${money(qt.grandSatang)} บาท · ส่วนที่เหลือชำระตามใบแจ้งหนี้`, unit: "งวด", qtyMilli: 1000, priceSatang: amount, discountSatang: 0 }];
+  const vatMode: VatMode = qt.vatMode === "NONE" ? "NONE" : "INCLUSIVE";
+  const totals = totalsFor(items, 0, vatMode, qt.vatRateBp || s.vatRateBp);
+  const rc = await tx.salesDocument.create({
+    data: {
+      type: "RECEIPT", status: "DRAFT", isDeposit: true, customerId: qt.customerId, customerSnapshot: qt.customerSnapshot ?? {}, issueDate: fromYmd(paidYmd),
+      ...totals, vatMode, vatRateBp: vatMode === "NONE" ? 0 : qt.vatRateBp || s.vatRateBp, paymentMethod: method, paymentTerms: s.termsReceipt,
+      note: reference ? `อ้างอิงการชำระ ${reference}` : null, sourceId: qt.id, items: { create: items },
+    },
+  });
+  const rcNo = await issueDocTx(tx, rc.id, adminId, s);
+  // ลูกค้าจ่ายมัดจำ = ตอบรับใบเสนอราคาแล้ว
+  if (qt.status === "ISSUED") await tx.salesDocument.update({ where: { id: qt.id }, data: { status: "ACCEPTED" } });
+  await tx.salesDocumentEvent.create({ data: { documentId: qt.id, type: "PAYMENT", adminId, note: `รับเงินมัดจำ ${money(amount)} บาท (${method}${reference ? ` · ${reference}` : ""}) → ${rcNo}`.slice(0, 500) } });
+  return { rcId: rc.id, rcNo, qtNo: qt.docNo! };
 }

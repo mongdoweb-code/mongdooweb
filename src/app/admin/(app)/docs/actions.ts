@@ -10,7 +10,7 @@ import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
 import { LOST_REASONS, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, ymdOf, type Tx } from "@/lib/docs";
-import { DocUserError, issueDocTx, recordInvoicePaymentTx } from "@/lib/doc-payments";
+import { DocUserError, issueDocTx, recordDepositTx, recordInvoicePaymentTx } from "@/lib/doc-payments";
 import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -269,7 +269,7 @@ async function copyToDraft(srcId: string, type: DocTypeT, adminId: string, link:
 
 export async function convertQuote(f: FormData) {
   const admin = await requireAdmin();
-  const q = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) }, include: { derived: { where: { type: { in: ["INVOICE", "RECEIPT"] }, status: { not: "VOID" } } } } });
+  const q = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) }, include: { derived: { where: { type: { in: ["INVOICE", "RECEIPT"] }, status: { not: "VOID" }, isDeposit: false } } } });
   if (!q || q.type !== "QUOTATION" || !["ISSUED", "ACCEPTED"].includes(q.status)) redirect("/admin/docs/QUOTATION");
   if (q.derived[0]) redirect(`${docPath(q.derived[0])}?exists=1`);
   const iv = await copyToDraft(q.id, "INVOICE", admin.id, { sourceId: q.id, orderId: q.orderId }, `แปลงจาก ${q.docNo}`);
@@ -304,10 +304,11 @@ export async function convertQuoteToReceipt(_prev: DocState, f: FormData): Promi
       await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${id} FOR UPDATE`;
       const q = await tx.salesDocument.findUnique({
         where: { id },
-        include: { items: { orderBy: { sortOrder: "asc" } }, customer: true, derived: { where: { type: { in: ["INVOICE", "RECEIPT"] }, status: { not: "VOID" } }, select: { docNo: true, type: true } } },
+        include: { items: { orderBy: { sortOrder: "asc" } }, customer: true, derived: { where: { type: { in: ["INVOICE", "RECEIPT"] }, status: { not: "VOID" } }, select: { docNo: true, type: true, isDeposit: true } } },
       });
       if (!q || q.type !== "QUOTATION") throw new UserError("ไม่พบใบเสนอราคา");
       if (!["ISSUED", "ACCEPTED"].includes(q.status)) throw new UserError("แปลงได้เฉพาะใบเสนอราคาที่ออกแล้ว (รอตอบรับ/ตอบรับแล้ว)");
+      if (q.derived.some((x) => x.isDeposit)) throw new UserError("ใบเสนอราคานี้รับเงินมัดจำแล้ว — แปลงเป็นใบแจ้งหนี้เพื่อหักเงินมัดจำ แล้วบันทึกรับชำระส่วนที่เหลือ");
       const done = q.derived[0];
       if (done) throw new UserError(`ใบเสนอราคานี้แปลงเป็น${DOC_META[done.type].th.split(" /")[0]} ${done.docNo ?? "(ฉบับร่าง)"} แล้ว`);
       if (paidYmd < ymdOf(q.issueDate)) throw new UserError("วันที่รับเงินต้องไม่ก่อนวันที่ใบเสนอราคา");
@@ -393,6 +394,33 @@ export async function markDelivered(f: FormData) {
   redirect(`${docPath({ type: "DELIVERY", id })}?delivered=1`);
 }
 
+/** รับเงินมัดจำจากใบเสนอราคา → ออกใบเสร็จรับเงินมัดจำ (ยอดเป็นบาท หรือ % ของยอดใบเสนอราคา) */
+export async function recordDeposit(_prev: DocState, f: FormData): Promise<DocState> {
+  const admin = await requireAdmin();
+  const s = await getSettings();
+  const id = str(f, "id", 40);
+  const paidYmd = str(f, "paidAt", 10);
+  const raw = str(f, "amount", 20).replace(/[,\s฿]/g, "");
+  const method = str(f, "method", 60);
+  const reference = str(f, "reference", 100);
+  const q = await prisma.salesDocument.findUnique({ where: { id }, select: { grandSatang: true } });
+  if (!q) return { error: "ไม่พบใบเสนอราคา" };
+  const pct = /%$/.test(raw);
+  const n = Number(raw.replace(/%$/, ""));
+  const amount = pct ? Math.round((q.grandSatang * n) / 100) : Math.round(n * 100);
+  if (!Number.isFinite(n) || n <= 0 || (pct && n > 100)) return { error: "กรุณาใส่ยอดเงินมัดจำ (บาท หรือ % เช่น 50%)", fields: ["amount"] };
+  if (!method) return { error: "กรุณาเลือกวิธีชำระเงิน", fields: ["method"] };
+  let r: Awaited<ReturnType<typeof recordDepositTx>>;
+  try {
+    r = await prisma.$transaction((tx) => recordDepositTx(tx, { quoteId: id, paidYmd, amountSatang: amount, method, reference: reference || null, adminId: admin.id }, s));
+  } catch (e) {
+    if (e instanceof DocUserError) return { error: e.message };
+    throw e;
+  }
+  await logAdmin(admin.id, "DOC", `รับเงินมัดจำ ${r.qtNo} ฿${money(amount)} → ออกใบเสร็จ ${r.rcNo}`);
+  redirect(`${docPath({ type: "QUOTATION", id })}?deposit=${encodeURIComponent(r.rcNo)}&rc=${r.rcId}`);
+}
+
 export async function duplicateDoc(f: FormData) {
   const admin = await requireAdmin();
   const d = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) } });
@@ -466,15 +494,21 @@ export async function voidDoc(_prev: DocState, f: FormData): Promise<DocState> {
   try {
     await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${id} FOR UPDATE`;
-      const d = await tx.salesDocument.findUnique({ where: { id }, include: { payments: { where: { voided: false } }, derived: { where: { status: { not: "VOID" }, type: { in: ["INVOICE", "RECEIPT"] } } }, receiptFor: true } });
+      const d = await tx.salesDocument.findUnique({ where: { id }, include: { payments: { where: { voided: false }, include: { receipt: { select: { isDeposit: true } } } }, derived: { where: { status: { not: "VOID" }, type: { in: ["INVOICE", "RECEIPT"] } } }, receiptFor: true } });
       if (!d) throw new UserError("ไม่พบเอกสาร");
       if (d.status === "DRAFT") throw new UserError("ฉบับร่างใช้ \"ลบฉบับร่าง\" แทน");
       if (d.status === "VOID") throw new UserError("เอกสารนี้ถูกยกเลิกแล้ว");
-      if (d.type === "INVOICE" && d.payments.length) throw new UserError("ใบแจ้งหนี้นี้มีการรับชำระแล้ว — ยกเลิกใบเสร็จของทุกงวดก่อน");
+      if (d.type === "INVOICE" && d.payments.some((p) => !p.receipt?.isDeposit)) throw new UserError("ใบแจ้งหนี้นี้มีการรับชำระแล้ว — ยกเลิกใบเสร็จของทุกงวดก่อน");
+      // มีแต่เงินมัดจำที่หักไว้ → ปลดมัดจำกลับไปที่ใบเสนอราคา (ใบเสร็จมัดจำยังใช้ได้ หักในใบแจ้งหนี้ใบใหม่)
+      if (d.type === "INVOICE" && d.payments.length) {
+        await tx.docPayment.deleteMany({ where: { id: { in: d.payments.map((p) => p.id) } } });
+        await tx.salesDocument.update({ where: { id }, data: { paidSatang: 0 } });
+        await event(tx, id, "NOTE", admin.id, `ปลดเงินมัดจำ ${money(d.payments.reduce((n, p) => n + p.amountSatang, 0))} บาท กลับไปที่ใบเสนอราคา`);
+      }
       if (d.type === "QUOTATION" && d.derived.length) {
         const x = d.derived[0];
-        const t = x.type === "RECEIPT" ? "ใบเสร็จรับเงิน" : "ใบแจ้งหนี้";
-        throw new UserError(`ใบเสนอราคานี้แปลงเป็น${t} ${x.docNo ?? "(ฉบับร่าง)"} แล้ว — ยกเลิก${t}ก่อน`);
+        const t = x.type === "RECEIPT" ? (x.isDeposit ? "ใบเสร็จรับเงินมัดจำ" : "ใบเสร็จรับเงิน") : "ใบแจ้งหนี้";
+        throw new UserError(x.isDeposit ? `ใบเสนอราคานี้รับเงินมัดจำแล้ว (${x.docNo}) — ยกเลิกใบเสร็จมัดจำก่อน` : `ใบเสนอราคานี้แปลงเป็น${t} ${x.docNo ?? "(ฉบับร่าง)"} แล้ว — ยกเลิก${t}ก่อน`);
       }
       if (d.type === "RECEIPT") {
         const cn = await tx.salesDocument.findFirst({ where: { sourceId: d.id, type: "CREDIT_NOTE", status: "ISSUED" }, select: { docNo: true } });

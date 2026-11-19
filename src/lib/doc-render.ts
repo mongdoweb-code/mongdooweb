@@ -40,6 +40,8 @@ export type DocView = {
   customer: CustSnap; items: DocLine[]; discountSatang: number; vatMode: VatModeT; vatRateBp: number;
   paymentMethod: string; paymentTerms: string; carrier: string; note: string; ref: string; voidReason: string;
   paidSatang: number; payRef: string; qr: string | null; printedAt: string; shop: ShopHead;
+  /** ใบแจ้งหนี้: เงินมัดจำที่หักแล้ว (เลขที่ใบเสร็จมัดจำ + ยอด) · ใบเสร็จ: เป็นใบเสร็จรับเงินมัดจำ */
+  deposits?: { no: string; amount: number }[]; deposit?: boolean;
   /** ใบเสร็จจากการรับชำระที่ลูกค้าหักภาษี ณ ที่จ่าย */
   wht?: { rateBp: number; satang: number; certNo: string } | null;
   /** วันที่ในช่องลงนามฝั่งร้าน (YYYY-MM-DD) — ว่าง = ใช้วันที่เอกสาร */
@@ -204,7 +206,7 @@ export function buildDocParts(d: DocView): DocParts {
     payBox = payBox.replace('<div class="mut">', `<div class="mut">ดูใบแจ้งหนี้และแนบสลิปออนไลน์: สแกน QR มุมขวาล่าง · `);
   }
   if (d.type === "RECEIPT")
-    payBox = `<div class="sh-paid"><b>ได้รับเงินถูกต้องแล้ว</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}${
+    payBox = `<div class="sh-paid"><b>${d.deposit ? "ได้รับเงินมัดจำถูกต้องแล้ว" : "ได้รับเงินถูกต้องแล้ว"}</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}${
       d.wht ? `<dl class="sh-wht"><dt>ยอดตามใบเสร็จ</dt><dd>${money(t.grand)}</dd><dt>หักภาษี ณ ที่จ่าย ${d.wht.rateBp / 100}%${d.wht.certNo ? ` <small>(หนังสือรับรองเลขที่ ${esc(d.wht.certNo)})</small>` : ""}</dt><dd>${money(d.wht.satang)}</dd><dt><b>รับเงินสุทธิ</b></dt><dd><b>${money(t.grand - d.wht.satang)}</b></dd></dl>` : ""
     }</div>`;
   const terms = d.paymentTerms.trim(), note = d.note.trim();
@@ -240,6 +242,10 @@ export function buildDocParts(d: DocView): DocParts {
       ${sign}
       <div class="sh-thanks">${DOC_TAGLINE}</div>
     </div>`;
+  // ใบแจ้งหนี้: แยกแถว "หักเงินมัดจำ" ตามใบเสร็จมัดจำ · ส่วนที่เหลือของยอดที่ชำระ = ชำระแล้ว
+  const deps = d.type === "INVOICE" ? (d.deposits ?? []) : [];
+  const depRows = deps.map((x) => `<dt>หักเงินมัดจำ <small>(${esc(x.no)})</small></dt><dd>${money(x.amount)}</dd>`).join("");
+  const otherPaid = d.paidSatang - deps.reduce((n, x) => n + x.amount, 0);
   const tail = isDo ? doTail : `<div class="sh-end">
       <section class="sh-tail">
         <div class="sh-tl">
@@ -250,7 +256,7 @@ export function buildDocParts(d: DocView): DocParts {
         </div>
         <div class="sh-tr"><dl class="sh-tot">${tot.map(([k, v]) => `<dt>${k}</dt><dd>${money(v)}</dd>`).join("")}
           <dt class="g">${isCn ? "มูลค่าลดหนี้สุทธิ/บาท" : "ราคารวมสุทธิ/บาท"}</dt><dd class="g">${money(t.grand)}</dd>
-          ${d.type === "INVOICE" && d.paidSatang ? `<dt>ชำระแล้ว</dt><dd>${money(d.paidSatang)}</dd><dt class="o">คงค้างชำระ</dt><dd class="o">${money(outstanding)}</dd>` : ""}</dl>
+          ${d.type === "INVOICE" && d.paidSatang ? `${depRows}${otherPaid > 0 ? `<dt>ชำระแล้ว</dt><dd>${money(otherPaid)}</dd>` : ""}<dt class="o">คงค้างชำระ</dt><dd class="o">${money(outstanding)}</dd>` : ""}</dl>
         ${ivOnline}</div>
       </section>
       ${sign}

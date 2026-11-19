@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useFormAction } from "../../_components/useFormAction";
 import { WHT_RATES, whtAmount, whtBase } from "@/lib/wht";
-import { convertQuoteToReceipt, recordPayment, voidDoc, type DocState } from "./actions";
+import { convertQuoteToReceipt, recordDeposit, recordPayment, voidDoc, type DocState } from "./actions";
 
 export function PaymentForm({ id, outstanding, today, methods, minDate, invoice, company = false }: {
   id: string; outstanding: number; today: string; methods: string[]; minDate: string;
@@ -60,6 +60,41 @@ export function PaymentForm({ id, outstanding, today, methods, minDate, invoice,
       )}
       <small className="sub">{partial ? "ชำระบางส่วน — ใบเสร็จจะเป็นรายการ “รับชำระตามใบแจ้งหนี้ (งวดที่ n)”" : "ชำระเต็มจำนวน — ใบเสร็จจะแสดงรายการสินค้าเหมือนใบแจ้งหนี้"}</small>
       <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? "กำลังบันทึก…" : "บันทึกรับชำระ + ออกใบเสร็จ"}</button>
+    </form>
+  );
+}
+
+/** รับเงินมัดจำจากใบเสนอราคา (บาท หรือ %) → ใบเสร็จรับเงินมัดจำ · หักออกอัตโนมัติเมื่อออกใบแจ้งหนี้ */
+export function DepositForm({ id, grand, received, today, methods, minDate }: { id: string; grand: number; received: number; today: string; methods: string[]; minDate: string }) {
+  const [state, onSubmit, pending] = useFormAction<DocState>(recordDeposit, {});
+  const [amt, setAmt] = useState(received ? "" : "50%");
+  const left = grand - received;
+  const t = amt.replace(/[,\s฿]/g, "");
+  const n = Number(t.replace(/%$/, ""));
+  const sat = !Number.isFinite(n) || n <= 0 ? 0 : /%$/.test(t) ? Math.round((grand * n) / 100) : Math.round(n * 100);
+  const m = (s: number) => (s / 100).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
+  return (
+    <form onSubmit={onSubmit} className="pay-form" id="depositForm">
+      <input type="hidden" name="id" value={id} />
+      {state.error && <div className="login-err" role="alert">{state.error}</div>}
+      <div className="two">
+        <div className="field"><label htmlFor="depAt">วันที่รับเงิน</label><input id="depAt" name="paidAt" type="date" defaultValue={today} min={minDate} max={today} required /></div>
+        <div className="field"><label htmlFor="depAmt">ยอดมัดจำ (บาท หรือ %)</label><input id="depAmt" name="amount" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder="เช่น 5000 หรือ 50%" required {...bad("amount")} />
+          <span className="de-quick" role="group" aria-label="มัดจำด่วน">{[30, 50, 70].map((p) => <button key={p} type="button" aria-pressed={amt === `${p}%`} onClick={() => setAmt(`${p}%`)}>{p}%</button>)}</span></div>
+      </div>
+      <div className="two">
+        <div className="field"><label htmlFor="depMethod">วิธีชำระ</label><select id="depMethod" name="method" defaultValue={methods[0]} {...bad("method")}>{methods.map((x) => <option key={x}>{x}</option>)}</select></div>
+        <div className="field"><label htmlFor="depRef">เลขอ้างอิง (ถ้ามี)</label><input id="depRef" name="reference" maxLength={100} placeholder="เลขที่รายการโอน" /></div>
+      </div>
+      <div className="wht-sum" aria-live="polite">
+        <span>มัดจำครั้งนี้<b>{m(sat)}</b></span>
+        <span>ยอดใบเสนอราคา<b>{m(grand)}</b></span>
+        <span className="net">คงเหลือชำระตามใบแจ้งหนี้<b>{m(Math.max(0, left - sat))}</b></span>
+      </div>
+      {sat > left && <small className="err-msg">ยอดมัดจำเกินยอดคงเหลือ (รับได้อีก {m(Math.max(0, left))} บาท)</small>}
+      <small className="sub">ออกใบเสร็จรับเงินมัดจำทันที · เมื่อแปลงเป็นใบแจ้งหนี้ ระบบหักเงินมัดจำให้อัตโนมัติ (ใบแจ้งหนี้แสดง “หักเงินมัดจำ”)</small>
+      <button className="btn btn-primary" type="submit" disabled={pending || sat <= 0 || sat > left}>{pending ? "กำลังบันทึก…" : "บันทึกรับมัดจำ + ออกใบเสร็จ"}</button>
     </form>
   );
 }
