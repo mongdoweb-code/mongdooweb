@@ -18,6 +18,7 @@ export const SOURCES = [
   "src/app/admin/(app)/coupons/coupons.css",
   "src/app/admin/(app)/home/why/why.css",
   "src/app/admin/(app)/customers/customer-form.css",
+  "src/app/admin/(app)/expenses/expenses.css",
   "src/app/admin/(app)/settings/login/login-settings.css",
   "src/app/admin/login/login.css",
   "src/components/sort-toolbar/sort-toolbar.css",

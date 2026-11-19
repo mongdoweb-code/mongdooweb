@@ -1354,3 +1354,25 @@ model StockCountLine {
   @@unique([countId, productId])
   @@index([productId])
 }
+
+/// ค่าใช้จ่ายร้าน (ไม่รวมซื้อสินค้าเข้าสต็อก — นั่นคือใบสั่งซื้อ/ต้นทุนสินค้า) → รายงานกำไรสุทธิ
+model Expense {
+  id           String    @id @default(cuid())
+  date         DateTime // วันที่จ่าย (เที่ยงคืนเวลาไทย)
+  category     String // SHIPPING | LABOR | … (src/lib/expense-rules.ts)
+  description  String
+  payee        String? // จ่ายให้ใคร
+  amountSatang Int // ยอดรวมตามบิล (รวม VAT)
+  vatSatang    Int       @default(0) // ภาษีซื้อในบิล (ขอคืนได้เมื่อร้านจด VAT)
+  whtSatang    Int       @default(0) // ภาษีที่ร้านหัก ณ ที่จ่ายไว้ (ร้านต้องนำส่งเอง)
+  method       String
+  reference    String?
+  fileKey      String? // หลักฐาน expenses/YYYY/MM/*.webp|pdf (ไฟล์ส่วนตัว เปิดผ่าน /admin/expenses/:id/file)
+  note         String?   @db.Text
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([date])
+  @@index([category, date])
+}

@@ -34,7 +34,7 @@ export const LOG_TABS = {
   orders: { label: "คำสั่งซื้อ", types: [] },
   ops: { label: "งานร้าน/สต็อก/อัตโนมัติ", types: ["ORDER", "STOCK", "CRON", "CRON_DAILY", "LABEL", "PURCHASE", "TASK", "NOTE", "BACKUP"] },
   content: { label: "สินค้าและเนื้อหา", types: ["PRODUCT", "CATEGORY", "SLIDES", "CONTENT_ROLLBACK", "PAGES", "FAQ", "MEDIA"] },
-  docs: { label: "เอกสารขาย/ลูกค้า", types: ["DOC", "CUSTOMER", "LABEL", "INQUIRY", "CUSTOMER_MERGE", "CUSTOMER_EXPORT"] },
+  docs: { label: "เอกสารขาย/ลูกค้า", types: ["DOC", "CUSTOMER", "LABEL", "INQUIRY", "CUSTOMER_MERGE", "CUSTOMER_EXPORT", "EXPENSE"] },
   settings: { label: "ตั้งค่า/ส่งออก", types: ["SETTINGS", "ORDERS_EXPORT", "DATA_EXPORT", "LOG_EXPORT", "SYSTEM", "BACKUP", "PDPA"] },
   line: { label: "แจ้งเตือน LINE", types: ["LINE"] },
 } as const;
@@ -48,7 +48,7 @@ const ymd = /^\d{4}-\d{2}-\d{2}$/;
 export type LogFilter = { tab: LogTab; q: string; user: string; from: string; to: string; page: number; entity: string; per: number };
 
 /** entity ที่กรองได้: "Product:<id>" · "Order:<orderNo>" · "Customer:<id>" · "PurchaseOrder:<id>" · "ShopSetting" */
-const ENTITY_RE = /^(?:(?:Product|Order|Customer|PurchaseOrder|DataRequest|Task):[\w-]{1,60}|ShopSetting)$/;
+const ENTITY_RE = /^(?:(?:Product|Order|Customer|PurchaseOrder|DataRequest|Task|Expense):[\w-]{1,60}|ShopSetting)$/;
 
 export function parseLogFilter(sp: Record<string, string | string[] | undefined>): LogFilter {
   const tab = one(sp.tab) in LOG_TABS ? (one(sp.tab) as LogTab) : "all";

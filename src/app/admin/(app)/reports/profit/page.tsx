@@ -4,6 +4,9 @@ import Link from "next/link";
 import { requireOwner } from "@/lib/auth";
 import { addDaysYmd, fromYmd } from "@/lib/doc-calc";
 import { PRESETS, PROFIT_VIEWS, costsFor, marginPct, parseReportFilter, profitBy, profitTotals, salesBetween, type Preset, type ProfitView } from "@/lib/sales-report";
+import { expenseCatLabel } from "@/lib/expense-rules";
+import { expenseSummary } from "@/lib/expenses";
+import { getSettings } from "@/lib/settings";
 import { baht, monthTh, qtyText, shortDate } from "../_ui";
 import "../../../lot3.css";
 
@@ -19,6 +22,11 @@ export default async function ProfitPage({ searchParams }: PageProps<"/admin/rep
   const costs = await costsFor(list);
   const rows = profitBy(list, costs, by);
   const t = profitTotals(rows);
+  // กำไรสุทธิ = กำไรขั้นต้น − ค่าใช้จ่ายร้านช่วงเดียวกัน (ไม่รวมภาษีซื้อเมื่อร้านจด VAT)
+  const s = await getSettings();
+  const xp = await expenseSummary(f.from, f.to, s.vatEnabled);
+  const net = t.profitSatang - xp.cost;
+  const xpCats = [...xp.byCat.entries()].sort((a, b) => b[1].amount - a[1].amount);
   const q = (patch: Record<string, string>) => {
     const v = { preset: f.preset === "month" ? "" : f.preset, from: f.preset === "custom" ? f.from : "", to: f.preset === "custom" ? f.to : "", by: by === "product" ? "" : by, ...patch };
     const s = new URLSearchParams(Object.entries(v).filter(([, x]) => x)).toString();
@@ -64,6 +72,22 @@ export default async function ProfitPage({ searchParams }: PageProps<"/admin/rep
         <div className="l3-kpi"><span>กำไรขั้นต้น</span><b className="num" id="pfProfit">{baht(t.profitSatang)}</b><small>อัตรากำไร {pct(marginPct(t))}</small></div>
         <div className="l3-kpi"><span>รายได้ที่ไม่ทราบต้นทุน</span><b className="num" id="pfUnknown">{baht(t.unknownRevenueSatang)}</b><small>{qtyText(t.unknownQty)} หน่วย — ตั้งต้นทุนเพื่อให้ครบ</small></div>
       </div>
+
+      <section className="panel pf-net" aria-label="กำไรสุทธิ" id="pfNet">
+        <div className="pf-net-flow">
+          <div><span>กำไรขั้นต้น</span><b>{baht(t.profitSatang)}</b></div>
+          <i aria-hidden="true">−</i>
+          <div><span>ค่าใช้จ่ายร้าน ({xp.count} รายการ)</span><b id="pfExpense">{baht(xp.cost)}</b></div>
+          <i aria-hidden="true">=</i>
+          <div className={net < 0 ? "neg" : "pos"}><span>กำไรสุทธิ</span><b id="pfNetProfit">{baht(net)}</b></div>
+        </div>
+        {xpCats.length > 0 ? (
+          <p className="sub pf-net-cats">{xpCats.map(([k, v]) => `${expenseCatLabel(k)} ${baht(v.amount)}`).join(" · ")} — <Link className="link" href={`/admin/expenses?month=${f.from.slice(0, 7)}`}>ดูค่าใช้จ่าย</Link></p>
+        ) : (
+          <p className="sub pf-net-cats">ยังไม่มีค่าใช้จ่ายในช่วงนี้ — <Link className="link" href="/admin/expenses/new">บันทึกค่าใช้จ่าย</Link> (ค่าขนส่ง ค่าแรง ค่าเช่า ฯลฯ) เพื่อเห็นกำไรสุทธิจริง</p>
+        )}
+        {t.unknownRevenueSatang > 0 && <p className="sub pf-net-cats">หมายเหตุ: รายได้ {baht(t.unknownRevenueSatang)} ยังไม่ทราบต้นทุน จึงไม่ได้นับในกำไรขั้นต้น</p>}
+      </section>
 
       <section className="l3-panel">
         {rows.length ? (

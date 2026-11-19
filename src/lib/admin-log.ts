@@ -46,6 +46,7 @@ export const LOG_TYPES: Record<string, string> = {
   MEDIA: "รูปภาพ",
   FINANCE: "ปิดยอด/การเงิน",
   SUPPLIER: "ผู้ขาย",
+  EXPENSE: "ค่าใช้จ่ายร้าน",
   STOCK_COUNT: "นับสต็อก",
   STOCK: "สต็อก",
 };
