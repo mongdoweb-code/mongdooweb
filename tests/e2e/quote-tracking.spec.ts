@@ -31,7 +31,7 @@ test("ออกใบเสนอราคา → ลูกค้าเปิด
   await page.getByRole("button", { name: "บันทึกลูกค้าและเลือก" }).click();
   await expect(page.locator(".de-cust" + V)).toBeVisible();
   const l1 = page.locator(".de-line" + V).first();
-  await l1.locator(".ac-wrap input").fill(`ชุดไฟสระ ${TAG}`);
+  await l1.locator(".ac-wrap .ln-name").fill(`ชุดไฟสระ ${TAG}`);
   await l1.locator(".ln-nums input").nth(2).fill("4500");
   await page.click(`button:has-text("บันทึกและออกเอกสาร")${V}`);
   await page.waitForURL(/\/admin\/docs\/QUOTATION\/[^/?]+\?issued=1/);
@@ -107,12 +107,13 @@ test("ลูกค้าไม่ตอบรับพร้อมเหตุ�
   await page.fill("#lostNote" + V, "คู่แข่งเสนอ ฿4,000");
   await page.getByRole("button", { name: "บันทึกว่าไม่ตอบรับ" }).click();
   await expect.poll(async () => (await row()).s).toBe("REJECTED");
-  expect((await row()).l).toBe("ราคาสูงกว่าคู่แข่ง — คู่แข่งเสนอ ฿4,000");
+  // สถานะกับเหตุผลบันทึกคนละคำสั่ง → รอเหตุผลด้วย (กันอ่านเร็วเกินไป)
+  await expect.poll(async () => (await row()).l).toBe("ราคาสูงกว่าคู่แข่ง — คู่แข่งเสนอ ฿4,000");
   await expect(page.locator(".dv-kv" + V)).toContainText("เหตุผลที่ไม่ได้งานราคาสูงกว่าคู่แข่ง — คู่แข่งเสนอ ฿4,000");
   await page.goto("/admin/docs/QUOTATION?tab=rejected");
   await expect(page.locator(`tr:has-text("${docNo}") .qc.bad` + V)).toContainText("ราคาสูงกว่าคู่แข่ง");
   await page.goto(`/admin/docs/QUOTATION/${id}`);
   await page.getByRole("button", { name: "กลับเป็นรอตอบรับ" }).click();
   await expect.poll(async () => (await row()).s).toBe("ISSUED");
-  expect((await row()).l).toBeNull();
+  await expect.poll(async () => (await row()).l).toBeNull();
 });

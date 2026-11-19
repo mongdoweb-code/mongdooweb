@@ -86,6 +86,8 @@ const blank = (): Line => withKey({ productId: "", sku: "", name: "", detail: ""
 
 /** รายละเอียดใต้ชื่อรายการ: หลายบรรทัดได้ (ตรงกับที่เซิร์ฟเวอร์รับใน docs/actions.ts) */
 const DETAIL_MAX = 1000;
+/** ชื่อรายการ: สูงสุด 250 ตัวอักษร (ขึ้นบรรทัดใหม่ได้) — ตรงกับ server (normLineName) */
+const NAME_MAX = 250;
 /** กล่องข้อความสูงขึ้นตามเนื้อหา (ไม่หดเล็กกว่าที่ผู้ใช้ลากขยายไว้) */
 const growToFit = (t: HTMLTextAreaElement) => {
   if (t.scrollHeight > t.clientHeight + 1) t.style.height = `${t.scrollHeight + 2}px`;
@@ -355,7 +357,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                       onChange={(image) => setLine(l.key, { image })}
                     />
                     <div className="ln-main">
-                      <ProductInput value={l.name} products={products} onText={(name) => setLine(l.key, { name, productId: "" })}
+                      <ProductInput value={l.name} products={products} onText={(name) => setLine(l.key, { name })}
                         onPick={(p) => setLine(l.key, { productId: p.id, sku: p.sku, name: p.name, unit: p.unit || "ชิ้น", price: priceFor(p, l.qty), image: null })} label={`ชื่อรายการที่ ${i + 1}`} />
                       <div className="ln-sub">
                         <input aria-label="รหัสสินค้า" placeholder="รหัสสินค้า" value={l.sku} maxLength={60} onChange={(e) => setLine(l.key, { sku: e.target.value })} />
@@ -564,25 +566,40 @@ function ItemImage({ label, current, isDefault, productImgs, onChange }: { label
 }
 
 // ---------------------------------------------------------------------------
+/**
+ * ชื่อรายการ: หลายบรรทัดได้ (Enter = ขึ้นบรรทัดใหม่ · ช่องสูงขึ้นเอง) + ค้นหาสินค้าจากคำที่พิมพ์
+ * เลือกสินค้าจากรายการ: คลิก หรือ ↑/↓ แล้ว Enter (Enter จะเลือกสินค้าเฉพาะตอนไฮไลต์ด้วยลูกศรแล้วเท่านั้น)
+ * แก้ชื่อแล้วรายการยังผูกกับสินค้าเดิม (รูป สต็อก ต้นทุน ไม่หาย) — เปลี่ยนสินค้าได้ด้วยการเลือกจากรายการ
+ */
 function ProductInput({ value, products, onText, onPick, label }: { value: string; products: Prod[]; onText: (s: string) => void; onPick: (p: Prod) => void; label: string }) {
   const [open, setOpen] = useState(false);
-  const [hi, setHi] = useState(0);
+  const [hi, setHi] = useState(-1);
+  const ta = useRef<HTMLTextAreaElement>(null);
+  // ขนาดพอดีข้อความ (ทั้งตอนโหลดเอกสารเดิมที่ชื่อหลายบรรทัด และตอนเลือกสินค้า)
+  useEffect(() => {
+    const t = ta.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = `${t.scrollHeight + 2}px`;
+  }, [value]);
   const lid = useId();
-  const q = value.trim().toLowerCase();
+  const q = value.replace(/\s+/g, " ").trim().toLowerCase();
   const words = q.split(/\s+/).filter(Boolean);
   const list = q ? products.filter((p) => { const h = `${p.sku} ${p.name}`.toLowerCase(); return words.every((w) => h.includes(w)); }).slice(0, 8) : [];
-  const pick = (p: Prod) => { onPick(p); setOpen(false); };
+  const pick = (p: Prod) => { onPick(p); setOpen(false); setHi(-1); };
   return (
     <div className="ac-wrap">
-      <input aria-label={label} placeholder="พิมพ์ชื่อหรือรหัสสินค้า เพื่อค้นหา หรือพิมพ์รายการเอง" value={value} maxLength={250} autoComplete="off"
+      <textarea ref={ta} className="ln-name" aria-label={label} placeholder="พิมพ์ชื่อหรือรหัสสินค้า เพื่อค้นหา หรือพิมพ์รายการเอง — Enter ขึ้นบรรทัดใหม่" value={value} maxLength={NAME_MAX} rows={1} autoComplete="off"
         role="combobox" aria-controls={lid} aria-expanded={open && list.length > 0} aria-autocomplete="list"
-        onChange={(e) => { onText(e.target.value); setOpen(true); setHi(0); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onChange={(e) => { onText(e.target.value); setOpen(true); setHi(-1); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={(e) => {
+          // Enter ในช่องนี้ = ขึ้นบรรทัดใหม่เสมอ ยกเว้นเลือกสินค้าด้วยลูกศรอยู่ (ไม่ส่งฟอร์มเอกสาร)
+          if (e.key === "Enter" && !(open && hi >= 0 && list[hi])) { e.stopPropagation(); setOpen(false); return; }
           if (!open || !list.length) return;
           if (e.key === "ArrowDown") { e.preventDefault(); setHi((h) => Math.min(list.length - 1, h + 1)); }
-          else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => Math.max(0, h - 1)); }
+          else if (e.key === "ArrowUp" && hi >= 0) { e.preventDefault(); setHi((h) => h - 1); }
           else if (e.key === "Enter") { e.preventDefault(); pick(list[hi]); }
-          else if (e.key === "Escape") setOpen(false);
+          else if (e.key === "Escape") { setOpen(false); setHi(-1); }
         }} />
       {open && list.length > 0 && (
         <div className="ac-list" role="listbox" id={lid}>
