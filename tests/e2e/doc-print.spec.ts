@@ -56,7 +56,7 @@ test("ตั้งค่า: อัปโหลดลายเซ็น + ตร
   await page.getByRole("button", { name: "บันทึกลูกค้าและเลือก" }).click();
   await expect(page.locator(".de-cust" + V)).toBeVisible();
   const l1 = page.locator(".de-line" + V).first();
-  await l1.locator(".ac-wrap input").fill(`งานติดตั้งทดสอบ ${TAG}`);
+  await l1.locator(".ac-wrap .ln-name").fill(`งานติดตั้งทดสอบ ${TAG}`);
   await l1.locator(".ln-nums input").nth(0).fill("2");
   await l1.locator(".ln-nums input").nth(2).fill("1500");
   await page.getByRole("button", { name: "30 วัน" }).click();
@@ -119,7 +119,7 @@ test("ตัวเลือกต่อเอกสาร: ติ๊ก/ไม�
   await page.getByRole("button", { name: "บันทึกลูกค้าและเลือก" }).click();
   await expect(page.locator(".de-cust" + V)).toBeVisible();
   const l1 = page.locator(".de-line" + V).first();
-  await l1.locator(".ac-wrap input").fill(`รายการตัวเลือก ${TAG}`);
+  await l1.locator(".ac-wrap .ln-name").fill(`รายการตัวเลือก ${TAG}`);
   await l1.locator(".ln-nums input").nth(2).fill("990");
   const sig = page.getByRole("checkbox", { name: /ใส่ลายเซ็นอิเล็กทรอนิกส์/ });
   const bank = page.getByRole("checkbox", { name: /แสดงเลขบัญชีธนาคาร/ });

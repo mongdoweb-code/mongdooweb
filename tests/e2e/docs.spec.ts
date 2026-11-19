@@ -25,7 +25,7 @@ test("วงจร QT → IV → รับชำระบางส่วน/ค�
   await page.goto(`/admin/docs/QUOTATION/new/edit?customer=${customerId}`);
   await expect(page.locator(".de-cust" + V)).toBeVisible();
   const l1 = page.locator(".de-line" + V).first();
-  await l1.locator(".ac-wrap input").fill("ค่าติดตั้งไฟสระ");
+  await l1.locator(".ac-wrap .ln-name").fill("ค่าติดตั้งไฟสระ");
   await l1.locator(".ln-nums input").nth(0).fill("2");
   await l1.locator(".ln-nums input").nth(2).fill("1500");
   await page.click(`button:has-text("+ ค่าส่งสินค้า")${V}`);

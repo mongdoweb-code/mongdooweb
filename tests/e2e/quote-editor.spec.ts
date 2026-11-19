@@ -99,7 +99,7 @@ test("สร้างใบเสนอราคาด้วยหน้าต�
   await page.getByRole("button", { name: "ลบรายการที่ 3" }).click();
   await page.getByRole("button", { name: "แทรกรายการใหม่ใต้รายการที่ 1" }).click();
   await expect(lines).toHaveCount(3);
-  await expect(lines.nth(1).locator(".ac-wrap input")).toHaveValue("");
+  await expect(lines.nth(1).locator(".ac-wrap .ln-name")).toHaveValue("");
   await page.getByRole("button", { name: "ลบรายการที่ 2" }).click();
   await expect(lines).toHaveCount(2);
 
@@ -116,6 +116,16 @@ test("สร้างใบเสนอราคาด้วยหน้าต�
   await expect(page.locator("#terms" + V)).not.toHaveValue(/ชำระเต็มจำนวนก่อนจัดส่ง/);
   await snip.click();
 
+  // แก้ชื่อรายการ: Enter = ขึ้นบรรทัดใหม่ (ไม่เลือกสินค้า/ไม่ส่งฟอร์ม) · รายการยังผูกกับสินค้าเดิม (รูป/สต็อกไม่หาย)
+  const nm = lines.nth(0).locator(".ac-wrap .ln-name");
+  await nm.click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("รุ่นพิเศษ แสงวอร์ม");
+  await expect(nm).toHaveValue(`${A.name}\nรุ่นพิเศษ แสงวอร์ม`);
+  await expect(lines.nth(0)).toContainText("เกินสต็อก (คงเหลือ 3)");
+  await expect(page).toHaveURL(/\/new\/edit/);
+
   // Ctrl+S = บันทึกฉบับร่าง → ฐานข้อมูลเก็บส่วนลดเป็นบาท
   await page.locator("#note" + V).click();
   await page.keyboard.press("ControlOrMeta+s");
@@ -128,6 +138,8 @@ test("สร้างใบเสนอราคาด้วยหน้าต�
   expect(doc.t).toContain("- ชำระเต็มจำนวนก่อนจัดส่ง");
   const its = await q<{ q: number; p: number; d: number }>(`SELECT "qtyMilli" q, "priceSatang" p, "discountSatang" d FROM "SalesDocumentItem" WHERE "documentId"=$1 ORDER BY "sortOrder"`, [id]);
   expect(its).toEqual([{ q: 5000, p: 10000, d: 0 }, { q: 1000, p: 20000, d: 2000 }]);
+  const [l1] = await q<{ name: string; productId: string }>(`SELECT name, "productId" FROM "SalesDocumentItem" WHERE "documentId"=$1 ORDER BY "sortOrder" LIMIT 1`, [id]);
+  expect(l1).toEqual({ name: `${A.name}\nรุ่นพิเศษ แสงวอร์ม`, productId: A.id });
   expect(errors).toEqual([]);
 });
 
@@ -143,7 +155,7 @@ test("มือถือ: หน้าต่างเลือกสินค้
   expect(box.width).toBeLessThanOrEqual(390);
   await dlg.getByRole("button", { name: "เพิ่ม 1 รายการ" }).click();
   await expect(page.locator(".de-line" + V)).toHaveCount(1);
-  await expect(page.locator(".de-line" + V).first().locator(".ac-wrap input")).toHaveValue(B.name);
+  await expect(page.locator(".de-line" + V).first().locator(".ac-wrap .ln-name")).toHaveValue(B.name);
   const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(over).toBeLessThanOrEqual(1);
 });

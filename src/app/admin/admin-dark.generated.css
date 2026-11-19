@@ -1188,6 +1188,14 @@ html[data-adm-theme="dark"] .de-line input {
     background: #1E2127;
     outline: none
 }
+html[data-adm-theme="dark"] .de-line .ln-name {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    outline: none
+}
+html[data-adm-theme="dark"] .de-line .ln-name:focus {
+    border-color: var(--c-ink)
+}
 html[data-adm-theme="dark"] .de-line input:focus {
     border-color: var(--c-ink)
 }

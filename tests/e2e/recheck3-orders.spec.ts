@@ -286,7 +286,7 @@ test("D10/U24 ราคาตามจำนวน + ค่าส่งแบบ
   // ตัวแก้ไขเอกสาร: เลือกสินค้าแล้วเปลี่ยนจำนวน → ราคาตามขั้น
   await page.goto("/admin/docs/QUOTATION/new/edit");
   const l1 = page.locator(".de-line" + V).first();
-  await l1.locator(".ac-wrap input").fill(P.t.sku);
+  await l1.locator(".ac-wrap .ln-name").fill(P.t.sku);
   await page.locator(`.ac-o:has-text("${P.t.sku}")` + V).first().dispatchEvent("mousedown");
   await expect(l1.locator(".ln-nums input").nth(2)).toHaveValue("500.00");
   await l1.locator(".ln-nums input").nth(0).fill("5");

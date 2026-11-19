@@ -18,6 +18,10 @@ import { WORK_META, WORK_NOTE_MAX, parseWorkState, workEventNote } from "@/lib/d
 import { getSettings } from "@/lib/settings";
 import { afterOrderPaid, type ConfirmResult } from "@/lib/order-confirm";
 
+/** ชื่อรายการ: หลายบรรทัดได้ — ตัดช่องว่างซ้ำในแต่ละบรรทัด ไม่เก็บบรรทัดว่าง สูงสุด 5 บรรทัด / 250 ตัวอักษร */
+const normLineName = (v: unknown) =>
+  String(v ?? "").replace(/\r\n?/g, "\n").split("\n").map((l) => l.replace(/[ \t\u00a0]+/g, " ").trim()).filter(Boolean).slice(0, 5).join("\n").slice(0, 250).trim();
+
 export type DocState = { error?: string; fields?: string[]; ok?: string };
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").trim().slice(0, max);
 const ymdRe = /^\d{4}-\d{2}-\d{2}$/;
@@ -77,7 +81,7 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
   if (!customer) { bad.push("customer"); msgs.push("กรุณาเลือกลูกค้า"); }
   if (!Array.isArray(p.items) || !p.items.length) { bad.push("items"); msgs.push("ต้องมีรายการอย่างน้อย 1 รายการ"); }
   const items = (Array.isArray(p.items) ? p.items : []).slice(0, 300).map((it, i) => {
-    const name = String(it.name ?? "").trim().slice(0, 250);
+    const name = normLineName(it.name);
     const ok = name && isInt(it.qtyMilli, 1, 1_000_000_000) && isInt(it.priceSatang, 0, MAX_SAT) && isInt(it.discountSatang, 0, MAX_SAT) &&
       it.discountSatang <= Math.round((it.qtyMilli * it.priceSatang) / 1000);
     if (!ok) bad.push(`line${i}`);
