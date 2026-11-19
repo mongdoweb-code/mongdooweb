@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 export type SearchHit = { group: string; title: string; detail: string; href: string };
 
 const ORDER_ST: Record<string, string> = { AWAITING_SLIP: "รอโอน", PENDING_VERIFICATION: "รอตรวจสลิป", PAID: "ชำระแล้ว", SHIPPED: "จัดส่งแล้ว", REJECTED: "สลิปไม่ผ่าน", CANCELLED: "ยกเลิก" };
-const DOC_TH: Record<string, string> = { QUOTATION: "ใบเสนอราคา", INVOICE: "ใบแจ้งหนี้", RECEIPT: "ใบเสร็จ", CREDIT_NOTE: "ใบลดหนี้" };
+const DOC_TH: Record<string, string> = { QUOTATION: "ใบเสนอราคา", INVOICE: "ใบแจ้งหนี้", RECEIPT: "ใบเสร็จ", CREDIT_NOTE: "ใบลดหนี้", DELIVERY: "ใบส่งของ" };
 
 /** หน้าหลังบ้านสำหรับ "ไปที่…" (ownerOnly = เฉพาะเจ้าของร้าน) */
 const PAGES: { label: string; href: string; words: string; ownerOnly?: boolean }[] = [
@@ -26,6 +26,9 @@ const PAGES: { label: string; href: string; words: string; ownerOnly?: boolean }
   { label: "ใบแจ้งหนี้", href: "/admin/docs/INVOICE", words: "invoice ใบแจ้งหนี้ iv" },
   { label: "ใบเสร็จรับเงิน", href: "/admin/docs/RECEIPT", words: "receipt ใบเสร็จ rc" },
   { label: "ใบลดหนี้ / คืนเงิน", href: "/admin/docs/CREDIT_NOTE", words: "credit note ใบลดหนี้ คืนเงิน cn refund" },
+  { label: "ใบส่งของ / ใบรับสินค้า", href: "/admin/docs/DELIVERY", words: "delivery note ใบส่งของ ใบรับสินค้า do ส่งมอบ" },
+  { label: "ค่าใช้จ่ายร้าน", href: "/admin/expenses", words: "expense ค่าใช้จ่าย รายจ่าย บิล" },
+  { label: "ภาษีถูกหัก ณ ที่จ่าย", href: "/admin/reports/wht", words: "wht withholding หัก ณ ที่จ่าย 50 ทวิ" },
   { label: "ลูกหนี้ค้างชำระ", href: "/admin/reports/receivables", words: "receivable ลูกหนี้ ค้างชำระ ทวง aging" },
   { label: "ปิดยอดประจำวัน", href: "/admin/reports/daily", words: "daily close ปิดยอด รับเงิน" },
   { label: "ผู้ขาย (ซัพพลายเออร์)", href: "/admin/suppliers", words: "supplier vendor ผู้ขาย ซัพพลายเออร์", ownerOnly: true },

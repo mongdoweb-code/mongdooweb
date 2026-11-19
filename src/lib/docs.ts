@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { bankLabel, parseBankAccounts } from "@/lib/settings";
 
 export type Tx = Prisma.TransactionClient;
-export const DOC_TYPES = ["QUOTATION", "INVOICE", "RECEIPT", "CREDIT_NOTE"] as const satisfies DocTypeT[];
+export const DOC_TYPES = ["QUOTATION", "INVOICE", "RECEIPT", "CREDIT_NOTE", "DELIVERY"] as const satisfies DocTypeT[];
 export const isDocType = (t: string): t is DocTypeT => (DOC_TYPES as readonly string[]).includes(t);
 export const PAY_METHODS = ["โอนเงินผ่านธนาคาร", "QR PromptPay", "เงินสด", "เช็ค", "บัตรเครดิต"];
 export const DEFAULT_LOGO = "/img/doc-logo.png";
@@ -25,9 +25,10 @@ export const ymdOf = (d: Date | null | undefined) => (d ? ymdBkk(d) : "");
 export function defaultTerms(s: ShopSetting, type: DocTypeT) {
   if (type === "QUOTATION") return s.termsQuote ?? `ยืนราคา ${s.quoteValidDays} วัน\nจัดส่งภายใน 2–3 วันทำการหลังชำระเงิน\nรับประกันสินค้า 1 ปี`;
   if (type === "INVOICE") return s.termsInvoice ?? "กรุณาชำระภายในวันที่ครบกำหนด\nโอนแล้วแจ้งสลิปทาง LINE พร้อมเลขที่เอกสาร";
+  if (type === "DELIVERY") return "กรุณาตรวจสอบสินค้าก่อนลงชื่อรับ\nหากสินค้าชำรุดหรือไม่ครบ แจ้งร้านภายใน 7 วัน";
   return s.termsReceipt ?? "";
 }
-export const prefixOf = (s: ShopSetting, t: DocTypeT) => (t === "QUOTATION" ? s.prefixQuote : t === "INVOICE" ? s.prefixInvoice : t === "CREDIT_NOTE" ? s.prefixCredit : s.prefixReceipt);
+export const prefixOf = (s: ShopSetting, t: DocTypeT) => (t === "QUOTATION" ? s.prefixQuote : t === "INVOICE" ? s.prefixInvoice : t === "CREDIT_NOTE" ? s.prefixCredit : t === "DELIVERY" ? s.prefixDelivery : s.prefixReceipt);
 /** เหตุผลการลดหนี้ที่ใช้บ่อย (เลือกแล้วแก้ต่อได้) */
 export const CREDIT_REASONS = ["รับคืนสินค้า", "สินค้าชำรุด/เสียหาย", "ลดราคาหลังการขาย", "คิดราคาผิด (เกินจริง)", "ส่งสินค้าไม่ครบ"];
 
@@ -82,10 +83,10 @@ export const senderOf = (s: ShopSetting): Sender => ({ name: s.legalName, phone:
 
 export const DOC_INCLUDE = {
   items: { orderBy: { sortOrder: "asc" }, include: { product: { select: { images: true } } } },
-  payments: { orderBy: { paidAt: "asc" }, include: { receipt: { select: { id: true, docNo: true, status: true } } } },
+  payments: { orderBy: { paidAt: "asc" }, include: { receipt: { select: { id: true, docNo: true, status: true, isDeposit: true } } } },
   receiptFor: { include: { invoice: { select: { id: true, docNo: true } } } },
   source: { select: { id: true, docNo: true, type: true, status: true, grandSatang: true } },
-  derived: { select: { id: true, docNo: true, type: true, status: true, grandSatang: true }, orderBy: { createdAt: "asc" } },
+  derived: { select: { id: true, docNo: true, type: true, status: true, grandSatang: true, isDeposit: true, issueDate: true, paymentMethod: true }, orderBy: { createdAt: "asc" } },
   order: { select: { orderNo: true } },
   customer: { select: { id: true, code: true, name: true } },
 } satisfies Prisma.SalesDocumentInclude;
@@ -117,6 +118,9 @@ export async function toView(d: FullDoc, s: ShopSetting): Promise<DocView> {
     discountSatang: d.discountSatang, vatMode: d.vatMode, vatRateBp: d.vatRateBp || s.vatRateBp,
     paymentMethod: d.paymentMethod ?? "", paymentTerms: d.paymentTerms ?? "", carrier: d.carrier ?? "", note: d.note ?? "", ref: refLine(d), voidReason: d.voidReason ?? "",
     paidSatang: d.paidSatang, payRef: pay?.reference ?? "",
+    deposits: d.type === "INVOICE" ? d.payments.filter((p) => !p.voided && p.receipt?.isDeposit).map((p) => ({ no: p.receipt?.docNo ?? "", amount: p.amountSatang })) : [],
+    deposit: d.type === "RECEIPT" && d.isDeposit,
+    wht: pay && !pay.voided && pay.whtSatang > 0 ? { rateBp: pay.whtRateBp, satang: pay.whtSatang, certNo: pay.whtCertNo ?? "" } : null,
     qr: d.type === "INVOICE" && d.status !== "VOID" && d.status !== "DRAFT" ? await invoiceQr(s, d.grandSatang - d.paidSatang) : null,
     printedAt: docDateTime(new Date(), s.dateEra), shop: shopHead(s), signDate: ymdOf(d.signDate),
     credit: d.type === "CREDIT_NOTE" ? { reason: d.creditReason ?? "", original: d.source?.grandSatang ?? 0 } : null,
@@ -151,6 +155,9 @@ export function statusWhere(st: DocSt | "all", today = todayYmd()): Prisma.Sales
     case "rejected": return { status: "REJECTED" };
     case "paid": return { status: "PAID" };
     case "issued": return { status: "ISSUED" };
+    // ใบส่งของ: รอเซ็นรับ = ออกแล้ว · ส่งมอบแล้ว = ลูกค้าเซ็นรับ (ACCEPTED)
+    case "shipping": return { status: "ISSUED" };
+    case "delivered": return { status: "ACCEPTED" };
     case "open": return { status: "ISSUED", ...notPast("validUntil") };
     case "expired": return { status: "ISSUED", validUntil: { lt: t0 } };
     case "unpaid": return { status: "ISSUED", ...notPast("dueDate") };

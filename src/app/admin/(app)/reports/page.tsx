@@ -33,6 +33,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
         <div className="head-actions">
           {admin.role === "OWNER" && <Link className="btn btn-outline" href="/admin/reports/profit">รายงานกำไร</Link>}
           <Link className="btn btn-outline" href="/admin/reports/vat">รายงานภาษีขาย</Link>
+          <Link className="btn btn-outline" href="/admin/reports/wht">ภาษีถูกหัก ณ ที่จ่าย</Link>
           <a className="btn btn-primary" href={exportHref} download>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5" /><path d="M4 20h16" /></svg>
             ส่งออก CSV

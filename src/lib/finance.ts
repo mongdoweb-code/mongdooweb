@@ -91,7 +91,7 @@ export async function dailyReceipts(ymd: string) {
     prisma.docPayment.findMany({
       where: { paidAt: range, voided: false },
       orderBy: { paidAt: "asc" },
-      select: { amountSatang: true, method: true, reference: true, paidAt: true, invoice: { select: { id: true, docNo: true, customerSnapshot: true } }, receipt: { select: { docNo: true } } },
+      select: { amountSatang: true, whtSatang: true, whtRateBp: true, method: true, reference: true, paidAt: true, invoice: { select: { id: true, docNo: true, customerSnapshot: true } }, receipt: { select: { docNo: true } } },
     }),
     // ใบเสร็จที่ไม่ได้มาจากการรับชำระใบแจ้งหนี้และไม่ผูกคำสั่งซื้อ (เช่น แปลงจากใบเสนอราคา / สร้างเอง)
     prisma.salesDocument.findMany({
@@ -111,8 +111,10 @@ export async function dailyReceipts(ymd: string) {
     ...orders.map((o) => ({ source: "ORDER" as const, ref: o.orderNo, href: `/admin?tab=ALL&open=${o.orderNo}`, who: o.customerName, method: "โอน/พร้อมเพย์ (สลิป)", amount: o.totalSatang, at: o.paidAt! })),
     ...cod.map((o) => ({ source: "COD" as const, ref: o.orderNo, href: `/admin?tab=ALL&open=${o.orderNo}`, who: o.customerName, method: `COD${o.carrier ? ` · ${o.carrier}` : ""}`, amount: o.totalSatang, at: o.codSettledAt! })),
     ...pays.map((p) => ({
-      source: "INVOICE" as const, ref: p.invoice.docNo ?? "", href: `/admin/docs/INVOICE/${p.invoice.id}`, who: nameOf(p.invoice.customerSnapshot), method: p.method, amount: p.amountSatang, at: p.paidAt,
-      note: [p.receipt?.docNo && `ใบเสร็จ ${p.receipt.docNo}`, p.reference].filter(Boolean).join(" · ") || undefined,
+      source: "INVOICE" as const, ref: p.invoice.docNo ?? "", href: `/admin/docs/INVOICE/${p.invoice.id}`, who: nameOf(p.invoice.customerSnapshot), method: p.method,
+      // เงินที่ได้รับจริง = ยอดตัดหนี้ − ภาษีที่ลูกค้าหัก ณ ที่จ่าย
+      amount: p.amountSatang - p.whtSatang, at: p.paidAt,
+      note: [p.receipt?.docNo && `ใบเสร็จ ${p.receipt.docNo}`, p.reference, p.whtSatang > 0 && `หัก ณ ที่จ่าย ${p.whtRateBp / 100}% ฿${(p.whtSatang / 100).toLocaleString("th-TH", { minimumFractionDigits: 2 })}`].filter(Boolean).join(" · ") || undefined,
     })),
     ...cns.map((c) => ({
       source: "REFUND" as const, ref: c.docNo ?? "", href: `/admin/docs/CREDIT_NOTE/${c.id}`, who: nameOf(c.customerSnapshot), method: c.paymentMethod ?? "—", amount: -c.grandSatang, at: c.issueDate!,

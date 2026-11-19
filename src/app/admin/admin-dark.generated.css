@@ -1581,6 +1581,33 @@ html[data-adm-theme="dark"] .pp-hint {
 html[data-adm-theme="dark"] .doc-view .de-cols.dv {
     border: 1px solid var(--c-line)
 }
+html[data-adm-theme="dark"] .wht-box {
+    border: 1.5px solid #503622;
+    background: #2B2015
+}
+html[data-adm-theme="dark"] .wht-box legend {
+    color: #F19055
+}
+html[data-adm-theme="dark"] .wht-sum {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .wht-sum span {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .wht-sum span + span {
+    border-top: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .wht-sum b {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .wht-sum .net {
+    background: #16241B;
+    color: #66E1AA
+}
+html[data-adm-theme="dark"] .wht-sum .net b {
+    color: #66E1AA
+}
 html[data-adm-theme="dark"] .doc-edit .box .field textarea {
     border: 1.5px solid var(--c-line);
     background: #1E2127
@@ -3400,6 +3427,34 @@ html[data-adm-theme="dark"] .pa-danger .pa-ic {
     background: #261212;
     color: var(--c-err)
 }
+html[data-adm-theme="dark"] .wht-cert input[name=certNo] {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .pf-net-flow > div {
+    background: #1B1E23;
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .pf-net-flow span {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .pf-net-flow .pos {
+    background: #16241B;
+    border-color: #2C4035
+}
+html[data-adm-theme="dark"] .pf-net-flow .pos b {
+    color: #66E1AA
+}
+html[data-adm-theme="dark"] .pf-net-flow .neg {
+    background: #291714;
+    border-color: #4E2B25
+}
+html[data-adm-theme="dark"] .pf-net-flow .neg b {
+    color: var(--c-err)
+}
+html[data-adm-theme="dark"] .pf-net-flow > i {
+    color: var(--c-muted)
+}
 /*  src/app/admin/lot12.css  */
 html[data-adm-theme="dark"] .gs-btn {
     background: #1E2127;
@@ -4040,6 +4095,35 @@ html[data-adm-theme="dark"] .de-qc {
 }
 html[data-adm-theme="dark"] .de-qc-head small {
     color: var(--c-muted)
+}
+/*  src/app/admin/(app)/expenses/expenses.css  */
+html[data-adm-theme="dark"] .xp-form .field input.bad,
+html[data-adm-theme="dark"] .xp-form .field select.bad {
+    border-color: var(--c-err);
+    background: #2B1A15
+}
+html[data-adm-theme="dark"] .xp-file img {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .xp-del {
+    color: var(--c-err)
+}
+html[data-adm-theme="dark"] .xp-cats a {
+    color: inherit
+}
+html[data-adm-theme="dark"] .xp-cats a:hover,
+html[data-adm-theme="dark"] .xp-cats a.on {
+    background: #281C13
+}
+html[data-adm-theme="dark"] .xp-cl small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .xp-bar {
+    background: #16171B
+}
+html[data-adm-theme="dark"] .xp-bar i {
+    background: var(--c-orange)
 }
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {

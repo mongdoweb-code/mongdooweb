@@ -35,7 +35,7 @@ const LABEL: Record<string, string> = {
   Coupon: "คูปอง", CouponRedemption: "การใช้คูปอง", DataRequest: "คำขอข้อมูลส่วนบุคคล (PDPA)", EmailLog: "ประวัติอีเมลถึงลูกค้า",
   PurchaseOrder: "ใบสั่งซื้อ (ต้นทุน)", PurchaseOrderItem: "รายการในใบสั่งซื้อ", Project: "ผลงานติดตั้ง", Post: "บทความ",
   Redirect: "Redirect", NotFoundLog: "ลิงก์เสีย (404)", SearchLog: "คำค้นหา", SearchSynonym: "คำพ้องค้นหา", SpecAttribute: "สเปกสินค้า",
-  VariantGroup: "กลุ่มตัวเลือกสินค้า", ContentVersion: "เวอร์ชันเนื้อหา (ย้อนกลับ)", Sequence: "ตัวนับเลขที่",
+  VariantGroup: "กลุ่มตัวเลือกสินค้า", ContentVersion: "เวอร์ชันเนื้อหา (ย้อนกลับ)", Sequence: "ตัวนับเลขที่", Expense: "ค่าใช้จ่ายร้าน (ไม่รวมไฟล์หลักฐาน)",
 };
 
 export async function buildDataExport(by: string) {

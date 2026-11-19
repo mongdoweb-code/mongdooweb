@@ -401,6 +401,7 @@ model ShopSetting {
   prefixInvoice  String  @default("IV")
   prefixReceipt  String  @default("RC")
   prefixCredit   String  @default("CN")
+  prefixDelivery String  @default("DO")
   dateEra        DateEra @default(AD)
   quoteValidDays Int     @default(30)
   invoiceDueDays Int     @default(7)
@@ -588,6 +589,7 @@ enum DocType {
   INVOICE // ใบแจ้งหนี้/ใบวางบิล (IV)
   RECEIPT // ใบเสร็จรับเงิน (/ใบกำกับภาษี เมื่อเปิด VAT) (RC)
   CREDIT_NOTE // ใบลดหนี้ / คืนเงิน (CN) — อ้างอิงใบเสร็จเดิม (sourceId)
+  DELIVERY // ใบส่งของ / ใบรับสินค้า (DO) — สร้างจากใบเสนอราคา/ใบแจ้งหนี้ · ไม่มีผลต่อเงิน/สต็อก · acceptedAt/acceptedBy = ลูกค้าเซ็นรับ
 }
 
 enum DocStatus {
@@ -659,6 +661,8 @@ model SalesDocument {
   // ตัวเลือกต่อเอกสาร (ติ๊กในตัวแก้ไข) — ค่าเริ่มต้นของเอกสารใหม่มาจากตั้งค่าร้าน
   signImage       Boolean   @default(true) // ใส่ลายเซ็น/ตราประทับอิเล็กทรอนิกส์ (ต้องอัปโหลดในตั้งค่าร้านก่อน)
   showBank        Boolean   @default(true) // ใบเสนอราคา: แสดงเลขบัญชีธนาคาร
+  /// ใบเสร็จรับเงินมัดจำ (RC ที่ออกจากใบเสนอราคา sourceId = QT) — หักออกจากใบแจ้งหนี้อัตโนมัติเมื่อออกใบแจ้งหนี้ของใบเสนอราคานั้น
+  isDeposit       Boolean   @default(false)
 
   // ความเชื่อมโยง QT → IV → RC และคำสั่งซื้อเว็บ
   sourceId String?
@@ -716,9 +720,15 @@ model DocPayment {
   method       String
   reference    String? // เลขอ้างอิงการโอน / เลขเช็ค
   voided       Boolean        @default(false) // ยกเลิกใบเสร็จของงวดนี้ → ไม่นับเป็นยอดชำระ
+  // ภาษีหัก ณ ที่จ่าย: amountSatang = ยอดที่ตัดหนี้ (รวมภาษีที่ลูกค้าหักไว้) · เงินที่ได้รับจริง = amountSatang − whtSatang
+  whtRateBp    Int            @default(0) // 300 = 3%
+  whtSatang    Int            @default(0)
+  whtCertNo    String? // เลขที่หนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ)
+  whtCertAt    DateTime? // วันที่ได้รับหนังสือรับรองตัวจริงจากลูกค้า (null = ยังไม่ได้รับ)
   createdAt    DateTime       @default(now())
 
   @@index([invoiceId])
+  @@index([whtSatang, paidAt])
 }
 
 enum DocEventType {
@@ -1347,4 +1357,26 @@ model StockCountLine {
 
   @@unique([countId, productId])
   @@index([productId])
+}
+
+/// ค่าใช้จ่ายร้าน (ไม่รวมซื้อสินค้าเข้าสต็อก — นั่นคือใบสั่งซื้อ/ต้นทุนสินค้า) → รายงานกำไรสุทธิ
+model Expense {
+  id           String    @id @default(cuid())
+  date         DateTime // วันที่จ่าย (เที่ยงคืนเวลาไทย)
+  category     String // SHIPPING | LABOR | … (src/lib/expense-rules.ts)
+  description  String
+  payee        String? // จ่ายให้ใคร
+  amountSatang Int // ยอดรวมตามบิล (รวม VAT)
+  vatSatang    Int       @default(0) // ภาษีซื้อในบิล (ขอคืนได้เมื่อร้านจด VAT)
+  whtSatang    Int       @default(0) // ภาษีที่ร้านหัก ณ ที่จ่ายไว้ (ร้านต้องนำส่งเอง)
+  method       String
+  reference    String?
+  fileKey      String? // หลักฐาน expenses/YYYY/MM/*.webp|pdf (ไฟล์ส่วนตัว เปิดผ่าน /admin/expenses/:id/file)
+  note         String?   @db.Text
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([date])
+  @@index([category, date])
 }

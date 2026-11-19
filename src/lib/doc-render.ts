@@ -40,6 +40,10 @@ export type DocView = {
   customer: CustSnap; items: DocLine[]; discountSatang: number; vatMode: VatModeT; vatRateBp: number;
   paymentMethod: string; paymentTerms: string; carrier: string; note: string; ref: string; voidReason: string;
   paidSatang: number; payRef: string; qr: string | null; printedAt: string; shop: ShopHead;
+  /** ใบแจ้งหนี้: เงินมัดจำที่หักแล้ว (เลขที่ใบเสร็จมัดจำ + ยอด) · ใบเสร็จ: เป็นใบเสร็จรับเงินมัดจำ */
+  deposits?: { no: string; amount: number }[]; deposit?: boolean;
+  /** ใบเสร็จจากการรับชำระที่ลูกค้าหักภาษี ณ ที่จ่าย */
+  wht?: { rateBp: number; satang: number; certNo: string } | null;
   /** วันที่ในช่องลงนามฝั่งร้าน (YYYY-MM-DD) — ว่าง = ใช้วันที่เอกสาร */
   signDate?: string;
   /** ใบลดหนี้: เหตุผล + มูลค่าตามเอกสารเดิม (สตางค์) — มูลค่าที่ถูกต้อง = เดิม − ลดหนี้ */
@@ -74,8 +78,9 @@ export const DOC_META: Record<DocTypeT, { th: string; en: string; short: string;
   INVOICE: { th: "ใบแจ้งหนี้ / ใบวางบิล", en: "INVOICE / BILLING NOTE", short: "IV", path: "INVOICE" },
   RECEIPT: { th: "ใบเสร็จรับเงิน", en: "RECEIPT", short: "RC", path: "RECEIPT" },
   CREDIT_NOTE: { th: "ใบลดหนี้", en: "CREDIT NOTE", short: "CN", path: "CREDIT_NOTE" },
+  DELIVERY: { th: "ใบส่งของ / ใบรับสินค้า", en: "DELIVERY NOTE", short: "DO", path: "DELIVERY" },
 };
-const SIGN: Record<DocTypeT, [string, string]> = { QUOTATION: ["ผู้เสนอราคา", "ผู้อนุมัติสั่งซื้อ"], INVOICE: ["ผู้วางบิล", "ผู้รับวางบิล"], RECEIPT: ["ผู้รับเงิน", "ผู้รับสินค้า"], CREDIT_NOTE: ["ผู้อนุมัติ", "ผู้รับใบลดหนี้"] };
+const SIGN: Record<DocTypeT, [string, string]> = { QUOTATION: ["ผู้เสนอราคา", "ผู้อนุมัติสั่งซื้อ"], INVOICE: ["ผู้วางบิล", "ผู้รับวางบิล"], RECEIPT: ["ผู้รับเงิน", "ผู้รับสินค้า"], CREDIT_NOTE: ["ผู้อนุมัติ", "ผู้รับใบลดหนี้"], DELIVERY: ["ผู้ส่งของ", "ผู้รับของ"] };
 
 export const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const nl2br = (s: string) => esc(s).replace(/\n/g, "<br>");
@@ -124,7 +129,7 @@ export function buildDocParts(d: DocView): DocParts {
   const headN = `<header class="sh-headn"><b>${esc(s.name)}</b><span><b>${esc(title)}</b> ${esc(label)} · หน้า {{P}} / {{N}}</span></header>`;
 
   const isCn = d.type === "CREDIT_NOTE";
-  const info: [string, string][] = [[isCn ? "คืนเงินโดย" : "การชำระเงิน", esc(d.paymentMethod || "—")]];
+  const info: [string, string][] = d.type === "DELIVERY" ? [["ขนส่ง", esc(d.carrier || "—")]] : [[isCn ? "คืนเงินโดย" : "การชำระเงิน", esc(d.paymentMethod || "—")]];
   if (d.type === "QUOTATION") {
     const n = daysBetween(d.issueDate, d.validUntil);
     if (n > 0) info.push(["ยืนราคา", `${n} วัน`]);
@@ -137,7 +142,7 @@ export function buildDocParts(d: DocView): DocParts {
   // (ไม่พิมพ์เบอร์โทรซ้ำตรงนี้ — เบอร์ร้านอยู่ที่หัวเอกสารแล้ว)
   if (s.signerName && (d.type === "QUOTATION" || d.type === "INVOICE")) info.push(["ผู้ติดต่อ", esc(s.signerName)]);
   if (d.type === "INVOICE") info.push(["ยอดค้างชำระ", `<b>${money(outstanding)}</b>`]);
-  if (d.carrier && d.type !== "QUOTATION") info.push(["ขนส่ง", esc(d.carrier)]);
+  if (d.carrier && d.type !== "QUOTATION" && d.type !== "DELIVERY") info.push(["ขนส่ง", esc(d.carrier)]);
   info.push(["หน้า", "{{P}} / {{N}}"]);
   const branch = isCo ? c.branch || "สำนักงานใหญ่" : "";
   const st = c.shipTo;
@@ -149,7 +154,7 @@ export function buildDocParts(d: DocView): DocParts {
         <div><span class="k">ที่อยู่</span> ${esc(addrText(c.address)) || "—"}</div>
         ${c.taxId || c.contact ? `<div>${c.taxId ? `<span class="nw"><span class="k">เลขประจำตัวผู้เสียภาษี</span> ${esc(fmtTaxId(c.taxId))}</span>` : ""}${c.taxId && c.contact ? " &nbsp; " : ""}${c.contact ? `<span class="nw"><span class="k">ผู้ติดต่อ</span> ${esc(c.contact)}</span>` : ""}</div>` : ""}
         ${custContact(c)}
-        ${st && st.name && d.type !== "QUOTATION" ? `<div class="ship-to"><span class="k">ส่งของที่</span> ${esc(st.name)}${st.phone ? " โทร " + esc(st.phone) : ""} · ${esc(addrText(st.address))}</div>` : ""}`
+        ${st && st.name && d.type !== "QUOTATION" && d.type !== "DELIVERY" ? `<div class="ship-to"><span class="k">ส่งของที่</span> ${esc(st.name)}${st.phone ? " โทร " + esc(st.phone) : ""} · ${esc(addrText(st.address))}</div>` : ""}`
         : '<div class="cust-empty">ยังไม่ได้เลือกลูกค้า</div>'}
       </div></section>`;
 
@@ -157,8 +162,16 @@ export function buildDocParts(d: DocView): DocParts {
   // รูปสินค้าหน้ารายการ — มีรูปอย่างน้อย 1 รายการ = เว้นช่องรูปให้ทุกแถว (ชื่อรายการตรงกัน)
   const hasImg = d.items.some((i) => i.img);
   const imgCell = (it: DocLine) => (hasImg ? `<span class="it-img">${it.img ? `<img src="${esc(it.img)}" alt="">` : ""}</span>` : "");
-  const thead = `<thead><tr><th class="c w-no">ลำดับ</th><th class="w-sku">รหัสสินค้า</th><th>รายการสินค้า</th><th class="w-unit">หน่วย</th><th class="n w-price">ราคาขาย/บาท</th><th class="n w-qty">จำนวน</th>${hasDisc ? '<th class="n w-disc">ส่วนลด</th>' : ""}<th class="n w-amt">ราคารวม/บาท</th></tr></thead>`;
-  const rows = d.items.length
+  const isDo = d.type === "DELIVERY";
+  const thead = isDo
+    ? `<thead><tr><th class="c w-no">ลำดับ</th><th class="w-sku">รหัสสินค้า</th><th>รายการสินค้า</th><th class="n w-qty">จำนวน</th><th class="w-unit">หน่วย</th><th class="c w-chk">ตรวจรับ</th></tr></thead>`
+    : `<thead><tr><th class="c w-no">ลำดับ</th><th class="w-sku">รหัสสินค้า</th><th>รายการสินค้า</th><th class="w-unit">หน่วย</th><th class="n w-price">ราคาขาย/บาท</th><th class="n w-qty">จำนวน</th>${hasDisc ? '<th class="n w-disc">ส่วนลด</th>' : ""}<th class="n w-amt">ราคารวม/บาท</th></tr></thead>`;
+  const nameCell = (it: DocLine) => `<td class="nm"><div class="nm-row">${imgCell(it)}<div>${nl2br(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${nl2br(it.detail)}</small>` : ""}</div></div></td>`;
+  const rows = isDo
+    ? d.items.length
+      ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td>${nameCell(it)}<td class="n">${qtyShow(it.qtyMilli)}</td><td>${esc(it.unit)}</td><td class="c"><span class="chk-box"></span></td></tr>`)
+      : ['<tr class="empty-row"><td colspan="6">ยังไม่มีรายการสินค้า</td></tr>']
+    : d.items.length
     ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td><td class="nm"><div class="nm-row">${imgCell(it)}<div>${nl2br(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${nl2br(it.detail)}</small>` : ""}</div></div></td><td>${esc(it.unit)}</td>
       <td class="n">${money(it.priceSatang)}</td><td class="n">${qtyShow(it.qtyMilli)}</td>${hasDisc ? `<td class="n">${it.discountSatang ? money(it.discountSatang) : ""}</td>` : ""}<td class="n">${money(lineSatang(it))}</td></tr>`)
     : [`<tr class="empty-row"><td colspan="${hasDisc ? 8 : 7}">ยังไม่มีรายการสินค้า</td></tr>`];
@@ -192,7 +205,10 @@ export function buildDocParts(d: DocView): DocParts {
   if (d.type === "INVOICE" && d.online && payBox) {
     payBox = payBox.replace('<div class="mut">', `<div class="mut">ดูใบแจ้งหนี้และแนบสลิปออนไลน์: สแกน QR มุมขวาล่าง · `);
   }
-  if (d.type === "RECEIPT") payBox = `<div class="sh-paid"><b>ได้รับเงินถูกต้องแล้ว</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}</div>`;
+  if (d.type === "RECEIPT")
+    payBox = `<div class="sh-paid"><b>${d.deposit ? "ได้รับเงินมัดจำถูกต้องแล้ว" : "ได้รับเงินถูกต้องแล้ว"}</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}${
+      d.wht ? `<dl class="sh-wht"><dt>ยอดตามใบเสร็จ</dt><dd>${money(t.grand)}</dd><dt>หักภาษี ณ ที่จ่าย ${d.wht.rateBp / 100}%${d.wht.certNo ? ` <small>(หนังสือรับรองเลขที่ ${esc(d.wht.certNo)})</small>` : ""}</dt><dd>${money(d.wht.satang)}</dd><dt><b>รับเงินสุทธิ</b></dt><dd><b>${money(t.grand - d.wht.satang)}</b></dd></dl>` : ""
+    }</div>`;
   const terms = d.paymentTerms.trim(), note = d.note.trim();
   // ช่องลงนาม: ฝั่งร้านใส่วันที่ให้ (วันที่ลงนามที่ตั้งไว้ หรือวันที่เอกสาร) · ฝั่งลูกค้าเว้นให้เขียนเอง
   const signDay = d.signDate || d.issueDate;
@@ -210,7 +226,27 @@ export function buildDocParts(d: DocView): DocParts {
     : "";
   // ใบแจ้งหนี้: QR เปิดดู/แนบสลิปออนไลน์ อยู่ใต้ยอดรวม (QR พร้อมเพย์อยู่ในกล่องชำระเงินแล้ว)
   const ivOnline = d.type === "INVOICE" && d.online ? `<figure class="sh-oqr sh-oqr-iv"><img class="sh-qr" src="${esc(d.online.qr)}" alt="QR เปิดใบแจ้งหนี้ออนไลน์"><figcaption>ดู/แนบสลิปออนไลน์</figcaption></figure>` : "";
-  const tail = `<div class="sh-end">
+  // ใบส่งของ: ไม่มีราคา/ยอดเงิน · รวมจำนวน · ส่งที่ · ข้อความรับรองการรับของ
+  const qtyTotal = d.items.reduce((n, it) => n + it.qtyMilli, 0);
+  const doShip = c.shipTo?.name ? `${esc(c.shipTo.name)}${c.shipTo.phone ? ` โทร ${esc(c.shipTo.phone)}` : ""} · ${esc(addrText(c.shipTo.address))}` : esc(addrText(c.address)) || "—";
+  const doTail = `<div class="sh-end">
+      <section class="sh-tail sh-dotail">
+        <div class="sh-tl">
+          <div class="sh-dobox"><h5>ส่งสินค้าที่</h5><p>${doShip}</p>${d.carrier ? `<p><span class="k">ขนส่งโดย</span> ${esc(d.carrier)}</p>` : ""}</div>
+          ${note ? `<div class="sh-note"><h5>หมายเหตุ</h5><p>${nl2br(note)}</p></div>` : ""}
+          ${terms ? `<div class="sh-note"><h5>เงื่อนไข</h5><p>${nl2br(terms)}</p></div>` : ""}
+          <p class="sh-doack">ได้รับสินค้าตามรายการข้างต้นครบถ้วน ถูกต้อง และอยู่ในสภาพเรียบร้อยแล้ว</p>
+        </div>
+        <div class="sh-tr"><dl class="sh-tot"><dt>จำนวนรายการ</dt><dd>${d.items.length}</dd><dt class="g">รวมจำนวน</dt><dd class="g">${qtyShow(qtyTotal)}</dd></dl></div>
+      </section>
+      ${sign}
+      <div class="sh-thanks">${DOC_TAGLINE}</div>
+    </div>`;
+  // ใบแจ้งหนี้: แยกแถว "หักเงินมัดจำ" ตามใบเสร็จมัดจำ · ส่วนที่เหลือของยอดที่ชำระ = ชำระแล้ว
+  const deps = d.type === "INVOICE" ? (d.deposits ?? []) : [];
+  const depRows = deps.map((x) => `<dt>หักเงินมัดจำ <small>(${esc(x.no)})</small></dt><dd>${money(x.amount)}</dd>`).join("");
+  const otherPaid = d.paidSatang - deps.reduce((n, x) => n + x.amount, 0);
+  const tail = isDo ? doTail : `<div class="sh-end">
       <section class="sh-tail">
         <div class="sh-tl">
           <div class="sh-words"><span>จำนวนเงิน (ตัวอักษร)</span><b>(${bahtText(t.grand)})</b></div>
@@ -220,7 +256,7 @@ export function buildDocParts(d: DocView): DocParts {
         </div>
         <div class="sh-tr"><dl class="sh-tot">${tot.map(([k, v]) => `<dt>${k}</dt><dd>${money(v)}</dd>`).join("")}
           <dt class="g">${isCn ? "มูลค่าลดหนี้สุทธิ/บาท" : "ราคารวมสุทธิ/บาท"}</dt><dd class="g">${money(t.grand)}</dd>
-          ${d.type === "INVOICE" && d.paidSatang ? `<dt>ชำระแล้ว</dt><dd>${money(d.paidSatang)}</dd><dt class="o">คงค้างชำระ</dt><dd class="o">${money(outstanding)}</dd>` : ""}</dl>
+          ${d.type === "INVOICE" && d.paidSatang ? `${depRows}${otherPaid > 0 ? `<dt>ชำระแล้ว</dt><dd>${money(otherPaid)}</dd>` : ""}<dt class="o">คงค้างชำระ</dt><dd class="o">${money(outstanding)}</dd>` : ""}</dl>
         ${ivOnline}</div>
       </section>
       ${sign}
@@ -324,6 +360,7 @@ export function labelSetHtml(list: LabelData[], o: LabelOpts, s: Sender) {
 // =========================================================
 export const DOC_ST = {
   draft: ["ฉบับร่าง", "gray"], open: ["รอตอบรับ", "pend"], accepted: ["ตอบรับแล้ว", "ok"], rejected: ["ไม่ตอบรับ", "bad"], expired: ["หมดอายุ", "gray"],
+  shipping: ["รอเซ็นรับ", "pend"], delivered: ["ส่งมอบแล้ว", "ok"],
   unpaid: ["ค้างชำระ", "pend"], partial: ["ชำระบางส่วน", "info"], paid: ["ชำระแล้ว", "ok"], overdue: ["เกินกำหนด", "bad"], issued: ["ออกแล้ว", "ok"], void: ["ยกเลิก", "void"],
   // แท็บติดตามใบเสนอราคา (ไม่ใช่สถานะของเอกสาร — ใช้กรองรายการเท่านั้น)
   follow: ["ต้องติดตาม", "pend"], expiring: ["ใกล้หมดอายุ", "pend"],
@@ -334,6 +371,7 @@ export const DOC_TABS: Record<DocTypeT, [DocSt | "all", string][]> = {
   INVOICE: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["unpaid", "ค้างชำระ"], ["partial", "ชำระบางส่วน"], ["overdue", "เกินกำหนด"], ["paid", "ชำระแล้ว"], ["void", "ยกเลิก"]],
   RECEIPT: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["issued", "ออกแล้ว"], ["void", "ยกเลิก"]],
   CREDIT_NOTE: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["issued", "ออกแล้ว"], ["void", "ยกเลิก"]],
+  DELIVERY: [["all", "ทั้งหมด"], ["draft", "ฉบับร่าง"], ["shipping", "รอเซ็นรับ"], ["delivered", "ส่งมอบแล้ว"], ["void", "ยกเลิก"]],
 };
 /** วันที่ทั้งหมดเป็น "YYYY-MM-DD" ตามเวลาไทย */
 export function displayStatus(d: { type: DocTypeT; status: string; validUntil: string; dueDate: string; paidSatang: number; grandSatang: number }, today: string): DocSt {
@@ -349,5 +387,6 @@ export function displayStatus(d: { type: DocTypeT; status: string; validUntil: s
     if (d.dueDate && d.dueDate < today) return "overdue";
     return d.paidSatang > 0 ? "partial" : "unpaid";
   }
+  if (d.type === "DELIVERY") return d.status === "ACCEPTED" ? "delivered" : "shipping";
   return "issued";
 }

@@ -60,6 +60,16 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
       { label: "รับชำระเดือนนี้", value: `฿${money(paidMonth._sum.amountSatang ?? 0)}`, sub: `${paidMonth._count._all} รายการ` },
       { label: "ฉบับร่าง", value: String(draft._count._all), sub: "ยังไม่ออกเลขที่", tab: "draft" },
     ];
+  } else if (type === "DELIVERY") {
+    const [month, pending, done, draft] = await Promise.all([
+      sum({ status: { in: ["ISSUED", "ACCEPTED"] }, issueDate: { gte: monthStart } }), sum({ status: "ISSUED" }), sum({ status: "ACCEPTED" }), sum({ status: "DRAFT" }),
+    ]);
+    kpis = [
+      { label: "ส่งของเดือนนี้", value: String(month._count._all), sub: "ใบส่งของที่ออกแล้ว" },
+      { label: "รอเซ็นรับ", value: String(pending._count._all), sub: "ตามเอกสารเซ็นรับคืนจากลูกค้า", tab: "shipping", hot: pending._count._all > 0 },
+      { label: "ส่งมอบแล้ว", value: String(done._count._all), sub: "ลูกค้าเซ็นรับแล้ว", tab: "delivered" },
+      { label: "ฉบับร่าง", value: String(draft._count._all), sub: "ยังไม่ออกเลขที่", tab: "draft" },
+    ];
   } else {
     const [month, all, voids, draft] = await Promise.all([sum({ status: "ISSUED", issueDate: { gte: monthStart } }), sum({ status: "ISSUED" }), sum({ status: "VOID" }), sum({ status: "DRAFT" })]);
     kpis = [
@@ -83,7 +93,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
       <div className="page-head">
         <div>
           <h1>{meta.th}</h1>
-          <p>{type === "QUOTATION" ? "เสนอราคา → ลูกค้าตอบรับ → แปลงเป็นใบแจ้งหนี้ได้ทันที" : type === "INVOICE" ? "วางบิล + QR พร้อมเพย์ตามยอดค้าง · บันทึกรับชำระแล้วออกใบเสร็จให้อัตโนมัติ" : type === "CREDIT_NOTE" ? "คืนสินค้า / ลดราคาหลังขาย / คืนเงิน — ออกจากหน้าใบเสร็จรับเงินเดิม (ปุ่ม “ออกใบลดหนี้ / คืนเงิน”) · รับสินค้าคืนเข้าสต็อกได้" : "ใบเสร็จออกอัตโนมัติเมื่อบันทึกรับชำระ หรือออกจากคำสั่งซื้อหน้าเว็บ"}</p>
+          <p>{type === "QUOTATION" ? "เสนอราคา → ลูกค้าตอบรับ → แปลงเป็นใบแจ้งหนี้ได้ทันที" : type === "INVOICE" ? "วางบิล + QR พร้อมเพย์ตามยอดค้าง · บันทึกรับชำระแล้วออกใบเสร็จให้อัตโนมัติ" : type === "CREDIT_NOTE" ? "คืนสินค้า / ลดราคาหลังขาย / คืนเงิน — ออกจากหน้าใบเสร็จรับเงินเดิม (ปุ่ม “ออกใบลดหนี้ / คืนเงิน”) · รับสินค้าคืนเข้าสต็อกได้" : type === "DELIVERY" ? "ส่งมอบสินค้าพร้อมช่องให้ลูกค้าเซ็นรับ (ไม่พิมพ์ราคา) · สร้างจากใบเสนอราคา/ใบแจ้งหนี้/ใบเสร็จ (ปุ่ม “สร้างใบส่งของ”) หรือสร้างเอง" : "ใบเสร็จออกอัตโนมัติเมื่อบันทึกรับชำระ หรือออกจากคำสั่งซื้อหน้าเว็บ"}</p>
         </div>
         <div className="head-actions">
           <a className="btn btn-outline" href={`/admin/docs.csv${qs({ type })}`}>ส่งออก CSV</a>
@@ -145,7 +155,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
           <thead>
             <tr>
               <th>เลขที่ / วันที่</th><th>ลูกค้า</th>
-              <th>{type === "QUOTATION" ? "ยืนราคาถึง" : type === "INVOICE" ? "ครบกำหนด / ค้างชำระ" : type === "CREDIT_NOTE" ? "อ้างอิงใบเสร็จ / เหตุผล" : "ชำระโดย / อ้างอิง"}</th>
+              <th>{type === "QUOTATION" ? "ยืนราคาถึง" : type === "INVOICE" ? "ครบกำหนด / ค้างชำระ" : type === "CREDIT_NOTE" ? "อ้างอิงใบเสร็จ / เหตุผล" : type === "DELIVERY" ? "อ้างอิง / เซ็นรับ" : "ชำระโดย / อ้างอิง"}</th>
               <th className="r">ยอดรวม</th><th>สถานะ</th><th className="r col-acts">การดำเนินการ</th>
             </tr>
           </thead>
@@ -160,6 +170,8 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                   <>{docDate(ymdOf(d.dueDate), era)}{d.status !== "DRAFT" && d.status !== "VOID" && d.grandSatang - d.paidSatang > 0 && <span className="sub owe">ค้าง ฿{money(d.grandSatang - d.paidSatang)}</span>}</>
                 ) : type === "CREDIT_NOTE" ? (
                   <>{d.source?.docNo ?? "—"}{d.creditReason && <span className="sub">{d.creditReason}</span>}</>
+                ) : type === "DELIVERY" ? (
+                  <>{d.source?.docNo ?? "—"}{d.acceptedAt ? <span className="sub">รับ {docDate(ymdBkk(d.acceptedAt), era)} · {d.acceptedBy}</span> : d.carrier && <span className="sub">{d.carrier}</span>}</>
                 ) : (
                   <>{d.paymentMethod ?? "—"}{d.order && <span className="sub">{d.order.orderNo}</span>}</>
                 );
