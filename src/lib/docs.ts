@@ -5,6 +5,7 @@ import type { Customer, DocType, Prisma, SalesDocument, ShopSetting } from "../.
 import { addrText, calcTotals, docDateTime, fromYmd, promptPayPayload, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META, displayStatus, type CustSnap, type DocSt, type DocView, type LabelData, type Sender, type ShopHead } from "@/lib/doc-render";
 import { formatPhone } from "@/lib/format";
+import { customerPhones, formatPhoneEntry } from "@/lib/phones";
 import { mediaUrl } from "@/lib/media";
 import { customerForOrder, nextCustomerCode as nextCode, type OrderForCustomer } from "@/lib/order-customer";
 import { prisma } from "@/lib/prisma";
@@ -52,10 +53,12 @@ export async function allocDocNo(tx: Tx, type: DocType, issueYmd: string, prefix
 export const nextCustomerCode = (tx: Tx | typeof prisma = prisma) => nextCode(tx);
 
 export function custSnapshot(c: Customer): CustSnap {
+  const phones = customerPhones(c).map(formatPhoneEntry);
   const ship = c.shipTo && typeof c.shipTo === "object" && !Array.isArray(c.shipTo) ? (c.shipTo as CustSnap["shipTo"]) : null;
   return {
     code: c.code, kind: c.kind, name: c.name, taxId: c.taxId ?? "", branch: c.branch ?? "", contact: c.contactName ?? "",
-    phone: c.phone ? formatPhone(c.phone) : "", email: c.email ?? "",
+    // phone = เบอร์หลัก (เอกสาร/การค้นหาเดิมใช้) · phones = ทุกเบอร์
+    phone: phones[0] ?? "", phones, fax: c.fax ? formatPhoneEntry(c.fax) : "", email: c.email ?? "",
     address: { line: c.addressLine, sub: c.subdistrict, dist: c.district, prov: c.province, zip: c.postalCode },
     shipTo: ship?.name ? { ...ship, phone: ship.phone ? formatPhone(ship.phone) : "" } : null,
   };

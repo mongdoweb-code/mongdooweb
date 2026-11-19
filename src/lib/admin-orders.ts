@@ -347,7 +347,7 @@ export async function customerForTaxInvoice(
   if (found) return found;
   return tx.customer.create({
     data: {
-      code: await nextCustomerCode(tx), kind: t.kind, name: t.name, taxId: t.taxId, branch, phone: o.phone, email: o.email,
+      code: await nextCustomerCode(tx), kind: t.kind, name: t.name, taxId: t.taxId, branch, phone: o.phone, phones: o.phone ? [o.phone] : [], email: o.email,
       addressLine: t.address, note: `สร้างจากข้อมูลใบกำกับภาษีในคำสั่งซื้อ ${o.orderNo}`,
     },
   });

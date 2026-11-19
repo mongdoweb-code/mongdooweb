@@ -23,8 +23,10 @@ export async function matchCustomer(db: Db, o: Pick<OrderForCustomer, "phone" | 
   if (digits.length >= 9) {
     // เบอร์ในฐานข้อมูลอาจเก็บแบบมีขีด (ข้อมูลเก่า/นำเข้า) → เทียบเฉพาะตัวเลข
     const rows = await db.$queryRaw<{ id: string }[]>`
-      SELECT "id" FROM "Customer" WHERE regexp_replace(COALESCE("phone", ''), '[^0-9]', '', 'g') = ${digits}
-      ORDER BY "createdAt" ASC LIMIT 1`;
+      SELECT "id" FROM "Customer"
+      WHERE regexp_replace(COALESCE("phone", ''), '[^0-9]', '', 'g') = ${digits}
+         OR EXISTS (SELECT 1 FROM unnest("phones") p WHERE split_part(p, '#', 1) = ${digits}) -- เบอร์อื่นของลูกค้า (หลายเบอร์)
+      ORDER BY ("phone" IS NOT NULL AND regexp_replace("phone", '[^0-9]', '', 'g') = ${digits}) DESC, "createdAt" ASC LIMIT 1`;
     if (rows[0]) return db.customer.findUnique({ where: { id: rows[0].id } });
   }
   const email = String(o.email ?? "").trim();
@@ -43,7 +45,7 @@ export async function customerForOrder(db: Db, o: OrderForCustomer, note = "ส�
   const pickup = o.addressLine === "รับสินค้าที่ร้าน";
   return db.customer.create({
     data: {
-      code: await nextCustomerCode(db), kind: "PERSON", name: o.customerName, phone: o.phone.replace(/\D/g, "") || null, email: o.email || null,
+      code: await nextCustomerCode(db), kind: "PERSON", name: o.customerName, phone: o.phone.replace(/\D/g, "") || null, phones: o.phone.replace(/\D/g, "") ? [o.phone.replace(/\D/g, "")] : [], email: o.email || null,
       addressLine: pickup ? null : o.addressLine || null, subdistrict: o.subdistrict || null, district: o.district || null,
       province: o.province || null, postalCode: /^\d{5}$/.test(o.postalCode) ? o.postalCode : null, note,
     },

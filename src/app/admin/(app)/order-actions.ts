@@ -526,6 +526,7 @@ export async function findCustomers(q: string) {
         { name: { contains: t, mode: "insensitive" } },
         { code: t },
         ...(digits.length >= 3 ? [{ phone: { contains: digits } }, { taxId: { contains: digits } }] : []),
+        ...(digits.length >= 9 ? [{ phones: { has: digits } }] : []), // เบอร์อื่นของลูกค้า
       ],
     },
     take: 8,

@@ -1,0 +1,50 @@
+/* ฟอร์มลูกค้า (หน้าลูกค้า + "+ ลูกค้าใหม่" ในตัวแก้ไขเอกสาร) — แบ่งส่วนมีหมายเลข · หลายเบอร์ */
+.cuf-sec{display:grid;gap:12px;padding:14px 14px 16px;border:1px solid var(--c-line);background:#fff;container-type:inline-size}
+.cuf-sec + .cuf-sec{margin-top:2px}
+.cuf-sec h3{display:flex;align-items:center;justify-content:flex-start;gap:8px;margin:0;font-size:14.5px;font-weight:700;color:var(--c-ink)}
+.cuf-n{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#FFF1E6;color:#C2510C;font-size:12px;font-weight:800}
+.cuf-sec .seg{justify-self:start}
+.cuf-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.cuf-g3{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.cuf-pf{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+.cu-form .field input.bad,.cu-form .field select.bad{border-color:var(--c-err);background:#FFF8F6}
+.cu-form .field small.cuf-ok{color:#18794E;font-weight:600}
+.cu-form .field small.cuf-err{color:var(--c-err);font-weight:600}
+.cu-form .field small.cuf-hint{color:var(--c-muted)}
+.cuf-lbl{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cuf-lbl label{font-size:13px;font-weight:600;color:var(--c-muted)}
+.cuf-lbl small{font-size:11.5px}
+.cuf-plist{display:grid;gap:8px}
+.cuf-prow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:8px;align-items:start}
+.cuf-tag{align-self:start;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;height:42px;border:1.5px solid var(--c-line);background:#F7F7F5;color:var(--c-muted);font-size:12px;font-weight:700;white-space:nowrap}
+.cuf-tag.is-main{background:#FFF1E6;border-color:#F6C9A6;color:#C2510C}
+.cuf-pin{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cuf-pin small{min-height:18px;line-height:18px}
+.cuf-pacts{display:flex;gap:4px;min-width:40px}
+.cuf-ib{width:40px;height:42px;border:1.5px solid var(--c-line);background:#fff;color:var(--c-muted);font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.cuf-ib:hover,.cuf-ib:focus-visible{border-color:var(--c-ink);color:var(--c-ink)}
+.cuf-ib.del:hover,.cuf-ib.del:focus-visible{border-color:var(--c-err);color:var(--c-err)}
+.cuf-add{justify-self:start;height:34px;padding:0 12px;border:1.5px dashed #F0A76E;background:#FFF8F2;color:#C2510C;font-size:13px;font-weight:700;cursor:pointer}
+.cuf-add:hover,.cuf-add:focus-visible{border-style:solid;background:#FFF1E6}
+.cuf-spacer{visibility:hidden}
+.cu-page .act-row{position:sticky;bottom:0;background:#fff;padding:10px 0 2px;border-top:1px solid var(--c-line);z-index:2}
+/* ปรับตามความกว้างของกล่อง (หน้าลูกค้ากว้าง · ในตัวแก้ไขเอกสารแคบ) */
+@container (max-width:640px){
+  .cuf-g3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cuf-g3 > .field:first-child{grid-column:1/-1}
+  .cuf-pf{grid-template-columns:1fr}
+  .cuf-spacer{display:none}
+}
+@container (max-width:420px){
+  .cuf-g2,.cuf-g3{grid-template-columns:1fr}
+  .cuf-prow{grid-template-columns:52px minmax(0,1fr) auto}
+}
+@media (max-width:560px){
+  .cuf-sec{padding:12px 10px 14px}
+}
+/* "+ ลูกค้าใหม่" ในตัวแก้ไขเอกสาร */
+.de-qc{border:1.5px solid #F6C9A6;box-shadow:0 6px 18px rgba(194,81,12,.08)}
+.de-qc-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.de-qc-head b{font-size:15px}
+.de-qc-head small{color:var(--c-muted);font-size:12px}
+.de-qc .act-row{justify-content:flex-end}

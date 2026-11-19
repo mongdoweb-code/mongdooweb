@@ -75,7 +75,7 @@ export async function personData(phoneRaw: string, emailRaw: string | null) {
   const { phone, email } = who(phoneRaw, emailRaw);
   const byEmail = <T,>(w: T) => (email ? [w] : []);
   const ci = (v: string) => ({ equals: v, mode: "insensitive" as const });
-  const customers = await prisma.customer.findMany({ where: { OR: [{ phone }, ...byEmail({ email: ci(email!) })] } });
+  const customers = await prisma.customer.findMany({ where: { OR: [{ phone }, { phones: { has: phone } }, ...byEmail({ email: ci(email!) })] } });
   const cids = customers.map((c) => c.id);
   const orders = await prisma.order.findMany({
     where: { OR: [{ phone }, ...byEmail({ email: ci(email!) }), ...(cids.length ? [{ customerId: { in: cids } }] : [])] },
@@ -147,7 +147,7 @@ export async function personExportZip(req: { id: string; name: string; phone: st
 export async function optOutMarketing(phoneRaw: string, emailRaw: string | null) {
   const { phone, email } = who(phoneRaw, emailRaw);
   const r = await prisma.customer.updateMany({
-    where: { OR: [{ phone }, ...(email ? [{ email: { equals: email, mode: "insensitive" as const } }] : [])] },
+    where: { OR: [{ phone }, { phones: { has: phone } }, ...(email ? [{ email: { equals: email, mode: "insensitive" as const } }] : [])] },
     data: { marketingOptOut: true },
   });
   return r.count;
@@ -169,8 +169,8 @@ export async function erasePerson(phoneRaw: string, emailRaw: string | null): Pr
   await prisma.$transaction(
     async (tx) => {
       const customers = await tx.customer.findMany({
-        where: { OR: orWho("phone", "email") as Prisma.CustomerWhereInput[] },
-        select: { id: true, code: true, name: true, contactName: true, phone: true, email: true, addressLine: true, shipTo: true, _count: { select: { documents: { where: { docNo: { not: null } } } } } },
+        where: { OR: [...(orWho("phone", "email") as Prisma.CustomerWhereInput[]), { phones: { has: phone } }] },
+        select: { id: true, code: true, name: true, contactName: true, phone: true, phones: true, fax: true, email: true, addressLine: true, shipTo: true, _count: { select: { documents: { where: { docNo: { not: null } } } } } },
       });
       const cids = customers.map((c) => c.id);
       const orders = await tx.order.findMany({
@@ -181,7 +181,7 @@ export async function erasePerson(phoneRaw: string, emailRaw: string | null): Pr
       const byOrder = oids.length ? [{ orderId: { in: oids } }] : [];
 
       // คำที่ต้องลบออกจากข้อความอิสระ (เก็บก่อนลบข้อมูลต้นทาง)
-      const phones = [...new Set([phone, ...orders.map((o) => o.phone), ...customers.map((c) => c.phone ?? "")].map(phoneDigits).filter((p) => p.length >= 9))];
+      const phones = [...new Set([phone, ...orders.map((o) => o.phone), ...customers.flatMap((c) => [c.phone ?? "", ...c.phones.map((p) => p.split("#")[0]), (c.fax ?? "").split("#")[0]])].map(phoneDigits).filter((p) => p.length >= 9))];
       const ship = (j: unknown) => (j && typeof j === "object" && !Array.isArray(j) ? (j as { name?: string }).name : null);
       const needles = needlesOf([
         email, ...orders.flatMap((o) => [o.customerName, o.email, o.addressLine]),
@@ -250,7 +250,7 @@ export async function erasePerson(phoneRaw: string, emailRaw: string | null): Pr
       });
       for (const d of docs) {
         const snap = { ...(d.customerSnapshot as Record<string, unknown>) };
-        for (const k of ["phone", "email", "contact", "shipTo"]) delete snap[k];
+        for (const k of ["phone", "phones", "fax", "email", "contact", "shipTo"]) delete snap[k];
         await tx.salesDocument.update({ where: { id: d.id }, data: { customerSnapshot: snap as Prisma.InputJsonValue, internalNote: null } });
       }
       if (docs.length) await tx.salesDocument.updateMany({ where: { id: { in: docs.map((d) => d.id) }, acceptedBy: { not: null } }, data: { acceptedBy: REDACTED } });
@@ -268,7 +268,7 @@ export async function erasePerson(phoneRaw: string, emailRaw: string | null): Pr
           await tx.customer.delete({ where: { id: c.id } });
           custDeleted++;
         } else {
-          await tx.customer.update({ where: { id: c.id }, data: { phone: null, email: null, contactName: null, shipTo: Prisma.DbNull, note: null, tags: [] } });
+          await tx.customer.update({ where: { id: c.id }, data: { phone: null, phones: [], fax: null, email: null, contactName: null, shipTo: Prisma.DbNull, note: null, tags: [] } });
           custRedacted++;
         }
       }

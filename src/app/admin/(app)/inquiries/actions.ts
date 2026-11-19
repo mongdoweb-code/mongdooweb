@@ -82,7 +82,7 @@ export async function quotationFromInquiry(f: FormData) {
       c = await tx.customer.create({
         data: {
           code: await nextCustomerCode(tx), kind: company ? "COMPANY" : "PERSON", name: (company || q.name).slice(0, 200),
-          contactName: company ? q.name.slice(0, 120) : null, phone: phone || null, email: q.email, branch: company ? "สำนักงานใหญ่" : null,
+          contactName: company ? q.name.slice(0, 120) : null, phone: phone || null, phones: phone ? [phone] : [], email: q.email, branch: company ? "สำนักงานใหญ่" : null,
           note: `สร้างจากคำขอใบเสนอราคาหน้าเว็บ (${q.createdAt.toISOString().slice(0, 10)})`,
         },
       });

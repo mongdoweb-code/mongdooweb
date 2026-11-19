@@ -3,6 +3,7 @@
 import "server-only";
 import type { CurrentAdmin } from "@/lib/auth";
 import { phoneDigits } from "@/lib/format";
+import { customerPhones, formatPhoneEntry } from "@/lib/phones";
 import { prisma } from "@/lib/prisma";
 
 export type SearchHit = { group: string; title: string; detail: string; href: string };
@@ -62,8 +63,8 @@ export async function globalSearch(qRaw: string, admin: CurrentAdmin, per = 5): 
       WHERE "docNo" ILIKE ${`%${q}%`} OR "customerSnapshot"->>'name' ILIKE ${`%${q}%`}
       ORDER BY "createdAt" DESC LIMIT ${per}`,
     prisma.customer.findMany({
-      where: { OR: [{ name: ci }, { code: q }, { contactName: ci }, { email: ci }, { tags: { has: q } }, ...(phone ? [{ phone: { contains: phone } }, { taxId: { contains: phone } }] : [])] },
-      orderBy: { code: "desc" }, take: per, select: { id: true, code: true, name: true, phone: true },
+      where: { OR: [{ name: ci }, { code: q }, { contactName: ci }, { email: ci }, { tags: { has: q } }, ...(phone ? [{ phone: { contains: phone } }, { taxId: { contains: phone } }] : []), ...(phone && phone.length >= 9 ? [{ phones: { has: phone } }, { fax: { contains: phone } }] : [])] },
+      orderBy: { code: "desc" }, take: per, select: { id: true, code: true, name: true, phone: true, phones: true },
     }),
     prisma.product.findMany({
       where: { OR: [{ sku: ci }, { name: ci }] }, orderBy: [{ isActive: "desc" }, { name: "asc" }], take: per,
@@ -75,7 +76,7 @@ export async function globalSearch(qRaw: string, admin: CurrentAdmin, per = 5): 
   const hits: SearchHit[] = [
     ...orders.map((o) => ({ group: "คำสั่งซื้อ", title: o.orderNo, detail: `${o.customerName} · ${money(o.totalSatang)} · ${ORDER_ST[o.status] ?? o.status}`, href: `/admin?tab=ALL&open=${encodeURIComponent(o.orderNo)}` })),
     ...docs.map((x) => ({ group: "เอกสารขาย", title: `${DOC_TH[x.type] ?? x.type} ${x.docNo ?? "ฉบับร่าง"}`, detail: `${x.name ?? "—"} · ${money(Number(x.grandSatang))}`, href: `/admin/docs/${x.type}/${x.id}` })),
-    ...customers.map((c) => ({ group: "ลูกค้า", title: `${c.code} · ${c.name}`, detail: c.phone ? c.phone.replace(/^(\d{3})(\d{3})(\d+)$/, "$1-$2-$3") : "ไม่มีเบอร์", href: `/admin/customers/${c.id}` })),
+    ...customers.map((c) => ({ group: "ลูกค้า", title: `${c.code} · ${c.name}`, detail: customerPhones(c).map(formatPhoneEntry).join(", ") || "ไม่มีเบอร์", href: `/admin/customers/${c.id}` })),
     ...products.map((p) => ({ group: "สินค้า", title: p.name, detail: `${p.sku}${p.isActive ? "" : " · ปิดขาย"}${p.trackStock ? ` · คงเหลือ ${p.stock}` : ""}`, href: `/admin/products/${p.id}` })),
     ...pos.map((p) => ({ group: "ใบสั่งซื้อ", title: p.poNo ?? "ใบสั่งซื้อฉบับร่าง", detail: p.supplierName, href: `/admin/purchase-orders/${p.id}` })),
     ...PAGES.filter((p) => (owner || !p.ownerOnly) && (p.label.toLowerCase().includes(ql) || p.words.toLowerCase().includes(ql)))

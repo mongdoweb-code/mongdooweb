@@ -8,6 +8,7 @@ import { requireAdmin, requireOwner } from "@/lib/auth";
 import type { CustSnap } from "@/lib/doc-render";
 import { custSnapshot, nextCustomerCode } from "@/lib/docs";
 import { isValidThaiTaxId, phoneDigits } from "@/lib/format";
+import { customerPhones, parsePhoneList, phoneMain, PHONES_MAX } from "@/lib/phones";
 import { prisma } from "@/lib/prisma";
 
 export type CustomerState = { error?: string; fields?: string[]; ok?: string; created?: { id: string; snap: CustSnap } };
@@ -26,21 +27,28 @@ export async function saveCustomer(_prev: CustomerState, f: FormData): Promise<C
   const branchType = str(f, "branchType", 10);
   const branchNo = phoneDigits(str(f, "branchNo", 5));
   if (kind === "COMPANY" && branchType === "branch" && !/^\d{1,5}$/.test(branchNo)) bad.push("branchNo");
-  const phone = phoneDigits(str(f, "phone", 20));
-  if (phone && !/^0\d{8,9}$/.test(phone)) bad.push("phone");
-  const email = str(f, "email", 120);
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) bad.push("email");
+  // หลายเบอร์: ช่อง phones (หลายช่อง · ช่องเดียวมีหลายเบอร์คั่นด้วย , ได้) + ช่อง phone แบบเก่า
+  const phoneInputs = [...f.getAll("phones"), ...f.getAll("phone")].map((v) => String(v).slice(0, 300));
+  const pl = parsePhoneList(phoneInputs);
+  if (pl.bad.length || pl.tooMany) bad.push("phones");
+  const faxRaw = str(f, "fax", 60);
+  const faxList = parsePhoneList([faxRaw]);
+  if (faxRaw && (faxList.bad.length || faxList.phones.length !== 1)) bad.push("fax");
+  const email = str(f, "email", 120).toLowerCase();
+  if (email && !/^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/i.test(email)) bad.push("email");
   const zip = str(f, "postalCode", 5);
   if (zip && !/^\d{5}$/.test(zip)) bad.push("postalCode");
   const shipName = str(f, "shipName", 200), shipPhone = phoneDigits(str(f, "shipPhone", 20)), shipZip = str(f, "shipZip", 5);
   if (shipName && shipZip && !/^\d{5}$/.test(shipZip)) bad.push("shipZip");
   if (bad.length) {
-    const m: Record<string, string> = { name: "กรุณากรอกชื่อลูกค้า", taxId: "เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง (13 หลัก ตรวจหลักสุดท้ายไม่ผ่าน)", branchNo: "กรุณาใส่เลขสาขา 5 หลัก", phone: "เบอร์โทรไม่ถูกต้อง", email: "อีเมลไม่ถูกต้อง", postalCode: "รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก", shipZip: "รหัสไปรษณีย์ที่อยู่จัดส่งไม่ถูกต้อง" };
+    const m: Record<string, string> = { name: "กรุณากรอกชื่อลูกค้า", taxId: "เลขประจำตัวผู้เสียภาษีไม่ถูกต้อง (13 หลัก ตรวจหลักสุดท้ายไม่ผ่าน)", branchNo: "กรุณาใส่เลขสาขา 5 หลัก", phones: pl.tooMany ? `ใส่เบอร์โทรได้สูงสุด ${PHONES_MAX} เบอร์` : `เบอร์โทรไม่ถูกต้อง: ${pl.bad.join(", ")} (มือถือ 10 หลัก · บ้าน/สำนักงาน 9 หลัก · เบอร์ต่อพิมพ์ "ต่อ 12")`,
+      fax: "เบอร์โทรสารไม่ถูกต้อง (ใส่ได้ 1 เบอร์ เช่น 02-123-4567)", email: "อีเมลไม่ถูกต้อง (ใส่ได้ 1 อีเมล เช่น name@company.co.th)", postalCode: "รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก", shipZip: "รหัสไปรษณีย์ที่อยู่จัดส่งไม่ถูกต้อง" };
     return { error: bad.map((b) => m[b]).join(" · "), fields: bad };
   }
   const branch = kind === "COMPANY" ? (branchType === "branch" ? `สาขาที่ ${branchNo.padStart(5, "0")}` : "สำนักงานใหญ่") : null;
   const data = {
-    kind, name, taxId: taxId || null, branch, contactName: str(f, "contactName", 120) || null, phone: phone || null, email: email || null,
+    kind, name, taxId: taxId || null, branch, contactName: str(f, "contactName", 120) || null,
+    phone: pl.phones.length ? phoneMain(pl.phones[0]) : null, phones: pl.phones, fax: faxList.phones[0] ?? null, email: email || null,
     addressLine: str(f, "addressLine", 300) || null, subdistrict: str(f, "subdistrict", 80) || null, district: str(f, "district", 80) || null,
     province: str(f, "province", 80) || null, postalCode: zip || null, note: str(f, "note", 1000) || null,
     shipTo: shipName ? { name: shipName, phone: shipPhone, address: { line: str(f, "shipLine", 300), sub: str(f, "shipSub", 80), dist: str(f, "shipDist", 80), prov: str(f, "shipProv", 80), zip: shipZip } } : {},
@@ -116,7 +124,9 @@ export async function mergeCustomer(f: FormData) {
     await tx.customer.update({
       where: { id: target.id },
       data: {
-        taxId: fill("taxId"), branch: fill("branch"), contactName: fill("contactName"), phone: fill("phone"), email: fill("email"),
+        taxId: fill("taxId"), branch: fill("branch"), contactName: fill("contactName"), phone: fill("phone"), email: fill("email"), fax: fill("fax"),
+        // เบอร์: ของรายหลักก่อน แล้วต่อด้วยเบอร์ของรายนี้ที่ยังไม่มี (ไม่เกิน 5)
+        phones: [...new Set([...customerPhones(target), ...customerPhones(src)])].slice(0, PHONES_MAX),
         addressLine: fill("addressLine"), subdistrict: fill("subdistrict"), district: fill("district"), province: fill("province"), postalCode: fill("postalCode"),
         ...(shipEmpty && src.shipTo ? { shipTo: src.shipTo } : {}),
         ...(src.marketingOptOut ? { marketingOptOut: true } : {}), // คัดค้านการตลาดของรายใดรายหนึ่ง = ยังมีผล
