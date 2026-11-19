@@ -869,6 +869,12 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .sh-tbl .it-img img{width:100%;height:100%;object-fit:contain}
 .sh-sign .sg-date{display:inline;font-weight:600;color:#161616}
 .sh-tbl .w-no{width:10mm}.sh-tbl .w-sku{width:33mm}.sh-tbl .w-unit{width:13mm}.sh-tbl .w-price{width:21mm}.sh-tbl .w-qty{width:15mm}.sh-tbl .w-disc{width:17mm}.sh-tbl .w-amt{width:24mm}
+.sh-tbl .w-chk{width:16mm}
+.sh-tbl .chk-box{display:inline-block;width:4mm;height:4mm;border:.3mm solid #777;border-radius:.6mm;vertical-align:middle}
+.sh-dobox{border:.3mm solid #a3a3a3;border-radius:2mm;padding:2mm 3mm;font-size:8.5pt;margin-bottom:2mm}
+.sh-dobox h5{font-size:8pt;font-weight:700;margin-bottom:.6mm}
+.sh-dobox .k{color:#555}
+.sh-doack{font-size:8.5pt;font-weight:600;margin-top:2mm}
 .sh-tbl .empty-row td{text-align:center;color:#999;font-style:italic;padding:5mm}
 .ph-txt{color:#999;font-style:italic}
 .sh-cont{text-align:right;font-size:8pt;color:#777;margin-top:2mm;font-style:italic}

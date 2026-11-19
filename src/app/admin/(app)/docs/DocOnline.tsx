@@ -18,7 +18,7 @@ function lineMessage(doc: { type: string; docNo?: string | null; grandSatang: nu
 }
 
 export async function DocOnline({ doc, era }: {
-  doc: { id: string; type: "QUOTATION" | "INVOICE" | "RECEIPT" | "CREDIT_NOTE"; status: string; acceptedAt: Date | null; acceptedBy: string | null; grandSatang: number; paidSatang: number; docNo?: string | null; validUntil?: Date | null; dueDate?: Date | null; customer?: { name: string } | null };
+  doc: { id: string; type: "QUOTATION" | "INVOICE" | "RECEIPT" | "CREDIT_NOTE" | "DELIVERY"; status: string; acceptedAt: Date | null; acceptedBy: string | null; grandSatang: number; paidSatang: number; docNo?: string | null; validUntil?: Date | null; dueDate?: Date | null; customer?: { name: string } | null };
   era: "AD" | "BE";
 }) {
   if (doc.type === "RECEIPT" || doc.type === "CREDIT_NOTE" || doc.status === "DRAFT") return null;

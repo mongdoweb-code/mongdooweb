@@ -401,6 +401,7 @@ model ShopSetting {
   prefixInvoice  String  @default("IV")
   prefixReceipt  String  @default("RC")
   prefixCredit   String  @default("CN")
+  prefixDelivery String  @default("DO")
   dateEra        DateEra @default(AD)
   quoteValidDays Int     @default(30)
   invoiceDueDays Int     @default(7)
@@ -588,6 +589,7 @@ enum DocType {
   INVOICE // ใบแจ้งหนี้/ใบวางบิล (IV)
   RECEIPT // ใบเสร็จรับเงิน (/ใบกำกับภาษี เมื่อเปิด VAT) (RC)
   CREDIT_NOTE // ใบลดหนี้ / คืนเงิน (CN) — อ้างอิงใบเสร็จเดิม (sourceId)
+  DELIVERY // ใบส่งของ / ใบรับสินค้า (DO) — สร้างจากใบเสนอราคา/ใบแจ้งหนี้ · ไม่มีผลต่อเงิน/สต็อก · acceptedAt/acceptedBy = ลูกค้าเซ็นรับ
 }
 
 enum DocStatus {

@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { bankLabel, parseBankAccounts } from "@/lib/settings";
 
 export type Tx = Prisma.TransactionClient;
-export const DOC_TYPES = ["QUOTATION", "INVOICE", "RECEIPT", "CREDIT_NOTE"] as const satisfies DocTypeT[];
+export const DOC_TYPES = ["QUOTATION", "INVOICE", "RECEIPT", "CREDIT_NOTE", "DELIVERY"] as const satisfies DocTypeT[];
 export const isDocType = (t: string): t is DocTypeT => (DOC_TYPES as readonly string[]).includes(t);
 export const PAY_METHODS = ["โอนเงินผ่านธนาคาร", "QR PromptPay", "เงินสด", "เช็ค", "บัตรเครดิต"];
 export const DEFAULT_LOGO = "/img/doc-logo.png";
@@ -25,9 +25,10 @@ export const ymdOf = (d: Date | null | undefined) => (d ? ymdBkk(d) : "");
 export function defaultTerms(s: ShopSetting, type: DocTypeT) {
   if (type === "QUOTATION") return s.termsQuote ?? `ยืนราคา ${s.quoteValidDays} วัน\nจัดส่งภายใน 2–3 วันทำการหลังชำระเงิน\nรับประกันสินค้า 1 ปี`;
   if (type === "INVOICE") return s.termsInvoice ?? "กรุณาชำระภายในวันที่ครบกำหนด\nโอนแล้วแจ้งสลิปทาง LINE พร้อมเลขที่เอกสาร";
+  if (type === "DELIVERY") return "กรุณาตรวจสอบสินค้าก่อนลงชื่อรับ\nหากสินค้าชำรุดหรือไม่ครบ แจ้งร้านภายใน 7 วัน";
   return s.termsReceipt ?? "";
 }
-export const prefixOf = (s: ShopSetting, t: DocTypeT) => (t === "QUOTATION" ? s.prefixQuote : t === "INVOICE" ? s.prefixInvoice : t === "CREDIT_NOTE" ? s.prefixCredit : s.prefixReceipt);
+export const prefixOf = (s: ShopSetting, t: DocTypeT) => (t === "QUOTATION" ? s.prefixQuote : t === "INVOICE" ? s.prefixInvoice : t === "CREDIT_NOTE" ? s.prefixCredit : t === "DELIVERY" ? s.prefixDelivery : s.prefixReceipt);
 /** เหตุผลการลดหนี้ที่ใช้บ่อย (เลือกแล้วแก้ต่อได้) */
 export const CREDIT_REASONS = ["รับคืนสินค้า", "สินค้าชำรุด/เสียหาย", "ลดราคาหลังการขาย", "คิดราคาผิด (เกินจริง)", "ส่งสินค้าไม่ครบ"];
 
@@ -152,6 +153,9 @@ export function statusWhere(st: DocSt | "all", today = todayYmd()): Prisma.Sales
     case "rejected": return { status: "REJECTED" };
     case "paid": return { status: "PAID" };
     case "issued": return { status: "ISSUED" };
+    // ใบส่งของ: รอเซ็นรับ = ออกแล้ว · ส่งมอบแล้ว = ลูกค้าเซ็นรับ (ACCEPTED)
+    case "shipping": return { status: "ISSUED" };
+    case "delivered": return { status: "ACCEPTED" };
     case "open": return { status: "ISSUED", ...notPast("validUntil") };
     case "expired": return { status: "ISSUED", validUntil: { lt: t0 } };
     case "unpaid": return { status: "ISSUED", ...notPast("dueDate") };

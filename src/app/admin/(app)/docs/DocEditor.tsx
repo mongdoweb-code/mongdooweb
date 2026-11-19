@@ -295,6 +295,13 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
               />
             </section>
 
+            {v.type === "DELIVERY" && (
+              <div className="info-box de-do-hint" role="note">
+                ใบส่งของพิมพ์เฉพาะรายการ จำนวน และหน่วย (ไม่พิมพ์ราคา) พร้อมช่องให้ลูกค้าเซ็นรับ · ไม่ตัดสต็อกและไม่นับเป็นยอดขาย ·
+                ใส่ที่อยู่จัดส่งได้ในข้อมูลลูกค้า (ที่อยู่จัดส่งแยก)
+              </div>
+            )}
+
             {isCn && (
               <section className="box de-cn">
                 <h3>การลดหนี้ / คืนเงิน</h3>
@@ -324,9 +331,9 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                       <button key={n} type="button" aria-pressed={v.dueDate === addDays(v.issueDate, n)} onClick={() => set("dueDate", addDays(v.issueDate, n))}>{n ? `เครดิต ${n} วัน` : "ชำระทันที"}</button>
                     ))}</span></div>
                 )}
-                <div className="field"><label htmlFor="payMethod">{v.type === "RECEIPT" ? "ชำระโดย" : isCn ? "คืนเงินโดย" : "วิธีชำระเงิน"}</label>
+                {v.type !== "DELIVERY" && <div className="field"><label htmlFor="payMethod">{v.type === "RECEIPT" ? "ชำระโดย" : isCn ? "คืนเงินโดย" : "วิธีชำระเงิน"}</label>
                   <input id="payMethod" list="payMethods" value={v.paymentMethod} onChange={(e) => set("paymentMethod", e.target.value)} maxLength={60} />
-                  <datalist id="payMethods">{lists.methods.map((m) => <option key={m} value={m} />)}</datalist></div>
+                  <datalist id="payMethods">{lists.methods.map((m) => <option key={m} value={m} />)}</datalist></div>}
                 {v.type !== "QUOTATION" && !isCn && <div className="field"><label htmlFor="carrier">ขนส่ง (ถ้ามี)</label>
                   <input id="carrier" list="carriers" value={v.carrier} onChange={(e) => set("carrier", e.target.value)} maxLength={60} placeholder="เช่น EMS, Kerry" />
                   <datalist id="carriers">{lists.carriers.map((m) => <option key={m} value={m} />)}</datalist></div>}
@@ -458,7 +465,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                   {!(shop.signature || shop.stamp) && <a className="link sub" href="/admin/settings#signerName" target="_blank" rel="noopener">อัปโหลดลายเซ็นที่ตั้งค่าร้าน</a>}
                 </div>
               </div>
-              <div className="field"><label htmlFor="terms">{v.type === "QUOTATION" ? "เงื่อนไข (แสดงบนเอกสาร)" : "เงื่อนไขการชำระเงิน (แสดงบนเอกสาร)"}</label><textarea id="terms" rows={4} maxLength={2000} value={v.paymentTerms} onChange={(e) => set("paymentTerms", e.target.value)} />
+              <div className="field"><label htmlFor="terms">{v.type === "QUOTATION" || v.type === "DELIVERY" ? "เงื่อนไข (แสดงบนเอกสาร)" : "เงื่อนไขการชำระเงิน (แสดงบนเอกสาร)"}</label><textarea id="terms" rows={4} maxLength={2000} value={v.paymentTerms} onChange={(e) => set("paymentTerms", e.target.value)} />
                 <span className="de-snips" role="group" aria-label="ข้อความเงื่อนไขที่ใช้บ่อย">
                   {snippets.map((t) => {
                     const on = termLines.includes(t);
@@ -501,7 +508,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
   );
 }
 
-const SIGNER: Record<DocTypeT, string> = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ" };
+const SIGNER: Record<DocTypeT, string> = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ", DELIVERY: "ผู้ส่งของ" };
 
 // ---------------------------------------------------------------------------
 /** รูปหน้ารายการ: กดเพื่อเลือกรูปอื่นของสินค้า · อัปโหลดรูปใหม่ · ไม่แสดงรูป · กลับไปใช้รูปสินค้า */

@@ -13,7 +13,7 @@ export type SettingsValues = {
   tiers: { min: string; fee: string }[]; expressEnabled: boolean; expressExtra: string;
   slipCheckWithin: string; newOrderSound: boolean;
   taxId: string; branch: string; vatEnabled: boolean; vatMode: string;
-  prefixQuote: string; prefixInvoice: string; prefixReceipt: string; prefixCredit: string; dateEra: string;
+  prefixQuote: string; prefixInvoice: string; prefixReceipt: string; prefixCredit: string; prefixDelivery: string; dateEra: string;
   quoteValidDays: number; invoiceDueDays: number; termsQuote: string; termsInvoice: string; termsReceipt: string; showSignature: boolean;
   logoUrl: string | null;
   signatureUrl: string | null; stampUrl: string | null; signerName: string; signerTitle: string; quotePayInfo: boolean; quoteOnlineQr: boolean;
@@ -222,6 +222,7 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
             <div className="field"><label htmlFor="prefixInvoice">คำนำหน้า ใบแจ้งหนี้</label><input id="prefixInvoice" name="prefixInvoice" defaultValue={v.prefixInvoice} maxLength={6} {...bad("prefixInvoice")} /></div>
             <div className="field"><label htmlFor="prefixReceipt">คำนำหน้า ใบเสร็จ</label><input id="prefixReceipt" name="prefixReceipt" defaultValue={v.prefixReceipt} maxLength={6} {...bad("prefixReceipt")} /></div>
             <div className="field"><label htmlFor="prefixCredit">คำนำหน้า ใบลดหนี้</label><input id="prefixCredit" name="prefixCredit" defaultValue={v.prefixCredit} maxLength={6} {...bad("prefixCredit")} /></div>
+            <div className="field"><label htmlFor="prefixDelivery">คำนำหน้า ใบส่งของ</label><input id="prefixDelivery" name="prefixDelivery" defaultValue={v.prefixDelivery} maxLength={6} {...bad("prefixDelivery")} /></div>
           </div>
           <small className="sub">รูปแบบเลขที่: คำนำหน้า + ปี ค.ศ. 2 หลัก + เดือน + ลำดับ 5 หลัก เช่น {v.prefixQuote}2610-00001 (เริ่มใหม่ทุกเดือน)</small>
           <div className="three">

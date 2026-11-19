@@ -11,14 +11,14 @@ import { getSettings } from "@/lib/settings";
 import { ConfirmSubmit } from "../../../../_components/AdminClient";
 import { DocSheets } from "../../../../_components/DocSheets";
 import { LabelOptions } from "../../../../_components/LabelOptions";
-import { acceptQuote, convertQuote, createCreditNote, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, returnCreditStock, reviseQuote, setFollowUp, setSignDate } from "../../actions";
+import { acceptQuote, convertQuote, createCreditNote, createDelivery, markDelivered, deleteDraft, duplicateDoc, issueDoc, rejectQuote, reopenQuote, returnCreditStock, reviseQuote, setFollowUp, setSignDate } from "../../actions";
 import { PaymentForm, QuoteToReceiptForm, VoidForm } from "../../DocForms";
 import { DocOnline } from "../../DocOnline";
 import { WorkPanel } from "../../WorkTag";
 
 export const instant = false;
 
-const SIGNER = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ" } as const;
+const SIGNER = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ", DELIVERY: "ผู้ส่งของ" } as const;
 
 const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป", STOCK_RETURNED: "รับคืนเข้าสต็อก", VIEWED: "ลูกค้าเปิดดู", FOLLOW_UP: "นัดติดตาม", WORK: "สถานะงาน" };
 /** จำนวนวันจาก a ถึง b (YYYY-MM-DD) */
@@ -51,7 +51,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
   const stockLines = d.type === "CREDIT_NOTE" ? d.items.filter((i) => i.productId && i.qtyMilli % 1000 === 0).length : 0;
   const label = meta.th.split(" /")[0];
   const flash =
-    sp.issued === "1" ? `ออก${label}เลขที่ ${d.docNo} แล้ว` : sp.saved === "1" ? "บันทึกฉบับร่างแล้ว" : sp.exists === "1" ? "มีเอกสารนี้อยู่แล้ว — เปิดฉบับที่มีอยู่ให้" : sp.voided === "1" ? `ยกเลิก${label}แล้ว — เลขที่เดิมยังเก็บไว้ (ห้ามนำมาใช้ซ้ำ)` : sp.stock === "1" ? "รับสินค้าคืนเข้าสต็อกแล้ว — ดูได้ในประวัติสต็อก" : "";
+    sp.issued === "1" ? `ออก${label}เลขที่ ${d.docNo} แล้ว` : sp.saved === "1" ? "บันทึกฉบับร่างแล้ว" : sp.exists === "1" ? "มีเอกสารนี้อยู่แล้ว — เปิดฉบับที่มีอยู่ให้" : sp.voided === "1" ? `ยกเลิก${label}แล้ว — เลขที่เดิมยังเก็บไว้ (ห้ามนำมาใช้ซ้ำ)` : sp.stock === "1" ? "รับสินค้าคืนเข้าสต็อกแล้ว — ดูได้ในประวัติสต็อก" : sp.delivered === "1" ? "บันทึกว่าลูกค้าเซ็นรับของแล้ว" : "";
   const err = typeof sp.err === "string" ? sp.err.slice(0, 200) : "";
   const idInput = <input type="hidden" name="id" value={d.id} />;
   const act = (fn: (f: FormData) => Promise<void>, text: string, cls = "btn btn-outline") => (
@@ -85,7 +85,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
           <div className="dv-card">
             <div className="dv-top">
               <div className="dv-amt">
-                <span>{d.type === "INVOICE" && st !== "draft" && st !== "void" ? "ยอดค้างชำระ" : "ยอดรวมสุทธิ"}</span>
+                <span>{d.type === "INVOICE" && st !== "draft" && st !== "void" ? "ยอดค้างชำระ" : d.type === "DELIVERY" ? "มูลค่าสินค้า (ไม่พิมพ์บนใบส่งของ)" : "ยอดรวมสุทธิ"}</span>
                 <b className="num">฿{money(d.type === "INVOICE" && st !== "draft" && st !== "void" ? outstanding : d.grandSatang)}</b>
                 {d.type === "INVOICE" && d.paidSatang > 0 && <small>ชำระแล้ว ฿{money(d.paidSatang)} จาก ฿{money(d.grandSatang)}</small>}
               </div>
@@ -96,7 +96,9 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
               {d.type === "QUOTATION" && <><span>ยืนราคาถึง</span><b>{docDate(ymdOf(d.validUntil), era)}</b></>}
               {d.type === "QUOTATION" && d.status === "REJECTED" && d.lostReason && <><span>เหตุผลที่ไม่ได้งาน</span><b className="owe">{d.lostReason}</b></>}
               {d.type === "INVOICE" && <><span>ครบกำหนด</span><b className={st === "overdue" ? "owe" : ""}>{docDate(ymdOf(d.dueDate), era)}</b></>}
-              {d.paymentMethod && <><span>การชำระเงิน</span><b>{d.paymentMethod}</b></>}
+              {d.paymentMethod && d.type !== "DELIVERY" && <><span>การชำระเงิน</span><b>{d.paymentMethod}</b></>}
+              {d.type === "DELIVERY" && d.source && <><span>อ้างอิง</span><b><Link className="link" href={docPath(d.source)}>{d.source.docNo}</Link></b></>}
+              {d.type === "DELIVERY" && d.acceptedAt && <><span>เซ็นรับของ</span><b>{docDate(ymdBkk(d.acceptedAt), era)} · {d.acceptedBy}</b></>}
               {d.carrier && <><span>ขนส่ง</span><b>{d.carrier}</b></>}
               {d.vatMode !== "NONE" && <><span>VAT {d.vatRateBp / 100}%</span><b>{d.vatMode === "EXCLUSIVE" ? "แยกนอก" : "รวมใน"} ฿{money(d.vatSatang)}</b></>}
               {d.status === "VOID" && <><span>เหตุผลยกเลิก</span><b>{d.voidReason}</b></>}
@@ -151,6 +153,24 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
                 <form action={returnCreditStock}>{idInput}<ConfirmSubmit className="btn btn-outline" title="รับสินค้าคืนเข้าสต็อก?" body={`เพิ่มสต็อกตามจำนวนในใบลดหนี้ ${stockLines} รายการ (สินค้าที่นับสต็อก) — ทำได้ครั้งเดียว`} confirmLabel="รับคืนเข้าสต็อก">รับสินค้าคืนเข้าสต็อก</ConfirmSubmit></form>
               )}
               {d.type === "CREDIT_NOTE" && d.stockReturnedAt && <small className="sub dv-hint">รับสินค้าคืนเข้าสต็อกแล้ว {docDateTime(d.stockReturnedAt, era)}</small>}
+              {d.type === "DELIVERY" && d.status === "ISSUED" && (
+                <details className="dv-more" id="doReceive">
+                  <summary className="btn btn-primary">บันทึกว่าลูกค้าเซ็นรับแล้ว</summary>
+                  <form action={markDelivered} className="void-form">
+                    {idInput}
+                    <div className="two">
+                      <div className="field"><label htmlFor="doDate">วันที่รับของ</label><input id="doDate" name="date" type="date" defaultValue={today} max={today} required /></div>
+                      <div className="field"><label htmlFor="doWho">ชื่อผู้รับของ</label><input id="doWho" name="receiver" required minLength={2} maxLength={120} defaultValue={c.contact || c.name || ""} /></div>
+                    </div>
+                    <button className="btn btn-primary btn-sm" type="submit">บันทึกการรับของ</button>
+                  </form>
+                </details>
+              )}
+              {d.type === "DELIVERY" && d.status === "ACCEPTED" && (
+                <form action={markDelivered}>{idInput}<input type="hidden" name="undo" value="1" /><ConfirmSubmit className="btn btn-ghost" title="ยกเลิกการบันทึกเซ็นรับ?" body="ใบส่งของจะกลับเป็น “รอเซ็นรับ”" confirmLabel="ยกเลิกการบันทึก">ยกเลิกการบันทึกเซ็นรับ</ConfirmSubmit></form>
+              )}
+              {((d.type === "QUOTATION" && ["ISSUED", "ACCEPTED"].includes(d.status)) || (d.type === "INVOICE" && ["ISSUED", "PARTIAL", "PAID"].includes(d.status)) || (d.type === "RECEIPT" && d.status === "ISSUED")) &&
+                act(createDelivery, d.derived.some((x) => x.type === "DELIVERY" && x.status === "DRAFT") ? "ใบส่งของที่ร่างไว้" : "สร้างใบส่งของ", "btn btn-outline")}
               {d.status !== "DRAFT" && d.type !== "CREDIT_NOTE" && act(duplicateDoc, "ทำสำเนาเป็นฉบับใหม่", "btn btn-ghost")}
             </div>
           </div>

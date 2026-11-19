@@ -352,6 +352,47 @@ export async function reviseQuote(f: FormData) {
   redirect(`${docPath(n)}/edit`);
 }
 
+/**
+ * สร้างใบส่งของจากใบเสนอราคา/ใบแจ้งหนี้/ใบเสร็จที่ออกแล้ว (คัดลอกรายการสินค้า ไม่รวมค่าส่ง/ค่าธรรมเนียม COD)
+ * มีใบส่งของฉบับร่างของเอกสารนี้อยู่แล้ว → เปิดฉบับร่างเดิม (ส่งของหลายรอบได้ — ออกเลขแล้วสร้างใบใหม่ได้)
+ */
+export async function createDelivery(f: FormData) {
+  const admin = await requireAdmin();
+  const src = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) }, include: { derived: { where: { type: "DELIVERY", status: "DRAFT" }, select: { id: true } } } });
+  const ok = src && ((src.type === "QUOTATION" && ["ISSUED", "ACCEPTED"].includes(src.status)) || (src.type === "INVOICE" && ["ISSUED", "PARTIAL", "PAID"].includes(src.status)) || (src.type === "RECEIPT" && src.status === "ISSUED"));
+  if (!src || !ok) redirect(src ? docPath(src) : "/admin/docs/DELIVERY");
+  if (src.derived[0]) redirect(`${docPath({ type: "DELIVERY", id: src.derived[0].id })}/edit`);
+  const d = await copyToDraft(src.id, "DELIVERY", admin.id, { sourceId: src.id, orderId: src.orderId }, `สร้างจาก ${src.docNo}`);
+  // ใบส่งของไม่ต้องมีค่าส่ง/ค่าธรรมเนียม (ไม่ใช่สินค้าที่ส่งมอบ)
+  await prisma.salesDocumentItem.deleteMany({ where: { documentId: d.id, sku: { in: ["Shipping", "COD"] } } });
+  await logAdmin(admin.id, "DOC", `สร้างใบส่งของจาก ${src.docNo}`);
+  redirect(`${docPath(d)}/edit`);
+}
+
+/** ใบส่งของ: บันทึกว่าลูกค้าเซ็นรับแล้ว (วันที่ + ชื่อผู้รับ) หรือยกเลิกการบันทึก */
+export async function markDelivered(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const undo = f.get("undo") === "1";
+  const d = await prisma.salesDocument.findUnique({ where: { id }, select: { type: true, status: true, docNo: true } });
+  if (!d || d.type !== "DELIVERY") redirect("/admin/docs/DELIVERY");
+  if (undo) {
+    const r = await prisma.salesDocument.updateMany({ where: { id, type: "DELIVERY", status: "ACCEPTED" }, data: { status: "ISSUED", acceptedAt: null, acceptedBy: null } });
+    if (r.count) await prisma.salesDocumentEvent.create({ data: { documentId: id, type: "NOTE", adminId: admin.id, note: "ยกเลิกการบันทึกเซ็นรับ" } });
+    redirect(`${docPath({ type: "DELIVERY", id })}`);
+  }
+  const ymd = str(f, "date", 10);
+  const who = str(f, "receiver", 120);
+  if (!ymdRe.test(ymd) || ymd > todayYmd()) redirect(`${docPath({ type: "DELIVERY", id })}?err=${encodeURIComponent("วันที่รับของไม่ถูกต้อง")}`);
+  if (who.length < 2) redirect(`${docPath({ type: "DELIVERY", id })}?err=${encodeURIComponent("กรุณาใส่ชื่อผู้รับของ")}`);
+  const r = await prisma.salesDocument.updateMany({ where: { id, type: "DELIVERY", status: "ISSUED" }, data: { status: "ACCEPTED", acceptedAt: fromYmd(ymd), acceptedBy: who } });
+  if (r.count) {
+    await prisma.salesDocumentEvent.create({ data: { documentId: id, type: "ACCEPTED", adminId: admin.id, note: `ลูกค้าเซ็นรับของแล้ว · ${who}` } });
+    await logAdmin(admin.id, "DOC", `ใบส่งของ ${d.docNo}: ลูกค้าเซ็นรับแล้ว (${who})`);
+  }
+  redirect(`${docPath({ type: "DELIVERY", id })}?delivered=1`);
+}
+
 export async function duplicateDoc(f: FormData) {
   const admin = await requireAdmin();
   const d = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) } });

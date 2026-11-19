@@ -69,6 +69,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/docs/INVOICE", label: "ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: unpaid, group: "เอกสารขาย" },
             { href: "/admin/docs/RECEIPT", label: "ใบเสร็จรับเงิน", icon: <Ico k="rc" />, group: "เอกสารขาย" },
             { href: "/admin/docs/CREDIT_NOTE", label: "ใบลดหนี้ / คืนเงิน", icon: <Ico k="cn" />, group: "เอกสารขาย" },
+            { href: "/admin/docs/DELIVERY", label: "ใบส่งของ", icon: <Ico k="truck" />, group: "เอกสารขาย" },
             { href: "/admin/docs/slips", label: "สลิปจากลิงก์ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: docSlips, group: "เอกสารขาย" },
             { href: "/admin/customers", label: "ลูกค้า", icon: <Ico k="cust" />, group: "เอกสารขาย" },
             { href: "/admin/projects", label: "ผลงานติดตั้ง", icon: <Ico k="photo" />, group: "เนื้อหาและ SEO" },
