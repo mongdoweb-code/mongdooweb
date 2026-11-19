@@ -1265,6 +1265,10 @@ html[data-adm-theme="dark"] .logo-row img {
 html[data-adm-theme="dark"] .kvs dt {
     color: #B7B7B7
 }
+html[data-adm-theme="dark"] .cust-br {
+    color: #C5C5C5;
+    border: .25mm solid #272A32
+}
 html[data-adm-theme="dark"] .cust-code {
     color: #B7B7B7
 }

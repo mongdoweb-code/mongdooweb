@@ -2,6 +2,13 @@
 // เป็นฟังก์ชันล้วน ใช้ได้ทั้ง server (หน้าดู/พิมพ์) และเบราว์เซอร์ (ตัวอย่างสดในตัวแก้ไข) — ทุกข้อความ escape แล้ว
 import { addrText, bahtText, calcTotals, code128Svg, docDate, docDateTime, fmtTaxId, lineSatang, money, qtyFmt, type Addr, type DocTypeT, type VatModeT } from "./doc-calc";
 
+/** ที่อยู่ร้านบนหัวเอกสาร: บรรทัดเดียว (ยาวมาก = ตัวเล็กลง · ยาวเกินพื้นที่จริง ๆ ค่อยตัดบรรทัด) */
+const oneLine = (s: string) => String(s ?? "").replace(/\s+/g, " ").trim();
+const addrCls = (s: string) => {
+  const n = oneLine(s).length;
+  return n > 110 ? " wrap" : n > 80 ? " sm" : "";
+};
+
 /** แถวติดต่อของลูกค้า: โทร (ทุกเบอร์) · โทรสาร · อีเมล — ว่างทั้งหมด = ไม่พิมพ์แถว */
 export function custContact(c: CustSnap) {
   const phones = c.phones?.length ? c.phones : c.phone ? [c.phone] : [];
@@ -110,10 +117,9 @@ export function buildDocParts(d: DocView): DocParts {
   const contact = `${row1 ? `<div class="sh-cts">${row1}</div>` : ""}${s.email ? `<div class="sh-cts">${ct("mail", esc(s.email))}</div>` : ""}`;
   const head1 = `<header class="sh-head">
       <div class="sh-shop">${s.logo ? `<img class="sh-logo" src="${esc(s.logo)}" alt="">` : ""}
-        <div class="sh-shoptx"><b>${esc(s.name)}</b><div class="sh-addr">${esc(s.address)}</div>${contact}${shopTax}</div></div>
+        <div class="sh-shoptx"><b>${esc(s.name)}</b><div class="sh-addr${addrCls(s.address)}">${esc(oneLine(s.address))}</div>${contact}${shopTax}</div></div>
       <div class="sh-tbox"><div class="sh-title${title.length > 16 ? " long" : ""}">${esc(title)}<small>${en}</small></div>
-        <dl class="sh-meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
-        ${d.no ? code128Svg(d.no, "sh-bc") : ""}</div>
+        <dl class="sh-meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>
     </header>`;
   const headN = `<header class="sh-headn"><b>${esc(s.name)}</b><span><b>${esc(title)}</b> ${esc(label)} · หน้า {{P}} / {{N}}</span></header>`;
 
@@ -139,9 +145,9 @@ export function buildDocParts(d: DocView): DocParts {
   const parties = `<section class="sh-parties">
       <div class="sh-box sh-info"><dl class="kvs">${info.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div>
       <div class="sh-box sh-cust"><h4>${custLbl}</h4>
-        ${c.name ? `<div class="cust-top">${c.code ? `<span class="cust-code">รหัสลูกค้า ${esc(c.code)}</span>` : ""}<b class="cust-name">${esc(c.name)}</b></div>
-        <div><span class="k">ที่อยู่</span> ${branch ? `<span class="nw">(${esc(branch)})</span> ` : ""}${esc(addrText(c.address)) || "—"}</div>
-        <div>${c.taxId ? `<span class="k">เลขประจำตัวผู้เสียภาษี</span> ${esc(fmtTaxId(c.taxId))}${isCo ? ` <span class="k">สาขา</span> ${esc(branch)}` : ""} &nbsp; ` : ""}${c.contact ? `<span class="k">ผู้ติดต่อ</span> ${esc(c.contact)}` : ""}</div>
+        ${c.name ? `<div class="cust-top"><div class="cust-id">${c.code ? `<span class="cust-code">รหัสลูกค้า ${esc(c.code)}</span>` : ""}<b class="cust-name">${esc(c.name)}</b></div>${branch ? `<span class="cust-br">${esc(branch)}</span>` : ""}</div>
+        <div><span class="k">ที่อยู่</span> ${esc(addrText(c.address)) || "—"}</div>
+        ${c.taxId || c.contact ? `<div>${c.taxId ? `<span class="nw"><span class="k">เลขประจำตัวผู้เสียภาษี</span> ${esc(fmtTaxId(c.taxId))}</span>` : ""}${c.taxId && c.contact ? " &nbsp; " : ""}${c.contact ? `<span class="nw"><span class="k">ผู้ติดต่อ</span> ${esc(c.contact)}</span>` : ""}</div>` : ""}
         ${custContact(c)}
         ${st && st.name && d.type !== "QUOTATION" ? `<div class="ship-to"><span class="k">ส่งของที่</span> ${esc(st.name)}${st.phone ? " โทร " + esc(st.phone) : ""} · ${esc(addrText(st.address))}</div>` : ""}`
         : '<div class="cust-empty">ยังไม่ได้เลือกลูกค้า</div>'}
