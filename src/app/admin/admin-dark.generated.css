@@ -3990,7 +3990,7 @@ html[data-adm-theme="dark"] .cuf-tag {
     background: #1A1C21;
     color: var(--c-muted)
 }
-html[data-adm-theme="dark"] .cuf-tag.main {
+html[data-adm-theme="dark"] .cuf-tag.is-main {
     background: #241A12;
     border-color: #503622;
     color: #F19055
@@ -4019,7 +4019,7 @@ html[data-adm-theme="dark"] .cuf-add:hover,
 html[data-adm-theme="dark"] .cuf-add:focus-visible {
     background: #241A12
 }
-html[data-adm-theme="dark"] .cu-form .act-row {
+html[data-adm-theme="dark"] .cu-page .act-row {
     background: #1E2127;
     border-top: 1px solid var(--c-line)
 }

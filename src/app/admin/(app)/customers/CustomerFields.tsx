@@ -23,7 +23,7 @@ const KIND_LABEL = { mobile: "มือถือ", landline: "บ้าน/ส�
 function phoneHint(raw: string): { ok: boolean; text: string } | null {
   if (!raw.trim()) return null;
   const v = normalizePhone(raw);
-  if (!v) return { ok: false, text: "รูปแบบไม่ถูกต้อง — มือถือ 10 หลัก · บ้าน/สำนักงาน 9 หลัก · เบอร์ต่อพิมพ์ “ต่อ 12”" };
+  if (!v) return { ok: false, text: "รูปแบบไม่ถูกต้อง — มือถือ 10 หลัก · บ้าน 9 หลัก" };
   const k = v.startsWith("+") ? "intl" : phoneKind(phoneMain(v));
   return { ok: true, text: `✓ ${formatPhoneEntry(v)}${k ? ` · ${KIND_LABEL[k]}` : ""}` };
 }
@@ -69,11 +69,12 @@ export function PhoneListField({ initial, idFirst, bad }: { initial: string[]; i
       <div className="cuf-lbl"><label id={`${idFirst}-lbl`} htmlFor={idFirst}>เบอร์โทร</label><small>{rows.length}/{PHONES_MAX} เบอร์ · เบอร์แรก = เบอร์หลัก</small></div>
       <div className="cuf-plist" ref={list}>
         {rows.map((r, i) => {
-          const h = touched[i] ? phoneHint(r) : null;
+          const live = phoneHint(r);
+          const h = touched[i] ? live : null;
           const err = (h && !h.ok) || dupes[i] || (bad && !!r.trim() && !normalizePhone(r));
           return (
             <div className="cuf-prow" key={i}>
-              <span className={`cuf-tag${i === 0 ? " main" : ""}`}>{i === 0 ? "หลัก" : `เบอร์ ${i + 1}`}</span>
+              <span className={`cuf-tag${i === 0 ? " is-main" : ""}`}>{i === 0 ? "หลัก" : `เบอร์ ${i + 1}`}</span>
               <div className="cuf-pin">
                 <input id={i === 0 ? idFirst : undefined} name="phones" inputMode="tel" autoComplete="off" maxLength={40} value={r}
                   aria-label={i === 0 ? undefined : `เบอร์โทรที่ ${i + 1}`} aria-invalid={err || undefined}
@@ -82,7 +83,10 @@ export function PhoneListField({ initial, idFirst, bad }: { initial: string[]; i
                   onChange={(e) => set(i, e.target.value)} onPaste={(e) => onPaste(i, e)}
                   onBlur={() => setTouched((t) => { const n = [...t]; n[i] = true; return n; })}
                   onKeyDown={(e) => { if (e.key === "Enter" && r.trim() && i === rows.length - 1 && rows.length < PHONES_MAX) { e.preventDefault(); e.stopPropagation(); add(); } }} />
-                {dupes[i] ? <small className="cuf-err">เบอร์ซ้ำกับแถวด้านบน — จะบันทึกครั้งเดียว</small> : h && <small className={h.ok ? "cuf-ok" : "cuf-err"}>{h.text}</small>}
+                {/* บรรทัดคำอธิบายมีเสมอ (กันปุ่มด้านล่างเลื่อนตอนออกจากช่อง → คลิกไม่ติด) */}
+                {dupes[i] ? <small className="cuf-err">เบอร์ซ้ำกับแถวด้านบน — จะบันทึกครั้งเดียว</small>
+                  : h ? <small className={h.ok ? "cuf-ok" : "cuf-err"}>{h.text}</small>
+                  : <small className="cuf-hint">{live?.ok ? live.text : i === 0 ? "มือถือ 10 หลัก · บ้าน/สำนักงาน 9 หลัก" : "เบอร์ต่อพิมพ์ “ต่อ 12” ได้"}</small>}
               </div>
               <div className="cuf-pacts">
                 {i > 0 && <button type="button" className="cuf-ib" onClick={() => makeMain(i)} data-tip="ตั้งเป็นเบอร์หลัก" aria-label={`ตั้งเบอร์ที่ ${i + 1} เป็นเบอร์หลัก`}>★</button>}

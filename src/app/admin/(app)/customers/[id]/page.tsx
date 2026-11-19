@@ -27,7 +27,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
   const br = c?.branch ?? "";
   const v: CustomerValues = {
     id: c?.id ?? "", kind: c?.kind ?? "PERSON", name: c?.name ?? "", taxId: c?.taxId ?? "", branchType: /^สาขา/.test(br) ? "branch" : "hq", branchNo: br.replace(/\D/g, ""),
-    contactName: c?.contactName ?? "", phones: c ? customerPhones(c) : [], fax: c?.fax ?? "", email: c?.email ?? "", addressLine: c?.addressLine ?? "", subdistrict: c?.subdistrict ?? "",
+    contactName: c?.contactName ?? "", phones: c ? customerPhones(c) : [], fax: c?.fax ? formatPhoneEntry(c.fax) : "", email: c?.email ?? "", addressLine: c?.addressLine ?? "", subdistrict: c?.subdistrict ?? "",
     district: c?.district ?? "", province: c?.province ?? "", postalCode: c?.postalCode ?? "", note: c?.note ?? "",
     shipName: ship.name ?? "", shipPhone: ship.phone ? formatPhone(ship.phone) : "", shipLine: ship.address?.line ?? "", shipSub: ship.address?.sub ?? "",
     shipDist: ship.address?.dist ?? "", shipProv: ship.address?.prov ?? "", shipZip: ship.address?.zip ?? "",
