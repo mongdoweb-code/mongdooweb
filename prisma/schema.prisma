@@ -555,7 +555,9 @@ model Customer {
   taxId           String?        @db.VarChar(13) // ตรวจ checksum 13 หลัก
   branch          String? // "สำนักงานใหญ่" | "สาขาที่ 00001"
   contactName     String?
-  phone           String?
+  phone           String? // เบอร์หลัก (ตัวเลขล้วน) = phones[0] ใช้ค้นหา/จับคู่คำสั่งซื้อ
+  phones          String[]       @default([]) // ทุกเบอร์ เรียงตามลำดับ (ตัวแรก = เบอร์หลัก) "0863099066" | "021234567#12" | "+86…"
+  fax             String? // โทรสาร (รูปแบบเดียวกับ phones)
   email           String?
   addressLine     String?
   subdistrict     String?
@@ -576,6 +578,7 @@ model Customer {
   updatedAt DateTime @updatedAt
 
   @@index([phone])
+  @@index([phones], type: Gin)
   @@index([taxId])
   @@index([name])
 }

@@ -12,7 +12,9 @@ import { unitPriceSatang, type Tier } from "@/lib/pricing";
 import { DocSheets } from "../../_components/DocSheets";
 import { useFormAction } from "../../_components/useFormAction";
 import { uploadEditorImage } from "../../_components/editor-actions";
+import { noticeFromState, notifySave } from "../../_components/save-notify";
 import { saveCustomer, type CustomerState } from "../customers/actions";
+import { CustomerFields, EMPTY_CUSTOMER } from "../customers/CustomerFields";
 import { saveDoc, type DocState } from "./actions";
 import { ProductPicker } from "./ProductPicker";
 
@@ -601,6 +603,11 @@ function ProductInput({ value, products, onText, onPick, label }: { value: strin
 }
 
 // ---------------------------------------------------------------------------
+/** "โทร 086-…, 044-… · โทรสาร … · อีเมล …" ของลูกค้าที่เลือก (เอกสารเก่ามีแค่ phone) */
+const snapPhones = (c: CustSnap) => (c.phones?.length ? c.phones : c.phone ? [c.phone] : []);
+const snapContact = (c: CustSnap) =>
+  [snapPhones(c).length ? `โทร ${snapPhones(c).join(", ")}` : "", c.fax ? `โทรสาร ${c.fax}` : "", c.email ? `อีเมล ${c.email}` : ""].filter(Boolean).join(" · ");
+
 function CustomerPicker({ customers, value, snap, bad, vatInvoice, onPick, onCreated }: {
   customers: Cust[]; value: string; snap: CustSnap | null; bad?: boolean; vatInvoice: boolean; onPick: (c: Cust | null) => void; onCreated: (c: Cust) => void;
 }) {
@@ -609,7 +616,7 @@ function CustomerPicker({ customers, value, snap, bad, vatInvoice, onPick, onCre
   const [adding, setAdding] = useState(false);
   const s = q.trim().toLowerCase(), digits = s.replace(/\D/g, "");
   const list = s
-    ? customers.filter((c) => (c.snap.name ?? "").toLowerCase().includes(s) || c.snap.code === s || (digits.length >= 3 && ((c.snap.phone ?? "").replace(/\D/g, "").includes(digits) || (c.snap.taxId ?? "").includes(digits)))).slice(0, 8)
+    ? customers.filter((c) => (c.snap.name ?? "").toLowerCase().includes(s) || c.snap.code === s || (digits.length >= 3 && (snapPhones(c.snap).some((p) => p.replace(/\D/g, "").includes(digits)) || (c.snap.taxId ?? "").includes(digits)))).slice(0, 8)
     : customers.slice(0, 8);
   if (adding) return <QuickCustomer onCancel={() => setAdding(false)} onCreated={(c) => { setAdding(false); onCreated(c); }} initialName={q} />;
   if (value && snap)
@@ -618,7 +625,8 @@ function CustomerPicker({ customers, value, snap, bad, vatInvoice, onPick, onCre
         <div>
           <b>{snap.name}</b>
           <span className="sub">รหัส {snap.code}{snap.kind === "COMPANY" ? ` · นิติบุคคล (${snap.branch || "สำนักงานใหญ่"})` : ""}{snap.taxId ? ` · เลขผู้เสียภาษี ${snap.taxId}` : ""}</span>
-          <span className="sub">{[snap.address?.line, snap.address?.sub, snap.address?.dist, snap.address?.prov, snap.address?.zip].filter(Boolean).join(" ") || "ไม่มีที่อยู่"}{snap.phone ? ` · โทร ${snap.phone}` : ""}</span>
+          <span className="sub">{[snap.address?.line, snap.address?.sub, snap.address?.dist, snap.address?.prov, snap.address?.zip].filter(Boolean).join(" ") || "ไม่มีที่อยู่"}</span>
+          {snapContact(snap) && <span className="sub">{snapContact(snap)}</span>}
           {vatInvoice && snap.kind === "COMPANY" && !isValidThaiTaxId(snap.taxId ?? "") && <span className="err-msg">ใบกำกับภาษีของนิติบุคคลต้องมีเลขผู้เสียภาษี — แก้ไขข้อมูลลูกค้าก่อน</span>}
         </div>
         <div className="de-cust-acts">
@@ -636,7 +644,7 @@ function CustomerPicker({ customers, value, snap, bad, vatInvoice, onPick, onCre
           <div className="ac-list" role="listbox">
             {list.map((c) => (
               <div key={c.id} role="option" aria-selected="false" className="ac-o" onMouseDown={(e) => { e.preventDefault(); onPick(c); setQ(""); setOpen(false); }}>
-                <b>{c.snap.code} · {c.snap.name}</b><span>{[c.snap.phone, c.snap.taxId, c.snap.address?.prov].filter(Boolean).join(" · ") || "—"}</span>
+                <b>{c.snap.code} · {c.snap.name}</b><span>{[snapPhones(c.snap).join(", "), c.snap.taxId, c.snap.address?.prov].filter(Boolean).join(" · ") || "—"}</span>
               </div>
             ))}
             {!list.length && <div className="ac-none">ไม่พบลูกค้า “{q}” — กด “+ ลูกค้าใหม่”</div>}
@@ -648,52 +656,40 @@ function CustomerPicker({ customers, value, snap, bad, vatInvoice, onPick, onCre
   );
 }
 
-/** เพิ่มลูกค้าใหม่ในตัวแก้ไข (ไม่ต้องออกจากหน้า) — ใช้ div แทน form เพราะอยู่ในฟอร์มเอกสาร */
+/** เพิ่มลูกค้าใหม่ในตัวแก้ไข (ไม่ต้องออกจากหน้า) — ใช้ div แทน form เพราะอยู่ในฟอร์มเอกสาร · ช่องเดียวกับหน้าลูกค้า (CustomerFields) */
 function QuickCustomer({ onCancel, onCreated, initialName }: { onCancel: () => void; onCreated: (c: Cust) => void; initialName: string }) {
   const box = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<CustomerState>({});
   const [pending, setPending] = useState(false);
-  const [kind, setKind] = useState<"PERSON" | "COMPANY">("PERSON");
-  const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
+  // ค้นหาด้วยตัวเลข (เบอร์/เลขภาษี) แล้วกด "+ ลูกค้าใหม่" → เติมให้ในช่องที่ตรง
+  const q = initialName.trim(), qd = q.replace(/[\s-]/g, "");
+  const init = { ...EMPTY_CUSTOMER, ...(/^\d{13}$/.test(qd) ? { taxId: qd } : /^[+\d()]{9,}$/.test(qd) ? { phones: [q] } : { name: q }) };
   const submit = async () => {
+    if (pending) return;
     const fd = new FormData();
-    box.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[name]").forEach((el) => fd.set(el.name, el.value));
+    // append (ไม่ใช่ set) — ช่อง phones มีหลายช่องชื่อเดียวกัน
+    box.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("[name]").forEach((el) => fd.append(el.name, el.value));
     fd.set("inline", "1");
-    fd.set("kind", kind);
     setPending(true);
     try {
       const r = await saveCustomer({}, fd);
       setState(r);
+      notifySave({ ...noticeFromState(r.created ? { ok: r.ok } : r), ...(r.created ? { title: "เพิ่มลูกค้าสำเร็จ" } : {}) });
       if (r.created) onCreated(r.created);
+    } catch {
+      setState({ error: "บันทึกไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่" });
+      notifySave({ ok: false, message: "บันทึกไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่" });
     } finally {
       setPending(false);
     }
   };
+  const bad = (k: string) => !!state.fields?.includes(k);
   return (
-    <div className="cu-form" ref={box} onKeyDown={(e) => { if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") { e.preventDefault(); void submit(); } }}>
+    <div className="cu-form de-qc" ref={box} role="group" aria-label="เพิ่มลูกค้าใหม่"
+      onKeyDown={(e) => { if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") { e.preventDefault(); void submit(); } else if (e.key === "Escape") onCancel(); }}>
+      <div className="de-qc-head"><b>เพิ่มลูกค้าใหม่</b><small>ช่องที่มี * ต้องกรอก · ข้อมูลอื่นเพิ่มภายหลังได้ที่หน้าลูกค้า</small></div>
       {state.error && <div className="login-err" role="alert">{state.error}</div>}
-      <div className="seg" role="group" aria-label="ประเภทลูกค้า">
-        <button type="button" aria-pressed={kind === "PERSON"} onClick={() => setKind("PERSON")}>บุคคลธรรมดา</button>
-        <button type="button" aria-pressed={kind === "COMPANY"} onClick={() => setKind("COMPANY")}>นิติบุคคล / บริษัท</button>
-      </div>
-      <div className="two">
-        <div className="field"><label htmlFor="qcName">ชื่อลูกค้า / บริษัท</label><input id="qcName" name="name" defaultValue={initialName} maxLength={200} {...bad("name")} autoFocus /></div>
-        <div className="field"><label htmlFor="qcPhone">เบอร์โทร</label><input id="qcPhone" name="phone" inputMode="tel" maxLength={20} {...bad("phone")} /></div>
-      </div>
-      <div className="two">
-        <div className="field"><label htmlFor="qcTax">เลขประจำตัวผู้เสียภาษี (13 หลัก)</label><input id="qcTax" name="taxId" inputMode="numeric" maxLength={17} {...bad("taxId")} /></div>
-        {kind === "COMPANY" ? (
-          <div className="field"><label htmlFor="qcBranch">สาขา</label>
-            <select id="qcBranch" name="branchType" defaultValue="hq"><option value="hq">สำนักงานใหญ่</option><option value="branch">สาขา (ระบุเลขในหน้าลูกค้า)</option></select></div>
-        ) : <div className="field"><label htmlFor="qcEmail">อีเมล</label><input id="qcEmail" name="email" type="email" maxLength={120} {...bad("email")} /></div>}
-      </div>
-      <div className="field"><label htmlFor="qcAddr">ที่อยู่ (บ้านเลขที่ ถนน)</label><input id="qcAddr" name="addressLine" maxLength={300} /></div>
-      <div className="four">
-        <div className="field"><label htmlFor="qcSub">ตำบล/แขวง</label><input id="qcSub" name="subdistrict" maxLength={80} /></div>
-        <div className="field"><label htmlFor="qcDist">อำเภอ/เขต</label><input id="qcDist" name="district" maxLength={80} /></div>
-        <div className="field"><label htmlFor="qcProv">จังหวัด</label><input id="qcProv" name="province" maxLength={80} /></div>
-        <div className="field"><label htmlFor="qcZip">รหัสไปรษณีย์</label><input id="qcZip" name="postalCode" inputMode="numeric" maxLength={5} {...bad("postalCode")} /></div>
-      </div>
+      <CustomerFields v={init} bad={bad} idp="qc" />
       <div className="act-row">
         <button className="btn btn-outline btn-sm" type="button" onClick={onCancel}>ยกเลิก</button>
         <button className="btn btn-primary btn-sm" type="button" onClick={submit} disabled={pending}>{pending ? "กำลังบันทึก…" : "บันทึกลูกค้าและเลือก"}</button>

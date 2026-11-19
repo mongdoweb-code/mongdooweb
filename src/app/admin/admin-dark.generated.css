@@ -3956,6 +3956,79 @@ html[data-adm-theme="dark"] .wy-cap legend {
 html[data-adm-theme="dark"] .wy-sec input.bad {
     border-color: #B42318
 }
+/*  src/app/admin/(app)/customers/customer-form.css  */
+html[data-adm-theme="dark"] .cuf-sec {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .cuf-sec h3 {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .cuf-n {
+    background: #241A12;
+    color: #F19055
+}
+html[data-adm-theme="dark"] .cu-form .field input.bad,
+html[data-adm-theme="dark"] .cu-form .field select.bad {
+    border-color: var(--c-err);
+    background: #2B1A15
+}
+html[data-adm-theme="dark"] .cu-form .field small.cuf-ok {
+    color: #66E1AA
+}
+html[data-adm-theme="dark"] .cu-form .field small.cuf-err {
+    color: var(--c-err)
+}
+html[data-adm-theme="dark"] .cu-form .field small.cuf-hint {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .cuf-lbl label {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .cuf-tag {
+    border: 1.5px solid var(--c-line);
+    background: #1A1C21;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .cuf-tag.main {
+    background: #241A12;
+    border-color: #503622;
+    color: #F19055
+}
+html[data-adm-theme="dark"] .cuf-ib {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .cuf-ib:hover,
+html[data-adm-theme="dark"] .cuf-ib:focus-visible {
+    border-color: var(--c-ink);
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .cuf-ib.del:hover,
+html[data-adm-theme="dark"] .cuf-ib.del:focus-visible {
+    border-color: var(--c-err);
+    color: var(--c-err)
+}
+html[data-adm-theme="dark"] .cuf-add {
+    border: 1.5px dashed #4A3220;
+    background: #291E14;
+    color: #F19055
+}
+html[data-adm-theme="dark"] .cuf-add:hover,
+html[data-adm-theme="dark"] .cuf-add:focus-visible {
+    background: #241A12
+}
+html[data-adm-theme="dark"] .cu-form .act-row {
+    background: #1E2127;
+    border-top: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .de-qc {
+    border: 1.5px solid #503622
+}
+html[data-adm-theme="dark"] .de-qc-head small {
+    color: var(--c-muted)
+}
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {
     color: var(--c-muted)

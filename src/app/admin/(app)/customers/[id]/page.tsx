@@ -7,6 +7,7 @@ import { DOC_META, DOC_ST } from "@/lib/doc-render";
 import { STATUS_LABEL } from "@/lib/admin-orders";
 import { docPath, statusOf } from "@/lib/docs";
 import { formatPhone } from "@/lib/format";
+import { customerPhones, formatPhoneEntry, phoneMain } from "@/lib/phones";
 import { prisma } from "@/lib/prisma";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
 import { deleteCustomer, mergeCustomer, setMarketingOptOut } from "../actions";
@@ -26,19 +27,21 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
   const br = c?.branch ?? "";
   const v: CustomerValues = {
     id: c?.id ?? "", kind: c?.kind ?? "PERSON", name: c?.name ?? "", taxId: c?.taxId ?? "", branchType: /^สาขา/.test(br) ? "branch" : "hq", branchNo: br.replace(/\D/g, ""),
-    contactName: c?.contactName ?? "", phone: c?.phone ? formatPhone(c.phone) : "", email: c?.email ?? "", addressLine: c?.addressLine ?? "", subdistrict: c?.subdistrict ?? "",
+    contactName: c?.contactName ?? "", phones: c ? customerPhones(c) : [], fax: c?.fax ?? "", email: c?.email ?? "", addressLine: c?.addressLine ?? "", subdistrict: c?.subdistrict ?? "",
     district: c?.district ?? "", province: c?.province ?? "", postalCode: c?.postalCode ?? "", note: c?.note ?? "",
     shipName: ship.name ?? "", shipPhone: ship.phone ? formatPhone(ship.phone) : "", shipLine: ship.address?.line ?? "", shipSub: ship.address?.sub ?? "",
     shipDist: ship.address?.dist ?? "", shipProv: ship.address?.prov ?? "", shipZip: ship.address?.zip ?? "",
   };
   const docs = c?.documents ?? [];
   // คำสั่งซื้อเว็บที่เบอร์ตรงกันแต่ยังไม่ผูกกับลูกค้ารายนี้ + รายชื่อที่น่าจะซ้ำ (เบอร์/เลขผู้เสียภาษี/ชื่อเดียวกัน)
+  // ทุกเบอร์ของลูกค้า (ตัวเลขหลัก ไม่รวมเบอร์ต่อ) — คำสั่งซื้อเว็บเก็บเบอร์เป็นตัวเลขล้วน
+  const mains = c ? [...new Set(customerPhones(c).map(phoneMain).filter((p) => p.length >= 9))] : [];
   const [phoneOrders, dupes] = c
     ? await Promise.all([
-        c.phone ? prisma.order.findMany({ where: { phone: c.phone, OR: [{ customerId: null }, { customerId: { not: c.id } }] }, orderBy: { createdAt: "desc" }, take: 20, select: { orderNo: true, totalSatang: true, status: true, createdAt: true } }) : [],
+        mains.length ? prisma.order.findMany({ where: { phone: { in: mains }, OR: [{ customerId: null }, { customerId: { not: c.id } }] }, orderBy: { createdAt: "desc" }, take: 20, select: { orderNo: true, totalSatang: true, status: true, createdAt: true } }) : [],
         prisma.customer.findMany({
-          where: { id: { not: c.id }, OR: [...(c.phone ? [{ phone: c.phone }] : []), ...(c.taxId ? [{ taxId: c.taxId }] : []), { name: { equals: c.name, mode: "insensitive" as const } }] },
-          take: 10, select: { id: true, code: true, name: true, phone: true, taxId: true },
+          where: { id: { not: c.id }, OR: [...(mains.length ? [{ phone: { in: mains } }, { phones: { hasSome: mains } }] : []), ...(c.taxId ? [{ taxId: c.taxId }] : []), { name: { equals: c.name, mode: "insensitive" as const } }] },
+          take: 10, select: { id: true, code: true, name: true, phone: true, phones: true, taxId: true },
         }),
       ])
     : [[], []];
@@ -90,7 +93,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
               {dupes.length > 0 && (
                 <ul className="cu-dupes">
                   {dupes.map((d) => (
-                    <li key={d.id}><Link className="link" href={`/admin/customers/${d.id}`}>{d.code} · {d.name}</Link><span className="sub">{d.phone ? formatPhone(d.phone) : ""}{d.taxId ? ` · ${d.taxId}` : ""}</span></li>
+                    <li key={d.id}><Link className="link" href={`/admin/customers/${d.id}`}>{d.code} · {d.name}</Link><span className="sub">{customerPhones(d).map(formatPhoneEntry).join(", ")}{d.taxId ? ` · ${d.taxId}` : ""}</span></li>
                   ))}
                 </ul>
               )}

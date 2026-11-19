@@ -2,8 +2,20 @@
 // เป็นฟังก์ชันล้วน ใช้ได้ทั้ง server (หน้าดู/พิมพ์) และเบราว์เซอร์ (ตัวอย่างสดในตัวแก้ไข) — ทุกข้อความ escape แล้ว
 import { addrText, bahtText, calcTotals, code128Svg, docDate, docDateTime, fmtTaxId, lineSatang, money, qtyFmt, type Addr, type DocTypeT, type VatModeT } from "./doc-calc";
 
+/** แถวติดต่อของลูกค้า: โทร (ทุกเบอร์) · โทรสาร · อีเมล — ว่างทั้งหมด = ไม่พิมพ์แถว */
+export function custContact(c: CustSnap) {
+  const phones = c.phones?.length ? c.phones : c.phone ? [c.phone] : [];
+  const parts = [
+    phones.length ? `<span class="nw"><span class="k">โทร</span> ${phones.map((p) => `<span class="nw">${esc(p)}</span>`).join(", ")}</span>` : "",
+    c.fax ? `<span class="nw"><span class="k">โทรสาร</span> ${esc(c.fax)}</span>` : "",
+    c.email ? `<span class="nw"><span class="k">อีเมล</span> ${esc(c.email)}</span>` : "",
+  ].filter(Boolean);
+  return parts.length ? `<div class="cust-ct">${parts.join(" &nbsp; ")}</div>` : "";
+}
+
 export type CustSnap = {
   code?: string; kind?: "COMPANY" | "PERSON"; name?: string; taxId?: string; branch?: string; contact?: string; phone?: string; email?: string;
+  /** ทุกเบอร์ (จัดรูปแบบแล้ว) — เอกสารเก่ามีแค่ phone */ phones?: string[]; fax?: string;
   address?: Addr; shipTo?: { name?: string; phone?: string; address?: Addr } | null;
 };
 /** img = ลิงก์รูปหน้ารายการ (ว่าง = ไม่แสดง) */
@@ -129,7 +141,8 @@ export function buildDocParts(d: DocView): DocParts {
       <div class="sh-box sh-cust"><h4>${custLbl}</h4>
         ${c.name ? `<div class="cust-top">${c.code ? `<span class="cust-code">รหัสลูกค้า ${esc(c.code)}</span>` : ""}<b class="cust-name">${esc(c.name)}</b></div>
         <div><span class="k">ที่อยู่</span> ${branch ? `<span class="nw">(${esc(branch)})</span> ` : ""}${esc(addrText(c.address)) || "—"}</div>
-        <div>${c.taxId ? `<span class="k">เลขประจำตัวผู้เสียภาษี</span> ${esc(fmtTaxId(c.taxId))}${isCo ? ` <span class="k">สาขา</span> ${esc(branch)}` : ""} &nbsp; ` : ""}${c.phone ? `<span class="k">โทร</span> ${esc(c.phone)}` : ""}${c.contact ? ` &nbsp; <span class="k">ติดต่อ</span> ${esc(c.contact)}` : ""}</div>
+        <div>${c.taxId ? `<span class="k">เลขประจำตัวผู้เสียภาษี</span> ${esc(fmtTaxId(c.taxId))}${isCo ? ` <span class="k">สาขา</span> ${esc(branch)}` : ""} &nbsp; ` : ""}${c.contact ? `<span class="k">ผู้ติดต่อ</span> ${esc(c.contact)}` : ""}</div>
+        ${custContact(c)}
         ${st && st.name && d.type !== "QUOTATION" ? `<div class="ship-to"><span class="k">ส่งของที่</span> ${esc(st.name)}${st.phone ? " โทร " + esc(st.phone) : ""} · ${esc(addrText(st.address))}</div>` : ""}`
         : '<div class="cust-empty">ยังไม่ได้เลือกลูกค้า</div>'}
       </div></section>`;

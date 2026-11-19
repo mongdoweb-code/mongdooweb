@@ -7,7 +7,7 @@ import { deleteCustomer } from "./actions";
 import { requireAdmin } from "@/lib/auth";
 import { allTags, parseSegment, segmentActive, segmentCustomers, segmentQuery } from "@/lib/customer-segments";
 import { money } from "@/lib/doc-calc";
-import { formatPhone } from "@/lib/format";
+import { customerPhones, formatPhoneEntry } from "@/lib/phones";
 import { prisma } from "@/lib/prisma";
 import "../../lot12.css";
 
@@ -104,7 +104,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
                     {c.marketingOptOut && <span className="dst dst-bad cu-optout" title="คัดค้านการตลาด (PDPA) — ไม่อยู่ในไฟล์บรอดแคสต์">ไม่รับข่าวสาร</span>}
                     {c.tags.length > 0 && <span className="cu-tags">{c.tags.map((t) => <span key={t} className="tag-chip sm">{t}</span>)}</span>}
                   </td>
-                  <td className="sub" style={{ fontSize: 13.5 }}>{c.phone ? formatPhone(c.phone) : "—"}{c.province ? ` · ${c.province}` : ""}</td>
+                  <td className="sub" style={{ fontSize: 13.5 }}>{customerPhones(c).map(formatPhoneEntry).join(", ") || "—"}{c.province ? ` · ${c.province}` : ""}</td>
                   <td className="r num cu-spend">{c.stats.spendSatang ? `฿${money(c.stats.spendSatang)}` : <span className="sub">—</span>}<span className="sub">{c.stats.orders + c.stats.receipts ? `${c.stats.orders + c.stats.receipts} ครั้ง` : `เอกสาร ${c._count.documents}`}</span></td>
                   <td className="sub">{day(c.stats.lastAt)}</td>
                   <td className="r num">{o > 0 ? <b className="owe">฿{money(o)}</b> : <span className="sub">—</span>}</td>

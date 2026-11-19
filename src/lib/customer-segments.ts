@@ -88,7 +88,7 @@ function baseWhere(f: SegmentFilter): Prisma.CustomerWhereInput {
     and.push({
       OR: [
         { name: { contains: f.q, mode: "insensitive" } }, { code: f.q }, { contactName: { contains: f.q, mode: "insensitive" } }, { email: { contains: f.q, mode: "insensitive" } },
-        { tags: { has: f.q } }, ...(d.length >= 3 ? [{ phone: { contains: d } }, { taxId: { contains: d } }] : []),
+        { tags: { has: f.q } }, ...(d.length >= 3 ? [{ phone: { contains: d } }, { taxId: { contains: d } }] : []), ...(d.length >= 9 ? [{ phones: { has: d } }] : []),
       ],
     });
   return and.length ? { AND: and } : {};
