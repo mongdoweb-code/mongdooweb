@@ -78,6 +78,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             { href: "/admin/reports", label: "รายงานยอดขาย", icon: <Ico k="report" />, group: "รายงาน" },
             { href: "/admin/reports/daily", label: "ปิดยอดประจำวัน", icon: <Ico k="cash" />, group: "รายงาน" },
             { href: "/admin/reports/receivables", label: "ลูกหนี้ค้างชำระ", icon: <Ico k="debt" />, group: "รายงาน" },
+            { href: "/admin/reports/wht", label: "ภาษีถูกหัก ณ ที่จ่าย", icon: <Ico k="report" />, group: "รายงาน" },
             { href: "/admin/log", label: "บันทึกการใช้งาน", icon: <Ico k="log" />, group: "รายงาน" },
             ...(owner
               ? [

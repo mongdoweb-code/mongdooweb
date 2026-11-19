@@ -5,6 +5,7 @@ import type { ShopSetting, VatMode } from "../../generated/prisma/client";
 import { fromYmd, money, ymdBkk } from "@/lib/doc-calc";
 import { allocDocNo, prefixOf, todayYmd, totalsFor, type Tx } from "@/lib/docs";
 import { UNPAID_STATUSES, confirmOrderPaidTx, type ConfirmResult } from "@/lib/order-confirm";
+import { whtError } from "@/lib/wht";
 
 /** ข้อผิดพลาดที่แสดงให้ผู้ใช้เห็นได้ (ข้อความภาษาไทย) */
 export class DocUserError extends Error {}
@@ -50,10 +51,17 @@ export async function issueDocTx(tx: Tx, id: string, adminId: string | null, s: 
  */
 export async function recordInvoicePaymentTx(
   tx: Tx,
-  input: { invoiceId: string; paidYmd: string; amountSatang: number; method: string; reference: string | null; adminId: string | null },
+  input: {
+    invoiceId: string; paidYmd: string; amountSatang: number; method: string; reference: string | null; adminId: string | null;
+    /** ภาษีหัก ณ ที่จ่าย (ไม่ใส่ = ไม่มี) — amountSatang ยังเป็นยอดตัดหนี้เต็ม */
+    wht?: { rateBp: number; satang: number; certNo: string | null } | null;
+  },
   s: ShopSetting,
 ) {
   const { invoiceId: id, paidYmd, amountSatang: amount, method, reference, adminId } = input;
+  const wht = input.wht && (input.wht.satang || input.wht.rateBp) ? input.wht : null;
+  const whtErr = wht ? whtError(amount, wht.rateBp, wht.satang) : null;
+  if (whtErr) throw new DocUserError(whtErr);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(paidYmd) || paidYmd > todayYmd()) throw new DocUserError("วันที่รับชำระไม่ถูกต้อง (ห้ามเป็นวันในอนาคต)");
   if (!Number.isInteger(amount) || amount <= 0) throw new DocUserError("กรุณาใส่ยอดเงินที่รับชำระ");
   await tx.$executeRaw`SELECT 1 FROM "SalesDocument" WHERE "id" = ${id} FOR UPDATE`;
@@ -83,11 +91,16 @@ export async function recordInvoicePaymentTx(
     },
   });
   const rcNo = await issueDocTx(tx, rc.id, adminId, s);
-  const payment = await tx.docPayment.create({ data: { invoiceId: iv.id, receiptId: rc.id, paidAt: fromYmd(paidYmd), amountSatang: amount, method, reference: reference || null } });
+  const payment = await tx.docPayment.create({
+    data: {
+      invoiceId: iv.id, receiptId: rc.id, paidAt: fromYmd(paidYmd), amountSatang: amount, method, reference: reference || null,
+      ...(wht ? { whtRateBp: wht.rateBp, whtSatang: wht.satang, whtCertNo: wht.certNo?.trim().slice(0, 60) || null } : {}),
+    },
+  });
   const paid = iv.paidSatang + amount;
   await tx.salesDocument.update({ where: { id: iv.id }, data: { paidSatang: paid, status: paid >= iv.grandSatang ? "PAID" : "PARTIAL" } });
   await tx.salesDocumentEvent.create({
-    data: { documentId: iv.id, type: "PAYMENT", adminId, note: `รับชำระ ${money(amount)} บาท (${method}${reference ? ` · ${reference}` : ""}) → ${rcNo}`.slice(0, 500) },
+    data: { documentId: iv.id, type: "PAYMENT", adminId, note: `รับชำระ ${money(amount)} บาท (${method}${reference ? ` · ${reference}` : ""}${wht ? ` · หัก ณ ที่จ่าย ${wht.rateBp / 100}% ${money(wht.satang)} บาท` : ""}) → ${rcNo}`.slice(0, 500) },
   });
   // ชำระครบ + ผูกคำสั่งซื้อที่ยังไม่ได้รับเงิน → คำสั่งซื้อเป็น "ชำระแล้ว" (ตัดสต็อก/นับยอดขาย/ไม่ถูกยกเลิกอัตโนมัติ) ใน transaction เดียวกัน
   // ยอดขายนับจากคำสั่งซื้อ — ใบเสร็จที่ผูกคำสั่งซื้อไม่นับซ้ำในรายงาน (src/lib/sales-report.ts)

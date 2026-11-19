@@ -431,3 +431,9 @@ a.ar-kpi:hover{border-top-color:var(--c-ink)}
 /* ลิงก์สินค้า (ภาษาไทยได้) + ปุ่ม "สร้างจากชื่อ" */
 .slug-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
 .slug-row .btn{white-space:nowrap;height:auto}
+/* รายงานภาษีถูกหัก ณ ที่จ่าย */
+.tbl-scroll{overflow-x:auto;max-width:100%}
+.wht-cert{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:260px}
+.wht-cert input[name=certNo]{height:32px;width:120px;border:1.5px solid var(--c-line);padding:0 8px;background:#fff}
+.wht-cert .chk-row{font-size:12.5px;gap:6px}
+.wht-cert .chk-row input{width:16px;height:16px}

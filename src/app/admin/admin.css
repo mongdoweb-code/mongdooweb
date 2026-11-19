@@ -884,6 +884,9 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .sh-pay .mut{color:#666;font-size:7.8pt}
 .sh-qr{width:25mm;height:25mm;flex-shrink:0;image-rendering:pixelated}
 .sh-paid{border:.3mm solid #a3a3a3;border-radius:2mm;padding:2mm 3mm;font-size:8.5pt}
+.sh-wht{display:grid;grid-template-columns:auto auto;justify-content:start;gap:.4mm 6mm;margin-top:1.6mm;padding-top:1.4mm;border-top:.2mm dashed #bbb}
+.sh-wht dd{text-align:right;font-variant-numeric:tabular-nums}
+.sh-wht small{font-size:7.5pt;color:#555}
 .sh-cn{border:.3mm solid #a3a3a3;border-radius:2mm;padding:2mm 3mm;font-size:8.5pt}
 .sh-cn h5{font-size:8.5pt;margin:0 0 .8mm}
 .sh-cn p{margin:0 0 1.5mm}
@@ -1269,6 +1272,15 @@ th.r .th-sort{justify-content:flex-end}
 .doc-view .dv-side{max-height:none}
 .pay-form,.void-form{display:grid;gap:10px}
 .pay-form .two,.void-form .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wht-box{border:1.5px solid #F6C9A6;background:#FFFBF7;padding:10px 12px 12px;display:grid;gap:10px;min-width:0}
+.wht-box legend{font-size:13px;font-weight:700;padding:0 4px;color:#C2510C}
+.wht-box .two{grid-template-columns:1fr}
+.wht-sum{display:grid;gap:0;border:1px solid var(--c-line);background:#fff}
+.wht-sum span{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;color:var(--c-muted);padding:6px 10px}
+.wht-sum span + span{border-top:1px solid var(--c-line)}
+.wht-sum b{font-size:14px;color:var(--c-ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.wht-sum .net{background:#F2FBF5;font-weight:700;color:#18794E}
+.wht-sum .net b{color:#18794E;font-size:16px}
 .dv-acts form{display:contents}
 .dv-title{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .dv-title .dst{font-size:13px}

@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { WORK_META, WORK_NOTE_MAX, parseWorkState, workEventNote } from "@/lib/doc-work";
 import { getSettings } from "@/lib/settings";
 import { afterOrderPaid, type ConfirmResult } from "@/lib/order-confirm";
+import { whtError } from "@/lib/wht";
 
 /** ชื่อรายการ: หลายบรรทัดได้ — ตัดช่องว่างซ้ำในแต่ละบรรทัด ไม่เก็บบรรทัดว่าง สูงสุด 5 บรรทัด / 250 ตัวอักษร */
 const normLineName = (v: unknown) =>
@@ -382,16 +383,24 @@ export async function recordPayment(_prev: DocState, f: FormData): Promise<DocSt
   const amount = Math.round(amtRaw * 100);
   const method = str(f, "method", 60);
   const reference = str(f, "reference", 100);
+  // ภาษีหัก ณ ที่จ่าย (ติ๊ก "ลูกค้าหัก ณ ที่จ่าย")
+  const whtOn = f.get("whtOn") === "1";
+  const whtRateBp = whtOn ? Number(str(f, "whtRate", 4)) : 0;
+  const whtRaw = whtOn ? Number(str(f, "whtAmount", 20).replace(/[,\s฿]/g, "")) : 0;
+  const whtSatang = Number.isFinite(whtRaw) ? Math.round(whtRaw * 100) : -1;
+  const whtCertNo = whtOn ? str(f, "whtCertNo", 60) : "";
   const bad: string[] = [];
   if (!ymdRe.test(paidYmd) || paidYmd > todayYmd()) bad.push("paidAt");
   if (!Number.isFinite(amtRaw) || amount <= 0) bad.push("amount");
   if (!method) bad.push("method");
   if (bad.length) return { error: bad.includes("paidAt") ? "วันที่รับชำระไม่ถูกต้อง (ห้ามเป็นวันในอนาคต)" : bad.includes("amount") ? "กรุณาใส่ยอดเงินที่รับชำระ" : "กรุณาเลือกวิธีชำระเงิน", fields: bad };
+  const whtErr = whtOn ? whtError(amount, whtRateBp, whtSatang) : null;
+  if (whtErr) return { error: whtErr, fields: [whtErr.startsWith("เลือก") ? "whtRate" : "whtAmount"] };
 
   let rcId = "", rcNo = "", ivNo = "";
   let orderPaid: ConfirmResult | null = null;
   try {
-    const r = await prisma.$transaction((tx) => recordInvoicePaymentTx(tx, { invoiceId: id, paidYmd, amountSatang: amount, method, reference: reference || null, adminId: admin.id }, s));
+    const r = await prisma.$transaction((tx) => recordInvoicePaymentTx(tx, { invoiceId: id, paidYmd, amountSatang: amount, method, reference: reference || null, adminId: admin.id, wht: whtOn ? { rateBp: whtRateBp, satang: whtSatang, certNo: whtCertNo || null } : null }, s));
     ({ rcId, rcNo, ivNo } = r);
     orderPaid = r.orderPaid;
   } catch (e) {
@@ -399,7 +408,7 @@ export async function recordPayment(_prev: DocState, f: FormData): Promise<DocSt
     throw e;
   }
   afterOrderPaid(orderPaid);
-  await logAdmin(admin.id, "DOC", `รับชำระ ${ivNo} ฿${money(amount)} → ออกใบเสร็จ ${rcNo}${orderPaid ? ` · คำสั่งซื้อ ${orderPaid.orderNo} ชำระแล้ว` : ""}`);
+  await logAdmin(admin.id, "DOC", `รับชำระ ${ivNo} ฿${money(amount)}${whtOn ? ` (หัก ณ ที่จ่าย ฿${money(whtSatang)})` : ""} → ออกใบเสร็จ ${rcNo}${orderPaid ? ` · คำสั่งซื้อ ${orderPaid.orderNo} ชำระแล้ว` : ""}`);
   redirect(`${docPath({ type: "INVOICE", id })}?paid=${encodeURIComponent(rcNo)}&rc=${rcId}`);
 }
 

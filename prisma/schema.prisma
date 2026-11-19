@@ -716,9 +716,15 @@ model DocPayment {
   method       String
   reference    String? // เลขอ้างอิงการโอน / เลขเช็ค
   voided       Boolean        @default(false) // ยกเลิกใบเสร็จของงวดนี้ → ไม่นับเป็นยอดชำระ
+  // ภาษีหัก ณ ที่จ่าย: amountSatang = ยอดที่ตัดหนี้ (รวมภาษีที่ลูกค้าหักไว้) · เงินที่ได้รับจริง = amountSatang − whtSatang
+  whtRateBp    Int            @default(0) // 300 = 3%
+  whtSatang    Int            @default(0)
+  whtCertNo    String? // เลขที่หนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ)
+  whtCertAt    DateTime? // วันที่ได้รับหนังสือรับรองตัวจริงจากลูกค้า (null = ยังไม่ได้รับ)
   createdAt    DateTime       @default(now())
 
   @@index([invoiceId])
+  @@index([whtSatang, paidAt])
 }
 
 enum DocEventType {

@@ -3,14 +3,28 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useFormAction } from "../../_components/useFormAction";
+import { WHT_RATES, whtAmount, whtBase } from "@/lib/wht";
 import { convertQuoteToReceipt, recordPayment, voidDoc, type DocState } from "./actions";
 
-export function PaymentForm({ id, outstanding, today, methods, minDate }: { id: string; outstanding: number; today: string; methods: string[]; minDate: string }) {
+export function PaymentForm({ id, outstanding, today, methods, minDate, invoice, company = false }: {
+  id: string; outstanding: number; today: string; methods: string[]; minDate: string;
+  invoice: { grandSatang: number; vatSatang: number }; company?: boolean;
+}) {
   const [state, onSubmit, pending] = useFormAction<DocState>(recordPayment, {});
   const [amt, setAmt] = useState((outstanding / 100).toFixed(2));
   const bad = (k: string) => (state.fields?.includes(k) ? { style: { borderColor: "var(--c-err)" } } : {});
   const n = Number(amt.replace(/[,\s]/g, ""));
-  const partial = Number.isFinite(n) && n > 0 && Math.round(n * 100) < outstanding;
+  const amtSat = Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0;
+  const partial = amtSat > 0 && amtSat < outstanding;
+  // ภาษีหัก ณ ที่จ่าย: ฐาน = ยอดก่อน VAT ของงวดนี้ · ยอดคำนวณให้ แก้เองได้ (ลูกค้าบางรายปัดเศษต่างกัน)
+  const [whtOn, setWhtOn] = useState(false);
+  const [rate, setRate] = useState(300);
+  const [whtTxt, setWhtTxt] = useState<string | null>(null); // null = ใช้ค่าที่คำนวณ
+  const base = whtBase(amtSat, invoice);
+  const calc = whtAmount(base, rate);
+  const whtVal = whtTxt ?? (calc / 100).toFixed(2);
+  const whtSat = Math.round((Number(whtVal.replace(/[,\s]/g, "")) || 0) * 100);
+  const m = (s: number) => (s / 100).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (
     <form onSubmit={onSubmit} className="pay-form" key={outstanding}>
       <input type="hidden" name="id" value={id} />
@@ -23,6 +37,27 @@ export function PaymentForm({ id, outstanding, today, methods, minDate }: { id: 
         <div className="field"><label htmlFor="method">วิธีชำระ</label><select id="method" name="method" defaultValue={methods[0]} {...bad("method")}>{methods.map((m) => <option key={m}>{m}</option>)}</select></div>
         <div className="field"><label htmlFor="reference">เลขอ้างอิง (ถ้ามี)</label><input id="reference" name="reference" maxLength={100} placeholder="เลขที่รายการโอน / เลขเช็ค" /></div>
       </div>
+      <label className="chk-row"><input type="checkbox" name="whtOn" value="1" checked={whtOn} onChange={(e) => setWhtOn(e.target.checked)} /> ลูกค้าหักภาษี ณ ที่จ่าย{company ? " (นิติบุคคลมักหัก 3% สำหรับค่าบริการ/ติดตั้ง)" : ""}</label>
+      {whtOn && (
+        <fieldset className="wht-box">
+          <legend>ภาษีหัก ณ ที่จ่าย</legend>
+          <div className="two">
+            <div className="field"><label htmlFor="whtRate">อัตรา</label>
+              <select id="whtRate" name="whtRate" value={rate} onChange={(e) => { setRate(Number(e.target.value)); setWhtTxt(null); }} {...bad("whtRate")}>
+                {WHT_RATES.map((r) => <option key={r.bp} value={r.bp}>{r.label}</option>)}
+              </select></div>
+            <div className="field"><label htmlFor="whtAmount">ภาษีที่ลูกค้าหักไว้ (บาท)</label>
+              <input id="whtAmount" name="whtAmount" inputMode="decimal" value={whtVal} onChange={(e) => setWhtTxt(e.target.value)} {...bad("whtAmount")} />
+              <small>คำนวณจากฐาน {m(base)} บาท (ยอดก่อน VAT) × {rate / 100}% = {m(calc)}{whtTxt !== null && whtSat !== calc && <> · <button type="button" className="link" onClick={() => setWhtTxt(null)}>ใช้ค่าที่คำนวณ</button></>}</small></div>
+          </div>
+          <div className="field"><label htmlFor="whtCertNo">เลขที่หนังสือรับรอง 50 ทวิ (ถ้ามี)</label><input id="whtCertNo" name="whtCertNo" maxLength={60} placeholder="ใส่ภายหลังได้ที่รายงานภาษีหัก ณ ที่จ่าย" /></div>
+          <div className="wht-sum" aria-live="polite">
+            <span>ตัดหนี้ (ยอดในใบเสร็จ)<b>{m(amtSat)}</b></span>
+            <span>หัก ณ ที่จ่าย<b>−{m(whtSat)}</b></span>
+            <span className="net">เงินที่ได้รับจริง<b>{m(Math.max(0, amtSat - whtSat))}</b></span>
+          </div>
+        </fieldset>
+      )}
       <small className="sub">{partial ? "ชำระบางส่วน — ใบเสร็จจะเป็นรายการ “รับชำระตามใบแจ้งหนี้ (งวดที่ n)”" : "ชำระเต็มจำนวน — ใบเสร็จจะแสดงรายการสินค้าเหมือนใบแจ้งหนี้"}</small>
       <button className="btn btn-primary" type="submit" disabled={pending}>{pending ? "กำลังบันทึก…" : "บันทึกรับชำระ + ออกใบเสร็จ"}</button>
     </form>

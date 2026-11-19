@@ -1581,6 +1581,33 @@ html[data-adm-theme="dark"] .pp-hint {
 html[data-adm-theme="dark"] .doc-view .de-cols.dv {
     border: 1px solid var(--c-line)
 }
+html[data-adm-theme="dark"] .wht-box {
+    border: 1.5px solid #503622;
+    background: #2B2015
+}
+html[data-adm-theme="dark"] .wht-box legend {
+    color: #F19055
+}
+html[data-adm-theme="dark"] .wht-sum {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .wht-sum span {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .wht-sum span + span {
+    border-top: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .wht-sum b {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .wht-sum .net {
+    background: #16241B;
+    color: #66E1AA
+}
+html[data-adm-theme="dark"] .wht-sum .net b {
+    color: #66E1AA
+}
 html[data-adm-theme="dark"] .doc-edit .box .field textarea {
     border: 1.5px solid var(--c-line);
     background: #1E2127
@@ -3399,6 +3426,10 @@ html[data-adm-theme="dark"] .pa-danger {
 html[data-adm-theme="dark"] .pa-danger .pa-ic {
     background: #261212;
     color: var(--c-err)
+}
+html[data-adm-theme="dark"] .wht-cert input[name=certNo] {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
 }
 /*  src/app/admin/lot12.css  */
 html[data-adm-theme="dark"] .gs-btn {

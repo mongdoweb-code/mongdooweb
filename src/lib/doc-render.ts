@@ -40,6 +40,8 @@ export type DocView = {
   customer: CustSnap; items: DocLine[]; discountSatang: number; vatMode: VatModeT; vatRateBp: number;
   paymentMethod: string; paymentTerms: string; carrier: string; note: string; ref: string; voidReason: string;
   paidSatang: number; payRef: string; qr: string | null; printedAt: string; shop: ShopHead;
+  /** ใบเสร็จจากการรับชำระที่ลูกค้าหักภาษี ณ ที่จ่าย */
+  wht?: { rateBp: number; satang: number; certNo: string } | null;
   /** วันที่ในช่องลงนามฝั่งร้าน (YYYY-MM-DD) — ว่าง = ใช้วันที่เอกสาร */
   signDate?: string;
   /** ใบลดหนี้: เหตุผล + มูลค่าตามเอกสารเดิม (สตางค์) — มูลค่าที่ถูกต้อง = เดิม − ลดหนี้ */
@@ -192,7 +194,10 @@ export function buildDocParts(d: DocView): DocParts {
   if (d.type === "INVOICE" && d.online && payBox) {
     payBox = payBox.replace('<div class="mut">', `<div class="mut">ดูใบแจ้งหนี้และแนบสลิปออนไลน์: สแกน QR มุมขวาล่าง · `);
   }
-  if (d.type === "RECEIPT") payBox = `<div class="sh-paid"><b>ได้รับเงินถูกต้องแล้ว</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}</div>`;
+  if (d.type === "RECEIPT")
+    payBox = `<div class="sh-paid"><b>ได้รับเงินถูกต้องแล้ว</b> ชำระโดย ${esc(d.paymentMethod || "—")}${d.payRef ? ` · อ้างอิง ${esc(d.payRef)}` : ""}${
+      d.wht ? `<dl class="sh-wht"><dt>ยอดตามใบเสร็จ</dt><dd>${money(t.grand)}</dd><dt>หักภาษี ณ ที่จ่าย ${d.wht.rateBp / 100}%${d.wht.certNo ? ` <small>(หนังสือรับรองเลขที่ ${esc(d.wht.certNo)})</small>` : ""}</dt><dd>${money(d.wht.satang)}</dd><dt><b>รับเงินสุทธิ</b></dt><dd><b>${money(t.grand - d.wht.satang)}</b></dd></dl>` : ""
+    }</div>`;
   const terms = d.paymentTerms.trim(), note = d.note.trim();
   // ช่องลงนาม: ฝั่งร้านใส่วันที่ให้ (วันที่ลงนามที่ตั้งไว้ หรือวันที่เอกสาร) · ฝั่งลูกค้าเว้นให้เขียนเอง
   const signDay = d.signDate || d.issueDate;

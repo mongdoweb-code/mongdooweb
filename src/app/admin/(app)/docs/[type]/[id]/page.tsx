@@ -223,7 +223,8 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
           {d.type === "INVOICE" && ["ISSUED", "PARTIAL"].includes(d.status) && (
             <section className="dv-sec">
               <h3>บันทึกรับชำระ</h3>
-              <PaymentForm id={d.id} outstanding={outstanding} today={today} methods={PAY_METHODS} minDate={ymdOf(d.issueDate)} />
+              <PaymentForm id={d.id} outstanding={outstanding} today={today} methods={PAY_METHODS} minDate={ymdOf(d.issueDate)}
+                invoice={{ grandSatang: d.grandSatang, vatSatang: d.vatSatang }} company={asSnap(d.customerSnapshot).kind === "COMPANY"} />
             </section>
           )}
 
@@ -235,7 +236,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
                   <li key={p.id} className={p.voided ? "voided" : ""}>
                     <span>
                       <b className="num">฿{money(p.amountSatang)}</b>
-                      <span className="sub">{docDate(ymdBkk(p.paidAt), era)} · {p.method}{p.reference ? ` · ${p.reference}` : ""}{p.voided ? " · ยกเลิกแล้ว" : ""}</span>
+                      <span className="sub">{docDate(ymdBkk(p.paidAt), era)} · {p.method}{p.reference ? ` · ${p.reference}` : ""}{p.whtSatang > 0 ? ` · หัก ณ ที่จ่าย ${p.whtRateBp / 100}% ฿${money(p.whtSatang)} (รับจริง ฿${money(p.amountSatang - p.whtSatang)})` : ""}{p.voided ? " · ยกเลิกแล้ว" : ""}</span>
                     </span>
                     {p.receipt && <Link className="link" href={`/admin/docs/RECEIPT/${p.receipt.id}`}>{p.receipt.docNo}</Link>}
                   </li>

@@ -117,6 +117,7 @@ export async function toView(d: FullDoc, s: ShopSetting): Promise<DocView> {
     discountSatang: d.discountSatang, vatMode: d.vatMode, vatRateBp: d.vatRateBp || s.vatRateBp,
     paymentMethod: d.paymentMethod ?? "", paymentTerms: d.paymentTerms ?? "", carrier: d.carrier ?? "", note: d.note ?? "", ref: refLine(d), voidReason: d.voidReason ?? "",
     paidSatang: d.paidSatang, payRef: pay?.reference ?? "",
+    wht: pay && !pay.voided && pay.whtSatang > 0 ? { rateBp: pay.whtRateBp, satang: pay.whtSatang, certNo: pay.whtCertNo ?? "" } : null,
     qr: d.type === "INVOICE" && d.status !== "VOID" && d.status !== "DRAFT" ? await invoiceQr(s, d.grandSatang - d.paidSatang) : null,
     printedAt: docDateTime(new Date(), s.dateEra), shop: shopHead(s), signDate: ymdOf(d.signDate),
     credit: d.type === "CREDIT_NOTE" ? { reason: d.creditReason ?? "", original: d.source?.grandSatang ?? 0 } : null,
