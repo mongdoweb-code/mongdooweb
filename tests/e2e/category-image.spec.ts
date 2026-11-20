@@ -1,5 +1,5 @@
 // รูปหมวด: อัปโหลดในหลังบ้าน → ใช้ในแถบ "เลือกซื้อตามหมวดหมู่" · เอาออก = กลับไปใช้รูปสินค้า/ตัวอักษร
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 import pg from "pg";
 import { V, login } from "./helpers";
@@ -17,6 +17,11 @@ async function q<T = Record<string, unknown>>(sql: string, args: unknown[] = [])
     await c.end();
   }
 }
+const saveAndWait = async (page: Page) => {
+  const done = page.waitForResponse((r) => r.request().method() === "POST" && !!r.request().headers()["next-action"]);
+  await page.getByRole("button", { name: "บันทึกหมวด" }).click();
+  await done;
+};
 const keyOf = async () => (await q<{ k: string | null }>(`SELECT "imageKey" k FROM "Category" WHERE id=$1`, [CAT]))[0].k;
 
 // สินค้าทดสอบอยู่ท้ายลำดับร้านเสมอ (sortOrder สูง) — ไม่ให้ไปเป็นสินค้าตัวแรกของแคตตาล็อกที่เทสอื่นหยิบใช้
@@ -37,7 +42,9 @@ test("อัปโหลดรูปหมวด → แถบเลือกซ
   await expect(page.locator(".cat-img-ctl" + V)).toContainText("ยังไม่ได้อัปโหลด");
   await page.setInputFiles("#catImage", path.resolve("tests/fixtures/slip.png"));
   await expect(page.locator(".cat-img-prev img" + V)).toHaveAttribute("src", /^blob:/);
-  await page.getByRole("button", { name: "บันทึกหมวด" }).click();
+  // รอให้ server action ตอบกลับ (ล้างแคชหน้าร้านเป็นขั้นสุดท้ายของ action) — ค่าใน DB เปลี่ยนก่อนหน้านั้น
+  // ถ้าเปิดหน้าร้านทันทีที่ DB เปลี่ยน อาจได้หน้าจากแคชเดิม
+  await saveAndWait(page);
   await expect.poll(keyOf).toMatch(/^categories\/\d{4}\/\d{2}\/\w+\.webp$/);
   await expect(page.locator(".cat-img-prev img" + V)).toHaveAttribute("src", /\/media\/categories\/.+-sm\.webp$/);
 
@@ -50,7 +57,7 @@ test("อัปโหลดรูปหมวด → แถบเลือกซ
   // เอารูปออก → กลับไปใช้รูปสินค้า (สินค้าทดสอบไม่มีรูป = ตัวอักษรแรก)
   await page.goto(`/admin/categories?edit=${CAT}`);
   await page.getByLabel("เอารูปหมวดออก (กลับไปใช้รูปสินค้า)").check();
-  await page.getByRole("button", { name: "บันทึกหมวด" }).click();
+  await saveAndWait(page);
   await expect.poll(keyOf).toBeNull();
   await page.goto("/products");
   await expect(page.locator(`.ccar-item[href="/category/${CAT}"] img`)).toHaveCount(0);
