@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { storage } from "@/lib/storage";
 import { parsePopular, safePopularHref } from "@/lib/popular-cats";
 import { WHY_IMAGE_MODES, WHY_IMG_RE, WHY_MAX_ITEMS, parseWhyUs, safeWhyHref } from "@/lib/why-us";
+import { NAV_CUSTOM_MAX, NAV_VISIBLE_MAX, navMenuToJson, parseNavMenu, safeNavHref } from "@/lib/nav-menu";
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").normalize("NFC").trim().slice(0, max);
 const done = (flag: string, msg = ""): never => redirect(`/admin/home?done=${flag}${msg ? `&msg=${encodeURIComponent(msg.slice(0, 160))}` : ""}`);
@@ -146,4 +147,39 @@ export async function saveWhyUs(f: FormData): Promise<{ ok?: string; error?: str
   await logAdmin(admin.id, "HOME", `ทำไมต้องมองดูเว็บ: ${changed.length ? [...new Set(changed.map((k) => NAMES[k]))].join(", ") : "บันทึก (ไม่มีการเปลี่ยนแปลง)"} · จุดเด่น ${cfg.items.length} ข้อ · ${WHY_IMAGE_MODES[cfg.imageMode]}`);
   refreshStorefront();
   return { ok: "บันทึกแล้ว — หน้าแรกเปลี่ยนตามทันที" };
+}
+
+/** เมนูหลักหน้าร้าน (Navbar): ซ่อน/แสดง · เรียงลำดับ · เปลี่ยนชื่อ · ลิงก์เพิ่มเอง · ไอคอนด้านขวา — intent=reset = กลับเป็นเมนูเดิม */
+export async function saveNavMenu(f: FormData): Promise<{ ok?: string; error?: string; field?: string }> {
+  const admin = await requireAdmin();
+  if (f.get("intent") === "reset") {
+    await prisma.shopSetting.update({ where: { id: "shop" }, data: { navMenu: json({}) } });
+    await logAdmin(admin.id, "HOME", "เมนูหน้าร้าน: คืนค่าเมนูเดิม");
+    refreshStorefront();
+    return { ok: "คืนค่าเมนูเดิมแล้ว" };
+  }
+  let raw: { items?: unknown; icons?: unknown } = {};
+  try {
+    raw = JSON.parse(String(f.get("data") ?? "{}"));
+  } catch {
+    return { error: "ข้อมูลไม่ถูกต้อง ลองโหลดหน้าใหม่" };
+  }
+  const items = Array.isArray(raw.items) ? (raw.items as Record<string, unknown>[]) : [];
+  // ตรวจก่อนบันทึก (แจ้งให้แก้ ไม่ตัดทิ้งเงียบ ๆ)
+  const customs = items.filter((i) => typeof i?.key === "string" && /^c\d+$/.test(i.key as string));
+  if (customs.length > NAV_CUSTOM_MAX) return { error: `ลิงก์เพิ่มเองได้สูงสุด ${NAV_CUSTOM_MAX} รายการ` };
+  for (const c of customs) {
+    if (!String(c.label ?? "").trim()) return { error: "กรอกชื่อเมนูของลิงก์ที่เพิ่มเอง", field: `label-${c.key}` };
+    if (!safeNavHref(c.href)) return { error: `ลิงก์ “${String(c.label).slice(0, 30)}” ต้องขึ้นต้นด้วย / (หน้าในเว็บ) หรือ https://`, field: `href-${c.key}` };
+  }
+  const shown = items.filter((i) => i?.show !== false).length;
+  if (!shown) return { error: "ต้องแสดงอย่างน้อย 1 เมนู" };
+  if (shown > NAV_VISIBLE_MAX) return { error: `แสดงบนแถบเมนูได้สูงสุด ${NAV_VISIBLE_MAX} รายการ (ตอนนี้ ${shown}) — ซ่อนบางเมนูก่อน` };
+  const cfg = parseNavMenu(raw);
+  await prisma.shopSetting.update({ where: { id: "shop" }, data: { navMenu: json(navMenuToJson(cfg)) } });
+  const on = cfg.items.filter((i) => i.show).map((i) => i.label);
+  const icons = (Object.keys(cfg.icons) as (keyof typeof cfg.icons)[]).filter((k) => !cfg.icons[k]);
+  await logAdmin(admin.id, "HOME", `เมนูหน้าร้าน: ${on.join(" · ")}${icons.length ? ` · ซ่อนไอคอน ${icons.join(", ")}` : ""}`.slice(0, 900));
+  refreshStorefront();
+  return { ok: "บันทึกเมนูหน้าร้านแล้ว — หน้าร้านเปลี่ยนทันที" };
 }

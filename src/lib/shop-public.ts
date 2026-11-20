@@ -3,6 +3,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { STOREFRONT_TAG, getSettings } from "@/lib/settings";
+import { parseNavMenu } from "@/lib/nav-menu";
 
 export type FaqItem = { q: string; a: string };
 
@@ -44,5 +45,6 @@ export async function getStorefrontExtras() {
     ga4Id: validGa4(s.ga4Id),
     metaPixelId: validPixel(s.metaPixelId),
     faq: parseFaq(s.faq),
+    nav: parseNavMenu(s.navMenu),
   };
 }

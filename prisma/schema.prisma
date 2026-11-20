@@ -456,6 +456,7 @@ model ShopSetting {
   loginPage           Json     @default("{}") // หน้าเข้าสู่ระบบหลังบ้าน (src/lib/login-page.ts) — {} = ค่าเริ่มต้น
   /// ส่วน "ทำไมต้องมองดูเว็บ" หน้าแรก (src/lib/why-us.ts) — แก้ที่ /admin/home/why · {} = ข้อความเดิม
   whyUs               Json     @default("{}")
+  navMenu        Json     @default("{}") // เมนูหลักหน้าร้าน (src/lib/nav-menu.ts) — {} = เมนูเดิม
   backupRetentionDays Int      @default(14)
 
   updatedAt DateTime @updatedAt

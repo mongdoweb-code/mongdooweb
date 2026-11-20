@@ -78,13 +78,20 @@ section{padding:96px 0}
 /* ---------- (1) HEADER — สีขาว ---------- */
 .header{position:sticky;top:0;z-index:50;background:var(--c-white);border-bottom:1px solid transparent;transition:border-color .2s}
 .header.scrolled{border-color:var(--c-line)}
-.header-row{height:var(--header-h);display:flex;align-items:center;gap:36px}
+.header-row{height:var(--header-h);display:flex;align-items:center;gap:32px}
+/* แถบหัวเว็บกว้างกว่าเนื้อหาเล็กน้อย — เมนูหลัก + ไอคอนด้านขวาพอดีบรรทัดเดียวบนจอคอมทั่วไป */
+.header .header-row.container{max-width:1360px}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.3px;flex-shrink:0}
 .logo-mark{width:34px;height:34px;background:var(--c-orange);display:grid;place-items:center;flex-shrink:0}
 .logo-mark span{width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.35)}
 .logo small{display:block;font-size:11px;font-weight:500;color:var(--c-muted);letter-spacing:.5px;margin-top:-4px}
 .nav{display:flex;align-items:center;gap:26px;font-size:15px;font-weight:500;height:100%}
-.nav > a, .nav-trigger .t{position:relative;padding:6px 0}
+.nav > a, .nav-trigger .t{position:relative;padding:6px 0;white-space:nowrap}
+/* เมนูยาวหลายรายการ (ตั้งค่าได้จากหลังบ้าน) — จอกลางลดระยะห่าง ไม่ให้ชื่อเมนูขึ้นบรรทัดใหม่ */
+@media (max-width:1320px){.header-row{gap:24px}.nav{gap:18px;font-size:14.5px}.nav-trigger{font-size:14.5px}}
+/* เมนูไม่พอดีความกว้างจอ (shell.js วัดแล้วใส่ .nav-over) → ใช้เมนูข้าง ☰ แทน */
+.header.nav-over .nav{visibility:hidden;position:absolute;pointer-events:none}
+.header.nav-over .menu-toggle{display:grid}
 .nav > a::after, .nav-trigger .t::after{content:"";position:absolute;left:0;bottom:0;width:0;height:2px;background:var(--c-orange);transition:width .2s}
 .nav > a:hover::after,.nav > a.active::after,.nav-trigger:hover .t::after,.nav-mega.open .nav-trigger .t::after{width:100%}
 .header-actions{margin-left:auto;display:flex;align-items:center;gap:4px}

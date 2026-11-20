@@ -28,6 +28,7 @@ const PAGES: { label: string; href: string; words: string; ownerOnly?: boolean }
   { label: "ใบลดหนี้ / คืนเงิน", href: "/admin/docs/CREDIT_NOTE", words: "credit note ใบลดหนี้ คืนเงิน cn refund" },
   { label: "ใบส่งของ / ใบรับสินค้า", href: "/admin/docs/DELIVERY", words: "delivery note ใบส่งของ ใบรับสินค้า do ส่งมอบ" },
   { label: "ค่าใช้จ่ายร้าน", href: "/admin/expenses", words: "expense ค่าใช้จ่าย รายจ่าย บิล" },
+  { label: "เมนูหน้าร้าน (Navbar)", href: "/admin/home/nav", words: "navbar menu เมนู แถบเมนู หัวเว็บ" },
   { label: "ภาษีถูกหัก ณ ที่จ่าย", href: "/admin/reports/wht", words: "wht withholding หัก ณ ที่จ่าย 50 ทวิ" },
   { label: "ลูกหนี้ค้างชำระ", href: "/admin/reports/receivables", words: "receivable ลูกหนี้ ค้างชำระ ทวง aging" },
   { label: "ปิดยอดประจำวัน", href: "/admin/reports/daily", words: "daily close ปิดยอด รับเงิน" },

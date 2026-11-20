@@ -4138,6 +4138,40 @@ html[data-adm-theme="dark"] .xp-bar {
 html[data-adm-theme="dark"] .xp-bar i {
     background: var(--c-orange)
 }
+/*  src/app/admin/(app)/home/nav/nav.css  */
+html[data-adm-theme="dark"] .nav-pv {
+    background: #1E2127;
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .nav-pv-logo {
+    color: #F18055
+}
+html[data-adm-theme="dark"] .nav-pv-items em {
+    color: var(--c-err)
+}
+html[data-adm-theme="dark"] .nav-list li {
+    background: #1E2127;
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .nav-list li.off {
+    background: #1A1C22
+}
+html[data-adm-theme="dark"] .nav-list li.off .nav-label {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .nav-grip {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .nav-fields input {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .nav-fields input.bad {
+    border-color: var(--c-err)
+}
+html[data-adm-theme="dark"] .nav-icons .off {
+    color: var(--c-muted)
+}
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {
     color: var(--c-muted)
