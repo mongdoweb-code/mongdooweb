@@ -1,0 +1,34 @@
+/* ธีมกลางวัน / กลางคืน ของหน้าร้าน (ใช้ทั้งหน้าร้านและหน้าชำระเงิน)
+   <html data-theme="dark|light" data-theme-mode="light|dark|system"> ตั้งก่อนวาดหน้าโดย THEME_BOOT (src/lib/shop-theme.ts)
+   สีของกฎแต่ละตัวแปลงอัตโนมัติใน *-dark.generated.css (npm run gen:shop-dark) — ไฟล์นี้กำหนดตัวแปรหลัก + ปุ่มสลับ */
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --c-white:#16181D;     /* พื้นการ์ด/หัวเว็บ */
+  --c-cream:#1C1F25;     /* พื้น section สลับ */
+  --c-cream-dk:#252931;
+  --c-ink:#ECEAE5;       /* ตัวอักษรหลัก */
+  --c-muted:#A8A49C;
+  --c-line:#30343C;
+  --c-err:#FF8A7A;
+  --c-ok:#5FD39A;
+}
+html[data-theme="dark"] body{background:var(--c-white)}
+/* รูปสินค้า (พื้นขาว) — ขอบมนเล็กน้อยไม่ให้ขอบขาวแข็งบนพื้นมืด */
+html[data-theme="dark"] .prod-img img,html[data-theme="dark"] .thumb img,html[data-theme="dark"] .ci-thumb img{border-radius:4px}
+html[data-theme="dark"] ::selection{background:#F26B38;color:#fff}
+/* ระหว่างสลับธีม: เปลี่ยนสีนุ่มนวล (ไม่กับผู้ที่ตั้งลดการเคลื่อนไหว) */
+@media (prefers-reduced-motion:no-preference){
+  html.theme-anim,html.theme-anim *{transition:background-color .25s ease,color .2s ease,border-color .25s ease !important}
+}
+
+/* ปุ่มสลับ: แคปซูล ☀ / ☾ วงกลมไฮไลต์เลื่อนไปฝั่งที่เลือก */
+.theme-tg{position:relative;display:inline-flex;align-items:center;gap:0;width:62px;height:32px;padding:0 4px;border-radius:999px;border:1px solid var(--c-line);background:var(--c-cream);color:var(--c-muted);cursor:pointer;flex:none}
+.theme-tg svg{position:relative;z-index:1;width:16px;height:16px;flex:1;transition:color .25s ease}
+.theme-tg .tg-knob{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#F26B38,#F59E0B);box-shadow:0 2px 6px rgba(242,107,56,.45);transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+.theme-tg .tg-sun{color:#fff}
+.theme-tg[aria-checked="true"] .tg-knob{transform:translateX(28px);background:linear-gradient(135deg,#6D5BFF,#B65BFF);box-shadow:0 2px 8px rgba(109,91,255,.5)}
+.theme-tg[aria-checked="true"] .tg-sun{color:var(--c-muted)}
+.theme-tg[aria-checked="true"] .tg-moon{color:#fff}
+.theme-tg:focus-visible{outline:2px solid var(--c-orange);outline-offset:2px}
+.dr-theme{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--c-line);font-size:14px;font-weight:600}
+@media (prefers-reduced-motion:reduce){.theme-tg .tg-knob,.theme-tg svg{transition:none}}

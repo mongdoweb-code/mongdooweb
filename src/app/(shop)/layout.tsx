@@ -5,6 +5,7 @@ import { assetUrl } from "@/lib/asset-version";
 import { getCatalogExtras } from "@/lib/product-data";
 import { getPublicShopInfo } from "@/lib/settings";
 import { getStorefrontExtras } from "@/lib/shop-public";
+import { SHOP_THEME_BOOT } from "@/lib/shop-theme";
 import { getShopData, jsonForScript } from "@/lib/storefront";
 import QRCode from "qrcode";
 import { collapseVariants } from "./_components/ProductListing";
@@ -15,6 +16,8 @@ import "./pages.css";
 import "./lot2.css";
 import "./lot9.css";
 import "./lot10.css";
+import "./shop-theme.css";
+import "./shop-dark.generated.css";
 
 export default async function ShopLayout({ children }: LayoutProps<"/">) {
   const [data, info, extras, catExtras] = await Promise.all([getShopData(), getPublicShopInfo(), getStorefrontExtras(), getCatalogExtras()]);
@@ -30,6 +33,8 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
   const shop = { tiers: info.tiers.map((t) => ({ min: t.minSatang / 100, fee: t.feeSatang / 100 })), freeShipMin: freeShipMinBaht };
   return (
     <>
+      {/* ธีมกลางวัน/กลางคืน: ตั้งก่อนวาดหน้า */}
+      <script dangerouslySetInnerHTML={{ __html: SHOP_THEME_BOOT }} />
       {!extras.announcement && <style>{":root{--tb-h:0px}"}</style>}
       {/* display: contents → wrapper ไม่สร้างกล่อง ทำให้ header ยัง sticky ตาม body เหมือนต้นแบบ */}
       <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderShellTop({ announcement: extras.announcement, freeShipMinBaht, hasFaq, productCount }) }} />
