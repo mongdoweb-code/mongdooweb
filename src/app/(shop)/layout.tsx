@@ -37,7 +37,7 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
       <script dangerouslySetInnerHTML={{ __html: SHOP_THEME_BOOT }} />
       {!extras.announcement && <style>{":root{--tb-h:0px}"}</style>}
       {/* display: contents → wrapper ไม่สร้างกล่อง ทำให้ header ยัง sticky ตาม body เหมือนต้นแบบ */}
-      <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderShellTop({ announcement: extras.announcement, freeShipMinBaht, hasFaq, productCount }) }} />
+      <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderShellTop({ announcement: extras.announcement, freeShipMinBaht, hasFaq, productCount, nav: extras.nav }) }} />
       {children}
       <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderFooter(info, { hasFaq, lineQrSvg }) }} />
       <script id="mdw-data" type="application/json" dangerouslySetInnerHTML={{ __html: jsonForScript(pub) }} />

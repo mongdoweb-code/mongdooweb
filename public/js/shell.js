@@ -289,6 +289,8 @@ renderCats();
 /* ---------- Mega dropdown: hover-intent + keyboard + touch (U12) ---------- */
 const Mega = (() => {
   const wrap = $('#navMega'), btn = $('#megaBtn'), panel = $('#megaPanel');
+  // ซ่อนเมนู "หมวดสินค้า" ในตั้งค่าเมนูหน้าร้าน → ไม่มีเมนูเลื่อนลง
+  if (!wrap || !btn || !panel) return { open() {}, close() {}, isOpen: () => false };
   let tOpen = 0, tClose = 0, openedBy = '', leavePt = null, leaveAt = 0;
   const isOpen = () => wrap.classList.contains('open');
   function open(by){
@@ -992,7 +994,7 @@ const MdwLists = (() => {
   // ไอคอนรายการโปรดบนแถบหัว (ก่อนตะกร้า) + ลิงก์ในเมนูมือถือ
   const head = $('.header-actions'), cw = $('#cartWrap');
   let wishLink = null;
-  if (head && cw){
+  if (head && cw && !head.hasAttribute('data-no-wish')){
     wishLink = document.createElement('a');
     wishLink.href = '/wishlist'; wishLink.className = 'icon-btn wish-link'; wishLink.id = 'wishLink';
     wishLink.innerHTML = HEART + '<span class="cart-count" id="wishCount" aria-hidden="true" hidden>0</span>';
@@ -1107,6 +1109,22 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
     if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
   }
   sync();
+})();
+
+/* ---------- เมนูหลักไม่พอดีจอ → ใช้เมนูข้าง ☰ ----------
+   เมนูตั้งค่าได้จากหลังบ้าน (จำนวน/ชื่อยาวต่างกัน) — วัดว่าแถวหัวเว็บล้นหรือไม่ ทุกครั้งที่เปลี่ยนขนาดจอ */
+(function () {
+  var header = document.getElementById('header'), nav = header && header.querySelector('.nav'), row = header && header.querySelector('.header-row');
+  if (!nav || !row) return;
+  function fit() {
+    header.classList.remove('nav-over');
+    if (getComputedStyle(nav).display === 'none') return; // จอเล็ก: ซ่อนเมนูอยู่แล้ว
+    if (row.scrollWidth > row.clientWidth + 1) header.classList.add('nav-over');
+  }
+  var t = 0;
+  window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(fit, 80); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  fit();
 })();
 
 /* แจ้งสคริปต์ของแต่ละหน้า (เช่น home.js) ว่าส่วนกลางพร้อมแล้ว */
