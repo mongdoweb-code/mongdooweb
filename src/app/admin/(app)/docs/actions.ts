@@ -55,11 +55,14 @@ export async function setSignDate(f: FormData) {
   const admin = await requireAdmin();
   const id = String(f.get("id") ?? "").slice(0, 40);
   const ymd = String(f.get("signDate") ?? "");
-  const d = await prisma.salesDocument.findUnique({ where: { id }, select: { id: true, type: true, docNo: true, issueDate: true } });
+  // signMode: sign = ลายเซ็น/ชื่อ/วันที่ฝั่งร้าน · blank = เว้นว่างให้เซ็นด้วยมือภายหลัง (ไม่ส่ง = คงเดิม)
+  const mode = String(f.get("signMode") ?? "");
+  const d = await prisma.salesDocument.findUnique({ where: { id }, select: { id: true, type: true, docNo: true, issueDate: true, signBlank: true } });
   if (!d) return;
   const v = ymdRe.test(ymd) ? fromYmd(ymd) : null;
-  await prisma.salesDocument.update({ where: { id }, data: { signDate: v && ymd !== ymdOf(d.issueDate) ? v : null } });
-  await logAdmin(admin.id, "DOC", `แก้วันที่ลงนาม ${d.docNo ?? "ฉบับร่าง"} → ${ymd || "ใช้วันที่เอกสาร"}`);
+  const signBlank = mode === "blank" ? true : mode === "sign" ? false : d.signBlank;
+  await prisma.salesDocument.update({ where: { id }, data: { signDate: v && ymd !== ymdOf(d.issueDate) ? v : null, signBlank, ...(mode === "sign" ? { signImage: true } : {}) } });
+  await logAdmin(admin.id, "DOC", `ช่องลงนาม ${d.docNo ?? "ฉบับร่าง"}: ${signBlank ? "เว้นว่างไว้เซ็นภายหลัง" : `ลายเซ็น/ชื่อ วันที่ ${ymd || "ตามวันที่เอกสาร"}`}`);
   refresh();
 }
 
@@ -257,7 +260,7 @@ async function copyToDraft(srcId: string, type: DocTypeT, adminId: string, link:
         ...totalsFor(items, src.discountSatang, vatMode, s.vatRateBp), vatMode, vatRateBp: vatMode === "NONE" ? 0 : s.vatRateBp,
         paymentMethod: src.paymentMethod, paymentTerms: type === src.type ? src.paymentTerms : defaultTerms(s, type) || null, carrier: src.carrier, note: src.note,
         internalNote: src.internalNote, sourceId: link.sourceId ?? null, orderId: link.orderId ?? null,
-        signImage: src.signImage, showBank: src.showBank,
+        signImage: src.signImage, showBank: src.showBank, signBlank: src.signBlank,
         items: { create: items },
       },
     });

@@ -2251,8 +2251,11 @@ html[data-adm-theme="dark"] .ln-img-grid button {
 html[data-adm-theme="dark"] .ln-img-grid button.on {
     border-color: var(--c-orange)
 }
-html[data-adm-theme="dark"] .sign-form input {
+html[data-adm-theme="dark"] .sign-form input[type=date] {
     border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .sign-form .sign-mode {
+    border: 0
 }
 html[data-adm-theme="dark"] .ra-print {
     color: #919EB2

@@ -240,13 +240,19 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
 
           {s.showSignature && d.status !== "VOID" && (
             <section className="dv-sec">
-              <h3>วันที่ลงนาม{SIGNER[d.type]}</h3>
-              <form action={setSignDate} className="sign-form">
+              <h3>ช่องลงนาม{SIGNER[d.type]}</h3>
+              <form action={setSignDate} className="sign-form" id="signForm">
                 <input type="hidden" name="id" value={d.id} />
-                <input type="date" name="signDate" defaultValue={ymdOf(d.signDate) || ymdOf(d.issueDate) || today} aria-label={`วันที่ลงนาม${SIGNER[d.type]}`} />
-                <button className="btn btn-outline btn-sm" type="submit">บันทึกวันที่</button>
+                <fieldset className="sign-mode" aria-label={`รูปแบบช่องลงนาม${SIGNER[d.type]}`}>
+                  <label className="chk-row"><input type="radio" name="signMode" value="sign" defaultChecked={!d.signBlank} /> ลายเซ็นเจ้าของร้าน พร้อมชื่อและวันที่</label>
+                  <label className="chk-row"><input type="radio" name="signMode" value="blank" defaultChecked={d.signBlank} /> เว้นว่างไว้ — เซ็นชื่อ + วันที่ภายหลัง</label>
+                </fieldset>
+                <div className="sign-date">
+                  <input type="date" name="signDate" defaultValue={ymdOf(d.signDate) || ymdOf(d.issueDate) || today} aria-label={`วันที่ลงนาม${SIGNER[d.type]}`} />
+                  <button className="btn btn-outline btn-sm" type="submit">บันทึก</button>
+                </div>
               </form>
-              <small className="sub">แสดงใต้ช่องลงนาม{SIGNER[d.type]}บนเอกสาร · ค่าเริ่มต้น = วันที่เอกสาร</small>
+              <small className="sub">วันที่ใช้เมื่อเลือกแบบแรก · ค่าเริ่มต้น = วันที่เอกสาร{!s.signatureKey ? " · อัปโหลดลายเซ็นได้ที่ ตั้งค่าร้าน" : ""}</small>
             </section>
           )}
 

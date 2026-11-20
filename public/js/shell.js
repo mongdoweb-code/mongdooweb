@@ -1074,6 +1074,41 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   if (document.readyState === 'complete') reg(); else addEventListener('load', reg);
 }
 
+/* ---------- ธีมกลางวัน / กลางคืน ----------
+   สถานะเริ่มต้นตั้งโดย SHOP_THEME_BOOT (src/lib/shop-theme.ts) ก่อนวาดหน้า · กดสลับ = จำเป็น light/dark ในคุกกี้ mdw_theme 1 ปี
+   ยังไม่เคยกด (system) = ตามโหมดของเครื่อง และเปลี่ยนตามทันทีเมื่อเครื่องเปลี่ยนโหมด */
+(function () {
+  var h = document.documentElement;
+  var mq = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  function cur() { return h.getAttribute('data-theme') === 'dark'; }
+  function sync() {
+    var on = cur();
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (b) {
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.setAttribute('aria-label', on ? 'โหมดกลางคืน (เปิดอยู่) — กดเพื่อเปลี่ยนเป็นกลางวัน' : 'โหมดกลางวัน (เปิดอยู่) — กดเพื่อเปลี่ยนเป็นกลางคืน');
+    });
+  }
+  function apply(dark, mode) {
+    h.classList.add('theme-anim');
+    h.setAttribute('data-theme', dark ? 'dark' : 'light');
+    h.setAttribute('data-theme-mode', mode);
+    sync();
+    setTimeout(function () { h.classList.remove('theme-anim'); }, 350);
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-theme-toggle]');
+    if (!b) return;
+    var dark = !cur();
+    try { document.cookie = 'mdw_theme=' + (dark ? 'dark' : 'light') + ';path=/;max-age=31536000;samesite=lax'; } catch (err) {}
+    apply(dark, dark ? 'dark' : 'light');
+  });
+  if (mq) {
+    var onChange = function () { if ((h.getAttribute('data-theme-mode') || 'system') === 'system') apply(mq.matches, 'system'); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
+  }
+  sync();
+})();
+
 /* แจ้งสคริปต์ของแต่ละหน้า (เช่น home.js) ว่าส่วนกลางพร้อมแล้ว */
 window.mdwShellReady = true;
 document.dispatchEvent(new Event('mdw:shell'));

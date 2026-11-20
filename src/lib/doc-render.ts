@@ -52,6 +52,8 @@ export type DocView = {
   online?: { qr: string; url: string } | null;
   /** ตัวเลือกของเอกสารนี้: ใส่ลายเซ็น/ตราประทับ (ค่าเริ่มต้น true) · แสดงเลขบัญชีบนใบเสนอราคา (ไม่ระบุ = ตามตั้งค่าร้าน) */
   signImage?: boolean; showBank?: boolean;
+  /** ช่องลงนามฝั่งร้านเว้นว่าง (เซ็นชื่อ+วันที่ด้วยมือภายหลัง) */
+  signBlank?: boolean;
   /** ตัวอย่างในตัวแก้ไข: แสดงลายเซ็นแม้เป็นฉบับร่าง (มีลายน้ำ "ฉบับร่าง" — พิมพ์จริงยังต้องออกเอกสารก่อน) */
   previewSign?: boolean;
 };
@@ -219,9 +221,11 @@ export function buildDocParts(d: DocView): DocParts {
   const useSig = issued && d.signImage !== false;
   const sigImg = useSig && s.signature ? `<img class="sg-sig" src="${esc(s.signature)}" alt="">` : "";
   const stampImg = useSig && s.stamp ? `<img class="sg-stamp" src="${esc(s.stamp)}" alt="">` : "";
+  // signBlank: ช่องฝั่งร้านเว้นว่างทั้งหมด (ไม่มีลายเซ็น ชื่อ วันที่) ให้เซ็นด้วยมือภายหลัง
+  const blank = !!d.signBlank;
   const sign = s.showSignature
     ? `<section class="sh-sign">${SIGN[d.type].map((l, i) => {
-        const me = i === 0;
+        const me = i === 0 && !blank;
         const who = me && s.signerName ? `<em class="sg-name">( ${esc(s.signerName)} )</em>${s.signerTitle ? `<em class="sg-title">${esc(s.signerTitle)}</em>` : ""}` : "";
         return `<div class="sg-slot${me && (sigImg || stampImg) ? " has-sig" : ""}"><div class="sg-line">${me ? sigImg + stampImg : ""}</div>${who}<b>${l}</b><span>วันที่ ${me && signDay ? `<b class="sg-date">${esc(docDate(signDay, era))}</b>` : "______/______/__________"}</span></div>`;
       }).join("")}</section>`

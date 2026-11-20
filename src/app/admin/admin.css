@@ -1835,7 +1835,11 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .ln-img-grid img{width:100%;height:100%;object-fit:contain}
 .ln-img-acts{display:flex;flex-wrap:wrap;gap:6px}
 .sign-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
-.sign-form input{height:36px;border:1.5px solid var(--c-line);padding:0 10px}
+.sign-form input[type=date]{height:36px;border:1.5px solid var(--c-line);padding:0 10px}
+.sign-form .sign-mode{border:0;padding:0;margin:0;display:grid;gap:6px;width:100%}
+.sign-form .sign-mode .chk-row{font-size:13.5px;font-weight:600}
+.sign-form .sign-date{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sign-form:has(input[value=blank]:checked) .sign-date input[type=date]{opacity:.45}
 @media (max-width:860px){
   .de-line{grid-template-columns:22px 56px minmax(0,1fr)!important;grid-template-areas:"n i m" "n i a" "n x x" "n e e"!important}
 }

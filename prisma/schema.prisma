@@ -660,6 +660,7 @@ model SalesDocument {
   workBy          Admin?    @relation("DocWorkBy", fields: [workById], references: [id], onDelete: SetNull)
   // ตัวเลือกต่อเอกสาร (ติ๊กในตัวแก้ไข) — ค่าเริ่มต้นของเอกสารใหม่มาจากตั้งค่าร้าน
   signImage       Boolean   @default(true) // ใส่ลายเซ็น/ตราประทับอิเล็กทรอนิกส์ (ต้องอัปโหลดในตั้งค่าร้านก่อน)
+  signBlank       Boolean   @default(false) // ช่องลงนามฝั่งร้านเว้นว่าง (ไม่มีลายเซ็น ชื่อ วันที่) — เซ็นชื่อ+วันที่ด้วยมือภายหลัง
   showBank        Boolean   @default(true) // ใบเสนอราคา: แสดงเลขบัญชีธนาคาร
   /// ใบเสร็จรับเงินมัดจำ (RC ที่ออกจากใบเสนอราคา sourceId = QT) — หักออกจากใบแจ้งหนี้อัตโนมัติเมื่อออกใบแจ้งหนี้ของใบเสนอราคานั้น
   isDeposit       Boolean   @default(false)

@@ -79,7 +79,7 @@ export function darkColor(hex, role) {
   return hslToHex({ h, s: clamp(s, 0, 0.85), l: clamp(Math.max(l, 0.64), 0.64, 0.8) }, c.a); // ตัวอักษรสี → สว่างขึ้น
 }
 
-const roleOf = (prop) => (/^(color|fill|stroke|caret-color|text-decoration-color)$/.test(prop) ? "text" : /^border|^outline|^column-rule/.test(prop) ? "border" : "bg");
+export const roleOf = (prop) => (/^(color|fill|stroke|caret-color|text-decoration-color)$/.test(prop) ? "text" : /^border|^outline|^column-rule/.test(prop) ? "border" : "bg");
 
 /** ตัวแปรสีของคอมโพเนนต์ (เช่น --stb-line) → บทบาทตามชื่อ */
 const roleOfVar = (name) => (/line|border/.test(name) ? "border" : /ink|muted|text|fg|acc/.test(name) ? "text" : "bg");
@@ -99,20 +99,22 @@ function convertValue(prop, value) {
   return changed ? out : null;
 }
 
-function scopeSelector(sel) {
+function scopeSelector(sel, root = ROOT, exclude = EXCLUDE) {
   return sel
     .split(",")
     .map((s) => s.trim())
-    .filter((s) => s && !EXCLUDE.test(s))
-    .map((s) => (/^(html|:root)\b/.test(s) ? null : /^body\b/.test(s) ? `${ROOT} ${s}` : `${ROOT} ${s}`))
+    .filter((s) => s && !exclude.test(s))
+    .map((s) => (/^(html|:root)\b/.test(s) ? null : `${root} ${s}`))
     .filter(Boolean)
     .join(",\n");
 }
 
-export function generate() {
+/** opts: ใช้ซ้ำกับธีมมืดหน้าร้าน (scripts/gen-shop-dark.mjs) — ไม่ส่ง = หลังบ้าน */
+export function generate(opts = {}) {
+  const sources = opts.sources ?? SOURCES, root0 = opts.root ?? ROOT, exclude = opts.exclude ?? EXCLUDE, fixVar = opts.fixVar;
   const out = postcss.root();
-  out.append(postcss.comment({ text: " ไฟล์นี้สร้างอัตโนมัติด้วย scripts/gen-admin-dark.mjs — ห้ามแก้ตรง (แก้ที่ CSS ต้นฉบับแล้วรัน npm run gen:admin-dark) " }));
-  for (const file of SOURCES) {
+  out.append(postcss.comment({ text: opts.header ?? " ไฟล์นี้สร้างอัตโนมัติด้วย scripts/gen-admin-dark.mjs — ห้ามแก้ตรง (แก้ที่ CSS ต้นฉบับแล้วรัน npm run gen:admin-dark) " }));
+  for (const file of sources) {
     const root = postcss.parse(readFileSync(file, "utf8"), { from: file });
     const section = [];
     root.walkRules((rule) => {
@@ -127,11 +129,12 @@ export function generate() {
         if (n.type !== "decl") return;
         const isVarColor = n.prop.startsWith("--") && /^#(?:[0-9a-fA-F]{3,8})$/.test(n.value.trim());
         if (!PROPS.test(n.prop) && !isVarColor) return;
-        const v = convertValue(n.prop, n.value);
+        const v0 = convertValue(n.prop, n.value);
+        const v = fixVar ? fixVar(n.prop, v0 ?? n.value, roleOf(n.prop)) ?? v0 : v0;
         decls.push(postcss.decl({ prop: n.prop, value: v ?? n.value, important: n.important }));
       });
       if (!decls.length) return;
-      const sel = scopeSelector(rule.selector);
+      const sel = scopeSelector(rule.selector, root0, exclude);
       if (!sel) return;
       let node = postcss.rule({ selector: sel });
       decls.forEach((d) => node.append(d));

@@ -1,0 +1,520 @@
+/*  ไฟล์นี้สร้างอัตโนมัติด้วย scripts/gen-shop-dark.mjs — ห้ามแก้ตรง (แก้ที่ CSS ต้นฉบับแล้วรัน npm run gen:shop-dark)  */
+/*  src/app/(checkout)/checkout.css  */
+html[data-theme="dark"] body {
+    color: var(--c-ink);
+    background: var(--c-cream)
+}
+html[data-theme="dark"] a {
+    color: inherit
+}
+html[data-theme="dark"] button {
+    border: 0;
+    background: none;
+    color: inherit
+}
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .header {
+    background: var(--c-white);
+    border-bottom: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .secure {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .secure svg {
+    color: var(--c-ok)
+}
+html[data-theme="dark"] .logo small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .back-shop {
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .back-shop:hover {
+    color: var(--c-orange)
+}
+html[data-theme="dark"] .cart-btn {
+    background: var(--c-cream);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .cart-btn:hover {
+    background: var(--c-cream-dk)
+}
+html[data-theme="dark"] .cart-count {
+    background: var(--c-orange);
+    color: #fff
+}
+html[data-theme="dark"] :focus-visible {
+    outline: 3px solid var(--c-orange)
+}
+html[data-theme="dark"] .skip {
+    background: var(--c-black);
+    color: #fff
+}
+html[data-theme="dark"] .stepper li {
+    color: var(--c-muted);
+    border-top: 3px solid var(--c-line)
+}
+html[data-theme="dark"] .stepper li.st-done {
+    border-color: var(--c-ink);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .stepper li.st-now {
+    border-color: var(--c-orange);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .stepper li.st-now b {
+    color: var(--c-orange)
+}
+html[data-theme="dark"] .card {
+    background: var(--c-white)
+}
+html[data-theme="dark"] .card .sub {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .field label i {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .field input,
+html[data-theme="dark"] .field textarea,
+html[data-theme="dark"] .field select {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    outline: none
+}
+html[data-theme="dark"] .field input:focus,
+html[data-theme="dark"] .field textarea:focus {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .field.err input,
+html[data-theme="dark"] .field.err textarea {
+    border-color: var(--c-err)
+}
+html[data-theme="dark"] .field .msg {
+    color: var(--c-err)
+}
+html[data-theme="dark"] .radio {
+    border: 1.5px solid var(--c-line)
+}
+html[data-theme="dark"] .radio:has(input:checked) {
+    border-color: var(--c-ink);
+    background: #1C1E24
+}
+html[data-theme="dark"] .radio small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .radio .p.free {
+    color: var(--c-ok)
+}
+html[data-theme="dark"] .btn-primary {
+    background: var(--c-orange);
+    color: #fff
+}
+html[data-theme="dark"] .btn-primary:hover {
+    background: var(--c-orange-dk)
+}
+html[data-theme="dark"] .btn-primary:disabled {
+    background: #141310
+}
+html[data-theme="dark"] .btn-outline {
+    border: 1.5px solid var(--c-black)
+}
+html[data-theme="dark"] .btn-outline:hover {
+    background: var(--c-black);
+    color: #fff
+}
+html[data-theme="dark"] .btn-line {
+    background: #00843D;
+    color: #fff
+}
+html[data-theme="dark"] .link {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .link:hover {
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .pay-amount {
+    background: var(--c-cream)
+}
+html[data-theme="dark"] .pay-amount span {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .tabs {
+    border-bottom: 1.5px solid var(--c-line)
+}
+html[data-theme="dark"] .tab {
+    color: var(--c-muted);
+    border-bottom: 3px solid transparent
+}
+html[data-theme="dark"] .tab.on {
+    color: var(--c-ink);
+    border-color: var(--c-orange)
+}
+html[data-theme="dark"] .howto li::before {
+    background: var(--c-black);
+    color: #fff
+}
+html[data-theme="dark"] .bank {
+    border: 1.5px solid var(--c-line)
+}
+html[data-theme="dark"] .bank-row + .bank-row {
+    border-top: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .bank-row span {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .copy {
+    border: 1.5px solid var(--c-line)
+}
+html[data-theme="dark"] .copy:hover {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .note {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .demo-flag {
+    background: #261912;
+    color: var(--c-orange-dk)
+}
+html[data-theme="dark"] .drop {
+    border: 2px dashed #3C3934
+}
+html[data-theme="dark"] .drop:hover,
+html[data-theme="dark"] .drop.drag {
+    border-color: var(--c-orange);
+    background: #2B1D15
+}
+html[data-theme="dark"] .drop svg {
+    color: var(--c-orange)
+}
+html[data-theme="dark"] .drop small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .drop.err {
+    border-color: var(--c-err)
+}
+html[data-theme="dark"] .preview {
+    border: 1.5px solid var(--c-line)
+}
+html[data-theme="dark"] .preview small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .file-msg {
+    color: var(--c-err)
+}
+html[data-theme="dark"] .summary details {
+    background: var(--c-white)
+}
+html[data-theme="dark"] .si {
+    border-bottom: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .si-thumb {
+    background: var(--c-cream)
+}
+html[data-theme="dark"] .si-thumb em {
+    background: var(--c-black);
+    color: #fff
+}
+html[data-theme="dark"] .rows span {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .rows .free {
+    color: var(--c-ok)
+}
+html[data-theme="dark"] .rows .grand {
+    border-top: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .rows .grand span {
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .nudge {
+    background: var(--c-cream)
+}
+html[data-theme="dark"] .nudge .bar {
+    background: var(--c-cream-dk)
+}
+html[data-theme="dark"] .nudge .bar i {
+    background: var(--c-orange)
+}
+html[data-theme="dark"] .ship-to {
+    border-top: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .ship-to span {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .done {
+    background: var(--c-white)
+}
+html[data-theme="dark"] .done .ico {
+    background: #141D18;
+    color: var(--c-ok)
+}
+html[data-theme="dark"] .done .ordno {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .done .ordno b {
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .status {
+    background: #221C10;
+    color: #F1BB55
+}
+html[data-theme="dark"] .timeline {
+    border-left: 2px solid var(--c-line)
+}
+html[data-theme="dark"] .timeline li::before {
+    background: var(--c-line)
+}
+html[data-theme="dark"] .timeline li.ok::before {
+    background: var(--c-ok)
+}
+html[data-theme="dark"] .timeline li.wait::before {
+    background: var(--c-orange)
+}
+html[data-theme="dark"] .timeline small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .toast {
+    background: var(--c-black);
+    color: #fff
+}
+@media (max-width:900px) {
+    html[data-theme="dark"] .summary summary h2::after {
+        color: var(--c-muted)
+    }
+}
+html[data-theme="dark"] .bank-card {
+    --bk: #0D0F11;
+    --bk-ink: #C6C4C0;
+    --bk-fg: #fff;
+    background: #1E2127;
+    border: 1.5px solid var(--c-line);
+    border-left: 6px solid var(--bk)
+}
+html[data-theme="dark"] .bk-name {
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .bk-t small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .bk-accbox {
+    background: color-mix(in srgb,var(--bk) 8%,#1E2127);
+    border: 1px solid color-mix(in srgb,var(--bk) 22%,#2F333C)
+}
+html[data-theme="dark"] .bk-lbl {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .bk-acc {
+    color: var(--bk-ink)
+}
+html[data-theme="dark"] .copy.copy-acc {
+    border: 1.5px solid var(--bk-ink);
+    color: var(--bk-ink);
+    background: #1E2127
+}
+html[data-theme="dark"] .copy.copy-acc svg {
+    fill: none;
+    stroke: currentColor
+}
+html[data-theme="dark"] .copy.copy-acc:hover {
+    background: var(--bk-ink);
+    color: #fff
+}
+html[data-theme="dark"] .copy.copy-acc.done {
+    background: #15803D;
+    border-color: #15803D;
+    color: #fff
+}
+html[data-theme="dark"] .bk-holder span {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .bk-KBANK {
+    --bk: #138F2D;
+    --bk-ink: #5AEC79
+}
+html[data-theme="dark"] .bk-SCB {
+    --bk: #4E2E7F;
+    --bk-ink: #9A78CE
+}
+html[data-theme="dark"] .bk-BBL {
+    --bk: #1E4598;
+    --bk-ink: #668DE1
+}
+html[data-theme="dark"] .bk-KTB {
+    --bk: #1BA5E1;
+    --bk-ink: #55C0F1
+}
+html[data-theme="dark"] .bk-BAY {
+    --bk: #FEC43B;
+    --bk-ink: #F1C855;
+    --bk-fg: #F1CE55
+}
+html[data-theme="dark"] .bk-TTB {
+    --bk: #0050F0;
+    --bk-ink: #558AF1
+}
+html[data-theme="dark"] .bk-GSB {
+    --bk: #EB198D;
+    --bk-ink: #F056AA
+}
+html[data-theme="dark"] .bk-BAAC {
+    --bk: #4B9B1D;
+    --bk-ink: #93E363
+}
+html[data-theme="dark"] .bk-UOB {
+    --bk: #0B3979;
+    --bk-ink: #5797F0
+}
+html[data-theme="dark"] .bk-CIMB {
+    --bk: #7E2F36;
+    --bk-ink: #CD7981
+}
+html[data-theme="dark"] .bk-LHB {
+    --bk: #0D0F11;
+    --bk-ink: #B3B3B7
+}
+html[data-theme="dark"] .bk-KKP {
+    --bk: #0E0E11;
+    --bk-ink: #8F8BBB
+}
+html[data-theme="dark"] .bk-PROMPTPAY {
+    --bk: #1A3D7C;
+    --bk-ink: #6792DF
+}
+html[data-theme="dark"] .ship-rates {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ship-rates ul {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-theme="dark"] .ship-rates li {
+    border-bottom: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .ship-rates li:last-child {
+    border-bottom: 0
+}
+html[data-theme="dark"] .ship-rates b {
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .sr-only {
+    border: 0
+}
+html[data-theme="dark"] .field select {
+    background: #1E2127 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B6862' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center/18px
+}
+html[data-theme="dark"] .field select:focus {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .field.err select {
+    border-color: var(--c-err)
+}
+html[data-theme="dark"] .check small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .remember {
+    background: var(--c-cream)
+}
+html[data-theme="dark"] .saved-addr {
+    background: #141D18;
+    color: #70D7A4
+}
+html[data-theme="dark"] .tax-box {
+    border: 1.5px solid var(--c-line)
+}
+html[data-theme="dark"] .seg label {
+    border: 1.5px solid var(--c-line)
+}
+html[data-theme="dark"] .seg label:has(input:checked) {
+    border-color: var(--c-ink);
+    background: #1C1E24
+}
+html[data-theme="dark"] .co-notice {
+    background: #221C10;
+    border-left: 4px solid #E0A100
+}
+html[data-theme="dark"] .up-bar {
+    background: var(--c-cream-dk)
+}
+html[data-theme="dark"] .up-bar i {
+    background: var(--c-orange)
+}
+html[data-theme="dark"] .btn-ghost {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .done:not(.pending) .ico {
+    background: #16A34A;
+    color: #fff
+}
+html[data-theme="dark"] .done:not(.pending) .ico::after {
+    border: 2px solid #22C55E
+}
+html[data-theme="dark"] .done:not(.pending) h1 {
+    color: #61E593
+}
+html[data-theme="dark"] .done.pending .ico {
+    background: #221C10;
+    color: #F1BB55
+}
+html[data-theme="dark"] .done.pending h1 {
+    color: #F1BB55
+}
+html[data-theme="dark"] .done h1:focus {
+    outline: none
+}
+html[data-theme="dark"] .done-ids div {
+    background: var(--c-cream)
+}
+html[data-theme="dark"] .done-ids span {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .done-sec {
+    border-top: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .done-sec .si .q {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .done-addr {
+    background: var(--c-cream)
+}
+html[data-theme="dark"] .done-addr span {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .coupon-row input {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    outline: none
+}
+html[data-theme="dark"] .coupon-row input:focus {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .coupon-msg.bad {
+    color: var(--c-err)
+}
+html[data-theme="dark"] .coupon-msg.ok {
+    color: var(--c-ok)
+}
+html[data-theme="dark"] .rows .disc {
+    color: var(--c-ok)
+}
+html[data-theme="dark"] .rows em {
+    background: var(--c-cream);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .pickup-box {
+    border: 1.5px dashed var(--c-line);
+    background: #1C1E24
+}
+html[data-theme="dark"] .pickup-box span {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .pay-err {
+    color: var(--c-err)
+}
+html[data-theme="dark"] .cod-pane {
+    border: 1.5px solid var(--c-ink);
+    background: #1C1E24
+}
