@@ -50,6 +50,15 @@ export default async function PrintLabelsPage({ searchParams }: PageProps<"/admi
       back = nos.length === 1 ? `/admin?tab=ALL&open=${nos[0]}` : "/admin?tab=PAID";
     }
   }
+  // ผู้รับที่แก้เองจากหน้าเอกสาร/คำสั่งซื้อ (ใช้กับใบปะหน้าเดียวเท่านั้น)
+  const toName = one(sp.toName).trim().slice(0, 120);
+  if (list.length === 1 && toName) {
+    list[0] = {
+      ...list[0], name: toName, phone: one(sp.toPhone).trim().slice(0, 60),
+      addr: one(sp.toAddr).replace(/\r\n?/g, "\n").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 4).join("\n").slice(0, 400),
+      zip: one(sp.toZip).replace(/\D/g, "").slice(0, 5),
+    };
+  }
   const markList = one(sp.marks) ? one(sp.marks).split(",") : Object.keys(MARKS);
   const opts: LabelOpts = {
     size: one(sp.size) === "A4" ? "A4" : "A6",

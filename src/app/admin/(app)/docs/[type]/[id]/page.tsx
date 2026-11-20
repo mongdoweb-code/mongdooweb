@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { docDate, docDateTime, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST } from "@/lib/doc-render";
-import { DOC_INCLUDE, LOST_REASONS, PAY_METHODS, asSnap, docPath, isDocType, statusOf, toView, todayYmd, ymdOf } from "@/lib/docs";
+import { DOC_INCLUDE, LOST_REASONS, docLabel, PAY_METHODS, asSnap, docPath, isDocType, statusOf, toView, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { ConfirmSubmit } from "../../../../_components/AdminClient";
@@ -312,7 +312,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
           {d.type !== "QUOTATION" && d.type !== "CREDIT_NOTE" && d.status !== "DRAFT" && d.status !== "VOID" && (
             <details className="dv-sec lbl-box">
               <summary><h3>ใบปะหน้าส่งของ</h3></summary>
-              <LabelOptions target={`doc=${d.id}`} idKey={d.id} />
+              <LabelOptions target={`doc=${d.id}`} idKey={d.id} to={(({ name, phone, addr, zip }) => ({ name, phone, addr, zip }))(docLabel(d, new Set()))} />
             </details>
           )}
 
