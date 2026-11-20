@@ -160,19 +160,21 @@ export function buildDocParts(d: DocView): DocParts {
 
   const hasDisc = d.items.some((i) => i.discountSatang > 0);
   // รูปสินค้าหน้ารายการ — มีรูปอย่างน้อย 1 รายการ = เว้นช่องรูปให้ทุกแถว (ชื่อรายการตรงกัน)
-  const hasImg = d.items.some((i) => i.img);
+  // ใบเสร็จรับเงิน: แสดงเฉพาะชื่อรายการ (ไม่มีรูป ไม่มีรายละเอียด/สเปก) ให้กระชับเหมือนใบเสร็จทั่วไป
+  const plain = d.type === "RECEIPT";
+  const hasImg = !plain && d.items.some((i) => i.img);
   const imgCell = (it: DocLine) => (hasImg ? `<span class="it-img">${it.img ? `<img src="${esc(it.img)}" alt="">` : ""}</span>` : "");
   const isDo = d.type === "DELIVERY";
   const thead = isDo
     ? `<thead><tr><th class="c w-no">ลำดับ</th><th class="w-sku">รหัสสินค้า</th><th>รายการสินค้า</th><th class="n w-qty">จำนวน</th><th class="w-unit">หน่วย</th><th class="c w-chk">ตรวจรับ</th></tr></thead>`
     : `<thead><tr><th class="c w-no">ลำดับ</th><th class="w-sku">รหัสสินค้า</th><th>รายการสินค้า</th><th class="w-unit">หน่วย</th><th class="n w-price">ราคาขาย/บาท</th><th class="n w-qty">จำนวน</th>${hasDisc ? '<th class="n w-disc">ส่วนลด</th>' : ""}<th class="n w-amt">ราคารวม/บาท</th></tr></thead>`;
-  const nameCell = (it: DocLine) => `<td class="nm"><div class="nm-row">${imgCell(it)}<div>${nl2br(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${nl2br(it.detail)}</small>` : ""}</div></div></td>`;
+  const nameCell = (it: DocLine) => `<td class="nm"><div class="nm-row">${imgCell(it)}<div>${nl2br(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail && !plain ? `<small>${nl2br(it.detail)}</small>` : ""}</div></div></td>`;
   const rows = isDo
     ? d.items.length
       ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td>${nameCell(it)}<td class="n">${qtyShow(it.qtyMilli)}</td><td>${esc(it.unit)}</td><td class="c"><span class="chk-box"></span></td></tr>`)
       : ['<tr class="empty-row"><td colspan="6">ยังไม่มีรายการสินค้า</td></tr>']
     : d.items.length
-    ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td><td class="nm"><div class="nm-row">${imgCell(it)}<div>${nl2br(it.name) || '<span class="ph-txt">(ไม่มีชื่อรายการ)</span>'}${it.detail ? `<small>${nl2br(it.detail)}</small>` : ""}</div></div></td><td>${esc(it.unit)}</td>
+    ? d.items.map((it, i) => `<tr><td class="c">${i + 1}</td><td class="sku">${esc(it.sku)}</td>${nameCell(it)}<td>${esc(it.unit)}</td>
       <td class="n">${money(it.priceSatang)}</td><td class="n">${qtyShow(it.qtyMilli)}</td>${hasDisc ? `<td class="n">${it.discountSatang ? money(it.discountSatang) : ""}</td>` : ""}<td class="n">${money(lineSatang(it))}</td></tr>`)
     : [`<tr class="empty-row"><td colspan="${hasDisc ? 8 : 7}">ยังไม่มีรายการสินค้า</td></tr>`];
 

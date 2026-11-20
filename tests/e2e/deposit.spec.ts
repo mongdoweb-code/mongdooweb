@@ -55,6 +55,9 @@ test("รับมัดจำ 50% → ใบเสร็จมัดจำ → 
   await page.goto(`/admin/docs/RECEIPT/${rcId}`);
   await expect(page.locator(".sheet .sh-paid").first()).toContainText("ได้รับเงินมัดจำถูกต้องแล้ว");
   await expect(page.locator(".sheet .sh-tbl").first()).toContainText("เงินมัดจำตามใบเสนอราคา");
+  // ใบเสร็จแสดงเฉพาะชื่อรายการ — ไม่มีรายละเอียด/รูป
+  await expect(page.locator(".sheet .sh-tbl td.nm small")).toHaveCount(0);
+  await expect(page.locator(".sheet .sh-tbl .it-img")).toHaveCount(0);
 
   // แปลงเป็นใบแจ้งหนี้ (มัดจำไม่บล็อกการแปลง) → ออกเลข → หักมัดจำ
   await page.goto(`/admin/docs/QUOTATION/${qtId}`);
