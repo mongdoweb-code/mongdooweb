@@ -26,7 +26,7 @@ import {
 } from "@/lib/admin-orders";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { fmtTaxId } from "@/lib/doc-calc";
+import { addrText as addrLine, fmtTaxId } from "@/lib/doc-calc";
 import { isValidThaiTaxId } from "@/lib/format";
 import { formatPhone } from "@/lib/orders";
 import { AutoRefresh, ConfirmSubmit, CopyButton, DrawerKeys, SlipViewer } from "../_components/AdminClient";
@@ -854,7 +854,8 @@ async function OrderDrawer({ f, orderNo, mode, done, err, owner, flash }: {
                 )}
                 {o.status !== "CANCELLED" && o.shippingMethod !== "pickup" && (o.status === "PAID" || o.status === "SHIPPED" || o.documents.length > 0) && (
                   // ยอดเก็บเงินปลายทาง = ยอดคำสั่งซื้อ COD (กำหนดตามคำสั่งซื้อ แก้ในใบปะหน้าไม่ได้)
-                  <LabelOptions target={`orders=${encodeURIComponent(o.orderNo)}`} idKey={o.orderNo} codFixed={o.paymentMethod === "COD" ? o.totalSatang : 0} />
+                  <LabelOptions target={`orders=${encodeURIComponent(o.orderNo)}`} idKey={o.orderNo} codFixed={o.paymentMethod === "COD" ? o.totalSatang : 0}
+                    to={{ name: o.customerName, phone: formatPhone(o.phone), addr: addrLine({ line: o.addressLine, sub: o.subdistrict, dist: o.district, prov: o.province }, { noZip: true }), zip: o.postalCode }} />
                 )}
               </div>
             ) : null}

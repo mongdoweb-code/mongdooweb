@@ -773,6 +773,13 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .dv-acts{display:grid;gap:6px}
 .dv-acts .btn{width:100%}
 .dv-sec{background:#fff;padding:12px 14px;display:grid;gap:8px}
+/* กรอบบางรอบทุกบล็อกในแถบข้างของหน้าเอกสาร — แยกส่วนให้ชัด ไม่สับสนระหว่างบล็อก */
+.dv .dv-side > *{border:1px solid #DDD5CB;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.dv .dv-side > .dv-card{border-top:3px solid var(--c-orange)}
+.lbo-to{display:grid;gap:8px;border:1px dashed #DDD5CB;background:#FCFBF9;padding:10px}
+.lbo-to .two{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:8px}
+.lbo-to textarea{min-height:64px}
+.lbo-to .lbo-reset{justify-self:start}
 .dv-sec h3,.dv-sec summary{font-size:14px;font-weight:700}
 .dv-sec summary{cursor:pointer;list-style-position:inside}
 .dv-sec .btn{width:100%}
@@ -937,7 +944,9 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .lb-to{flex:1;border:.7mm solid #000;padding:2mm 3mm;display:flex;flex-direction:column;min-height:0}
 .lb-name{font-size:17pt;font-weight:800;line-height:1.2;margin-top:.5mm;overflow-wrap:anywhere}
 .lb-phone{font-size:14pt;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.25}
-.lb-addr{font-size:11pt;line-height:1.4;margin-top:1mm;overflow-wrap:anywhere}
+.lb-addr{font-size:11pt;line-height:1.4;margin-top:1mm;overflow-wrap:anywhere;white-space:pre-line}
+.lb-to .lb-phone{margin-top:1.2mm}
+.lb-phone.blank span{display:inline-block;min-width:45mm;border-bottom:.3mm dotted #000;height:1em}
 .lb-zip{display:flex;gap:1.3mm;margin-top:auto;padding-top:2mm}
 .lb-zip span{width:9mm;height:11mm;border:.45mm solid #000;display:grid;place-items:center;font-size:17pt;font-weight:800;line-height:1}
 .lb-info{display:flex;gap:2.5mm;align-items:stretch}

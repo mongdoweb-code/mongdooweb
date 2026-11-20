@@ -1249,6 +1249,16 @@ html[data-adm-theme="dark"] .dv-kv span {
 html[data-adm-theme="dark"] .dv-sec {
     background: #1E2127
 }
+html[data-adm-theme="dark"] .dv .dv-side > * {
+    border: 1px solid #2A2D36
+}
+html[data-adm-theme="dark"] .dv .dv-side > .dv-card {
+    border-top: 3px solid var(--c-orange)
+}
+html[data-adm-theme="dark"] .lbo-to {
+    border: 1px dashed #2A2D36;
+    background: #1C1E24
+}
 html[data-adm-theme="dark"] .dv-pays li {
     border-bottom: 1px solid var(--c-line)
 }

@@ -333,8 +333,9 @@ function labelHtml(L: LabelData, o: LabelOpts, s: Sender, b: number, nb: number)
     <div class="lb-top"><div class="lb-from"><div class="lb-k">ผู้ส่ง · FROM</div><b>${esc(s.name)}</b>${s.phone ? ` <span>โทร ${esc(s.phone)}</span>` : ""}<div class="lb-fa">${esc(s.address)}</div></div>
       ${s.logo ? `<img class="lb-logo" src="${esc(s.logo)}" alt="">` : ""}</div>
     <div class="lb-to"><div class="lb-k">ผู้รับ · TO</div>
-      <div class="lb-name">${esc(L.name)}</div><div class="lb-phone">โทร ${esc(L.phone)}</div>
+      <div class="lb-name">${esc(L.name)}</div>
       <div class="lb-addr">${esc(L.addr)}</div>
+      ${L.phone ? `<div class="lb-phone">โทร ${esc(L.phone)}</div>` : '<div class="lb-phone blank">โทร <span></span></div>'}
       <div class="lb-zip" aria-label="รหัสไปรษณีย์ ${esc(L.zip)}">${zip.map((c) => `<span>${esc(c.trim())}</span>`).join("")}</div></div>
     <div class="lb-info"><div class="lb-bc">${L.ref ? code128Svg(L.ref, "lb-bcs") : ""}<div class="lb-ref">${esc(L.ref)}</div></div>
       <div class="lb-box"><small>กล่องที่</small><b>${b}/${nb}</b></div></div>
