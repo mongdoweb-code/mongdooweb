@@ -1,9 +1,36 @@
 "use client";
-// ตัวแก้ไขส่วน "ทำไมต้องมองดูเว็บ": ข้อความ · จุดเด่น (เพิ่ม/ลบ/เลื่อน 1–6 ข้อ) · รูป 3 แบบ (อัปโหลด/ผลงาน/ไม่ใช้รูป) · คำบรรยาย · ลิงก์ · ตัวอย่างสด
+// ตัวแก้ไขส่วน "ทำไมต้องมองดูเว็บ": ข้อความ (+สีแต่ละช่อง) · จุดเด่น (เพิ่ม/ลบ/เลื่อน 1–6 ข้อ) · รูป 3 แบบ (อัปโหลด/ผลงาน/ไม่ใช้รูป) + กล่องโปร่งใส · คำบรรยาย · ลิงก์ · ตัวอย่างสด
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
-import { WHY_DEFAULT, WHY_IMAGE_MODES, WHY_LIMITS, WHY_MAX_ITEMS, WHY_MIN_ITEMS, type WhyImageMode, type WhyUs } from "@/lib/why-us";
+import { WHY_COLOR_DEFAULT, WHY_COLOR_KEYS, WHY_DEFAULT, WHY_LIMITS, WHY_MAX_ITEMS, WHY_MIN_ITEMS, type WhyColorKey, type WhyColors, type WhyImageMode, type WhyUs } from "@/lib/why-us";
+import { ColorPopover } from "../../../_components/ColorPalette";
 import { notifySave } from "../../../_components/save-notify";
+
+/** ตัวเลือกรูป (ป้ายสั้นสำหรับปุ่มแบบแถวเดียว) */
+const MODES: { m: WhyImageMode; t: string; d: string }[] = [
+  { m: "upload", t: "อัปโหลดรูปเอง", d: "JPG/PNG/WEBP" },
+  { m: "project", t: "รูปผลงานล่าสุด", d: "อัตโนมัติ" },
+  { m: "none", t: "ไม่ใช้รูป", d: "พื้นไล่สีโทนไฟ" },
+];
+
+/** ปุ่มเลือกสีของช่องข้อความ: วงสี + ชื่อ · ป๊อปอัปชุดสี (รีเซ็ต = สีเดิมของธีม) */
+function ColorChip({ k, colors, onChange, open, setOpen, short }: {
+  k: WhyColorKey; colors: WhyColors; onChange: (k: WhyColorKey, v: string | null) => void; open: WhyColorKey | null; setOpen: (k: WhyColorKey | null) => void; short?: string;
+}) {
+  const cur = colors[k];
+  return (
+    <span className="wy-cw">
+      <button type="button" className={`wy-chip${cur ? " set" : ""}`} aria-haspopup="dialog" aria-expanded={open === k} data-color-key={k}
+        title={cur ? `สี${WHY_COLOR_KEYS[k]}: ${cur}` : `สี${WHY_COLOR_KEYS[k]}: สีเดิมของธีม`} onClick={() => setOpen(open === k ? null : k)}>
+        <i style={{ background: cur ?? WHY_COLOR_DEFAULT[k] }} aria-hidden="true" />
+        <span>{short ?? "สี"}</span>
+        <span className="sr-only"> {WHY_COLOR_KEYS[k]}{cur ? ` ${cur}` : " (สีเดิม)"}</span>
+      </button>
+      <ColorPopover open={open === k} onClose={() => setOpen(null)} label={`สี${WHY_COLOR_KEYS[k]}`} value={cur ?? null} resetLabel="สีเดิมของธีม"
+        onPick={(h) => { onChange(k, h); setOpen(null); }} />
+    </span>
+  );
+}
 
 type Item = { key: number; title: string; text: string };
 type Project = { title: string; sub: string; img: string } | null;
@@ -32,6 +59,12 @@ export function WhyEditor({ initial, imageUrl, project, custom, action }: {
   const [capTitle, setCapTitle] = useState(initial.capTitle);
   const [capSub, setCapSub] = useState(initial.capSub);
   const [href, setHref] = useState(initial.href ?? "");
+  const [clear, setClear] = useState(initial.clear);
+  const [colors, setColors] = useState<WhyColors>(initial.colors);
+  const [colorOpen, setColorOpen] = useState<WhyColorKey | null>(null);
+  const setColor = (k: WhyColorKey, v: string | null) => setColors((c) => { const n = { ...c }; if (v) n[k] = v.toUpperCase(); else delete n[k]; return n; });
+  const chip = (k: WhyColorKey, short?: string) => <ColorChip k={k} colors={colors} onChange={setColor} open={colorOpen} setOpen={setColorOpen} short={short} />;
+  const col = (k: WhyColorKey) => (colors[k] ? { color: colors[k] } : undefined);
   const [busy, setBusy] = useState(false);
   const [imgErr, setImgErr] = useState("");
   const [drag, setDrag] = useState(false);
@@ -78,13 +111,15 @@ export function WhyEditor({ initial, imageUrl, project, custom, action }: {
     setCapSub(WHY_DEFAULT.capSub);
     setHref("");
     setMode(WHY_DEFAULT.imageMode);
+    setClear(false);
+    setColors({});
   };
 
   const submit = (intent: "save" | "reset") => {
     const fd = new FormData();
     fd.set("intent", intent);
     fd.set("data", JSON.stringify({
-      eyebrow, title, imageMode: mode, imageKey, capTitle, capSub, href,
+      eyebrow, title, imageMode: mode, imageKey, capTitle, capSub, href, clear, colors,
       items: items.filter((x) => x.title.trim() || x.text.trim()).map(({ title: t, text }) => ({ title: t, text })),
     }));
     start(async () => {
@@ -117,18 +152,18 @@ export function WhyEditor({ initial, imageUrl, project, custom, action }: {
       <section className="box wy-preview-box" aria-label="ตัวอย่างบนหน้าแรก">
         <h3>ตัวอย่างบนหน้าแรก</h3>
         <div className="wy-pv">
-          <div className={`wy-pv-visual${pv.img ? " has-img" : ""}`}>
+          <div className={`wy-pv-visual${pv.img ? " has-img" : ""}${pv.img && clear ? " is-clear" : ""}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {pv.img && <img src={pv.img} alt="" />}
-            {(pv.t || pv.s) && <div className="wy-pv-cap">{pv.t && <b>{pv.t}</b>}{pv.s && <span>{pv.s}</span>}</div>}
+            {(pv.t || pv.s) && <div className="wy-pv-cap">{pv.t && <b style={usesCaption ? col("capTitle") : undefined}>{pv.t}</b>}{pv.s && <span style={usesCaption ? col("capSub") : undefined}>{pv.s}</span>}</div>}
             {pv.link && <span className="wy-pv-link" title={pv.link}>ลิงก์ ↗</span>}
           </div>
           <div className="wy-pv-text">
-            {eyebrow && <div className="wy-pv-eyebrow">{eyebrow}</div>}
-            <h2>{title.split("\n").map((l, i) => <span key={i}>{l}<br /></span>)}</h2>
+            {eyebrow && <div className="wy-pv-eyebrow" style={col("eyebrow")}>{eyebrow}</div>}
+            <h2 style={col("title")}>{title.split("\n").map((l, i) => <span key={i}>{l}<br /></span>)}</h2>
             <div className="wy-pv-list">
               {items.filter((x) => x.title.trim()).map((x, i) => (
-                <div key={x.key}><b className="wy-pv-num">{String(i + 1).padStart(2, "0")}</b><h4>{x.title}</h4>{x.text && <p>{x.text}</p>}</div>
+                <div key={x.key}><b className="wy-pv-num" style={col("num")}>{String(i + 1).padStart(2, "0")}</b><h4 style={col("itemTitle")}>{x.title}</h4>{x.text && <p style={col("itemText")}>{x.text}</p>}</div>
               ))}
             </div>
           </div>
@@ -139,18 +174,19 @@ export function WhyEditor({ initial, imageUrl, project, custom, action }: {
         <section className="box wy-sec" aria-labelledby={`${uid}h1`}>
           <h3 id={`${uid}h1`}>ข้อความ</h3>
           <div className="field">
-            <label htmlFor={`${uid}eyebrow`}>หัวข้อเล็ก (สีส้ม ด้านบน) <Count v={eyebrow} max={WHY_LIMITS.eyebrow} /></label>
+            <span className="wy-lbl"><label htmlFor={`${uid}eyebrow`}>หัวข้อเล็ก (ด้านบน)</label>{chip("eyebrow")}<Count v={eyebrow} max={WHY_LIMITS.eyebrow} /></span>
             <input id={`${uid}eyebrow`} value={eyebrow} maxLength={WHY_LIMITS.eyebrow} onChange={(e) => setEyebrow(e.target.value)} placeholder="เช่น ทำไมต้องมองดูเว็บ (เว้นว่างได้)" />
           </div>
           <div className="field">
-            <label htmlFor={`${uid}title`}>หัวข้อหลัก — กด Enter เพื่อขึ้นบรรทัดใหม่ (สูงสุด 3 บรรทัด) <Count v={title} max={WHY_LIMITS.title} /></label>
+            <span className="wy-lbl"><label htmlFor={`${uid}title`}>หัวข้อหลัก — Enter ขึ้นบรรทัดใหม่ (สูงสุด 3 บรรทัด)</label>{chip("title")}<Count v={title} max={WHY_LIMITS.title} /></span>
             <textarea id={`${uid}title`} rows={3} value={title} maxLength={WHY_LIMITS.title} onChange={(e) => setTitle(e.target.value)} required {...bad("title")} />
           </div>
 
           <div className="wy-items-head">
             <h3 id={`${uid}items`} tabIndex={-1}>จุดเด่น ({items.length}/{WHY_MAX_ITEMS})</h3>
-            <span className="sub">เลขลำดับ 01, 02 … ใส่ให้อัตโนมัติ · บนคอมแสดง 2 คอลัมน์</span>
+            <span className="wy-chips" role="group" aria-label="สีข้อความของจุดเด่น"><span className="sub">สี:</span>{chip("num", "เลข")}{chip("itemTitle", "หัวข้อ")}{chip("itemText", "รายละเอียด")}</span>
           </div>
+          <p className="sub wy-hint">เลขลำดับ 01, 02 … ใส่ให้อัตโนมัติ · บนคอมแสดง 2 คอลัมน์ · สีที่ตั้งใช้กับโหมดกลางวัน (โหมดกลางคืนใช้สีของธีมให้อ่านง่าย)</p>
           <ol className="wy-items" aria-label="จุดเด่น">
             {items.map((it, i) => (
               <li key={it.key} className="wy-item">
@@ -181,18 +217,24 @@ export function WhyEditor({ initial, imageUrl, project, custom, action }: {
         <section className="box wy-sec" aria-labelledby={`${uid}h2`}>
           <h3 id={`${uid}h2`}>รูปกล่องซ้าย</h3>
           <div className="wy-modes" role="radiogroup" aria-label="แหล่งรูป" id={`${uid}image`} tabIndex={-1}>
-            {(Object.keys(WHY_IMAGE_MODES) as WhyImageMode[]).map((m) => (
+            {MODES.map(({ m, t, d }) => (
               <label key={m} className={`wy-mode${mode === m ? " on" : ""}`}>
                 <input type="radio" name={`${uid}mode`} value={m} checked={mode === m} onChange={() => setMode(m)} />
-                <span>{WHY_IMAGE_MODES[m]}</span>
-                {m === "project" && <small>{project ? `ตอนนี้: ${project.title}` : "ยังไม่มีผลงานที่มีรูป — จะแสดงพื้นไล่สีแทน"}</small>}
+                <span>{t}</span>
+                <small>{d}</small>
               </label>
             ))}
           </div>
+          {mode === "project" && <p className="sub wy-hint">{project ? `ตอนนี้: ${project.title}` : "ยังไม่มีผลงานที่มีรูป — จะแสดงพื้นไล่สีแทน"}</p>}
+          <label className={`wy-switch${mode === "none" ? " off" : ""}`} title={mode === "none" ? "ใช้ได้เมื่อมีรูป" : ""}>
+            <input type="checkbox" role="switch" checked={clear} disabled={mode === "none"} onChange={(e) => setClear(e.target.checked)} data-why-clear />
+            <span className="wy-sw" aria-hidden="true"><i /></span>
+            <span><b>พื้นหลังโปร่งใส</b><small>ไม่มีกรอบดำ/เงาไล่สี รูปแสดงเต็มไม่ครอป เหมาะกับรูป PNG ที่ตัดพื้นแล้ว · คำบรรยายย้ายไปใต้รูป</small></span>
+          </label>
 
           {mode === "upload" && (
             <div className="wy-up">
-              <button type="button" className={`wy-drop${drag ? " over" : ""}${busy ? " busy" : ""}`} disabled={busy}
+              <button type="button" className={`wy-drop${drag ? " over" : ""}${busy ? " busy" : ""}${clear ? " clear" : ""}`} disabled={busy}
                 aria-label={imgPrev ? "เปลี่ยนรูป" : "อัปโหลดรูป"} onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
                 onDrop={(e) => { e.preventDefault(); setDrag(false); void upload(e.dataTransfer.files?.[0]); }}>
@@ -204,7 +246,7 @@ export function WhyEditor({ initial, imageUrl, project, custom, action }: {
                 <button type="button" className="btn btn-outline btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}>
                   {busy ? "กำลังอัปโหลด…" : imgPrev ? "เปลี่ยนรูป" : "อัปโหลดรูป"}
                 </button>
-                <small className="sub">JPG, PNG, WEBP ไม่เกิน 10 MB · แนะนำแนวตั้ง 4:5 (เช่น 1200×1500) ภาพงานติดตั้งจริงตอนกลางคืน · ระบบย่อและแปลงเป็น WebP ให้</small>
+                <small className="sub">JPG, PNG, WEBP ไม่เกิน 10 MB · แนะนำแนวตั้ง 4:5 (เช่น 1200×1500) · PNG พื้นใสยังใสอยู่หลังแปลงเป็น WebP</small>
                 {imgErr && <span className="wy-err" role="alert">{imgErr}</span>}
               </div>
               <input ref={fileRef} type="file" accept={IMG_TYPES.join(",")} className="sr-only" tabIndex={-1} aria-label="ไฟล์รูปส่วนทำไมต้องมองดูเว็บ"
@@ -213,14 +255,16 @@ export function WhyEditor({ initial, imageUrl, project, custom, action }: {
           )}
 
           <fieldset className="wy-cap" disabled={!usesCaption}>
-            <legend>คำบรรยายบนรูป{usesCaption ? "" : " (โหมดผลงานใช้ชื่อผลงานให้อัตโนมัติ)"}</legend>
-            <div className="field">
-              <label htmlFor={`${uid}capTitle`}>ข้อความหลัก <Count v={capTitle} max={WHY_LIMITS.capTitle} /></label>
-              <input id={`${uid}capTitle`} value={capTitle} maxLength={WHY_LIMITS.capTitle} onChange={(e) => setCapTitle(e.target.value)} placeholder="เว้นว่าง = ไม่แสดง" />
-            </div>
-            <div className="field">
-              <label htmlFor={`${uid}capSub`}>ข้อความรอง <Count v={capSub} max={WHY_LIMITS.capSub} /></label>
-              <input id={`${uid}capSub`} value={capSub} maxLength={WHY_LIMITS.capSub} onChange={(e) => setCapSub(e.target.value)} placeholder="เว้นว่าง = ไม่แสดง" />
+            <legend>คำบรรยาย{clear ? "ใต้รูป" : "บนรูป"}{usesCaption ? "" : " (โหมดผลงานใช้ชื่อผลงานให้อัตโนมัติ)"}</legend>
+            <div className="wy-g2">
+              <div className="field">
+                <span className="wy-lbl"><label htmlFor={`${uid}capTitle`}>ข้อความหลัก</label>{usesCaption && chip("capTitle")}<Count v={capTitle} max={WHY_LIMITS.capTitle} /></span>
+                <input id={`${uid}capTitle`} value={capTitle} maxLength={WHY_LIMITS.capTitle} onChange={(e) => setCapTitle(e.target.value)} placeholder="เว้นว่าง = ไม่แสดง" />
+              </div>
+              <div className="field">
+                <span className="wy-lbl"><label htmlFor={`${uid}capSub`}>ข้อความรอง</label>{usesCaption && chip("capSub")}<Count v={capSub} max={WHY_LIMITS.capSub} /></span>
+                <input id={`${uid}capSub`} value={capSub} maxLength={WHY_LIMITS.capSub} onChange={(e) => setCapSub(e.target.value)} placeholder="เว้นว่าง = ไม่แสดง" />
+              </div>
             </div>
             <div className="field">
               <label htmlFor={`${uid}href`}>ลิงก์เมื่อกดรูป (ไม่บังคับ)</label>
