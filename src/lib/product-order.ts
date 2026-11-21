@@ -63,3 +63,75 @@ export async function topSortOrder() {
   const agg = await prisma.product.aggregate({ _min: { sortOrder: true } });
   return (agg._min.sortOrder ?? STEP) - STEP;
 }
+
+// ---------------------------------------------------------------------------
+// หน้าจัดเรียงสินค้าหน้าร้าน (/admin/products/order): บันทึกลำดับทั้งร้านครั้งเดียว + เก็บลำดับก่อนหน้าไว้คืนค่า
+// ---------------------------------------------------------------------------
+type OrderSnap = { id: string; sortOrder: number; isPinned: boolean }[];
+/** เก็บประวัติลำดับไว้กี่ชุด */
+const KEEP_VERSIONS = 20;
+/** สินค้าที่อยู่บนหน้าจัดเรียง = สินค้าที่ขายหน้าร้านได้ (ไม่รวมงานบริการ) */
+export const BOARD_WHERE = { isService: false } satisfies Prisma.ProductWhereInput;
+
+export class OrderStaleError extends Error {}
+
+async function snapshotOrder(tx: Tx, by: string | null) {
+  const rows: OrderSnap = await tx.product.findMany({ where: BOARD_WHERE, select: { id: true, sortOrder: true, isPinned: true } });
+  await tx.contentVersion.create({ data: { kind: "PRODUCT_ORDER", snapshot: rows, publishedBy: by } });
+  const old = await tx.contentVersion.findMany({ where: { kind: "PRODUCT_ORDER" }, orderBy: { publishedAt: "desc" }, skip: KEEP_VERSIONS, select: { id: true } });
+  if (old.length) await tx.contentVersion.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
+}
+
+/**
+ * บันทึกลำดับทั้งร้าน: ids = ทุกสินค้าบนหน้าจัดเรียงตามลำดับใหม่ · pinned = id ที่ปักหมุด
+ * สินค้าเพิ่ม/ลบระหว่างจัด → OrderStaleError (ให้โหลดหน้าใหม่ ไม่เดาตำแหน่งให้)
+ * คืนจำนวนแถวที่เปลี่ยน (0 = ไม่มีอะไรเปลี่ยน ไม่เก็บประวัติ)
+ */
+export async function saveBoardOrder(ids: string[], pinned: string[], by: string | null) {
+  const uniq = new Set(ids);
+  if (uniq.size !== ids.length || ids.length > 20_000) throw new OrderStaleError("bad ids");
+  const pin = new Set(pinned);
+  return prisma.$transaction(async (tx) => {
+    await lock(tx);
+    const cur = await tx.product.findMany({ where: BOARD_WHERE, select: { id: true, sortOrder: true, isPinned: true } });
+    if (cur.length !== ids.length || cur.some((r) => !uniq.has(r.id))) throw new OrderStaleError("stale");
+    const byId = new Map(cur.map((r) => [r.id, r]));
+    const updates = ids
+      .map((id, i) => ({ id, sortOrder: (i + 1) * STEP, isPinned: pin.has(id) }))
+      .filter((u) => byId.get(u.id)!.sortOrder !== u.sortOrder || byId.get(u.id)!.isPinned !== u.isPinned);
+    if (!updates.length) return 0;
+    await snapshotOrder(tx, by);
+    // อัปเดตทีเดียวทั้งชุด (ร้านมีสินค้าหลักพันได้)
+    await tx.$executeRaw`UPDATE "Product" AS p SET "sortOrder" = v.s, "isPinned" = v.pin
+      FROM unnest(${updates.map((u) => u.id)}::text[], ${updates.map((u) => u.sortOrder)}::int[], ${updates.map((u) => u.isPinned)}::bool[]) AS v(id, s, pin)
+      WHERE p."id" = v.id`;
+    return updates.length;
+  }, { timeout: 60_000 });
+}
+
+/** ลำดับที่บันทึกไว้ล่าสุด (ก่อนการบันทึกครั้งล่าสุด) — null = ไม่มี */
+export const lastOrderVersion = () => prisma.contentVersion.findFirst({ where: { kind: "PRODUCT_ORDER" }, orderBy: { publishedAt: "desc" }, select: { id: true, publishedAt: true, publishedBy: true } });
+
+/**
+ * คืนลำดับก่อนหน้า: ใช้ชุดล่าสุด แล้วเก็บลำดับปัจจุบันเป็นชุดใหม่แทน (กดซ้ำ = สลับกลับ)
+ * สินค้าที่เพิ่มหลังจากนั้นคงตำแหน่งเดิม · สินค้าที่ถูกลบข้ามไป
+ */
+export async function restoreBoardOrder(by: string | null) {
+  return prisma.$transaction(async (tx) => {
+    await lock(tx);
+    const v = await tx.contentVersion.findFirst({ where: { kind: "PRODUCT_ORDER" }, orderBy: { publishedAt: "desc" } });
+    if (!v) return null;
+    const rows = (Array.isArray(v.snapshot) ? v.snapshot : []) as OrderSnap;
+    await tx.contentVersion.delete({ where: { id: v.id } });
+    await snapshotOrder(tx, by);
+    const live = new Map((await tx.product.findMany({ where: { id: { in: rows.map((r) => r.id) } }, select: { id: true, sortOrder: true, isPinned: true } })).map((r) => [r.id, r]));
+    let n = 0;
+    for (const r of rows) {
+      const c = live.get(r.id);
+      if (!c || typeof r.sortOrder !== "number" || (c.sortOrder === r.sortOrder && c.isPinned === !!r.isPinned)) continue;
+      await tx.product.update({ where: { id: r.id }, data: { sortOrder: r.sortOrder, isPinned: !!r.isPinned } });
+      n++;
+    }
+    return { changed: n, at: v.publishedAt };
+  }, { timeout: 60_000 });
+}

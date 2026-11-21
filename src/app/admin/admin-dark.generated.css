@@ -4273,6 +4273,223 @@ html[data-adm-theme="dark"] .nav-fields input.bad {
 html[data-adm-theme="dark"] .nav-icons .off {
     color: var(--c-muted)
 }
+/*  src/app/admin/(app)/products/order/order.css  */
+html[data-adm-theme="dark"] .ob-bar {
+    background: #1E2127;
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ob-search {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ob-search svg {
+    fill: none;
+    stroke: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-search input {
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: inherit
+}
+html[data-adm-theme="dark"] .ob-search:focus-within {
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ob-sel {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ob-sel:hover {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .ob-only {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-pill {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ob-pill:hover:not(:disabled) {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .ob-views {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ob-views button {
+    border: 0;
+    background: transparent;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-views button svg {
+    fill: none;
+    stroke: currentColor
+}
+html[data-adm-theme="dark"] .ob-views button[data-view="small"] svg {
+    fill: currentColor;
+    stroke: none
+}
+html[data-adm-theme="dark"] .ob-views button.on {
+    background: #3A404B;
+    color: #fff
+}
+html[data-adm-theme="dark"] .ob-views button:focus-visible,
+html[data-adm-theme="dark"] .ob-pill:focus-visible,
+html[data-adm-theme="dark"] .ob-sel:focus-visible {
+    outline: 2px solid #16A37B
+}
+html[data-adm-theme="dark"] .ob-selbar {
+    border-top: 1px dashed var(--c-line)
+}
+html[data-adm-theme="dark"] .ob-goto label {
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ob-goto input {
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ob-legend {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-legend b {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .lg-break {
+    border-top: 2px dashed #4D2F23
+}
+html[data-adm-theme="dark"] .lg-moved {
+    background: #251B12;
+    border: 1px solid #503622
+}
+html[data-adm-theme="dark"] .lg-muted {
+    background: #121417
+}
+html[data-adm-theme="dark"] .ob-grid .ob-item {
+    background: #1E2127;
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ob-grid .ob-item:hover {
+    border-color: #4A3220
+}
+html[data-adm-theme="dark"] .ob-pos {
+    border: 1.5px solid var(--c-line);
+    color: var(--c-ink);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ob-pos:focus {
+    outline: none;
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .ob-handle {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-handle svg {
+    fill: currentColor
+}
+html[data-adm-theme="dark"] .ob-handle:hover,
+html[data-adm-theme="dark"] .ob-handle:focus-visible {
+    border-color: var(--c-line);
+    color: var(--c-ink);
+    background: #1A1C21
+}
+html[data-adm-theme="dark"] .ob-handle:focus-visible {
+    outline: 2px solid #16A37B
+}
+html[data-adm-theme="dark"] .ob-img {
+    background: #16181C
+}
+html[data-adm-theme="dark"] .ob-noimg {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .t-pin {
+    background: var(--c-orange);
+    color: #fff
+}
+html[data-adm-theme="dark"] .t-off {
+    background: #4A4A4A;
+    color: #fff
+}
+html[data-adm-theme="dark"] .t-var {
+    background: #121925;
+    color: #5C8DEA
+}
+html[data-adm-theme="dark"] .t-out {
+    background: #241111;
+    color: #E9675D
+}
+html[data-adm-theme="dark"] .ob-cat {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-price small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-ib {
+    border: 1px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-ib:hover,
+html[data-adm-theme="dark"] .ob-ib:focus-visible {
+    border-color: var(--c-orange);
+    color: #F18355
+}
+html[data-adm-theme="dark"] .ob-ib.pin.on {
+    background: #241A12;
+    border-color: #503622;
+    color: #F18355
+}
+html[data-adm-theme="dark"] .ob-item.is-sel {
+    border-color: var(--c-ink) !important
+}
+html[data-adm-theme="dark"] .ob-item.is-moved {
+    background: #291E14
+}
+html[data-adm-theme="dark"] .ob-grid .ob-item.is-moved {
+    border-color: #503622
+}
+html[data-adm-theme="dark"] .ob-break span,
+html[data-adm-theme="dark"] .ob-tbl .ob-break td span {
+    color: #F18355
+}
+html[data-adm-theme="dark"] .ob-break span::before,
+html[data-adm-theme="dark"] .ob-break span::after {
+    border-top: 2px dashed #4D2F23
+}
+html[data-adm-theme="dark"] .ob-tbl .ob-break td {
+    background: transparent
+}
+html[data-adm-theme="dark"] .ob-prod small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-thumb {
+    background: #16181C
+}
+html[data-adm-theme="dark"] .ob-ghost {
+    background: #3A404B;
+    color: #fff
+}
+html[data-adm-theme="dark"] .ob-toast {
+    background: #3A404B;
+    color: #fff
+}
+html[data-adm-theme="dark"] .ob-foot-bar {
+    background: #1E2127;
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ob-msg {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ob-msg b {
+    color: #F18355
+}
+html[data-adm-theme="dark"] .ob-msg .link {
+    background: none;
+    border: 0;
+    color: var(--c-orange-dk,#F18355)
+}
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {
     color: var(--c-muted)
