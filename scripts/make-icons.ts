@@ -5,9 +5,14 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
 
 const SRC = "docs/reference/logo-from-invoice.png";
+/** สี favicon (แท็บเบราว์เซอร์): ส่วนบน ฟ้าเข้ม · ส่วนล่าง เทา — ตามที่เจ้าของร้านเลือก (2026-11-21) · ไอคอนแอป/apple ใช้สีโลโก้เดิม */
+const FAVICON_COLORS: [number, number, number][] = [
+  [0x00, 0x85, 0xb2],
+  [0xbb, 0xbb, 0xbb],
+];
 
 /** โลโก้ขนาดใหญ่ ขอบคม พื้นโปร่งใส */
-async function crispLogo(width: number) {
+async function crispLogo(width: number, override?: [number, number, number][]) {
   const meta = await sharp(SRC).metadata();
   const scale = width / (meta.width ?? 113);
   const height = Math.round((meta.height ?? 89) * scale);
@@ -28,7 +33,7 @@ async function crispLogo(width: number) {
     sums[k][2] += c[2];
     sums[k][3]++;
   }
-  const colors = sums.map((s, k) => (s[3] ? [s[0] / s[3], s[1] / s[3], s[2] / s[3]].map(Math.round) : palette[k]));
+  const colors = override ?? sums.map((s, k) => (s[3] ? [s[0] / s[3], s[1] / s[3], s[2] / s[3]].map(Math.round) : palette[k]));
   const sw = src.info.width;
   const sh = src.info.height;
   const out = Buffer.alloc(width * height * 4);
@@ -64,8 +69,8 @@ function dist(a: number[], b: number[]) {
 }
 
 /** ไอคอนสี่เหลี่ยม size×size: โลโก้กว้าง ratio ของกรอบ วางกลาง บนพื้น bg (null = โปร่งใส) */
-async function square(size: number, ratio: number, bg: string | null) {
-  const logo = await crispLogo(Math.round(size * ratio * 2));
+async function square(size: number, ratio: number, bg: string | null, colors?: [number, number, number][]) {
+  const logo = await crispLogo(Math.round(size * ratio * 2), colors);
   const w = Math.round(size * ratio);
   const small = await sharp(logo.buf).resize({ width: w, kernel: "lanczos3" }).png().toBuffer();
   const h = (await sharp(small).metadata()).height ?? w;
@@ -99,7 +104,8 @@ function ico(pngs: { size: number; buf: Buffer }[]) {
 async function main() {
   mkdirSync("public/icons", { recursive: true });
   const WHITE = "#ffffff";
-  writeFileSync("src/app/icon.png", await square(192, 0.86, null));
+  // favicon (แท็บเบราว์เซอร์ / ผลค้นหา Google): favicon.ico + icon.png ใช้สีชุด favicon
+  writeFileSync("src/app/icon.png", await square(192, 0.86, null, FAVICON_COLORS));
   writeFileSync("src/app/apple-icon.png", await square(180, 0.72, WHITE));
   writeFileSync("public/icons/icon-192.png", await square(192, 0.78, WHITE));
   writeFileSync("public/icons/icon-512.png", await square(512, 0.78, WHITE));
@@ -107,7 +113,7 @@ async function main() {
   writeFileSync("public/icons/maskable-512.png", await square(512, 0.58, WHITE));
   writeFileSync(
     "src/app/favicon.ico",
-    ico(await Promise.all([16, 32, 48].map(async (size) => ({ size, buf: await square(size, 0.94, null) })))),
+    ico(await Promise.all([16, 32, 48].map(async (size) => ({ size, buf: await square(size, 0.94, null, FAVICON_COLORS) })))),
   );
   console.log("icons written");
 }
