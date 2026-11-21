@@ -1954,7 +1954,7 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .de-line .row-acts{display:flex;gap:0}
 .de-line .row-acts .del:hover{color:var(--c-err)}
 .de-quick{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.de-quick button,.de-snips button{height:28px;padding:0 10px;border:1px solid var(--c-line);background:#fff;font-size:12.5px;color:var(--c-ink);border-radius:0}
+.de-quick button,.de-snips button{height:28px;padding:0 12px;border:1px solid var(--c-line);background:#fff;font-size:12.5px;color:var(--c-ink);border-radius:999px;transition:border-color .15s,background .15s,color .15s}
 .de-quick button:hover,.de-snips button:hover{border-color:var(--c-orange);color:#B5461C}
 .de-quick button[aria-pressed="true"]{background:var(--c-orange);border-color:var(--c-orange);color:#fff}
 .de-snips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -1983,7 +1983,7 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .pp-tools input[type=search]{flex:1;min-width:220px;height:42px;border:1.5px solid var(--c-line);padding:0 12px;font-size:15px;outline:none;border-radius:0}
 .pp-tools input[type=search]:focus{border-color:var(--c-ink)}
 .pp-cats{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:thin}
-.pp-cats button{flex:none;height:30px;padding:0 10px;border:1px solid var(--c-line);background:#fff;font-size:13px;white-space:nowrap;border-radius:0}
+.pp-cats button{flex:none;height:30px;padding:0 12px;border:1px solid var(--c-line);background:#fff;font-size:13px;white-space:nowrap;border-radius:999px}
 .pp-cats button span{color:var(--c-muted);font-size:11.5px;margin-left:2px}
 .pp-cats button[aria-pressed="true"]{background:var(--c-orange);border-color:var(--c-orange);color:#fff}
 .pp-cats button[aria-pressed="true"] span{color:#fff}
@@ -2125,7 +2125,7 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 
 /* ---------- สถานะงานภายในร้านของเอกสารขาย (WorkTag/WorkPanel) — แบบป้ายในแชต LINE OA ---------- */
 .st-cell{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
-.wtag{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px 0 6px;border:1.5px solid;border-radius:6px;background:#fff;font:600 12px/1 var(--font);white-space:nowrap;cursor:pointer;position:relative;transition:background .15s,border-color .15s,color .15s}
+.wtag{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border:1.5px solid;border-radius:999px;background:#fff;font:600 12px/1 var(--font);white-space:nowrap;cursor:pointer;position:relative;transition:background .15s,border-color .15s,color .15s}
 .wtag svg{width:15px;height:15px;flex:none}
 .wt-todo{color:#B5461C;border-color:#F0B49B;background:#FFF5EF}
 .wt-todo:hover{border-color:#B5461C}
@@ -2136,10 +2136,10 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 tr:hover .wt-empty,.wt-empty:focus-visible,.wt-empty[aria-expanded="true"]{opacity:1}
 .wt-empty:hover{color:var(--c-ink);border-color:var(--c-ink)}
 @media (hover:none){.wt-empty{opacity:1}}
-.wt-dot{position:absolute;top:-4px;right:-4px;width:8px;height:8px;border-radius:50%;background:var(--c-orange);box-shadow:0 0 0 2px #fff}
+.wt-dot{position:absolute;top:-3px;right:1px;width:8px;height:8px;border-radius:50%;background:var(--c-orange);box-shadow:0 0 0 2px #fff}
 .wt-pop{position:fixed;z-index:400;width:280px;background:#fff;border:1px solid var(--c-line);box-shadow:0 14px 36px rgba(20,20,20,.18);padding:12px;display:grid;gap:10px;border-top:3px solid var(--c-orange)}
 .wt-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.wt-opt{display:flex;align-items:center;justify-content:center;gap:6px;height:38px;border:1.5px solid;border-radius:6px;font:600 13px/1 var(--font);background:#fff}
+.wt-opt{display:flex;align-items:center;justify-content:center;gap:6px;height:38px;border:1.5px solid;border-radius:999px;font:600 13px/1 var(--font);background:#fff}
 .wt-opt svg{width:16px;height:16px}
 .wt-opt.wt-todo{color:#B5461C;border-color:#F0B49B}
 .wt-opt.wt-done{color:#1F7A4D;border-color:#9ED3B5}
@@ -2157,9 +2157,11 @@ tr:hover .wt-empty,.wt-empty:focus-visible,.wt-empty[aria-expanded="true"]{opaci
 /* ตัวกรองสถานะงานในหน้ารายการ */
 .work-filter{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid var(--c-line)}
 .work-filter .lbl{font-size:12.5px;font-weight:700;color:var(--c-muted);margin-right:4px}
-.wf{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:1.5px solid var(--c-line);background:#fff;font-size:13px;font-weight:600;color:var(--c-ink);text-decoration:none}
+.wf{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;border:1.5px solid var(--c-line);border-radius:999px;background:#fff;font-size:13px;font-weight:600;color:var(--c-ink);text-decoration:none;transition:border-color .15s,background .15s,color .15s}
+.wf:not(:has(em)){padding-right:12px}
+.wf:focus-visible{outline:2px solid #16A37B;outline-offset:2px}
 .wf svg{width:15px;height:15px}
-.wf em{font-style:normal;font-size:11.5px;background:var(--c-cream);padding:1px 7px;border-radius:9px;color:var(--c-muted)}
+.wf em{font-style:normal;font-size:11.5px;background:var(--c-cream);padding:1px 7px;border-radius:999px;color:var(--c-muted);min-width:20px;text-align:center}
 .wf:hover{border-color:var(--c-ink)}
 .wf-todo svg{color:#B5461C}.wf-done svg{color:#1F7A4D}
 .wf.on{background:var(--c-ink);border-color:var(--c-ink);color:#fff}
@@ -2188,7 +2190,7 @@ tr:hover .wt-empty,.wt-empty:focus-visible,.wt-empty[aria-expanded="true"]{opaci
 /* กล่องสถานะงานในหน้าเอกสาร */
 .wpanel h3 small{font-size:11.5px;font-weight:600;color:var(--c-muted);margin-left:6px}
 .wp-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 10px}
-.wp-btn{display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border:1.5px solid;border-radius:6px;background:#fff;font:700 14px/1 var(--font)}
+.wp-btn{display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border:1.5px solid;border-radius:999px;background:#fff;font:700 14px/1 var(--font)}
 .wp-btn svg{width:18px;height:18px}
 .wp-btn.wt-todo{color:#B5461C;border-color:#F0B49B}
 .wp-btn.wt-done{color:#1F7A4D;border-color:#9ED3B5}
