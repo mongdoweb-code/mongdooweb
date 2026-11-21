@@ -40,7 +40,7 @@ export default async function UsersPage({ searchParams }: PageProps<"/admin/user
         <div className="panel-head">
           <div>
             <h2>อุปกรณ์ที่เข้าสู่ระบบอยู่ (ทุกผู้ใช้)</h2>
-            <p>ไม่ใช้งานเกิน 30 นาทีจะหลุดอัตโนมัติ · อายุสูงสุด 12 ชั่วโมง</p>
+            <p>เข้าสู่ระบบครั้งเดียวใช้ได้ 24 ชั่วโมง (พักหน้าจอได้ ไม่หลุดระหว่างวัน) · ออกจากระบบเองได้ทุกเมื่อ</p>
           </div>
         </div>
         <SessionList rows={sessions} showUser action={revokeUserSession} />
