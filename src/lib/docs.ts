@@ -181,3 +181,31 @@ export function totalsFor(items: { qtyMilli: number; priceSatang: number; discou
 }
 
 export const docPath = (d: { type: DocTypeT; id: string }) => `/admin/docs/${DOC_META[d.type].path}/${d.id}`;
+
+// ---------------------------------------------------------------------------
+// แก้ไขใบเสนอราคาที่ออกแล้วด้วยเลขที่เดิม (ไม่สร้างฉบับแก้ไข — ลดเอกสารขยะเมื่อแก้หลายรอบ)
+// ได้เฉพาะ "รอตอบรับ" (รวมที่หมดอายุแล้ว) และยังไม่มีเอกสารต่อเนื่อง (ใบแจ้งหนี้/ใบเสร็จ/ใบมัดจำ/ใบส่งของ ที่ยังไม่ยกเลิก)
+// ---------------------------------------------------------------------------
+/** เอกสารที่สร้างต่อจากใบเสนอราคาแล้วทำให้แก้เลขเดิมไม่ได้ (ฉบับแก้ไขที่ยังเป็นร่างไม่นับ) */
+export const LINKED_WHERE: Prisma.SalesDocumentWhereInput = { status: { not: "VOID" }, type: { not: "QUOTATION" } };
+
+/** null = แก้เลขที่เดิมได้ · ข้อความ = เหตุผลที่แก้ไม่ได้ */
+export function quoteEditBlock(q: { type: string; status: string }, linked: number): string | null {
+  if (q.type !== "QUOTATION") return "แก้ไขเลขที่เดิมได้เฉพาะใบเสนอราคา";
+  if (q.status === "DRAFT") return null;
+  if (q.status === "ACCEPTED") return "ลูกค้าตอบรับแล้ว — แก้ไม่ได้ (ถ้าต้องเปลี่ยน ให้ยกเลิกการตอบรับก่อน)";
+  if (q.status === "REJECTED") return "ลูกค้าไม่ตอบรับแล้ว — กด “กลับเป็นรอตอบรับ” ก่อน หรือสร้างฉบับแก้ไข";
+  if (q.status === "VOID") return "ใบเสนอราคานี้ยกเลิกแล้ว";
+  if (q.status !== "ISSUED") return "สถานะนี้แก้ไขไม่ได้";
+  if (linked > 0) return "มีเอกสารที่สร้างต่อจากใบเสนอราคานี้แล้ว (ใบแจ้งหนี้/ใบเสร็จ/มัดจำ/ใบส่งของ) — ใช้สร้างฉบับแก้ไขแทน";
+  return null;
+}
+
+/** ตรวจภายใน transaction (ล็อกแถวกันแก้พร้อมกับการแปลง/รับมัดจำ) */
+export async function lockQuoteForEdit(tx: Tx, id: string) {
+  await tx.$queryRaw`SELECT "id" FROM "SalesDocument" WHERE "id" = ${id} FOR UPDATE`;
+  const q = await tx.salesDocument.findUnique({ where: { id }, select: { id: true, type: true, status: true, docNo: true, issueDate: true, grandSatang: true } });
+  if (!q) return { q: null, err: "ไม่พบเอกสาร" };
+  const linked = await tx.salesDocument.count({ where: { sourceId: id, ...LINKED_WHERE } });
+  return { q, err: q.status === "DRAFT" ? "ใบนี้ยังเป็นฉบับร่าง" : quoteEditBlock(q, linked) };
+}

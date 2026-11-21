@@ -30,6 +30,10 @@ export type EditorInit = {
   signImage: boolean; showBank: boolean;
   /** ใบลดหนี้: เหตุผล · ยอดใบเสร็จเดิม · ลดได้อีกสูงสุด (สตางค์) */
   creditReason?: string; creditOriginal?: number; creditMax?: number;
+  /** แก้ใบเสนอราคาที่ออกแล้วด้วยเลขที่เดิม (มี = โหมดนี้) */
+  docNo?: string;
+  /** ฉบับร่างแก้ไขที่บันทึกทับใบเดิมได้: เลขที่ของใบเดิม */
+  overwriteNo?: string;
 };
 type Cust = { id: string; snap: CustSnap };
 /** price = ราคาขายจริง 1 ชิ้น (รวมราคาลดตามช่วงเวลา) · tiers = ราคาขายส่งตามจำนวน */
@@ -156,7 +160,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
   const custSnap = v.customer;
 
   const view: DocView = {
-    type: v.type, no: null, status: "DRAFT", issueDate: v.issueDate, validUntil: v.validUntil, dueDate: v.dueDate, customer: custSnap ?? {},
+    type: v.type, no: init.docNo ?? null, status: init.docNo ? "ISSUED" : "DRAFT", issueDate: v.issueDate, validUntil: v.validUntil, dueDate: v.dueDate, customer: custSnap ?? {},
     items: v.items.map((l, i) => {
       const k = lineImgKey(l, products);
       return { sku: l.sku, name: l.name, detail: l.detail, unit: l.unit, ...safeItems[i], img: k ? thumb(k) : "" };
@@ -235,7 +239,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
     set("paymentTerms", (has ? lines.filter((x) => x.replace(/^[-•\d.)\s]+/, "").trim() !== t) : [...lines, `- ${t}`]).join("\n"));
   };
 
-  // Ctrl+S = บันทึกฉบับร่าง
+  // Ctrl+S = บันทึกฉบับร่าง (แก้เลขที่เดิม = บันทึกเอกสาร)
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -265,7 +269,13 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
         <div>
           <p><Link className="link" href={back}>← กลับ</Link></p>
           <h1>{title}</h1>
-          <p>ยังไม่ออกเลขที่จนกว่าจะกด “บันทึกและออกเอกสาร” · ตัวอย่างด้านขวาคือหน้าที่จะพิมพ์จริง</p>
+          <p>
+            {init.docNo
+              ? <>แก้ไขโดยใช้<b> เลขที่เดิม {init.docNo} </b>— ไม่สร้างเอกสารใหม่ · ลูกค้าที่เปิดลิงก์ออนไลน์จะเห็นฉบับล่าสุด · ประวัติการแก้ไขบันทึกไว้ในหน้าเอกสาร</>
+              : init.overwriteNo
+                ? <>ฉบับแก้ไขของ {init.overwriteNo}: กด “บันทึกเอกสาร” เพื่อบันทึกทับ<b> เลขที่เดิม </b>(ไม่ออกเลขใหม่) หรือ “บันทึกและออกเอกสาร” เพื่อออกเลขใหม่และยกเลิกใบเดิม</>
+                : "ยังไม่ออกเลขที่จนกว่าจะกด “บันทึกและออกเอกสาร” · ตัวอย่างด้านขวาคือหน้าที่จะพิมพ์จริง"}
+          </p>
         </div>
         <div className="head-actions">
           <button className="btn btn-outline de-pvtoggle-btn" type="button" onClick={() => setShowPv((x) => !x)}>{showPv ? "ซ่อนตัวอย่าง" : "แสดงตัวอย่าง"}</button>
@@ -484,8 +494,19 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
                 {showCost && costKnown && <span className={profit < 0 ? "neg" : ""} title={noCost ? "ต้นทุนไม่ครบทุกรายการ" : undefined}>กำไร {marginPct}{noCost ? "*" : ""}</span>}
               </span>
               <span className="spacer" />
-              <button ref={saveBtn} className="btn btn-outline" type="submit" name="intent" value="save" disabled={pending} title="Ctrl+S">{pending ? "กำลังบันทึก…" : "บันทึกฉบับร่าง"}</button>
-              <button className="btn btn-primary" type="submit" name="intent" value="issue" disabled={pending}>บันทึกและออกเอกสาร</button>
+              {init.docNo ? (
+                <button ref={saveBtn} className="btn btn-primary de-same" type="submit" name="intent" value="update" disabled={pending} title={`บันทึกการแก้ไข — ใช้เลขที่เดิม ${init.docNo} (Ctrl+S)`}>{pending ? "กำลังบันทึก…" : "บันทึกเอกสาร"}</button>
+              ) : (
+                <>
+                  {init.overwriteNo && (
+                    <button className="btn btn-outline de-same" type="submit" name="intent" value="overwrite" disabled={pending} title={`บันทึกทับใบเสนอราคา ${init.overwriteNo} (เลขที่เดิม) แล้วลบฉบับร่างนี้`}>
+                      บันทึกเอกสาร<small>เลขที่เดิม {init.overwriteNo}</small>
+                    </button>
+                  )}
+                  <button ref={saveBtn} className="btn btn-outline" type="submit" name="intent" value="save" disabled={pending} title="Ctrl+S">{pending ? "กำลังบันทึก…" : "บันทึกฉบับร่าง"}</button>
+                  <button className="btn btn-primary" type="submit" name="intent" value="issue" disabled={pending} title={init.overwriteNo ? `ออกเลขที่ใหม่ แล้วยกเลิก ${init.overwriteNo}` : undefined}>บันทึกและออกเอกสาร</button>
+                </>
+              )}
             </div>
           </div>
           {picker && (

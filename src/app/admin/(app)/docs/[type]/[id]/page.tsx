@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { docDate, docDateTime, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST } from "@/lib/doc-render";
-import { DOC_INCLUDE, LOST_REASONS, docLabel, PAY_METHODS, asSnap, docPath, isDocType, statusOf, toView, todayYmd, ymdOf } from "@/lib/docs";
+import { quoteEditBlock, DOC_INCLUDE, LOST_REASONS, docLabel, PAY_METHODS, asSnap, docPath, isDocType, statusOf, toView, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { ConfirmSubmit } from "../../../../_components/AdminClient";
@@ -20,7 +20,7 @@ export const instant = false;
 
 const SIGNER = { QUOTATION: "ผู้เสนอราคา", INVOICE: "ผู้วางบิล", RECEIPT: "ผู้รับเงิน", CREDIT_NOTE: "ผู้อนุมัติ", DELIVERY: "ผู้ส่งของ" } as const;
 
-const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป", STOCK_RETURNED: "รับคืนเข้าสต็อก", VIEWED: "ลูกค้าเปิดดู", FOLLOW_UP: "นัดติดตาม", WORK: "สถานะงาน" };
+const EV: Record<string, string> = { CREATED: "สร้าง", ISSUED: "ออกเอกสาร", CONVERTED: "แปลงเอกสาร", ACCEPTED: "ตอบรับ", REJECTED: "ไม่ตอบรับ", PAYMENT: "รับชำระ", PRINTED: "พิมพ์", VOIDED: "ยกเลิก", NOTE: "บันทึก", CUSTOMER_ACCEPTED: "ลูกค้ายืนยันออนไลน์", SLIP_UPLOADED: "ลูกค้าแนบสลิป", STOCK_RETURNED: "รับคืนเข้าสต็อก", VIEWED: "ลูกค้าเปิดดู", FOLLOW_UP: "นัดติดตาม", WORK: "สถานะงาน", EDITED: "แก้ไข (เลขที่เดิม)" };
 /** จำนวนวันจาก a ถึง b (YYYY-MM-DD) */
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 864e5);
 
@@ -48,13 +48,15 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
   const deposits = d.type === "QUOTATION" ? d.derived.filter((x) => x.type === "RECEIPT" && x.isDeposit && x.status !== "VOID") : [];
   const depositSum = deposits.reduce((n, x) => n + x.grandSatang, 0);
   const draftRevision = d.derived.find((x) => x.type === "QUOTATION" && x.status === "DRAFT");
+  // แก้ไขใบเสนอราคาเลขที่เดิม: รอตอบรับ + ยังไม่มีเอกสารต่อเนื่อง
+  const canEditSame = d.type === "QUOTATION" && d.status === "ISSUED" && !quoteEditBlock(d, d.derived.filter((x) => x.status !== "VOID" && x.type !== "QUOTATION").length);
   // ใบเสร็จ: ใบลดหนี้ที่ออกแล้วรวมเท่าไร (ลดได้อีกเท่าไร)
   const credited = d.derived.filter((x) => x.type === "CREDIT_NOTE" && x.status === "ISSUED").reduce((sum, x) => sum + x.grandSatang, 0);
   const cnDraft = d.derived.find((x) => x.type === "CREDIT_NOTE" && x.status === "DRAFT");
   const stockLines = d.type === "CREDIT_NOTE" ? d.items.filter((i) => i.productId && i.qtyMilli % 1000 === 0).length : 0;
   const label = meta.th.split(" /")[0];
   const flash =
-    sp.issued === "1" ? `ออก${label}เลขที่ ${d.docNo} แล้ว` : sp.saved === "1" ? "บันทึกฉบับร่างแล้ว" : sp.exists === "1" ? "มีเอกสารนี้อยู่แล้ว — เปิดฉบับที่มีอยู่ให้" : sp.voided === "1" ? `ยกเลิก${label}แล้ว — เลขที่เดิมยังเก็บไว้ (ห้ามนำมาใช้ซ้ำ)` : sp.stock === "1" ? "รับสินค้าคืนเข้าสต็อกแล้ว — ดูได้ในประวัติสต็อก" : sp.delivered === "1" ? "บันทึกว่าลูกค้าเซ็นรับของแล้ว" : "";
+    sp.issued === "1" ? `ออก${label}เลขที่ ${d.docNo} แล้ว` : sp.edited === "1" ? `บันทึกการแก้ไข${label} ${d.docNo} แล้ว — ใช้เลขที่เดิม ลูกค้าที่เปิดลิงก์จะเห็นฉบับล่าสุด` : sp.saved === "1" ? "บันทึกฉบับร่างแล้ว" : sp.exists === "1" ? "มีเอกสารนี้อยู่แล้ว — เปิดฉบับที่มีอยู่ให้" : sp.voided === "1" ? `ยกเลิก${label}แล้ว — เลขที่เดิมยังเก็บไว้ (ห้ามนำมาใช้ซ้ำ)` : sp.stock === "1" ? "รับสินค้าคืนเข้าสต็อกแล้ว — ดูได้ในประวัติสต็อก" : sp.delivered === "1" ? "บันทึกว่าลูกค้าเซ็นรับของแล้ว" : "";
   const err = typeof sp.err === "string" ? sp.err.slice(0, 200) : "";
   const idInput = <input type="hidden" name="id" value={d.id} />;
   const act = (fn: (f: FormData) => Promise<void>, text: string, cls = "btn btn-outline") => (
@@ -155,7 +157,8 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
                 </>
               )}
               {d.type === "QUOTATION" && ["ACCEPTED", "REJECTED"].includes(d.status) && !liveIv && !liveRc && act(reopenQuote, "กลับเป็นรอตอบรับ", "btn btn-ghost")}
-              {d.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.status) && (draftRevision ? <Link className="btn btn-outline" href={`${docPath(draftRevision)}/edit`}>ฉบับแก้ไขที่ร่างไว้</Link> : act(reviseQuote, "สร้างฉบับแก้ไข"))}
+              {canEditSame && <Link className="btn btn-outline" href={`${docPath(d)}/edit`} title="แก้รายการ/ราคา/เงื่อนไข โดยใช้เลขที่เดิม ไม่สร้างเอกสารใหม่">แก้ไขใบเสนอราคา (เลขที่เดิม)</Link>}
+              {d.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.status) && (draftRevision ? <Link className="btn btn-outline" href={`${docPath(draftRevision)}/edit`}>ฉบับแก้ไขที่ร่างไว้</Link> : act(reviseQuote, canEditSame ? "สร้างฉบับแก้ไข (เลขที่ใหม่)" : "สร้างฉบับแก้ไข"))}
               {d.type === "RECEIPT" && d.status === "ISSUED" && (cnDraft ? (
                 <Link className="btn btn-outline" href={`${docPath(cnDraft)}/edit`}>ใบลดหนี้ที่ร่างไว้</Link>
               ) : credited < d.grandSatang ? act(createCreditNote, credited ? `ออกใบลดหนี้เพิ่ม (ลดได้อีก ฿${money(d.grandSatang - credited)})` : "ออกใบลดหนี้ / คืนเงิน") : null)}
