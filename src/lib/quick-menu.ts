@@ -1,4 +1,5 @@
-// แถบเมนูด่วนด้านบนหลังบ้าน: รายการที่เลือกได้ + ค่าเริ่มต้น + ตรวจค่าที่บันทึก (Admin.quickMenu) — ไม่มี import ใช้ได้ทั้ง server/client
+// แถบเมนูด่วนด้านบนหลังบ้าน: รายการที่เลือกได้ + ค่าเริ่มต้น + ตรวจค่าที่บันทึก (Admin.quickMenu) — ใช้ได้ทั้ง server/client
+import { ADMIN_MENU } from "./admin-menu";
 // แต่ละคนตั้งเอง (เก็บที่บัญชีผู้ใช้) · เมนูเฉพาะเจ้าของร้านไม่แสดงให้พนักงาน (หน้าเหล่านั้นก็ตรวจสิทธิ์ซ้ำเองอยู่แล้ว)
 
 export type QuickItem = {
@@ -15,31 +16,20 @@ export type QuickItem = {
   group: string;
 };
 
-export const QUICK_ITEMS: QuickItem[] = [
+/** ปุ่ม "สร้างใหม่" (ทางลัดที่ไม่มีในเมนูซ้าย) */
+const CREATE_ITEMS: QuickItem[] = [
   { key: "qt-new", label: "ออกใบเสนอราคา", href: "/admin/docs/QUOTATION/new/edit", icon: "qt", create: true, group: "สร้างใหม่" },
   { key: "iv-new", label: "ออกใบแจ้งหนี้", href: "/admin/docs/INVOICE/new/edit", icon: "iv", create: true, group: "สร้างใหม่" },
   { key: "product-new", label: "เพิ่มสินค้า", href: "/admin/products/new", icon: "products", create: true, group: "สร้างใหม่" },
   { key: "order-new", label: "สร้างคำสั่งซื้อ", href: "/admin/orders/new", icon: "orders", create: true, group: "สร้างใหม่" },
   { key: "customer-new", label: "เพิ่มลูกค้า", href: "/admin/customers/new", icon: "cust", create: true, group: "สร้างใหม่" },
   { key: "po-new", label: "สร้างใบสั่งซื้อ", href: "/admin/purchase-orders/new", icon: "po", create: true, ownerOnly: true, group: "สร้างใหม่" },
-  { key: "products", label: "สินค้า", href: "/admin/products", icon: "products", group: "สินค้าและสต็อก" },
-  { key: "categories", label: "หมวดหมู่สินค้า", href: "/admin/categories", icon: "cats", group: "สินค้าและสต็อก" },
-  { key: "stock", label: "สต็อก", href: "/admin/stock", icon: "stock", group: "สินค้าและสต็อก" },
-  { key: "stock-count", label: "นับสต็อกทั้งร้าน", href: "/admin/stock/count", icon: "count", group: "สินค้าและสต็อก" },
-  { key: "po", label: "ใบสั่งซื้อ (PO)", href: "/admin/purchase-orders", icon: "po", group: "สินค้าและสต็อก" },
-  { key: "orders", label: "คำสั่งซื้อ", href: "/admin", icon: "orders", group: "งานขาย" },
-  { key: "quotes", label: "ใบเสนอราคา", href: "/admin/docs/QUOTATION", icon: "qt", group: "งานขาย" },
-  { key: "invoices", label: "ใบแจ้งหนี้", href: "/admin/docs/INVOICE", icon: "iv", group: "งานขาย" },
-  { key: "receipts", label: "ใบเสร็จรับเงิน", href: "/admin/docs/RECEIPT", icon: "rc", group: "งานขาย" },
-  { key: "customers", label: "ลูกค้า", href: "/admin/customers", icon: "cust", group: "งานขาย" },
-  { key: "inquiries", label: "คำขอจากลูกค้า", href: "/admin/inquiries", icon: "inbox", group: "งานขาย" },
-  { key: "tasks", label: "งานที่ต้องทำ", href: "/admin/tasks", icon: "task", group: "งานขาย" },
-  { key: "dashboard", label: "ภาพรวม", href: "/admin/dashboard", icon: "dash", group: "รายงาน" },
-  { key: "reports", label: "รายงานยอดขาย", href: "/admin/reports", icon: "report", group: "รายงาน" },
-  { key: "daily", label: "ปิดยอดประจำวัน", href: "/admin/reports/daily", icon: "cash", group: "รายงาน" },
-  { key: "receivables", label: "ลูกหนี้ค้างชำระ", href: "/admin/reports/receivables", icon: "debt", group: "รายงาน" },
-  { key: "settings", label: "ตั้งค่าร้าน", href: "/admin/settings", icon: "settings", ownerOnly: true, group: "รายงาน" },
-  { key: "shop", label: "ดูหน้าร้าน", href: "/", icon: "shop", external: true, group: "รายงาน" },
+];
+
+/** ทุกเมนู = ปุ่มสร้างใหม่ + ทุกเมนูซ้าย (src/lib/admin-menu.ts) ตามกลุ่มเดียวกับเมนูซ้าย — เพิ่มเมนูซ้ายแล้วมีให้เลือกที่นี่เอง */
+export const QUICK_ITEMS: QuickItem[] = [
+  ...CREATE_ITEMS,
+  ...ADMIN_MENU.map((m) => ({ key: m.key, label: m.label, href: m.href, icon: m.icon, group: m.group, ...(m.ownerOnly ? { ownerOnly: true } : {}), ...(m.external ? { external: true } : {}) })),
 ];
 
 /** ค่าเริ่มต้น (ยังไม่เคยตั้ง) — เมนูที่ใช้บ่อย */

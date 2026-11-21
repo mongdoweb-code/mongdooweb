@@ -58,6 +58,7 @@ export function QuickBar({ selected, available }: { selected: string[]; availabl
 
 function QuickSettings({ selected, available, onClose }: { selected: string[]; available: QuickItem[]; onClose: () => void }) {
   const [sel, setSel] = useState(selected);
+  const [q, setQ] = useState("");
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
   const [pending, start] = useTransition();
   const dlg = useRef<HTMLDivElement>(null);
@@ -99,12 +100,23 @@ function QuickSettings({ selected, available, onClose }: { selected: string[]; a
         </div>
         <p className="qb-sub">เลือกเมนูที่ใช้บ่อย (สูงสุด {QUICK_MAX} เมนู) และจัดลำดับ — ตั้งค่านี้ใช้กับบัญชีของคุณเท่านั้น</p>
         <div className="qb-cols">
-          <section aria-labelledby="qbPick">
-            <h3 id="qbPick">เมนูทั้งหมด</h3>
-            {groups.map((g) => (
+          <section aria-labelledby="qbPick" className="qb-pick">
+            <div className="qb-pick-head">
+              <h3 id="qbPick">เมนูทั้งหมด <span className="qb-total">{available.length}</span></h3>
+              <label className="qb-q">
+                <span className="sr-only">ค้นหาเมนู</span>
+                <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาเมนู เช่น สต็อก, ใบเสร็จ" />
+              </label>
+            </div>
+            <p className="qb-hint">ทุกเมนูด้านซ้ายเลือกได้ที่นี่ — เมนูใหม่จะเพิ่มเข้ามาให้เลือกเอง</p>
+            {groups.map((g) => {
+              const ql = q.trim().toLowerCase();
+              const opts = available.filter((i) => i.group === g && (!ql || i.label.toLowerCase().includes(ql) || g.toLowerCase().includes(ql)));
+              if (!opts.length) return null;
+              return (
               <fieldset key={g} className="qb-grp">
-                <legend>{g}</legend>
-                {available.filter((i) => i.group === g).map((it) => {
+                <legend>{g} <small>{opts.filter((i) => sel.includes(i.key)).length ? `เลือก ${opts.filter((i) => sel.includes(i.key)).length}` : ""}</small></legend>
+                {opts.map((it) => {
                   const on = sel.includes(it.key);
                   return (
                     <label key={it.key} className={`qb-opt${on ? " on" : ""}${!on && full ? " off" : ""}`}>
@@ -115,7 +127,9 @@ function QuickSettings({ selected, available, onClose }: { selected: string[]; a
                   );
                 })}
               </fieldset>
-            ))}
+              );
+            })}
+            {q.trim() && !available.some((i) => (i.label + i.group).toLowerCase().includes(q.trim().toLowerCase())) && <p className="qb-none">ไม่พบเมนู “{q.trim()}”</p>}
           </section>
           <section aria-labelledby="qbOrder" className="qb-order">
             <h3 id="qbOrder">แสดงบนแถบ <span className={full ? "qb-n full" : "qb-n"}>{sel.length}/{QUICK_MAX}</span></h3>

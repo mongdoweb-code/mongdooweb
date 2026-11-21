@@ -3793,6 +3793,22 @@ html[data-adm-theme="dark"] .qb-sub {
     color: var(--c-muted);
     border-bottom: 1px solid var(--c-line)
 }
+html[data-adm-theme="dark"] .qb-pick-head {
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .qb-q input {
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .qb-q input:focus {
+    outline: none;
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .qb-hint {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .qb-grp legend small {
+    color: var(--c-orange)
+}
 html[data-adm-theme="dark"] .qb-order {
     background: #1B1D22;
     border-left: 1px solid var(--c-line)
@@ -3811,9 +3827,13 @@ html[data-adm-theme="dark"] .qb-opt.on {
     border-color: var(--c-orange);
     background: #281A13
 }
-html[data-adm-theme="dark"] .qb-n {
+html[data-adm-theme="dark"] .qb-n,
+html[data-adm-theme="dark"] .qb-total {
     background: var(--c-cream);
     color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .qb-total {
+    color: var(--c-muted)
 }
 html[data-adm-theme="dark"] .qb-n.full {
     background: var(--c-orange);

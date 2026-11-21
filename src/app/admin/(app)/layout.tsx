@@ -6,7 +6,8 @@ import { SideToggle } from "../_components/AdminClient";
 import { AdminNav } from "../_components/AdminNav";
 import { TopTools } from "../_components/TopTools";
 import { SaveCenter } from "../_components/SaveCenter";
-import { Ico } from "../_components/admin-icons";
+import { Ico, type IconKey } from "../_components/admin-icons";
+import { menuFor, type MenuBadge } from "@/lib/admin-menu";
 import { QuickBar } from "../_components/QuickBar";
 import { availableQuickItems, parseQuickMenu } from "@/lib/quick-menu";
 import "../lot12.css";
@@ -29,6 +30,8 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
     prisma.stockCount.count({ where: { status: "OPEN" } }),
     prisma.admin.findUnique({ where: { id: admin.id }, select: { quickMenu: true } }),
   ]);
+  // ตัวเลขป้ายข้างเมนู (คีย์ตาม src/lib/admin-menu.ts)
+  const badges: Record<MenuBadge, number> = { pending, unpaid, inquiries, claims, docSlips, reviews, waiting, myOverdue, pdpaNew, countsOpen };
   return (
     <div className="shell">
       <aside className="side" id="side" aria-label="เมนูหลังร้าน">
@@ -42,63 +45,14 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
         </div>
         <AdminNav
           locked={admin.mustChangePassword}
-          items={[
-            { href: "/admin/dashboard", label: "ภาพรวม", icon: <Ico k="dash" />, group: "งานประจำวัน" },
-            { href: "/admin", label: "คำสั่งซื้อ", icon: <Ico k="orders" />, badge: pending, group: "งานประจำวัน" },
-            { href: "/admin/inquiries", label: "คำขอจากลูกค้า", icon: <Ico k="inbox" />, badge: inquiries, group: "งานประจำวัน" },
-            { href: "/admin/claims", label: "เคลม / คืนสินค้า", icon: <Ico k="claim" />, badge: claims, group: "งานประจำวัน" },
-            { href: "/admin/tasks", label: "งานที่ต้องทำ", icon: <Ico k="task" />, badge: myOverdue, group: "งานประจำวัน" },
-            // ทุกรายการที่มี group ต้องอยู่ต่อกันใต้หัวข้อนั้น (รายการที่ไม่มี group จะแสดงใต้หัวข้อก่อนหน้า)
-            { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/products/order", label: "จัดเรียงสินค้าหน้าร้าน", icon: <Ico k="sort" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/stock", label: "สต็อก", icon: <Ico k="stock" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/stock/count", label: "นับสต็อกทั้งร้าน", icon: <Ico k="count" />, badge: countsOpen, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/purchase-orders", label: "ใบสั่งซื้อ (PO)", icon: <Ico k="po" />, group: "สินค้าและหน้าร้าน" },
-            ...(owner ? [{ href: "/admin/suppliers", label: "ผู้ขาย", icon: <Ico k="truck" />, group: "สินค้าและหน้าร้าน" }] : []),
-            { href: "/admin/coupons", label: "คูปองส่วนลด", icon: <Ico k="coupon" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/specs", label: "สเปกสินค้าต่อหมวด", icon: <Ico k="specs" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/slides", label: "สไลด์หน้าแรก", icon: <Ico k="slides" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/media", label: "ตรวจรูปภาพ", icon: <Ico k="image" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/pages", label: "หน้าเนื้อหา / FAQ", icon: <Ico k="pages" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/reviews", label: "รีวิวสินค้า", icon: <Ico k="star" />, badge: reviews, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/stock-alerts", label: "รอสินค้าเข้า", icon: <Ico k="bell" />, badge: waiting, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/home", label: "หน้าแรก / ความน่าเชื่อถือ", icon: <Ico k="home" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/home/popular", label: "หมวดยอดนิยม (หน้าแรก)", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/home/why", label: "ทำไมต้องมองดูเว็บ (หน้าแรก)", icon: <Ico k="home" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/home/nav", label: "เมนูหน้าร้าน (Navbar)", icon: <Ico k="home" />, group: "สินค้าและหน้าร้าน" },
-            { href: "/admin/docs/QUOTATION", label: "ใบเสนอราคา", icon: <Ico k="qt" />, group: "เอกสารขาย" },
-            { href: "/admin/docs/INVOICE", label: "ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: unpaid, group: "เอกสารขาย" },
-            { href: "/admin/docs/RECEIPT", label: "ใบเสร็จรับเงิน", icon: <Ico k="rc" />, group: "เอกสารขาย" },
-            { href: "/admin/docs/CREDIT_NOTE", label: "ใบลดหนี้ / คืนเงิน", icon: <Ico k="cn" />, group: "เอกสารขาย" },
-            { href: "/admin/docs/DELIVERY", label: "ใบส่งของ", icon: <Ico k="truck" />, group: "เอกสารขาย" },
-            { href: "/admin/docs/slips", label: "สลิปจากลิงก์ใบแจ้งหนี้", icon: <Ico k="iv" />, badge: docSlips, group: "เอกสารขาย" },
-            { href: "/admin/customers", label: "ลูกค้า", icon: <Ico k="cust" />, group: "เอกสารขาย" },
-            { href: "/admin/projects", label: "ผลงานติดตั้ง", icon: <Ico k="photo" />, group: "เนื้อหาและ SEO" },
-            { href: "/admin/posts", label: "บทความ", icon: <Ico k="post" />, group: "เนื้อหาและ SEO" },
-            { href: "/admin/search", label: "ค้นหา / คำพ้อง", icon: <Ico k="search" />, group: "เนื้อหาและ SEO" },
-            { href: "/admin/redirects", label: "Redirect / หน้า 404", icon: <Ico k="redirect" />, group: "เนื้อหาและ SEO" },
-            { href: "/admin/reports", label: "รายงานยอดขาย", icon: <Ico k="report" />, group: "รายงาน" },
-            { href: "/admin/reports/daily", label: "ปิดยอดประจำวัน", icon: <Ico k="cash" />, group: "รายงาน" },
-            { href: "/admin/reports/receivables", label: "ลูกหนี้ค้างชำระ", icon: <Ico k="debt" />, group: "รายงาน" },
-            { href: "/admin/expenses", label: "ค่าใช้จ่ายร้าน", icon: <Ico k="cash" />, group: "รายงาน" },
-            { href: "/admin/reports/wht", label: "ภาษีถูกหัก ณ ที่จ่าย", icon: <Ico k="report" />, group: "รายงาน" },
-            { href: "/admin/log", label: "บันทึกการใช้งาน", icon: <Ico k="log" />, group: "รายงาน" },
-            ...(owner
-              ? [
-                  { href: "/admin/settings", label: "ตั้งค่าร้าน", icon: <Ico k="settings" />, group: "ระบบ" },
-                  { href: "/admin/settings/login", label: "หน้าเข้าสู่ระบบ", icon: <Ico k="login" />, group: "ระบบ" },
-                  { href: "/admin/users", label: "ผู้ใช้หลังบ้าน", icon: <Ico k="users" />, group: "ระบบ" },
-                  { href: "/admin/line", label: "แจ้งเตือน LINE", icon: <Ico k="line" />, group: "ระบบ" },
-                  { href: "/admin/system", label: "สถานะระบบ", icon: <Ico k="system" />, group: "ระบบ" },
-                  { href: "/admin/backups", label: "สำรองข้อมูล", icon: <Ico k="backup" />, group: "ระบบ" },
-                  { href: "/admin/data-requests", label: "คำขอข้อมูลส่วนบุคคล", icon: <Ico k="shield" />, group: "ระบบ", badge: pdpaNew },
-                ]
-              : []),
-            { href: "/admin/help", label: "คู่มือการใช้งาน", icon: <Ico k="help" />, group: "ระบบ" },
-            { href: "/admin/account", label: "บัญชีของฉัน", icon: <Ico k="users" />, group: "ระบบ" },
-            { href: "/", label: "ดูหน้าร้าน", icon: <Ico k="shop" />, group: "ระบบ", external: true },
-          ]}
+          items={menuFor(owner).map((m) => ({
+            href: m.href,
+            label: m.label,
+            icon: <Ico k={m.icon as IconKey} />,
+            group: m.group,
+            ...(m.badge ? { badge: badges[m.badge] } : {}),
+            ...(m.external ? { external: true } : {}),
+          }))}
         />
         <div className="side-foot">
           <b>{admin.displayName}</b>
