@@ -109,7 +109,9 @@ test("ช่อง แสดง n รายการ/หน้า: มุมโ�
   const box = await page.locator(".pg-per" + V).evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
   expect(st.r).toBeGreaterThanOrEqual(6);
   expect(box).toBeGreaterThanOrEqual(8);
-  const btnH = await page.locator(".pg-nav .pg-btn" + V).first().evaluate((el) => el.getBoundingClientRect().height).catch(() => 32);
+  // ปุ่มเลขหน้ามีเมื่อเกิน 1 หน้า (ฐานข้อมูลทดสอบอาจมีเอกสารน้อย) — ความสูงมาตรฐานของปุ่ม = 32px
+  const btns = page.locator(".pg-nav .pg-btn" + V);
+  const btnH = (await btns.count()) ? await btns.first().evaluate((el) => el.getBoundingClientRect().height) : 32;
   expect(Math.abs(st.h - btnH)).toBeLessThanOrEqual(1);
   // ยังเปลี่ยนจำนวนต่อหน้าได้
   await sel.selectOption("20");
