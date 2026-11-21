@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import sharp from "sharp";
 
 const SRC = "docs/reference/logo-from-invoice.png";
-/** สี favicon (แท็บเบราว์เซอร์): ส่วนบน ฟ้าเข้ม · ส่วนล่าง เทา — ตามที่เจ้าของร้านเลือก (2026-11-21) · ไอคอนแอป/apple ใช้สีโลโก้เดิม */
+/** สีไอคอนเว็บทั้งหมด (favicon + ไอคอนหน้าจอโฮม/แอป): ส่วนบน ฟ้าเข้ม · ส่วนล่าง เทา — ตามที่เจ้าของร้านเลือก (2026-11-21) */
 const FAVICON_COLORS: [number, number, number][] = [
   [0x00, 0x85, 0xb2],
   [0xbb, 0xbb, 0xbb],
@@ -104,13 +104,14 @@ function ico(pngs: { size: number; buf: Buffer }[]) {
 async function main() {
   mkdirSync("public/icons", { recursive: true });
   const WHITE = "#ffffff";
-  // favicon (แท็บเบราว์เซอร์ / ผลค้นหา Google): favicon.ico + icon.png ใช้สีชุด favicon
+  // favicon (แท็บเบราว์เซอร์ / ผลค้นหา Google)
   writeFileSync("src/app/icon.png", await square(192, 0.86, null, FAVICON_COLORS));
-  writeFileSync("src/app/apple-icon.png", await square(180, 0.72, WHITE));
-  writeFileSync("public/icons/icon-192.png", await square(192, 0.78, WHITE));
-  writeFileSync("public/icons/icon-512.png", await square(512, 0.78, WHITE));
+  // ไอคอนหน้าจอโฮม (iPhone) + แอป (Android/PWA) — สีชุดเดียวกับ favicon
+  writeFileSync("src/app/apple-icon.png", await square(180, 0.72, WHITE, FAVICON_COLORS));
+  writeFileSync("public/icons/icon-192.png", await square(192, 0.78, WHITE, FAVICON_COLORS));
+  writeFileSync("public/icons/icon-512.png", await square(512, 0.78, WHITE, FAVICON_COLORS));
   // maskable: เนื้อหาอยู่ในวงกลมกลาง 80% (safe zone) → โลโก้กว้าง 58%
-  writeFileSync("public/icons/maskable-512.png", await square(512, 0.58, WHITE));
+  writeFileSync("public/icons/maskable-512.png", await square(512, 0.58, WHITE, FAVICON_COLORS));
   writeFileSync(
     "src/app/favicon.ico",
     ico(await Promise.all([16, 32, 48].map(async (size) => ({ size, buf: await square(size, 0.94, null, FAVICON_COLORS) })))),
