@@ -32,3 +32,15 @@ html[data-theme="dark"] ::selection{background:#F26B38;color:#fff}
 .theme-tg:focus-visible{outline:2px solid var(--c-orange);outline-offset:2px}
 .dr-theme{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--c-line);font-size:14px;font-weight:600}
 @media (prefers-reduced-motion:reduce){.theme-tg .tg-knob,.theme-tg svg{transition:none}}
+
+/* ---------- ส่วน "ทำไมต้องมองดูเว็บ" (ตั้งค่าที่ /admin/home/why) ---------- */
+/* สีข้อความที่ร้านตั้ง (data-wc + --wc): ใช้กับโหมดกลางวัน · โหมดกลางคืนใช้สีของธีมให้อ่านง่าย · คำบรรยายบนรูปทึบ (พื้นมืดเสมอ) ใช้ทุกโหมด */
+html:not([data-theme="dark"]) .feature [data-wc],
+.feature .feature-visual:not(.is-clear) .cap [data-wc]{color:var(--wc)}
+/* กล่องรูปโปร่งใส: ไม่มีพื้นดำ/เงาไล่สี · รูปเต็มไม่ครอป (PNG ตัดพื้น) · คำบรรยายใต้รูป */
+.feature-visual.has-img.is-clear{background:transparent;aspect-ratio:auto;overflow:visible;display:flex;flex-direction:column;gap:14px}
+.feature-visual.has-img.is-clear::before{display:none}
+.feature-visual.has-img.is-clear img{position:static;inset:auto;width:100%;height:auto;max-height:620px;object-fit:contain}
+.feature-visual.has-img.is-clear .cap{position:static;left:auto;right:auto;bottom:auto;color:var(--c-ink)}
+.feature-visual.has-img.is-clear .cap span{color:var(--c-muted)}
+.feature-visual.has-img.is-clear:hover .cap span,.feature-visual.has-img.is-clear:focus-visible .cap span{color:var(--c-orange)}

@@ -98,5 +98,16 @@ console.log("lot10-home: ผ่านทั้งหมด");
   assert.ok(linked.includes('<a class="feature-visual reveal has-img" href="https://example.com/x" target="_blank" rel="noopener"'));
   const none = renderWhyHtml({ ...WHY_DEFAULT, imageMode: "none" }, { projects: [{ title: "P", kind: null, location: null, cover: { full: "/x.webp" } }] });
   assert.ok(none.includes('<div class="feature-visual reveal"><div class="cap">'), "ไม่ใช้รูป = พื้นไล่สี แม้มีผลงาน");
+  // กล่องรูปโปร่งใส + สีข้อความ
+  const cc = parseWhyUs({ imageMode: "upload", imageKey: "why/2026/11/abc123.webp", clear: true, colors: { title: "#1a73e8", eyebrow: "red", num: "#12345", capSub: "#ABCDEF\"><script>", itemText: " #00aa00 ", bogus: "#FFFFFF" } });
+  assert.equal(cc.clear, true);
+  assert.equal(parseWhyUs({ clear: "yes" }).clear, false, "ต้องเป็น true เท่านั้น");
+  assert.deepEqual(cc.colors, { title: "#1A73E8", itemText: "#00AA00" }, "รับเฉพาะ #RRGGBB ของช่องที่รู้จัก");
+  const hc = renderWhyHtml(cc, { imageUrl: "/media/why/2026/11/abc123.webp" });
+  assert.ok(hc.includes("has-img is-clear"), "โปร่งใสเมื่อมีรูป");
+  assert.ok(hc.includes('<h2 class="sec-title" data-wc style="--wc:#1A73E8">') && hc.includes('<p data-wc style="--wc:#00AA00">'));
+  assert.ok(!hc.includes('class="eyebrow" data-wc'), "ช่องที่ไม่ตั้งสีไม่มี data-wc");
+  assert.ok(!renderWhyHtml({ ...cc, imageMode: "none" }).includes("is-clear"), "ไม่มีรูป = ไม่โปร่งใส");
+  assert.ok(!renderWhyHtml({ ...cc, colors: { title: "#000;}</style>" } as never }).includes("</style>"), "สีที่ไม่ผ่านรูปแบบไม่ถูกพิมพ์");
   console.log("why-us: ok");
 }
