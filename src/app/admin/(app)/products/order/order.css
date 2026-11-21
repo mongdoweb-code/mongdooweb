@@ -1,0 +1,125 @@
+/* /admin/products/order — จัดเรียงสินค้าหน้าร้าน (3 มุมมอง: ตาราง / การ์ด / การ์ดเล็ก) */
+.ob{display:flex;flex-direction:column;gap:12px}
+.ob-bar{position:sticky;top:0;z-index:15;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;background:#fff;border:1px solid var(--c-line);border-radius:12px;box-shadow:0 4px 14px rgba(20,20,20,.05)}
+.ob-search{flex:1 1 240px;min-width:200px;display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border:1.5px solid var(--c-line);border-radius:999px;background:#fff}
+.ob-search svg{width:16px;height:16px;fill:none;stroke:var(--c-muted);stroke-width:2;flex:none}
+.ob-search input{flex:1;min-width:0;border:0;outline:none;background:transparent;font:inherit;color:inherit;height:100%}
+.ob-search:focus-within{border-color:var(--c-ink)}
+.ob-sel{height:36px;padding:0 10px 0 14px;border:1.5px solid var(--c-line);border-radius:999px;background:#fff;font:600 13px/1 var(--font);color:var(--c-ink);cursor:pointer;max-width:100%}
+.ob-sel:hover{border-color:var(--c-orange)}
+.ob-only{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--c-muted)}
+.ob-spacer{flex:1}
+.ob-pill{height:34px;padding:0 13px;border:1.5px solid var(--c-line);border-radius:999px;background:#fff;font:600 13px/1 var(--font);color:var(--c-ink);cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s}
+.ob-pill:hover:not(:disabled){border-color:var(--c-orange)}
+.ob-pill:disabled{opacity:.45;cursor:not-allowed}
+.ob-pill.ghost{border-style:dashed}
+.ob-views{display:inline-flex;padding:3px;gap:2px;border:1.5px solid var(--c-line);border-radius:999px;background:#fff}
+.ob-views button{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:0;border-radius:999px;background:transparent;font:600 13px/1 var(--font);color:var(--c-muted);cursor:pointer}
+.ob-views button svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+.ob-views button[data-view="small"] svg{fill:currentColor;stroke:none}
+.ob-views button.on{background:var(--c-ink);color:#fff}
+.ob-views button:focus-visible,.ob-pill:focus-visible,.ob-sel:focus-visible{outline:2px solid #16A37B;outline-offset:2px}
+.ob-selbar{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-top:8px;border-top:1px dashed var(--c-line);font-size:13px}
+.ob-selbar b{margin-right:4px}
+.ob-goto{display:inline-flex;align-items:center;gap:6px}
+.ob-goto label{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 6px 0 12px;border:1.5px solid var(--c-line);border-radius:999px;font-size:13px}
+.ob-goto input{width:56px;height:26px;border:1px solid var(--c-line);border-radius:999px;text-align:center;font:700 13px/1 var(--font)}
+.ob-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:12.5px;color:var(--c-muted)}
+.ob-legend span{display:inline-flex;align-items:center;gap:6px}
+.ob-legend b{color:var(--c-ink)}
+.ob-legend .lg{display:inline-block;width:14px;height:10px;border-radius:3px}
+.lg-break{border-top:2px dashed #F0B49B;height:0!important;margin-top:4px}
+.lg-moved{background:#FFF3E8;border:1px solid #F6C9A6}
+.lg-muted{background:#ECEAE4}
+.ob-tipline{flex-basis:100%}
+/* ---- การ์ด / การ์ดเล็ก ---- */
+.ob-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px}
+.ob-v-small .ob-grid{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.ob-item{position:relative;user-select:none;-webkit-user-select:none;transition:box-shadow .15s,border-color .15s,opacity .15s,background .15s}
+.ob-grid .ob-item{display:flex;flex-direction:column;gap:6px;padding:8px;background:#fff;border:1.5px solid var(--c-line);border-radius:12px;cursor:grab;min-width:0}
+.ob-grid .ob-item:hover{border-color:#F0A76E;box-shadow:0 6px 16px rgba(20,20,20,.07)}
+.ob-item input,.ob-item button{user-select:auto}
+.ob-top{display:flex;align-items:center;gap:6px}
+.ob-top .ob-chk{margin-left:auto}
+.ob-pos{width:52px;height:28px;border:1.5px solid var(--c-line);border-radius:999px;text-align:center;font:800 13px/1 var(--font);color:var(--c-ink);background:#fff}
+.ob-pos:focus{outline:none;border-color:var(--c-orange);box-shadow:0 0 0 3px rgba(242,107,56,.2)}
+.ob-handle{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid transparent;border-radius:999px;background:transparent;color:var(--c-muted);cursor:grab;touch-action:none;padding:0}
+.ob-handle svg{width:16px;height:16px;fill:currentColor}
+.ob-handle:hover,.ob-handle:focus-visible{border-color:var(--c-line);color:var(--c-ink);background:#F7F7F5}
+.ob-handle:focus-visible{outline:2px solid #16A37B;outline-offset:1px}
+.ob-chk{width:18px;height:18px;accent-color:var(--c-ink);cursor:pointer;flex:none}
+.ob-img{position:relative;aspect-ratio:1/1;border-radius:8px;background:#F4F1EA;overflow:hidden;display:grid;place-items:center}
+.ob-img img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.ob-noimg{font-size:12px;color:var(--c-muted)}
+.ob-img .ob-tags{position:absolute;left:6px;top:6px;right:6px;display:flex;flex-wrap:wrap;gap:4px}
+.ob-tags{display:inline-flex;flex-wrap:wrap;gap:4px}
+.ob-tag{font:700 10.5px/1 var(--font);padding:4px 8px;border-radius:999px;white-space:nowrap}
+.t-pin{background:var(--c-orange);color:#fff}
+.t-off{background:#4A4A4A;color:#fff}
+.t-var{background:#E8F0FE;color:#1A56C9}
+.t-out{background:#FDE7E7;color:#B42318}
+.ob-cat{font-size:11.5px;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ob-name{font-size:13px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.ob-foot{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:auto}
+.ob-price{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ob-price small{font-weight:500;color:var(--c-muted)}
+.ob-acts{display:inline-flex;gap:3px;flex:none}
+.ob-ib{width:28px;height:28px;border:1px solid var(--c-line);border-radius:999px;background:#fff;color:var(--c-muted);font-size:13px;line-height:1;display:grid;place-items:center;cursor:pointer;padding:0}
+.ob-ib:hover,.ob-ib:focus-visible{border-color:var(--c-orange);color:#C2410C}
+.ob-ib.pin.on{background:#FFF1E6;border-color:#F6C9A6;color:#C2410C}
+/* การ์ดเล็ก: ย่อทุกอย่าง ให้เห็นทีละมาก ๆ */
+.ob-v-small .ob-item{padding:6px;gap:4px;border-radius:10px}
+.ob-v-small .ob-pos{width:42px;height:24px;font-size:12px}
+.ob-v-small .ob-handle{width:22px;height:22px}
+.ob-v-small .ob-chk{width:15px;height:15px}
+.ob-v-small .ob-name{font-size:11.5px;-webkit-line-clamp:1;min-height:1.4em}
+.ob-v-small .ob-price{font-size:11.5px}
+.ob-v-small .ob-ib{width:22px;height:22px;font-size:11px}
+.ob-v-small .ob-tag{font-size:9.5px;padding:3px 6px}
+/* สถานะ */
+.ob-item.is-sel{border-color:var(--c-ink)!important;box-shadow:0 0 0 2px var(--c-ink)}
+.ob-item.is-moved{background:#FFF8F1}
+.ob-grid .ob-item.is-moved{border-color:#F6C9A6}
+.ob-item.is-muted .ob-img img,.ob-item.is-muted .ob-thumb img{filter:grayscale(1);opacity:.55}
+.ob-item.is-dim{opacity:.28}
+.ob-item.is-dragging{opacity:.35}
+.ob-grid .ob-item.drop-before{box-shadow:-5px 0 0 -1px #16A37B}
+.ob-grid .ob-item.drop-after{box-shadow:5px 0 0 -1px #16A37B}
+.ob-tbl .ob-item.drop-before td{box-shadow:inset 0 3px 0 #16A37B}
+.ob-tbl .ob-item.drop-after td{box-shadow:inset 0 -3px 0 #16A37B}
+.ob-break{grid-column:1/-1;list-style:none}
+.ob-break span,.ob-tbl .ob-break td span{display:flex;align-items:center;gap:10px;color:#C2410C;font-weight:700;font-size:12.5px;white-space:nowrap}
+.ob-break span::before,.ob-break span::after{content:"";flex:1;border-top:2px dashed #F0B49B}
+.ob-tbl .ob-break td{padding:6px 10px;background:transparent}
+/* ตาราง */
+.ob-tbl{width:100%}
+.ob-tbl .ob-item{cursor:grab}
+.ob-tbl td{vertical-align:middle}
+.ob-tbl .c-chk{width:32px}
+.ob-prod{display:flex;align-items:center;gap:10px;min-width:0}
+.ob-prod b{display:block;font-size:13.5px;line-height:1.35}
+.ob-prod small{display:block;font-size:12px;color:var(--c-muted)}
+.ob-thumb{flex:none;width:44px;height:44px;border-radius:8px;background:#F4F1EA;overflow:hidden;display:grid;place-items:center}
+.ob-thumb img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.ob-thumb .ob-noimg{font-size:9px}
+/* ระหว่างลาก */
+body.ob-dragging,body.ob-dragging *{cursor:grabbing!important;user-select:none!important}
+.ob-ghost{position:fixed;z-index:60;max-width:260px;padding:8px 14px;border-radius:999px;background:var(--c-ink);color:#fff;font:700 13px/1.3 var(--font);pointer-events:none;box-shadow:0 8px 22px rgba(0,0,0,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ob-toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);z-index:55;max-width:min(560px,calc(100vw - 32px));padding:10px 18px;border-radius:999px;background:var(--c-ink);color:#fff;font-size:13px;text-align:center;box-shadow:0 8px 22px rgba(0,0,0,.2)}
+.ob-foot-bar{position:sticky;bottom:0;z-index:30;display:flex;align-items:center;gap:12px;padding:12px 16px;margin-top:4px;background:#fff;border:1px solid var(--c-line);border-radius:12px 12px 0 0;box-shadow:0 -6px 16px rgba(20,20,20,.06)}
+.ob-msg{font-size:13px;color:var(--c-muted)}
+.ob-msg b{color:#C2410C}
+.ob-msg .link{background:none;border:0;padding:0;font:inherit;color:var(--c-orange-dk,#C2410C);text-decoration:underline;cursor:pointer}
+@media (max-width:900px){.ob-foot-bar{padding:10px 12px;flex-wrap:wrap}.ob-msg{flex-basis:100%;order:-1}}
+@media (max-width:640px){
+  .ob-bar{position:static}
+  .ob-foot-bar{gap:8px;padding:8px 10px}
+  .ob-foot-bar .btn{height:40px;padding:0 14px;font-size:14px}
+  .ob-msg{font-size:12px}
+  .ob-sel{flex:1 1 140px}
+  .ob-views button span{display:none}
+  .ob-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .ob-v-small .ob-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+  .ob-tbl th:nth-child(5),.ob-tbl td:nth-child(5),.ob-tbl th:nth-child(7),.ob-tbl td:nth-child(7){display:none}
+}
+@media (prefers-reduced-motion:reduce){.ob-item{transition:none}}

@@ -317,6 +317,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
           <p>เปิดขาย {activeCount} รายการ · ทั้งหมด {counts.reduce((a, c) => a + c._count._all, 0)} รายการ{pinnedCount ? ` · ปักหมุด ${pinnedCount}` : ""}</p>
         </div>
         <div className="head-actions">
+          <Link className="btn btn-outline" href="/admin/products/order">จัดเรียงหน้าร้าน</Link>
           <Link className="btn btn-outline" href="/admin/products/variants">ตัวเลือกสินค้า</Link>
           <Link className="btn btn-outline" href="/admin/products/sale">ลดราคาตามเวลา</Link>
           <a className="btn btn-outline" href="/admin/products/export" download>ส่งออก CSV</a>

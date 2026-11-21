@@ -51,6 +51,7 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
             // ทุกรายการที่มี group ต้องอยู่ต่อกันใต้หัวข้อนั้น (รายการที่ไม่มี group จะแสดงใต้หัวข้อก่อนหน้า)
             { href: "/admin/categories", label: "หมวดหมู่สินค้า", icon: <Ico k="cats" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/products", label: "สินค้า", icon: <Ico k="products" />, group: "สินค้าและหน้าร้าน" },
+            { href: "/admin/products/order", label: "จัดเรียงสินค้าหน้าร้าน", icon: <Ico k="sort" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/stock", label: "สต็อก", icon: <Ico k="stock" />, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/stock/count", label: "นับสต็อกทั้งร้าน", icon: <Ico k="count" />, badge: countsOpen, group: "สินค้าและหน้าร้าน" },
             { href: "/admin/purchase-orders", label: "ใบสั่งซื้อ (PO)", icon: <Ico k="po" />, group: "สินค้าและหน้าร้าน" },

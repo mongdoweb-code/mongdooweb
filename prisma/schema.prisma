@@ -511,6 +511,7 @@ enum ContentKind {
   SLIDES
   CATEGORIES
   PAGES // เนื้อหาหน้า (Page) + คำถามที่พบบ่อย
+  PRODUCT_ORDER // ลำดับสินค้าหน้าร้านก่อนบันทึก (คืนลำดับก่อนหน้า)
 }
 
 model ContentVersion {
