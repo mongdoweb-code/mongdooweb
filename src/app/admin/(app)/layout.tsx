@@ -2,7 +2,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutAction } from "../actions";
-import { IdleGuard, SideToggle } from "../_components/AdminClient";
+import { SideToggle } from "../_components/AdminClient";
 import { AdminNav } from "../_components/AdminNav";
 import { TopTools } from "../_components/TopTools";
 import { SaveCenter } from "../_components/SaveCenter";
@@ -124,7 +124,6 @@ export default async function AdminAppLayout({ children }: LayoutProps<"/admin">
         {/* ป๊อปอัปแจ้งผลการบันทึกทุกเมนู */}
         <SaveCenter />
       </div>
-      <IdleGuard />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // ระบบล็อกอินหลังบ้าน
 // - รหัสผ่านเก็บเป็น bcrypt hash
 // - session: cookie httpOnly เก็บ token สุ่ม, ฐานข้อมูลเก็บแค่ SHA-256 ของ token (ขโมยฐานข้อมูลไปก็ใช้ล็อกอินไม่ได้)
-// - ไม่มีการใช้งานเกิน 30 นาที = หมดอายุ (ตรวจฝั่ง server), อายุสูงสุด 12 ชั่วโมง
+// - session อยู่ได้ 24 ชั่วโมงหลังเข้าสู่ระบบ (เจ้าของร้านเลือก 2026-11-21: ไม่ออกเองเมื่อพักหน้าจอระหว่างวัน) — ตรวจฝั่ง server
 // - ใส่รหัสผิดครบ 5 ครั้งต่อชื่อผู้ใช้ (หรือ 20 ครั้งต่อ IP) → ล็อก 15 นาที และบันทึก AdminLog
 // - ยืนยันตัวตน 2 ขั้น (TOTP/รหัสสำรอง) สำหรับบัญชีที่เปิดใช้: รหัสผ่านถูก → cookie ชั่วคราว 5 นาที (ลงลายมือชื่อ HMAC)
 //   → กรอกรหัส 6 หลัก → จึงสร้าง session จริง; รหัสผิดนับรวมกับตัวจำกัดการล็อกอินเดียวกัน
@@ -16,8 +16,10 @@ import { matchBackupCode, verifyTotp } from "@/lib/totp";
 
 export const SESSION_COOKIE = "mdw_admin";
 const PENDING_COOKIE = "mdw_2fa";
-export const IDLE_MS = 30 * 60e3;
-const MAX_AGE_MS = 12 * 60 * 60e3;
+/** อายุ session = 24 ชั่วโมงนับจากเข้าสู่ระบบ · ไม่มีการใช้งาน (idle) นานเท่ากัน = ไม่มีการออกเองระหว่างวัน */
+export const SESSION_HOURS = 24;
+const MAX_AGE_MS = SESSION_HOURS * 60 * 60e3;
+export const IDLE_MS = MAX_AGE_MS;
 const PENDING_MS = 5 * 60e3;
 const USER_MAX_FAILS = 5;
 const IP_MAX_FAILS = 20;
