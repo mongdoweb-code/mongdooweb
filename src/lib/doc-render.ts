@@ -221,13 +221,17 @@ export function buildDocParts(d: DocView): DocParts {
   const useSig = issued && d.signImage !== false;
   const sigImg = useSig && s.signature ? `<img class="sg-sig" src="${esc(s.signature)}" alt="">` : "";
   const stampImg = useSig && s.stamp ? `<img class="sg-stamp" src="${esc(s.stamp)}" alt="">` : "";
-  // signBlank: ช่องฝั่งร้านเว้นว่างทั้งหมด (ไม่มีลายเซ็น ชื่อ วันที่) ให้เซ็นด้วยมือภายหลัง
-  const blank = !!d.signBlank;
+  // ช่องฝั่งร้านเว้นว่างให้เซ็นด้วยมือ (ไม่มีลายเซ็น ชื่อ วันที่): signBlank (ใบเสร็จ "เว้นว่างไว้") หรือไม่ได้เลือก "ใส่ลายเซ็นอิเล็กทรอนิกส์"
+  const handSign = !!d.signBlank || d.signImage === false;
+  const hasSig = !handSign && !!(sigImg || stampImg);
+  // ทุกช่องมีแถวเท่ากัน (เส้นเซ็น · (ชื่อ) · ตำแหน่ง · หัวข้อ · วันที่) → หัวข้อ/วันที่ของสองฝั่งอยู่ระดับเดียวกัน
+  const withTitle = !handSign && !!s.signerName && !!s.signerTitle;
   const sign = s.showSignature
-    ? `<section class="sh-sign">${SIGN[d.type].map((l, i) => {
-        const me = i === 0 && !blank;
-        const who = me && s.signerName ? `<em class="sg-name">( ${esc(s.signerName)} )</em>${s.signerTitle ? `<em class="sg-title">${esc(s.signerTitle)}</em>` : ""}` : "";
-        return `<div class="sg-slot${me && (sigImg || stampImg) ? " has-sig" : ""}"><div class="sg-line">${me ? sigImg + stampImg : ""}</div>${who}<b>${l}</b><span>วันที่ ${me && signDay ? `<b class="sg-date">${esc(docDate(signDay, era))}</b>` : "______/______/__________"}</span></div>`;
+    ? `<section class="sh-sign${hasSig ? " has-sig" : ""}">${SIGN[d.type].map((l, i) => {
+        const me = i === 0 && !handSign;
+        const name = me && s.signerName ? `<em class="sg-name">( ${esc(s.signerName)} )</em>` : `<em class="sg-name sg-blank">(<i></i>)</em>`;
+        const title = withTitle ? (me ? `<em class="sg-title">${esc(s.signerTitle!)}</em>` : `<em class="sg-title sg-pad" aria-hidden="true">&nbsp;</em>`) : "";
+        return `<div class="sg-slot"><div class="sg-line">${me ? sigImg + stampImg : ""}</div>${name}${title}<b>${l}</b><span>วันที่ ${me && signDay ? `<b class="sg-date">${esc(docDate(signDay, era))}</b>` : "______/______/__________"}</span></div>`;
       }).join("")}</section>`
     : "";
   // ใบแจ้งหนี้: QR เปิดดู/แนบสลิปออนไลน์ อยู่ใต้ยอดรวม (QR พร้อมเพย์อยู่ในกล่องชำระเงินแล้ว)

@@ -62,7 +62,7 @@ test("ตั้งค่า: อัปโหลดลายเซ็น + ตร
   await page.getByRole("button", { name: "30 วัน" }).click();
   await expect(page.locator(".de-pv .sheet" + V).first()).toBeVisible();
   await expect(page.locator(".de-pv .sg-sig")).toHaveCount(1); // ตัวอย่างในตัวแก้ไขแสดงลายเซ็นตามที่ติ๊ก (มีลายน้ำ "ฉบับร่าง")
-  await expect(page.locator(".de-pv .sg-name").first()).toContainText(`( นายทดสอบ ลงนาม ${TAG} )`);
+  await expect(page.locator(".de-pv .sg-name:not(.sg-blank)").first()).toContainText(`( นายทดสอบ ลงนาม ${TAG} )`);
   // บันทึกเป็นฉบับร่างก่อน → หน้าพิมพ์ของฉบับร่างต้องไม่มีลายเซ็น (กันนำร่างไปใช้แทนเอกสารจริง)
   await page.click(`button:has-text("บันทึกฉบับร่าง")${V}`);
   await page.waitForURL(/\/admin\/docs\/QUOTATION\/[^/?]+\?saved=1/);
@@ -82,8 +82,8 @@ test("ตั้งค่า: อัปโหลดลายเซ็น + ตร
   await expect(sheet.locator(".sg-sig")).toHaveCount(1);
   await expect(sheet.locator(".sg-stamp")).toHaveCount(1);
   expect(await sheet.locator(".sg-sig").evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true);
-  await expect(sheet.locator(".sg-name")).toHaveText(`( นายทดสอบ ลงนาม ${TAG} )`);
-  await expect(sheet.locator(".sg-title")).toHaveText("ผู้จัดการฝ่ายขาย");
+  await expect(sheet.locator(".sg-name:not(.sg-blank)")).toHaveText(`( นายทดสอบ ลงนาม ${TAG} )`);
+  await expect(sheet.locator(".sg-title:not(.sg-pad)")).toHaveText("ผู้จัดการฝ่ายขาย");
   // หัวเอกสาร: ไม่มีบาร์โค้ด (เพิ่มพื้นที่รายการ) · ที่อยู่ร้านบรรทัดเดียว
   await expect(sheet.locator(".sh-bc, .sh-head svg.bc")).toHaveCount(0);
   expect(await sheet.locator(".sh-addr").evaluate((e) => Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight)))).toBe(1);
@@ -145,7 +145,9 @@ test("ตัวเลือกต่อเอกสาร: ติ๊ก/ไม�
   const sheet = page.locator(".pp-sheets .sheet").first();
   await expect(sheet).toBeVisible();
   await expect(sheet.locator(".sg-sig, .sg-stamp")).toHaveCount(0);
-  await expect(sheet.locator(".sg-name")).toBeVisible();
+  // ไม่ใส่ลายเซ็น → ไม่พิมพ์ชื่อ/วันที่ฝั่งร้าน (เว้นให้เซ็นมือ) · สองช่องมีวงเล็บว่างเท่ากัน
+  await expect(sheet.locator(".sg-name:not(.sg-blank), .sg-date")).toHaveCount(0);
+  await expect(sheet.locator(".sg-blank")).toHaveCount(2);
   await expect(sheet).not.toContainText("ช่องทางชำระเงิน");
   await expect(sheet.locator(".sh-oqr")).toHaveCount(1); // QR ออนไลน์ยังอยู่ (ตั้งค่าแยก)
   // ทำสำเนาเป็นฉบับใหม่ → ตัวเลือกติดไปด้วย
@@ -170,7 +172,7 @@ test("ปิดบัญชีธนาคาร/QR และลบลายเ�
   // ลบลายเซ็น/ตรา + ปิด QR ออนไลน์ → ไม่แสดง · เลขบัญชีเป็นตัวเลือกของแต่ละใบ (ตั้งค่าร้าน = ค่าเริ่มต้นของใบใหม่) จึงยังแสดงในใบเดิม
   await expect(sheet.locator(".sg-sig, .sg-stamp, .sh-oqr")).toHaveCount(0);
   await expect(sheet.locator(".sh-qpay")).toContainText("ช่องทางชำระเงิน");
-  await expect(sheet.locator(".sg-name")).toBeVisible();
+  await expect(sheet.locator(".sg-name:not(.sg-blank)")).toBeVisible();
   // ใบใหม่: ค่าเริ่มต้นเลขบัญชี = ไม่ติ๊ก (ตามตั้งค่า) · ลายเซ็นติ๊กไม่ได้ (ยังไม่มีรูป)
   await page.goto("/admin/docs/QUOTATION/new/edit");
   await expect(page.getByRole("checkbox", { name: /แสดงเลขบัญชีธนาคาร/ })).not.toBeChecked();

@@ -12,7 +12,7 @@ import { DOC_META, DOC_ST, DOC_TABS } from "@/lib/doc-render";
 import { cookies } from "next/headers";
 import { DOC_VOID_COOKIE, NOT_VOID, hidesVoid, listDocs, parseDocFilter } from "@/lib/doc-list";
 import { VoidSetLink, VoidToggle } from "../VoidToggle";
-import { isDocType, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
+import { isDocType, quoteEditBlock, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
 import { WORK_FILTERS, workWhere } from "@/lib/doc-work";
 import { WorkIcon as WorkTagIcon, WorkTag } from "../WorkTag";
@@ -226,8 +226,10 @@ const PRINT = (
 );
 
 /** ดู · แก้ไข · พิมพ์ · ยกเลิก · ลบ — ปุ่มที่ใช้ไม่ได้ตามสถานะจะจางพร้อมบอกเหตุผลเมื่อชี้ */
-function DocActions({ d, href, label }: { d: { id: string; type: string; status: string; docNo: string | null }; href: string; label: string }) {
+function DocActions({ d, href, label }: { d: { id: string; type: string; status: string; docNo: string | null; _count: { derived: number } }; href: string; label: string }) {
   const draft = d.status === "DRAFT", voided = d.status === "VOID";
+  // ใบเสนอราคารอตอบรับที่ยังไม่มีเอกสารต่อเนื่อง → แก้ไขเลขที่เดิม (ฉบับแก้ไขเลขใหม่อยู่ในหน้าเอกสาร)
+  const sameNo = d.type === "QUOTATION" && !quoteEditBlock(d, d._count.derived) && !draft;
   const off = (cls: string, icon: React.ReactNode, tip: string, name: string) => (
     <span className={`ra ${cls}`} aria-disabled="true" data-tip={tip}>{icon}<span className="sr-only">{name} ({tip})</span></span>
   );
@@ -237,6 +239,8 @@ function DocActions({ d, href, label }: { d: { id: string; type: string; status:
       <Link className="ra ra-view" href={href} data-tip="ดู" aria-label={`ดู ${label}`}>{Icons.eye}</Link>
       {draft ? (
         <Link className="ra ra-edit" href={`${href}/edit`} data-tip="แก้ไข" aria-label={`แก้ไข ${label}`}>{Icons.edit}</Link>
+      ) : sameNo ? (
+        <Link className="ra ra-edit" href={`${href}/edit`} data-tip="แก้ไข (เลขที่เดิม)" aria-label={`แก้ไข ${label} (เลขที่เดิม)`}>{Icons.edit}</Link>
       ) : revisable ? (
         <form action={reviseQuote}>
           <input type="hidden" name="id" value={d.id} />

@@ -9,7 +9,7 @@ import { moveStock } from "@/lib/stock";
 import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
-import { LOST_REASONS, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, ymdOf, type Tx } from "@/lib/docs";
+import { LOST_REASONS, lockQuoteForEdit, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, ymdOf, type Tx } from "@/lib/docs";
 import { DocUserError, issueDocTx, recordDepositTx, recordInvoicePaymentTx } from "@/lib/doc-payments";
 import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";
@@ -74,7 +74,11 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
   } catch {
     return { error: "ข้อมูลไม่ถูกต้อง ลองโหลดหน้าใหม่" };
   }
-  const issue = f.get("intent") === "issue";
+  const intent = String(f.get("intent") ?? "save");
+  const issue = intent === "issue";
+  // update = แก้ใบเสนอราคาที่ออกแล้ว (เลขที่เดิม) · overwrite = นำฉบับร่างแก้ไขไปบันทึกทับใบเดิม (เลขที่เดิม) แล้วลบฉบับร่าง
+  const inPlace = intent === "update" || intent === "overwrite";
+  if (inPlace && (p?.type !== "QUOTATION" || !p.id)) return { error: "แก้ไขเลขที่เดิมได้เฉพาะใบเสนอราคา" };
   if (!p || !isDocType(String(p.type))) return { error: "ชนิดเอกสารไม่ถูกต้อง" };
   if (p.type === "CREDIT_NOTE" && !p.id) return { error: "ใบลดหนี้สร้างจากหน้าใบเสร็จรับเงิน (ปุ่ม \"ออกใบลดหนี้ / คืนเงิน\")" };
   const s = await getSettings();
@@ -136,12 +140,32 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
 
   let id = p.id ? String(p.id) : "";
   let docNo: string | null = null;
+  let edited: { no: string; before: number } | null = null;
   try {
     await prisma.$transaction(async (tx) => {
+      if (inPlace) {
+        const cur = await tx.salesDocument.findUnique({ where: { id }, select: { id: true, type: true, status: true, sourceId: true } });
+        if (!cur || cur.type !== "QUOTATION") throw new UserError("ไม่พบเอกสาร");
+        if (intent === "overwrite" && (cur.status !== "DRAFT" || !cur.sourceId)) throw new UserError("ฉบับร่างนี้ไม่ได้แก้ไขจากใบเสนอราคาเดิม — ใช้ “บันทึกและออกเอกสาร”");
+        const targetId = intent === "overwrite" ? cur.sourceId! : cur.id;
+        const { q, err } = await lockQuoteForEdit(tx, targetId);
+        if (!q || err) throw new UserError(err ?? "ไม่พบเอกสาร");
+        // เลขที่มีเดือนที่ออก (QT2611-…) → วันที่เอกสารต้องอยู่ในเดือนเดิม
+        const ym = ymdOf(q.issueDate).slice(0, 7);
+        if (ym && issueYmd.slice(0, 7) !== ym) throw new UserError(`วันที่เอกสารต้องอยู่ในเดือนเดียวกับเลขที่ ${q.docNo} (${ym.slice(5)}/${ym.slice(0, 4)}) — ถ้าต้องการวันที่ใหม่ ให้สร้างฉบับแก้ไข`);
+        await tx.salesDocument.update({ where: { id: targetId }, data });
+        await tx.salesDocumentItem.deleteMany({ where: { documentId: targetId } });
+        await tx.salesDocumentItem.createMany({ data: items.map((i) => ({ ...i, documentId: targetId })) });
+        if (intent === "overwrite") await tx.salesDocument.delete({ where: { id: cur.id } });
+        await event(tx, targetId, "EDITED", admin.id, `แก้ไขเลขที่เดิม${intent === "overwrite" ? " (จากฉบับร่างแก้ไข)" : ""} · ยอด ฿${money(q.grandSatang)} → ฿${money(totals.grandSatang)}`);
+        id = targetId;
+        edited = { no: q.docNo ?? "", before: q.grandSatang };
+        return;
+      }
       if (id) {
         const cur = await tx.salesDocument.findUnique({ where: { id } });
         if (!cur || cur.type !== p.type) throw new UserError("ไม่พบเอกสาร");
-        if (cur.status !== "DRAFT") throw new UserError("เอกสารนี้ออกแล้ว แก้ไขไม่ได้ — ใช้ \"สร้างฉบับแก้ไข\" หรือยกเลิกแล้วออกใหม่");
+        if (cur.status !== "DRAFT") throw new UserError(cur.type === "QUOTATION" ? "เอกสารนี้ออกแล้ว — ใช้ปุ่ม “บันทึกเอกสาร” เพื่อแก้ไขเลขที่เดิม" : "เอกสารนี้ออกแล้ว แก้ไขไม่ได้ — ยกเลิกแล้วออกใหม่");
         await tx.salesDocument.update({ where: { id }, data });
         await tx.salesDocumentItem.deleteMany({ where: { documentId: id } });
       } else {
@@ -158,6 +182,11 @@ export async function saveDoc(_prev: DocState, f: FormData): Promise<DocState> {
   } catch (e) {
     if (e instanceof UserError) return { error: e.message };
     throw e;
+  }
+  if (edited) {
+    const e = edited as { no: string; before: number };
+    await logAdmin(admin.id, "DOC", `แก้ไข${DOC_META[p.type].th} ${e.no} (เลขที่เดิม) · ${customer!.name} · ฿${money(e.before)} → ฿${money(totals.grandSatang)}`);
+    redirect(`${docPath({ type: p.type, id })}?edited=1`);
   }
   await logAdmin(admin.id, "DOC", docNo ? `ออก${DOC_META[p.type].th} ${docNo} · ${customer!.name} · ฿${money(totals.grandSatang)}` : `บันทึกฉบับร่าง${DOC_META[p.type].th} · ${customer!.name}`);
   redirect(`${docPath({ type: p.type, id })}?${docNo ? "issued=1" : "saved=1"}`);

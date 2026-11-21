@@ -27,6 +27,9 @@ test("ใบเสร็จ: เว้นว่างช่องผู้รั
   await page.click(`button:has-text("บันทึกและออกเอกสาร")${V}`);
   await page.waitForURL(/\/admin\/docs\/RECEIPT\/[^/?]+\?issued=1/);
   const id = page.url().split("/").pop()!.split("?")[0];
+  // ลายเซ็น/ชื่อ/วันที่ฝั่งร้านพิมพ์เมื่อเลือก "ใส่ลายเซ็น" (ร้านที่ยังไม่มีรูปลายเซ็น ค่าเริ่มต้นคือไม่ใส่ = เว้นให้เซ็นมือ)
+  await q(`UPDATE "SalesDocument" SET "signImage"=true WHERE id=$1`, [id]);
+  await page.reload();
   const slot = () => page.locator(".sheet .sh-sign .sg-slot" + V).first();
   await expect(slot()).toContainText("ผู้รับเงิน");
   await expect(slot().locator(".sg-date")).toHaveCount(1);
@@ -39,7 +42,7 @@ test("ใบเสร็จ: เว้นว่างช่องผู้รั
   await page.goto(`/admin/print/doc/${id}`);
   let first = page.locator(".pp-sheets .sheet .sh-sign .sg-slot").first();
   await expect(first).toContainText("ผู้รับเงิน");
-  await expect(first.locator(".sg-sig, .sg-stamp, .sg-name, .sg-date")).toHaveCount(0);
+  await expect(first.locator(".sg-sig, .sg-stamp, .sg-name:not(.sg-blank), .sg-date")).toHaveCount(0);
   await expect(first).toContainText("______/______/__________");
 
   // กลับเป็นลายเซ็น/ชื่อ + วันที่

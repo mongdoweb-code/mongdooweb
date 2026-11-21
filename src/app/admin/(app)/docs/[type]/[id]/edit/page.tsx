@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { docDateTime, fromYmd, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
-import { CREDIT_REASONS, DOC_INCLUDE, PAY_METHODS, UNITS, asSnap, custSnapshot, defaultTerms, docPath, isDocType, refLine, shopHead, todayYmd, ymdOf } from "@/lib/docs";
+import { CREDIT_REASONS, LINKED_WHERE, quoteEditBlock, DOC_INCLUDE, PAY_METHODS, UNITS, asSnap, custSnapshot, defaultTerms, docPath, isDocType, refLine, shopHead, todayYmd, ymdOf } from "@/lib/docs";
 import { CARRIERS } from "@/lib/admin-orders";
 import { parseTiers, unitPriceSatang } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
@@ -24,6 +24,10 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
 
   let init: EditorInit;
   let ref = "";
+  /** แก้ใบที่ออกแล้วด้วยเลขที่เดิม */
+  let sameNo = "";
+  /** ฉบับร่างแก้ไขที่บันทึกทับใบเดิมได้ (เลขที่ของใบเดิม) */
+  let overwriteNo = "";
   if (id === "new") {
     if (type === "CREDIT_NOTE") redirect(`/admin/docs/RECEIPT?err=${encodeURIComponent("ใบลดหนี้สร้างจากหน้าใบเสร็จรับเงิน — เปิดใบเสร็จแล้วกด \"ออกใบลดหนี้ / คืนเงิน\"")}`);
     const cid = typeof sp.customer === "string" ? sp.customer : "";
@@ -39,7 +43,16 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
   } else {
     const d = await prisma.salesDocument.findUnique({ where: { id }, include: DOC_INCLUDE });
     if (!d || d.type !== type) notFound();
-    if (d.status !== "DRAFT") redirect(`${docPath(d)}?err=${encodeURIComponent("เอกสารที่ออกแล้วแก้ไขไม่ได้ — ใช้สร้างฉบับแก้ไข หรือยกเลิกแล้วออกใหม่")}`);
+    if (d.status !== "DRAFT") {
+      // ใบเสนอราคาที่ออกแล้ว: แก้ไขด้วยเลขที่เดิมได้ (รอตอบรับ + ยังไม่มีเอกสารต่อเนื่อง)
+      const block = d.type === "QUOTATION" ? quoteEditBlock(d, await prisma.salesDocument.count({ where: { sourceId: d.id, ...LINKED_WHERE } })) : "เอกสารที่ออกแล้วแก้ไขไม่ได้ — ยกเลิกแล้วออกใหม่";
+      if (block) redirect(`${docPath(d)}?err=${encodeURIComponent(block)}`);
+      sameNo = d.docNo ?? "";
+    } else if (d.type === "QUOTATION" && d.source?.type === "QUOTATION" && d.source.docNo) {
+      // ฉบับร่างแก้ไข: บันทึกทับใบเดิม (เลขที่เดิม) ได้ถ้าใบเดิมยังแก้ได้
+      const src = d.source;
+      if (!quoteEditBlock(src, await prisma.salesDocument.count({ where: { sourceId: src.id, ...LINKED_WHERE } }))) overwriteNo = src.docNo ?? "";
+    }
     ref = refLine(d);
     const c = d.customerId ? await prisma.customer.findUnique({ where: { id: d.customerId } }) : null;
     init = {
@@ -47,7 +60,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       issueDate: ymdOf(d.issueDate) || today, validUntil: ymdOf(d.validUntil), dueDate: ymdOf(d.dueDate),
       items: d.items.map((i) => ({ productId: i.productId ?? "", sku: i.sku ?? "", name: i.name, detail: i.detail ?? "", unit: i.unit, qty: String(i.qtyMilli / 1000), price: (i.priceSatang / 100).toFixed(2), discount: i.discountSatang ? (i.discountSatang / 100).toFixed(2) : "", image: i.image })),
       discount: d.discountSatang ? (d.discountSatang / 100).toFixed(2) : "", vatMode: s.vatEnabled ? d.vatMode : "NONE", signDate: ymdOf(d.signDate),
-      signImage: d.signImage, showBank: d.showBank,
+      signImage: d.signImage, showBank: d.showBank, ...(sameNo ? { docNo: sameNo } : {}), ...(overwriteNo ? { overwriteNo } : {}),
       paymentMethod: d.paymentMethod ?? "", paymentTerms: d.paymentTerms ?? "", carrier: d.carrier ?? "", note: d.note ?? "", internalNote: d.internalNote ?? "",
     };
     if (type === "CREDIT_NOTE" && d.source) {
@@ -62,7 +75,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
   return (
     <DocEditor
       init={init}
-      title={id === "new" ? `สร้าง${DOC_META[type].th.split(" /")[0]}` : `แก้ไข${DOC_META[type].th.split(" /")[0]} (ฉบับร่าง)`}
+      title={id === "new" ? `สร้าง${DOC_META[type].th.split(" /")[0]}` : sameNo ? `แก้ไข${DOC_META[type].th.split(" /")[0]} ${sameNo}` : `แก้ไข${DOC_META[type].th.split(" /")[0]} (ฉบับร่าง)`}
       back={id === "new" ? `/admin/docs/${type}` : `/admin/docs/${type}/${id}`}
       customers={customers.map((c) => ({ id: c.id, snap: custSnapshot(c) }))}
       // ราคาตั้งต้น = ราคาขายจริง (ราคาลดตามช่วงเวลา) + ราคาขายส่งตามจำนวน — แก้ได้ในตัวแก้ไข

@@ -3,7 +3,7 @@ import "server-only";
 import type { Prisma } from "../../generated/prisma/client";
 import { fromYmd, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_TABS, type DocSt } from "@/lib/doc-render";
-import { statusWhere } from "@/lib/docs";
+import { LINKED_WHERE, statusWhere } from "@/lib/docs";
 import { parseWorkFilter, workWhere, type WorkFilter } from "@/lib/doc-work";
 import { phoneDigits } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -74,7 +74,7 @@ export async function listDocs(type: DocTypeT, f: DocFilter, size = f.per) {
     orderBy: [{ issueDate: { sort: "desc", nulls: "first" } }, { docNo: "desc" }, { createdAt: "desc" }],
     skip: (page - 1) * size,
     take: size,
-    include: { customer: { select: { code: true, name: true } }, _count: { select: { items: true } }, order: { select: { orderNo: true } }, source: { select: { docNo: true } }, workBy: { select: { displayName: true } } },
+    include: { customer: { select: { code: true, name: true } }, _count: { select: { items: true, derived: { where: LINKED_WHERE } } }, order: { select: { orderNo: true } }, source: { select: { docNo: true } }, workBy: { select: { displayName: true } } },
   });
   return { rows, total, page, pages };
 }
