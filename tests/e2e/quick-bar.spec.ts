@@ -119,3 +119,33 @@ test("จอแคบ: เหลือไอคอน (ชื่อยังอ�
   expect(b!.y + b!.height).toBeLessThanOrEqual(s!.y + 1);
   await expect(page.locator(".qbar" + V)).toBeVisible();
 });
+
+test("ทุกเมนูด้านซ้ายมีให้เลือกในตั้งค่าเมนูด่วน (รวมเมนูที่เพิ่มใหม่) · ค้นหาเมนู · เลือกแล้วใช้ได้จริง", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  await page.goto("/admin/dashboard");
+  // รายการเมนูซ้ายที่เห็นจริง (ไม่รวมลิงก์ออกจากระบบ)
+  const side = (await page.locator("#side nav a").evaluateAll((as) => as.map((a) => a.textContent!.replace(/\d+$/, "").trim()))).filter(Boolean);
+  expect(side.length).toBeGreaterThan(40);
+  const bar = page.getByRole("navigation", { name: "เมนูด่วน" });
+  await bar.getByRole("button", { name: "ตั้งค่าเมนูด่วน" }).click();
+  const dlg = page.getByRole("dialog", { name: "ตั้งค่าเมนูด่วน" });
+  const opts = (await dlg.locator(".qb-pick .qb-opt span:last-child").allTextContents()).map((t) => t.trim());
+  for (const label of side) expect(opts, `เมนู "${label}"`).toContain(label);
+  expect(opts).toContain("จัดเรียงสินค้าหน้าร้าน");
+  expect(opts).toContain("ค่าใช้จ่ายร้าน");
+  // ค้นหา
+  await dlg.getByPlaceholder(/ค้นหาเมนู/).fill("ค่าใช้จ่าย");
+  await expect(dlg.locator(".qb-pick .qb-opt")).toHaveCount(1);
+  await dlg.locator(".qb-pick .qb-opt", { hasText: "ค่าใช้จ่ายร้าน" }).click();
+  await dlg.getByPlaceholder(/ค้นหาเมนู/).fill("zzz");
+  await expect(dlg.locator(".qb-none")).toContainText("ไม่พบเมนู");
+  await dlg.getByRole("button", { name: "บันทึก", exact: true }).click();
+  await expect(dlg).toHaveCount(0);
+  await bar.getByRole("link", { name: "ค่าใช้จ่ายร้าน" }).click();
+  await expect(page).toHaveURL(/\/admin\/expenses$/);
+  await expect(bar.getByRole("link", { name: "ค่าใช้จ่ายร้าน" })).toHaveAttribute("aria-current", "page");
+  const [{ m }] = await q<{ m: string[] }>(`SELECT "quickMenu" m FROM "Admin" WHERE username=$1`, [ADMIN_USER]);
+  expect(m).toContain("expenses");
+  await q(`UPDATE "Admin" SET "quickMenu" = NULL WHERE username=$1`, [ADMIN_USER]);
+});
