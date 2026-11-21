@@ -9,7 +9,9 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { docDate, docDateTime, fromYmd, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST, DOC_TABS } from "@/lib/doc-render";
-import { listDocs, parseDocFilter } from "@/lib/doc-list";
+import { cookies } from "next/headers";
+import { DOC_VOID_COOKIE, NOT_VOID, hidesVoid, listDocs, parseDocFilter } from "@/lib/doc-list";
+import { VoidSetLink, VoidToggle } from "../VoidToggle";
 import { isDocType, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
 import { WORK_FILTERS, workWhere } from "@/lib/doc-work";
@@ -19,7 +21,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   await requireAdmin();
   const [{ type }, sp] = await Promise.all([params, searchParams]);
   if (!isDocType(type)) notFound();
-  const f = parseDocFilter(type, sp);
+  const f = parseDocFilter(type, sp, (await cookies()).get(DOC_VOID_COOKIE)?.value);
   const meta = DOC_META[type];
   const today = todayYmd();
   const monthStart = fromYmd(today.slice(0, 8) + "01");
@@ -29,9 +31,12 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   // KPI
   const sum = (w: Parameters<typeof prisma.salesDocument.aggregate>[0]["where"]) =>
     prisma.salesDocument.aggregate({ where: { type, ...w }, _count: { _all: true }, _sum: { grandSatang: true, paidSatang: true } });
-  const counts = await Promise.all(DOC_TABS[type].map(([k]) => prisma.salesDocument.count({ where: { type, ...statusWhere(k) } })));
+  // แท็บ "ทั้งหมด" ตอนซ่อนใบที่ยกเลิก นับเฉพาะที่เห็น · ตัวเลขแท็บ "ยกเลิก" = จำนวนที่ถูกซ่อน
+  const counts = await Promise.all(DOC_TABS[type].map(([k]) => prisma.salesDocument.count({ where: { AND: [{ type }, statusWhere(k), ...(k === "all" && !f.showVoid ? [NOT_VOID] : [])] } })));
+  const voidCount = counts[DOC_TABS[type].findIndex(([k]) => k === "void")] ?? 0;
+  const hiding = hidesVoid(f);
   // สถานะงาน: นับในแท็บสถานะเอกสารที่เลือกอยู่ (ไม่สนตัวกรองงานเอง) — ตัวเลขบนปุ่มตรงกับผลที่จะเห็นเมื่อกด
-  const workCounts = await Promise.all(WORK_FILTERS.map(([k]) => prisma.salesDocument.count({ where: { AND: [{ type }, statusWhere(f.tab), workWhere(k)] } })));
+  const workCounts = await Promise.all(WORK_FILTERS.map(([k]) => prisma.salesDocument.count({ where: { AND: [{ type }, statusWhere(f.tab), ...(hiding ? [NOT_VOID] : []), workWhere(k)] } })));
   let kpis: { label: string; value: string; sub: string; tab?: string; hot?: boolean }[] = [];
   if (type === "QUOTATION") {
     // อัตราปิดการขาย 90 วัน = ตอบรับ ÷ ใบที่ออก (ไม่นับยกเลิก/ฉบับร่าง) ในช่วงนั้น
@@ -96,7 +101,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
           <p>{type === "QUOTATION" ? "เสนอราคา → ลูกค้าตอบรับ → แปลงเป็นใบแจ้งหนี้ได้ทันที" : type === "INVOICE" ? "วางบิล + QR พร้อมเพย์ตามยอดค้าง · บันทึกรับชำระแล้วออกใบเสร็จให้อัตโนมัติ" : type === "CREDIT_NOTE" ? "คืนสินค้า / ลดราคาหลังขาย / คืนเงิน — ออกจากหน้าใบเสร็จรับเงินเดิม (ปุ่ม “ออกใบลดหนี้ / คืนเงิน”) · รับสินค้าคืนเข้าสต็อกได้" : type === "DELIVERY" ? "ส่งมอบสินค้าพร้อมช่องให้ลูกค้าเซ็นรับ (ไม่พิมพ์ราคา) · สร้างจากใบเสนอราคา/ใบแจ้งหนี้/ใบเสร็จ (ปุ่ม “สร้างใบส่งของ”) หรือสร้างเอง" : "ใบเสร็จออกอัตโนมัติเมื่อบันทึกรับชำระ หรือออกจากคำสั่งซื้อหน้าเว็บ"}</p>
         </div>
         <div className="head-actions">
-          <a className="btn btn-outline" href={`/admin/docs.csv${qs({ type })}`}>ส่งออก CSV</a>
+          <a className="btn btn-outline" href={`/admin/docs.csv${qs({ type, void: f.showVoid ? "show" : "hide" })}`}>ส่งออก CSV</a>
           {type === "CREDIT_NOTE" ? (
             <Link className="btn btn-primary" href="/admin/docs/RECEIPT?tab=issued">+ เลือกใบเสร็จที่จะลดหนี้</Link>
           ) : (
@@ -134,6 +139,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
               {k === "todo" || k === "done" ? <WorkTagIcon state={k === "todo" ? "TODO" : "DONE"} /> : null}{l}<em>{workCounts[i]}</em>
             </Link>
           ))}
+          {f.tab !== "void" && <VoidToggle show={f.showVoid} count={voidCount} active={f.tab === "all"} href={`${base}${qs({ void: f.showVoid ? "hide" : "show" })}`} voidHref={`${base}${qs({ tab: "void" })}`} />}
         </div>
         <form className="toolbar2 doc-filter" action={base}>
           {f.tab !== "all" && <input type="hidden" name="tab" value={f.tab} />}
@@ -200,9 +206,12 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
             })}
           </tbody>
         </table>
+        {hiding && voidCount > 0 && rows.length > 0 && page === pages && (
+          <p className="void-note" role="note">ซ่อนใบที่ยกเลิกไว้ {voidCount.toLocaleString("th-TH")} ฉบับ · <VoidSetLink show href={`${base}${qs({ void: "show" })}`}>แสดงด้วย</VoidSetLink> หรือ <Link className="link" href={`${base}${qs({ tab: "void" })}`}>ดูเฉพาะที่ยกเลิก</Link></p>
+        )}
         {!rows.length && (
           <div className="empty">
-            <b>{f.q || f.from || f.to || f.tab !== "all" || f.work ? "ไม่พบเอกสารตามตัวกรอง" : `ยังไม่มี${meta.th.split(" /")[0]}`}</b>
+            <b>{f.q || f.from || f.to || f.tab !== "all" || f.work ? "ไม่พบเอกสารตามตัวกรอง" : hiding && voidCount ? `มีเฉพาะ${meta.th.split(" /")[0]}ที่ยกเลิกแล้ว (ซ่อนอยู่ ${voidCount} ฉบับ)` : `ยังไม่มี${meta.th.split(" /")[0]}`}</b>
             {type === "RECEIPT" ? "ใบเสร็จจะออกอัตโนมัติเมื่อบันทึกรับชำระในใบแจ้งหนี้ หรือกด “ออกใบเสร็จ” ในคำสั่งซื้อ" : type === "CREDIT_NOTE" ? <>เปิดใบเสร็จรับเงินที่ต้องการลดหนี้ แล้วกด “ออกใบลดหนี้ / คืนเงิน” · <Link className="link" href="/admin/docs/RECEIPT?tab=issued">ไปที่ใบเสร็จรับเงิน</Link></> : <Link className="link" href={`${base}/new/edit`}>สร้างฉบับแรก</Link>}
           </div>
         )}

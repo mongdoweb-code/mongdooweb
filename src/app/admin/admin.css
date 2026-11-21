@@ -1634,8 +1634,14 @@ tr.row-pin td{background:#FFFCF3}
 .pg-sum{font-size:13px;color:var(--c-muted);padding:6px 10px;border:1px solid var(--c-line);border-radius:6px;background:#fff}
 .pg-sum b{color:var(--c-ink);font-weight:600}
 .pg-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.pg-per{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--c-muted)}
-.pg-per .sel{height:34px;padding:0 6px;border:1.5px solid var(--c-line);background:#fff;font-size:13px}
+.pg-per{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 12px;border:1px solid var(--c-line);border-radius:8px;background:#fff;font-size:13px;color:var(--c-muted);white-space:nowrap}
+.pg-per span:last-child{padding-right:8px}
+.pg-selw{position:relative;display:inline-flex}
+.pg-per .sel{height:32px;min-width:64px;padding:0 28px 0 10px;border:1px solid var(--c-line);border-radius:6px;background:#fff;-webkit-appearance:none;appearance:none;font-size:13px;font-weight:600;color:var(--c-ink);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.pg-chev{position:absolute;right:9px;top:50%;width:14px;height:14px;margin-top:-7px;color:var(--c-muted);pointer-events:none}
+.pg-selw:hover .pg-chev{color:var(--c-ink)}
+.pg-per .sel:hover{border-color:var(--c-orange)}
+.pg-per .sel:focus-visible{outline:none;border-color:#16A37B;box-shadow:0 0 0 3px rgba(22,163,123,.18)}
 .pg-nav{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:4px;border:1px solid var(--c-line);border-radius:8px;background:#fff}
 .pg-btn{min-width:32px;height:32px;padding:0 9px;display:inline-grid;place-items:center;border:1px solid var(--c-line);border-radius:6px;font-size:13px;font-weight:600;color:var(--c-ink);background:#fff;transition:background .15s,border-color .15s}
 a.pg-btn:hover{border-color:var(--c-orange);color:var(--c-orange-dk)}
@@ -2159,6 +2165,22 @@ tr:hover .wt-empty,.wt-empty:focus-visible,.wt-empty[aria-expanded="true"]{opaci
 .wf.on svg path[stroke="#fff"]{stroke:currentColor}
 .wf-todo.on svg path[fill]{fill:#fff}.wf-todo.on svg path[stroke]{stroke:#B5461C}
 .wf-done.on svg path[fill]{fill:#fff}.wf-done.on svg path[stroke]{stroke:#1F7A4D}
+/* ซ่อน/แสดงใบที่ยกเลิก (รายการเอกสารขาย) */
+.void-tg-wrap{margin-left:auto;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+.void-tg{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 6px;border:1.5px solid var(--c-line);border-radius:999px;background:#fff;font-size:13px;font-weight:600;color:var(--c-ink);text-decoration:none;transition:border-color .15s,background .15s}
+.void-tg:hover{border-color:var(--c-ink)}
+.void-tg:focus-visible{outline:2px solid #16A37B;outline-offset:2px}
+.void-sw{position:relative;width:32px;height:18px;border-radius:999px;background:#C9C6BF;transition:background .15s;flex:none}
+.void-sw i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.void-tg.on .void-sw{background:#16A37B}
+.void-tg.on .void-sw i{transform:translateX(14px)}
+.void-tg em{font-style:normal;font-size:11.5px;background:var(--c-cream);padding:1px 7px;border-radius:9px;color:var(--c-muted)}
+.void-tg.idle{opacity:.7}
+.void-only{font-size:12.5px;font-weight:600;color:var(--c-muted);text-decoration:underline;text-underline-offset:3px}
+.void-only:hover{color:var(--c-ink)}
+.void-note{margin:0;padding:10px 16px;border-top:1px dashed var(--c-line);font-size:13px;color:var(--c-muted)}
+@media (prefers-reduced-motion:reduce){.void-sw,.void-sw i{transition:none}}
+@media (max-width:640px){.void-tg-wrap{margin-left:0;width:100%}}
 /* กล่องสถานะงานในหน้าเอกสาร */
 .wpanel h3 small{font-size:11.5px;font-weight:600;color:var(--c-muted);margin-left:6px}
 .wp-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 10px}

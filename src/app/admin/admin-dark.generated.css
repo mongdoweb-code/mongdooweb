@@ -1919,11 +1919,27 @@ html[data-adm-theme="dark"] .pg-sum b {
     color: var(--c-ink)
 }
 html[data-adm-theme="dark"] .pg-per {
+    border: 1px solid var(--c-line);
+    background: #1E2127;
     color: var(--c-muted)
 }
 html[data-adm-theme="dark"] .pg-per .sel {
-    border: 1.5px solid var(--c-line);
-    background: #1E2127
+    border: 1px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .pg-chev {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .pg-selw:hover .pg-chev {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .pg-per .sel:hover {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .pg-per .sel:focus-visible {
+    outline: none;
+    border-color: #16A37B
 }
 html[data-adm-theme="dark"] .pg-nav {
     border: 1px solid var(--c-line);
@@ -2751,6 +2767,40 @@ html[data-adm-theme="dark"] .wf-done.on svg path[fill] {
 }
 html[data-adm-theme="dark"] .wf-done.on svg path[stroke] {
     stroke: #6DDAA4
+}
+html[data-adm-theme="dark"] .void-tg {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .void-tg:hover {
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .void-tg:focus-visible {
+    outline: 2px solid #16A37B
+}
+html[data-adm-theme="dark"] .void-sw {
+    background: #121211
+}
+html[data-adm-theme="dark"] .void-sw i {
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .void-tg.on .void-sw {
+    background: #16A37B
+}
+html[data-adm-theme="dark"] .void-tg em {
+    background: var(--c-cream);
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .void-only {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .void-only:hover {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .void-note {
+    border-top: 1px dashed var(--c-line);
+    color: var(--c-muted)
 }
 html[data-adm-theme="dark"] .wpanel h3 small {
     color: var(--c-muted)
