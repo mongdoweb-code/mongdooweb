@@ -143,8 +143,8 @@ export async function saveWhyUs(f: FormData): Promise<{ ok?: string; error?: str
   const before = parseWhyUs((await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { whyUs: true } }))?.whyUs);
   await prisma.shopSetting.update({ where: { id: "shop" }, data: { whyUs: json(cfg) } });
   const changed = (Object.keys(cfg) as (keyof typeof cfg)[]).filter((k) => JSON.stringify(cfg[k]) !== JSON.stringify(before[k]));
-  const NAMES: Record<string, string> = { eyebrow: "หัวข้อเล็ก", title: "หัวข้อ", items: "จุดเด่น", imageMode: "รูป", imageKey: "รูป", capTitle: "คำบรรยายรูป", capSub: "คำบรรยายรูป", href: "ลิงก์" };
-  await logAdmin(admin.id, "HOME", `ทำไมต้องมองดูเว็บ: ${changed.length ? [...new Set(changed.map((k) => NAMES[k]))].join(", ") : "บันทึก (ไม่มีการเปลี่ยนแปลง)"} · จุดเด่น ${cfg.items.length} ข้อ · ${WHY_IMAGE_MODES[cfg.imageMode]}`);
+  const NAMES: Record<string, string> = { eyebrow: "หัวข้อเล็ก", title: "หัวข้อ", items: "จุดเด่น", imageMode: "รูป", imageKey: "รูป", capTitle: "คำบรรยายรูป", capSub: "คำบรรยายรูป", href: "ลิงก์", clear: "กล่องรูปโปร่งใส", colors: "สีข้อความ" };
+  await logAdmin(admin.id, "HOME", `ทำไมต้องมองดูเว็บ: ${changed.length ? [...new Set(changed.map((k) => NAMES[k]))].join(", ") : "บันทึก (ไม่มีการเปลี่ยนแปลง)"} · จุดเด่น ${cfg.items.length} ข้อ · ${WHY_IMAGE_MODES[cfg.imageMode]}${cfg.clear ? " (โปร่งใส)" : ""}`);
   refreshStorefront();
   return { ok: "บันทึกแล้ว — หน้าแรกเปลี่ยนตามทันที" };
 }

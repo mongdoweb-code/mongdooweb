@@ -99,6 +99,70 @@ test("แก้ข้อความ + จุดเด่น + อัปโห�
   expect((await page.request.get((await vis.locator("img").getAttribute("src"))!)).ok()).toBe(true);
 });
 
+test("กล่องรูปโปร่งใส (PNG พื้นใส) + สีข้อความแต่ละช่อง → หน้าแรก (กลางวันใช้สีที่ตั้ง · กลางคืนใช้สีธีม) · รีเซ็ตสี", async ({ page, context }) => {
+  const PNG = path.join(os.tmpdir(), `mdw-why-clear-${process.pid}.png`);
+  await sharp({ create: { width: 800, height: 600, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><circle cx="200" cy="150" r="120" fill="#f26b38"/></svg>'), top: 150, left: 200 }])
+    .png().toFile(PNG);
+  await login(page);
+  await page.goto("/admin/home/why");
+  const root = page.locator(".wy" + V);
+  // ตัวเลือกรูป 3 แบบอยู่แถวเดียวกัน
+  const modes = root.locator(".wy-mode");
+  await expect(modes).toHaveCount(3);
+  const ys = await modes.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+  expect(new Set(ys).size).toBe(1);
+  // ไม่ใช้รูป = สวิตช์โปร่งใสใช้ไม่ได้
+  await root.locator(".wy-mode", { hasText: "ไม่ใช้รูป" }).click();
+  await expect(root.locator("[data-why-clear]")).toBeDisabled();
+  await root.locator(".wy-mode", { hasText: "อัปโหลดรูปเอง" }).click();
+  await root.locator("[data-why-file]").setInputFiles(PNG);
+  await expect(root.locator(".wy-drop img")).toBeVisible();
+  await root.locator(".wy-switch").click();
+  await expect(root.locator("[data-why-clear]")).toBeChecked();
+  await expect(root.locator(".wy-pv-visual.is-clear")).toBeVisible();
+  await expect(root.locator(".wy-drop.clear")).toBeVisible();
+  // สี: หัวข้อหลัก = น้ำเงิน · เลขลำดับ = เขียว
+  await root.locator('[data-color-key="title"]').click();
+  await page.locator('.cp-pop[aria-label="สีหัวข้อหลัก"] .cp-sw[aria-label="น้ำเงิน"]').first().click();
+  await root.locator('[data-color-key="num"]').click();
+  await page.locator('.cp-pop[aria-label="สีเลขลำดับ"] .cp-sw[aria-label="เขียว"]').first().click();
+  await expect(root.locator(".wy-pv-text h2")).toHaveCSS("color", "rgb(0, 0, 255)");
+  await expect(root.locator('[data-color-key="title"]')).toHaveClass(/set/);
+  await page.getByRole("button", { name: "บันทึก", exact: true }).click();
+  await expect(root.locator(".ok-box")).toContainText("บันทึกแล้ว");
+  const c = await cfg();
+  expect(c.clear).toBe(true);
+  expect(c.colors).toEqual({ title: "#0000FF", num: "#00FF00" });
+
+  await page.goto("/");
+  const sec = page.locator("#why");
+  const vis = sec.locator(".feature-visual.has-img.is-clear");
+  await expect(vis).toBeVisible();
+  await expect(vis).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(vis.locator("img")).toHaveCSS("object-fit", "contain");
+  await expect(vis.locator(".cap")).toHaveCSS("position", "static");
+  await expect(sec.locator("h2.sec-title")).toHaveCSS("color", "rgb(0, 0, 255)");
+  await expect(sec.locator(".feature-list .num").first()).toHaveCSS("color", "rgb(0, 255, 0)");
+  // ภาพที่เก็บยังมีพื้นใส (alpha)
+  const buf = await (await page.request.get((await vis.locator("img").getAttribute("src"))!)).body();
+  expect((await sharp(buf).metadata()).hasAlpha).toBe(true);
+  // กลางคืน: ใช้สีของธีม (ไม่ใช่สีน้ำเงินที่ตั้ง)
+  await context.addCookies([{ name: "mdw_theme", value: "dark", url: page.url() }]);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("#why h2.sec-title")).not.toHaveCSS("color", "rgb(0, 0, 255)");
+  await context.clearCookies({ name: "mdw_theme" });
+
+  // รีเซ็ตสีหัวข้อหลัก → สีเดิมของธีม
+  await page.goto("/admin/home/why");
+  await root.locator('[data-color-key="title"]').click();
+  await page.locator('.cp-pop[aria-label="สีหัวข้อหลัก"]').getByRole("button", { name: "สีเดิมของธีม" }).click();
+  await page.getByRole("button", { name: "บันทึก", exact: true }).click();
+  await expect(root.locator(".ok-box")).toContainText("บันทึกแล้ว");
+  expect((await cfg()).colors).toEqual({ num: "#00FF00" });
+});
+
 test("ไม่ใช้รูป → พื้นไล่สี · คืนค่าเดิม", async ({ page }) => {
   await login(page);
   await page.goto("/admin/home/why");
@@ -131,7 +195,7 @@ test("อัปโหลดต้องเข้าสู่ระบบ · ค�
   await page.goto("/admin/home/why");
   const root = page.locator(".wy" + V);
   await expect(root.getByLabel(/หัวข้อหลัก/)).toHaveValue("<script>x</script>");
-  await expect(root.locator(".wy-mode.on")).toContainText("ใช้รูปผลงาน");
+  await expect(root.locator(".wy-mode.on")).toContainText("รูปผลงาน");
   await expect(root.getByLabel(/ลิงก์เมื่อกดรูป/)).toHaveValue("");
   await expect(root.locator(".wy-pv script, .wy-pv img[onerror]")).toHaveCount(0);
 });

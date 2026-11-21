@@ -4055,12 +4055,56 @@ html[data-adm-theme="dark"] .wy-mode {
     border: 1.5px solid var(--c-line);
     background: #1E2127
 }
+html[data-adm-theme="dark"] .wy-mode:hover {
+    border-color: #4A3220
+}
 html[data-adm-theme="dark"] .wy-mode small {
     color: var(--c-muted)
 }
 html[data-adm-theme="dark"] .wy-mode.on {
     border-color: var(--c-orange);
     background: #291B14
+}
+html[data-adm-theme="dark"] .wy-mode.on span {
+    color: #F18355
+}
+html[data-adm-theme="dark"] .wy-mode:has(input:focus-visible) {
+    outline: 2px solid #16A37B
+}
+html[data-adm-theme="dark"] .wy-switch {
+    border: 1.5px solid var(--c-line);
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .wy-switch small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .wy-sw {
+    background: #121211
+}
+html[data-adm-theme="dark"] .wy-sw i {
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .wy-switch input:checked + .wy-sw {
+    background: #16A37B
+}
+html[data-adm-theme="dark"] .wy-switch input:focus-visible + .wy-sw {
+    outline: 2px solid #16A37B
+}
+html[data-adm-theme="dark"] .wy-chip {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .wy-chip:hover,
+html[data-adm-theme="dark"] .wy-chip[aria-expanded="true"] {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .wy-chip.set {
+    border-color: #4A3220;
+    background: #291E14
+}
+html[data-adm-theme="dark"] .wy-chip:focus-visible {
+    outline: 2px solid #16A37B
 }
 html[data-adm-theme="dark"] .wy-drop {
     border: 2px dashed rgba(0,0,0,.16);
@@ -4069,6 +4113,10 @@ html[data-adm-theme="dark"] .wy-drop {
 html[data-adm-theme="dark"] .wy-drop:hover,
 html[data-adm-theme="dark"] .wy-drop.over {
     border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .wy-drop.clear {
+    background-color: #1E2127;
+    background-image: linear-gradient(45deg,#111215 25%,transparent 25%,transparent 75%,#111215 75%),linear-gradient(45deg,#111215 25%,transparent 25%,transparent 75%,#111215 75%)
 }
 html[data-adm-theme="dark"] .wy-drop-ph {
     color: var(--c-muted)
