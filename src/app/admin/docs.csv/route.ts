@@ -1,7 +1,8 @@
-// GET /admin/docs.csv?type=INVOICE&tab=…&work=todo|done|none&q=…&from=…&to=… — ส่งออกเอกสารขายตามตัวกรอง (มี BOM ให้ Excel อ่านภาษาไทยได้)
+// GET /admin/docs.csv?type=INVOICE&tab=…&work=todo|done|none&q=…&from=…&to=…&void=show|hide — ส่งออกเอกสารขายตามตัวกรอง (มี BOM ให้ Excel อ่านภาษาไทยได้)
 import { docDate, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST } from "@/lib/doc-render";
-import { docWhere, parseDocFilter } from "@/lib/doc-list";
+import { cookies } from "next/headers";
+import { DOC_VOID_COOKIE, docWhere, parseDocFilter } from "@/lib/doc-list";
 import { asSnap, isDocType, statusOf, ymdOf } from "@/lib/docs";
 import { logAdmin } from "@/lib/admin-log";
 import { routeAdmin } from "@/lib/auth";
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
   if (admin instanceof Response) return admin;
   const sp = Object.fromEntries(new URL(req.url).searchParams);
   const type = isDocType(sp.type ?? "") ? (sp.type as keyof typeof DOC_META) : "INVOICE";
-  const f = parseDocFilter(type, sp);
+  const f = parseDocFilter(type, sp, (await cookies()).get(DOC_VOID_COOKIE)?.value);
   const rows = await prisma.salesDocument.findMany({ where: docWhere(type, f), orderBy: [{ issueDate: "asc" }, { docNo: "asc" }], take: 20_000, include: { order: { select: { orderNo: true } }, source: { select: { docNo: true } }, workBy: { select: { displayName: true } } } });
   const head = ["เลขที่", "วันที่", "สถานะ", "รหัสลูกค้า", "ลูกค้า", "เลขผู้เสียภาษี", "โทร", type === "QUOTATION" ? "ยืนราคาถึง" : "ครบกำหนด", "ราคารวมสินค้า", "ส่วนลด", "VAT", "ยอดสุทธิ", "ชำระแล้ว", "คงค้าง", "วิธีชำระ", "อ้างอิง", "คำสั่งซื้อ", "เหตุผลยกเลิก", "สถานะงาน", "หมายเหตุงาน", "ตั้งสถานะงานโดย"];
   const lines = rows.map((d) => {

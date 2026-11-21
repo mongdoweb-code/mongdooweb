@@ -45,3 +45,7 @@ html[data-adm-theme="dark"] .thm-menu button[aria-checked="true"]{background:#2C
 .lg-side{position:relative}
 .lg-thm{position:absolute;top:16px;right:16px}
 @media (prefers-reduced-motion:no-preference){html[data-adm-theme] body,html[data-adm-theme] .box,html[data-adm-theme] .panel{transition:background-color .25s,color .25s,border-color .25s}}
+/* สวิตช์ซ่อน/แสดงใบที่ยกเลิก: ปุ่มกลมขาวเสมอ ราง "ปิด" เทาอ่อนกว่าพื้น */
+html[data-adm-theme="dark"] .void-tg .void-sw{background:#4A4F58}
+html[data-adm-theme="dark"] .void-tg.on .void-sw{background:#16A37B}
+html[data-adm-theme="dark"] .void-tg .void-sw i{background:#fff}

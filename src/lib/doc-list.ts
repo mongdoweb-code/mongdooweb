@@ -11,11 +11,20 @@ import { prisma } from "@/lib/prisma";
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const ymdRe = /^\d{4}-\d{2}-\d{2}$/;
 /** work = สถานะงานภายในร้าน (ตัวกรองแยกจากแท็บสถานะเอกสาร ใช้ร่วมกันได้) */
-export type DocFilter = { tab: DocSt | "all"; work: WorkFilter; q: string; from: string; to: string; page: number; per: number };
+export type DocFilter = { tab: DocSt | "all"; work: WorkFilter; q: string; from: string; to: string; page: number; per: number; showVoid: boolean };
 
-export function parseDocFilter(type: DocTypeT, sp: Record<string, string | string[] | undefined>): DocFilter {
+/** คุกกี้จำค่า "แสดงใบที่ยกเลิก" (ต่อเบราว์เซอร์ ใช้ทุกประเภทเอกสาร) · ?void=show|hide ใน URL ชนะคุกกี้ */
+export const DOC_VOID_COOKIE = "mdw_doc_void";
+export const readShowVoid = (param: string, cookie: string | undefined) => (param === "show" ? true : param === "hide" ? false : cookie === "show");
+
+/** แท็บ "ทั้งหมด" ตอนซ่อนใบที่ยกเลิก (แท็บอื่นไม่มีใบยกเลิกอยู่แล้ว ยกเว้นแท็บ "ยกเลิก" ที่แสดงเสมอ) */
+export const hidesVoid = (f: Pick<DocFilter, "tab" | "showVoid">) => f.tab === "all" && !f.showVoid;
+export const NOT_VOID: Prisma.SalesDocumentWhereInput = { status: { not: "VOID" } };
+
+export function parseDocFilter(type: DocTypeT, sp: Record<string, string | string[] | undefined>, voidCookie?: string): DocFilter {
   const tab = one(sp.tab);
   return {
+    showVoid: readShowVoid(one(sp.void), voidCookie),
     tab: DOC_TABS[type].some(([k]) => k === tab) ? (tab as DocSt) : "all",
     work: parseWorkFilter(one(sp.work)),
     q: one(sp.q).trim().slice(0, 80),
@@ -28,7 +37,10 @@ export function parseDocFilter(type: DocTypeT, sp: Record<string, string | strin
 
 export function docWhere(type: DocTypeT, f: DocFilter, withTab = true, withWork = true): Prisma.SalesDocumentWhereInput {
   const and: Prisma.SalesDocumentWhereInput[] = [{ type }];
-  if (withTab) and.push(statusWhere(f.tab));
+  if (withTab) {
+    and.push(statusWhere(f.tab));
+    if (hidesVoid(f)) and.push(NOT_VOID);
+  }
   if (withWork && f.work) and.push(workWhere(f.work));
   if (f.q) {
     const digits = phoneDigits(f.q);
