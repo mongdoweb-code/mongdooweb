@@ -173,3 +173,49 @@ test("หน้าสินค้าที่ผูก + หน้าแรก (
   const x = await page.request.post("/api/admin/videos/upload?kind=video", { data: Buffer.from("x"), headers: { "content-type": "video/mp4", origin: "https://evil.example" } });
   expect(x.status()).toBe(403);
 });
+
+test("หน้า /videos: แถวละ 6 คลิป · หน้าละ 24 คลิป · แบ่งหน้า (ไม่มีแถบเลื่อนข้าง)", async ({ page }) => {
+  const topic = `หัวข้อทดสอบ ${TAG}`;
+  for (let i = 0; i < 30; i++) {
+    const id = `${String(i).padStart(2, "0")}${TAG}`.padEnd(11, "x").slice(0, 11);
+    await q(
+      `INSERT INTO "Video"(id, source, url, "externalId", vertical, title, topic, "sortOrder", "updatedAt") VALUES ($1,'YOUTUBE',$2,$3,true,$4,$5,$6,now())`,
+      [`e2evp${i}${TAG}`, `https://www.youtube.com/shorts/${id}`, id, `คลิปแบ่งหน้า ${String(i + 1).padStart(2, "0")} ${TAG}`, topic, 500000 + i],
+    );
+  }
+  // ล้างแคชหน้าร้าน (ข้อมูลใส่ตรงฐานข้อมูล) ด้วยการแก้คลิปผ่านหลังบ้าน
+  await login(page);
+  await page.goto("/admin/videos");
+  await page.locator(`.vd-tbl tr:has-text("คลิปแบ่งหน้า 01 ${TAG}") .vd-star` + V).click();
+  await page.locator(`.vd-tbl tr:has-text("คลิปแบ่งหน้า 01 ${TAG}") .vd-star` + V).click();
+
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto(`/videos?topic=${encodeURIComponent(topic)}`);
+  await expect(page.locator(".vg-row, .vg-grid.is-v")).toHaveCount(0);
+  const cards = page.locator(".vg-grid6 .vg-card");
+  await expect(cards).toHaveCount(24);
+  const ys = await cards.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+  expect(new Set(ys.slice(0, 6)).size).toBe(1);
+  expect(ys[6]).toBeGreaterThan(ys[0]);
+  expect(new Set(ys).size).toBe(4);
+  // ไม่มีแถบเลื่อนแนวนอนในรายการ
+  expect(await page.locator(".vg").evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+  const pager = page.getByRole("navigation", { name: "แบ่งหน้า" });
+  await expect(pager).toContainText("หน้า 1 จาก 2 · 30 คลิป");
+  await pager.getByRole("button", { name: "หน้า 2" }).click();
+  await expect(cards).toHaveCount(6);
+  await expect(page).toHaveURL(/page=2/);
+  await expect(pager.getByRole("button", { name: "หน้าถัดไป" })).toBeDisabled();
+  // ลิงก์ที่มี page=2 เปิดหน้าเดิมได้ · เปลี่ยนแท็บแล้วกลับหน้า 1
+  await page.reload();
+  await expect(cards).toHaveCount(6);
+  await page.getByRole("tab", { name: /Shorts · Reels/ }).click();
+  await expect(cards).toHaveCount(24);
+  await expect(page).not.toHaveURL(/page=/);
+  // มือถือ: 2 คลิปต่อแถว ไม่ล้นจอ
+  await page.setViewportSize({ width: 390, height: 844 });
+  const ys2 = await cards.evaluateAll((els) => els.slice(0, 3).map((e) => Math.round(e.getBoundingClientRect().top)));
+  expect(ys2[0]).toBe(ys2[1]);
+  expect(ys2[2]).toBeGreaterThan(ys2[0]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+});

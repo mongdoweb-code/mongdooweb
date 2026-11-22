@@ -58,7 +58,7 @@ async function Gallery({ searchParams }: { searchParams: PageProps<"/videos">["s
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, "\\u003c") }} />
-      <VideoGallery videos={list} initial={{ tab: one(sp.tab), topic: one(sp.topic), src: one(sp.src), v: one(sp.v) }} />
+      <VideoGallery videos={list} initial={{ tab: one(sp.tab), topic: one(sp.topic), src: one(sp.src), v: one(sp.v), page: one(sp.page) }} />
     </>
   );
 }
