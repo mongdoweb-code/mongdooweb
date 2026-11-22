@@ -1859,6 +1859,150 @@ html[data-theme="dark"] .pc-progress {
 html[data-theme="dark"] .pc-progress span {
     background: var(--c-orange)
 }
+/*  src/app/(shop)/_components/video-gallery.css  */
+html[data-theme="dark"] .vg-tab {
+    border: 1.5px solid var(--c-line);
+    background: var(--c-white,#1E2127);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-tab em {
+    background: var(--c-cream);
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .vg-tab:hover {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-tab.on {
+    background: #3A404B;
+    border-color: var(--c-ink);
+    color: #fff
+}
+html[data-theme="dark"] .vg-tab.on em {
+    background: rgba(255,255,255,.2);
+    color: #fff
+}
+html[data-theme="dark"] .vg-chip {
+    border: 1px solid var(--c-line);
+    background: var(--c-white,#1E2127);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-chip:hover {
+    border-color: var(--c-orange)
+}
+html[data-theme="dark"] .vg-chip.on {
+    background: #241A12;
+    border-color: #503622;
+    color: #E68560
+}
+html[data-theme="dark"] .vg-tab:focus-visible,
+html[data-theme="dark"] .vg-chip:focus-visible,
+html[data-theme="dark"] .vg-thumb:focus-visible,
+html[data-theme="dark"] .vg-title button:focus-visible,
+html[data-theme="dark"] .vg-pill:focus-visible,
+html[data-theme="dark"] .vg-close:focus-visible {
+    outline: 3px solid var(--c-orange)
+}
+html[data-theme="dark"] .vg-h small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .vg-card {
+    background: var(--c-white,#1E2127);
+    border: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .vg-thumb {
+    border: 0;
+    background: #111
+}
+html[data-theme="dark"] .vg-thumb::after {
+    background: linear-gradient(to top,rgba(0,0,0,.45),transparent 45%)
+}
+html[data-theme="dark"] .vg-badge {
+    background: rgba(255,255,255,.94);
+    color: #EDEDED
+}
+html[data-theme="dark"] .vg-play {
+    background: rgba(0,0,0,.55);
+    color: #fff
+}
+html[data-theme="dark"] .vg-thumb:hover .vg-play {
+    background: var(--c-orange)
+}
+html[data-theme="dark"] .vg-dur {
+    background: rgba(0,0,0,.78);
+    color: #fff
+}
+html[data-theme="dark"] .vg-title button {
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-title button:hover {
+    color: #E68560
+}
+html[data-theme="dark"] .vg-meta small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .vg-prod {
+    border: 1px solid var(--c-line);
+    background: var(--c-cream);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-prod:hover {
+    border-color: var(--c-orange)
+}
+html[data-theme="dark"] .vg-prod b {
+    color: #E68560
+}
+html[data-theme="dark"] .vg-empty {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .vg-empty button {
+    color: #E68560
+}
+html[data-theme="dark"] .vg-modal {
+    background: rgba(10,10,10,.84)
+}
+html[data-theme="dark"] .vg-player {
+    background: #000
+}
+html[data-theme="dark"] .vg-screen {
+    background: #000
+}
+html[data-theme="dark"] .vg-screen iframe,
+html[data-theme="dark"] .vg-screen video {
+    border: 0;
+    background: #000
+}
+html[data-theme="dark"] .vg-fail {
+    color: #fff
+}
+html[data-theme="dark"] .vg-fail a {
+    color: #F7B696
+}
+html[data-theme="dark"] .vg-side {
+    background: var(--c-white,#1E2127);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-side-src {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .vg-side > small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .vg-pill {
+    border: 1.5px solid var(--c-line);
+    background: var(--c-white,#1E2127);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-pill:hover {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-close {
+    border: 0;
+    background: rgba(20,20,20,.72);
+    color: #fff
+}
+html[data-theme="dark"] .vg-close:hover {
+    background: var(--c-orange)
+}
 /*  src/app/(shop)/_lot11/lot11.css  */
 html[data-theme="dark"] .trk-more {
     border-top: 1px solid var(--c-line)

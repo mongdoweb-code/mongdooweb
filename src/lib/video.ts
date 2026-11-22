@@ -69,3 +69,48 @@ export async function saveVideo(buf: Buffer) {
 
 export const isVideoKey = (k: unknown): k is string => typeof k === "string" && /^videos\/\d{4}\/\d{2}\/[a-z0-9]+\.mp4$/.test(k);
 export const isPosterKey = (k: unknown): k is string => typeof k === "string" && /^videos\/\d{4}\/\d{2}\/[a-z0-9]+\.webp$/.test(k);
+
+// ---------------------------------------------------------------------------
+// หน้าวิดีโอ (/videos): คลิปที่ร้านอัปโหลดเอง (ถ่ายจากมือถือ) — ยาวกว่าวิดีโอสินค้า · รับ MP4 / MOV (iPhone)
+// ไม่มีตัวแปลงไฟล์บนเซิร์ฟเวอร์ → เก็บตามที่อัปโหลด: H.264 เล่นได้ทุกเครื่อง · HEVC (iPhone "ประสิทธิภาพสูง") ติดป้ายเตือน
+// ---------------------------------------------------------------------------
+export const CLIP_MAX_BYTES = 200 * 1024 * 1024;
+export const CLIP_MAX_SECONDS = 180;
+export type VideoCodec = "h264" | "hevc" | "vp9" | "av1" | "other";
+
+/** codec ของแทร็กภาพจาก moov → trak → … → stsd (ดูชนิดรายการแรกใน stsd ของทุกแทร็ก) */
+export function videoCodec(buf: Buffer): VideoCodec | null {
+  const KNOWN: Record<string, VideoCodec> = { avc1: "h264", avc3: "h264", hvc1: "hevc", hev1: "hevc", vp09: "vp9", av01: "av1" };
+  const walk = (s: number, e: number, depth: number): VideoCodec | null => {
+    for (const [t, cs, ce] of boxes(buf, s, e)) {
+      if (t === "stsd" && ce - cs >= 16) {
+        const fourcc = buf.toString("latin1", cs + 12, cs + 16); // version/flags(4) + count(4) + size(4) + type(4)
+        if (KNOWN[fourcc]) return KNOWN[fourcc];
+        continue;
+      }
+      if (depth < 8 && ["moov", "trak", "mdia", "minf", "stbl"].includes(t)) {
+        const r = walk(cs, ce, depth + 1);
+        if (r) return r;
+      }
+    }
+    return null;
+  };
+  if (!isMp4(buf)) return null;
+  return walk(0, buf.length, 0) ?? "other";
+}
+
+/** ตรวจ + เก็บคลิปของหน้าวิดีโอ → { key, seconds, hevc } */
+export async function saveClip(buf: Buffer) {
+  if (buf.length > CLIP_MAX_BYTES) throw new VideoError("ไฟล์วิดีโอใหญ่เกิน 200 MB");
+  if (!isMp4(buf)) throw new VideoError("รองรับเฉพาะไฟล์วิดีโอ MP4 หรือ MOV (จากมือถือ/กล้อง)");
+  const sec = mp4Duration(buf);
+  if (sec == null) throw new VideoError("อ่านความยาววิดีโอไม่ได้ (ไฟล์อาจเสียหรืออัปโหลดไม่ครบ) — ลองใหม่อีกครั้ง");
+  if (sec < 1) throw new VideoError("วิดีโอสั้นเกินไป");
+  if (sec > CLIP_MAX_SECONDS + 0.5) throw new VideoError(`วิดีโอยาว ${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")} นาที — ยาวได้ไม่เกิน 3 นาที (คลิปยาวแนะนำให้ลง YouTube แล้ววางลิงก์)`);
+  const codec = videoCodec(buf);
+  if (codec === "other" || codec == null) throw new VideoError("ไม่รู้จักรูปแบบภาพในไฟล์นี้ — ใช้คลิปจากกล้องมือถือ (H.264 / HEVC) หรือ MP4 ทั่วไป");
+  const now = new Date();
+  const key = `videos/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${Date.now().toString(36)}${randomBytes(5).toString("hex")}.mp4`;
+  await storage().put(key, buf);
+  return { key, seconds: Math.round(sec), hevc: codec === "hevc" };
+}

@@ -57,6 +57,7 @@ export const ADMIN_MENU: AdminMenuItem[] = [
   { key: "customers", href: "/admin/customers", label: "ลูกค้า", icon: "cust", group: G3 },
 
   { key: "projects", href: "/admin/projects", label: "ผลงานติดตั้ง", icon: "photo", group: G4 },
+  { key: "videos", href: "/admin/videos", label: "วิดีโอ", icon: "video", group: G4 },
   { key: "posts", href: "/admin/posts", label: "บทความ", icon: "post", group: G4 },
   { key: "search", href: "/admin/search", label: "ค้นหา / คำพ้อง", icon: "search", group: G4 },
   { key: "redirects", href: "/admin/redirects", label: "Redirect / หน้า 404", icon: "redirect", group: G4 },

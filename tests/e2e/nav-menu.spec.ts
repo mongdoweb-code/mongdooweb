@@ -21,7 +21,7 @@ test("ค่าเริ่มต้น: เมนูเดิม บรรท�
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.goto("/");
   const t = (await navTexts(page)).map((s) => s.split("\n")[0].replace(/\d[\d,]*$/, "").trim());
-  expect(t).toEqual(["หน้าแรก", "หมวดสินค้า", "สินค้าทั้งหมด", "สินค้าขายดี", "ช่วยเลือกไฟ", "วิธีสั่งซื้อ", "ติดต่อเรา"]);
+  expect(t).toEqual(["หน้าแรก", "หมวดสินค้า", "สินค้าทั้งหมด", "สินค้าขายดี", "ช่วยเลือกไฟ", "วิธีสั่งซื้อ", "วิดีโอ", "ติดต่อเรา"]);
   // ทุกเมนูสูงเท่าบรรทัดเดียว
   const hs = await page.locator(".header .nav > a").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
   expect(Math.max(...hs)).toBeLessThan(40);

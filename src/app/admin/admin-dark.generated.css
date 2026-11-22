@@ -4510,6 +4510,139 @@ html[data-adm-theme="dark"] .ob-msg .link {
     border: 0;
     color: var(--c-orange-dk,#F18355)
 }
+/*  src/app/admin/(app)/videos/videos.css  */
+html[data-adm-theme="dark"] .vf-kinds button {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .vf-kinds button.on {
+    background: #3A404B;
+    border-color: var(--c-ink);
+    color: #fff
+}
+html[data-adm-theme="dark"] .vf-kinds button:focus-visible {
+    outline: 2px solid #16A37B
+}
+html[data-adm-theme="dark"] .vf-url {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .vf-url:focus {
+    outline: none;
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .vf-url.bad,
+html[data-adm-theme="dark"] .vf [aria-invalid="true"] {
+    border-color: #B42318 !important
+}
+html[data-adm-theme="dark"] .vf-detect {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .vf-detect.ok {
+    color: #6DDAA4
+}
+html[data-adm-theme="dark"] .vf-detect.err {
+    color: #E9675D
+}
+html[data-adm-theme="dark"] .vf-warn {
+    color: #F19955
+}
+html[data-adm-theme="dark"] .vf-err {
+    color: #E9675D
+}
+html[data-adm-theme="dark"] .vf-drop {
+    border: 2px dashed #4A3220;
+    background: #291E14;
+    color: #F19055
+}
+html[data-adm-theme="dark"] .vf-drop small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .vf-bar {
+    background: #1A120C
+}
+html[data-adm-theme="dark"] .vf-bar i {
+    background: var(--c-orange)
+}
+html[data-adm-theme="dark"] .vf-file {
+    border: 1.5px solid #2C4035;
+    background: #16231B
+}
+html[data-adm-theme="dark"] .vf-file b {
+    color: #6DDAA4
+}
+html[data-adm-theme="dark"] .vf-pv {
+    background: #222
+}
+html[data-adm-theme="dark"] .vf-pv-src {
+    background: rgba(255,255,255,.92);
+    color: #EDEDED
+}
+html[data-adm-theme="dark"] .vf-poster-acts .link {
+    background: none;
+    border: 0;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .vf-check {
+    border: 1.5px solid var(--c-line);
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .vd-n {
+    background: var(--c-cream);
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .vd-thumb {
+    background: #222
+}
+html[data-adm-theme="dark"] .vd-thumb em {
+    background: rgba(0,0,0,.75);
+    color: #fff
+}
+html[data-adm-theme="dark"] .vd-hevc {
+    background: #221C10;
+    color: #F19955
+}
+html[data-adm-theme="dark"] .vd-youtube {
+    color: #F15555
+}
+html[data-adm-theme="dark"] .vd-facebook {
+    color: #5998EE
+}
+html[data-adm-theme="dark"] .vd-tiktok {
+    color: #EDEDED
+}
+html[data-adm-theme="dark"] .vd-instagram {
+    color: #E165A0
+}
+html[data-adm-theme="dark"] .vd-upload {
+    color: #6DDAA4
+}
+html[data-adm-theme="dark"] .vd-star {
+    border: 1px solid var(--c-line);
+    background: #1E2127;
+    color: #A19C91
+}
+html[data-adm-theme="dark"] .vd-star.on {
+    background: #241A12;
+    border-color: #503622;
+    color: #F18355
+}
+html[data-adm-theme="dark"] .vd-tg {
+    border: 0;
+    background: #121211
+}
+html[data-adm-theme="dark"] .vd-tg i {
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .vd-tg[aria-checked="true"] {
+    background: #16A37B
+}
+html[data-adm-theme="dark"] .vd-star:focus-visible,
+html[data-adm-theme="dark"] .vd-tg:focus-visible {
+    outline: 2px solid #16A37B
+}
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {
     color: var(--c-muted)

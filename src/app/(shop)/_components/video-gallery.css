@@ -1,0 +1,109 @@
+/* วิดีโอหน้าร้าน (VideoGallery.tsx): การ์ด แนวนอน 16:9 / แนวตั้ง 9:16 · แถบตัวกรอง · ตัวเล่นหน้าต่างใหญ่ */
+.vg-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.vg-tab{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 18px;border:1.5px solid var(--c-line);border-radius:999px;background:var(--c-white,#fff);color:var(--c-ink);font:700 15px/1 var(--font);cursor:pointer;transition:border-color .15s,background .15s}
+.vg-tab em{font-style:normal;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--c-cream);color:var(--c-muted)}
+.vg-tab:hover{border-color:var(--c-ink)}
+.vg-tab.on{background:var(--c-ink);border-color:var(--c-ink);color:#fff}
+.vg-tab.on em{background:rgba(255,255,255,.2);color:#fff}
+.vg-filters{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-bottom:8px}
+.vg-chips{display:flex;flex-wrap:wrap;gap:6px}
+.vg-chip{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border:1px solid var(--c-line);border-radius:999px;background:var(--c-white,#fff);color:var(--c-ink);font:500 13.5px/1 var(--font);cursor:pointer}
+.vg-chip:hover{border-color:var(--c-orange)}
+.vg-chip.on{background:#FFF1E6;border-color:#F6C9A6;color:#B5461C;font-weight:700}
+.vg-tab:focus-visible,.vg-chip:focus-visible,.vg-thumb:focus-visible,.vg-title button:focus-visible,.vg-pill:focus-visible,.vg-close:focus-visible{outline:3px solid var(--c-orange);outline-offset:2px}
+.vg-src{flex:none;display:block}
+.vg-sec{margin-top:22px}
+.vg-h{display:flex;align-items:baseline;gap:10px;font-size:22px;margin:0 0 12px}
+.vg-h small{font-size:13.5px;font-weight:500;color:var(--c-muted)}
+.vg-grid{display:grid;gap:18px}
+.vg-grid.is-h{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.vg-grid.is-v{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.vg-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(180px,calc((100% - 4 * 14px) / 5));gap:14px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+.vg-row > *{scroll-snap-align:start}
+.vg-card{display:flex;flex-direction:column;background:var(--c-white,#fff);border:1px solid var(--c-line);border-radius:12px;overflow:hidden;min-width:0;transition:box-shadow .2s,transform .2s}
+.vg-card:hover{box-shadow:0 12px 26px rgba(20,20,20,.1);transform:translateY(-2px)}
+.vg-thumb{position:relative;display:block;width:100%;padding:0;border:0;background:#111;cursor:pointer;overflow:hidden}
+.is-h .vg-thumb{aspect-ratio:16/9}
+.is-v .vg-thumb{aspect-ratio:9/16}
+.vg-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .35s}
+.vg-card:hover .vg-thumb img{transform:scale(1.04)}
+.vg-thumb::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.45),transparent 45%);pointer-events:none}
+.vg-badge{position:absolute;left:8px;top:8px;z-index:1;display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 4px;border-radius:999px;background:rgba(255,255,255,.94);color:#141414;font:700 11.5px/1.2 var(--font)}
+.vg-play{position:absolute;left:50%;top:50%;z-index:1;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.55);color:#fff;backdrop-filter:blur(2px);transition:background .2s,transform .2s}
+.vg-play svg{width:26px;height:26px;margin-left:3px}
+.vg-thumb:hover .vg-play{background:var(--c-orange);transform:scale(1.06)}
+.vg-dur{position:absolute;right:8px;bottom:8px;z-index:1;padding:2px 7px;border-radius:5px;background:rgba(0,0,0,.78);color:#fff;font:700 12px/1.4 var(--font)}
+.vg-meta{display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px;flex:1}
+.vg-title{margin:0;font-size:15px;line-height:1.4}
+.is-v .vg-title{font-size:14px}
+.vg-title button{all:unset;cursor:pointer;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:700;color:var(--c-ink)}
+.vg-title button:hover{color:#B5461C}
+.vg-meta small{font-size:12.5px;color:var(--c-muted)}
+.vg-prod{display:flex;align-items:center;gap:8px;margin-top:auto;padding:6px;border:1px solid var(--c-line);border-radius:8px;background:var(--c-cream);color:var(--c-ink);text-decoration:none;font-size:12.5px;min-width:0}
+.vg-meta .vg-prod{margin-top:6px}
+.vg-prod:hover{border-color:var(--c-orange)}
+.vg-prod-img{flex:none;width:32px;height:32px;border-radius:6px;background:#fff;overflow:hidden}
+.vg-prod-img img{width:100%;height:100%;object-fit:contain}
+.vg-prod-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vg-prod b{color:#B5461C;white-space:nowrap}
+.vg-empty{padding:40px 0;text-align:center;color:var(--c-muted)}
+.vg-empty button{all:unset;cursor:pointer;color:#B5461C;text-decoration:underline}
+/* แถวเดียว (หน้าสินค้า / หน้าแรก) */
+.vg-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(180px,220px);gap:14px;overflow-x:auto;padding-bottom:10px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+.vg-strip > .is-h{grid-column:span 2}
+.vg-strip > *{scroll-snap-align:start;display:flex}
+.vg-strip .vg-card{flex:1}
+/* ตัวเล่น */
+.vg-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,10,10,.84)}
+.vg-player{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 320px;width:min(1060px,100%);max-height:calc(100dvh - 32px);border-radius:14px;overflow:hidden;background:#000;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+.vg-player.is-v{grid-template-columns:minmax(0,400px) 320px;width:auto;max-width:100%}
+.vg-screen{position:relative;background:#000;display:grid;place-items:center;aspect-ratio:16/9;min-width:0}
+.is-v .vg-screen{aspect-ratio:9/16;max-height:calc(100dvh - 32px);width:min(400px,calc((100dvh - 32px) * 9 / 16))}
+.vg-screen iframe,.vg-screen video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.vg-fail{display:grid;gap:8px;padding:24px;text-align:center;color:#fff}
+.vg-fail a{color:#FFB38E}
+.vg-side{display:flex;flex-direction:column;gap:10px;padding:20px;background:var(--c-white,#fff);color:var(--c-ink);overflow:auto}
+.vg-side-src{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--c-muted)}
+.vg-side h2{margin:0;font-size:18px;line-height:1.45}
+.vg-side > small{color:var(--c-muted);font-size:13px}
+.vg-side-prod{display:grid;gap:8px;margin-top:4px}
+.vg-side-prod .vg-prod{padding:10px;font-size:13.5px}
+.vg-side-prod .vg-prod-img{width:44px;height:44px}
+.vg-buy{display:flex;align-items:center;justify-content:center;height:44px;border-radius:999px}
+.vg-side-acts{display:flex;flex-wrap:wrap;gap:8px}
+.vg-pill{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;padding:0 15px;border:1.5px solid var(--c-line);border-radius:999px;background:var(--c-white,#fff);color:var(--c-ink);font:700 13.5px/1 var(--font);text-decoration:none;cursor:pointer}
+.vg-pill:hover{border-color:var(--c-ink)}
+.vg-nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto;padding-top:8px}
+.vg-close{position:absolute;top:10px;right:10px;z-index:3;width:40px;height:40px;border:0;border-radius:50%;background:rgba(20,20,20,.72);color:#fff;font-size:18px;cursor:pointer}
+.vg-close:hover{background:var(--c-orange)}
+@media (max-width:860px){
+  .vg-player,.vg-player.is-v{grid-template-columns:1fr;width:100%;max-height:calc(100dvh - 24px);overflow:auto}
+  .is-v .vg-screen{width:100%;max-height:68dvh;aspect-ratio:9/16;justify-self:center}
+  .vg-modal{padding:12px}
+  .vg-side{padding:16px}
+  .vg-row{grid-auto-columns:minmax(150px,46%)}
+}
+@media (max-width:560px){
+  .vg-grid.is-h{grid-template-columns:1fr}
+  .vg-grid.is-v{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .vg-h{font-size:19px}
+  .vg-strip{grid-auto-columns:minmax(150px,46%)}
+  .vg-strip > .is-h{grid-column:span 2}
+}
+@media (prefers-reduced-motion:reduce){.vg-card,.vg-thumb img,.vg-play{transition:none}.vg-card:hover{transform:none}.vg-card:hover .vg-thumb img{transform:none}}
+/* หน้าสินค้า: วิดีโอสินค้า (คลิปที่ผูกกับสินค้า) */
+.pdp-videos{padding:72px 0 0}
+.pdp-videos .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px}
+/* ส่วนย่อยของหน้าวิดีโอ: ไม่รับ padding ของ <section> หน้าร้าน */
+.vg .vg-sec{padding:0;margin-top:26px}
+.vg .vg-sec:first-of-type{margin-top:18px}
+/* แถวเดียว: การ์ดไม่ยืดตามการ์ดที่สูงที่สุด */
+.vg-strip{align-items:start}
+.vg-strip > *{align-items:flex-start}
+@media (max-width:560px){
+  .vg-tabs{gap:6px}
+  .vg-tab{height:38px;padding:0 14px;font-size:14px}
+  .vg-chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;max-width:100%}
+  .vg-chip{flex:none}
+  .vg-filters{display:grid;gap:6px}
+}

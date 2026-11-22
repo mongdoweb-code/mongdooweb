@@ -1,6 +1,10 @@
 // หน้ารายละเอียดสินค้า — แกลเลอรี, ราคา/สต็อก, เลือกจำนวน, ซื้อคู่กัน, สเปก, คำอธิบาย, สินค้าในหมวด, ดูล่าสุด
 // ล็อต 9: ปุ่มเลือกตัวเลือก (U1), ราคาลดตามเวลา + นับถอยหลัง (U3), รายการโปรด/เปรียบเทียบ (U5/U7),
 // ตารางสเปกแบบมีโครงสร้าง (U6), ลิงก์คำนวณหม้อแปลง (U8), ราคาขายส่ง (U10), ไฟล์ดาวน์โหลด (U11)
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { getVideos, visibleVideos } from "@/lib/videos";
+import { VideoGallery } from "../../_components/VideoGallery";
 import { autoParagraph } from "@/lib/autop";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -373,6 +377,10 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
           </section>
         )}
 
+        <Suspense fallback={null}>
+          <ProductVideos slug={p.slug} />
+        </Suspense>
+
         {p.description && (
           <section className="prose-desc" aria-labelledby="desc-h">
             <h2 id="desc-h" className="sec-title" style={{ fontSize: 24 }}>
@@ -401,5 +409,21 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
       </div>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonForScript(productLd(p)) }} />
     </main>
+  );
+}
+
+/** คลิปที่ผูกกับสินค้านี้ (จัดการที่ /admin/videos) — ไม่มี = ไม่แสดง */
+async function ProductVideos({ slug }: { slug: string }) {
+  await connection(); // คลิปที่ตั้งเวลาเผยแพร่ขึ้นเองเมื่อถึงเวลา
+  const list = visibleVideos(await getVideos()).filter((v) => v.product?.slug === slug);
+  if (!list.length) return null;
+  return (
+    <section className="pdp-videos" aria-labelledby="pdp-vid-h">
+      <div className="sec-head">
+        <h2 className="sec-title" id="pdp-vid-h">วิดีโอสินค้า</h2>
+        <a className="link-more" href="/videos">วิดีโอทั้งหมด</a>
+      </div>
+      <VideoGallery videos={list} mode="strip" />
+    </section>
   );
 }

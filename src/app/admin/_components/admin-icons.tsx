@@ -3,6 +3,7 @@ export const ICON = {
   orders: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" />,
   slides: <><rect x="3" y="5" width="18" height="14" /><path d="m3 16 5-5 4 4 3-3 6 6" /><circle cx="16" cy="9" r="1.6" /></>,
   products: <path d="M4 7l8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10" />,
+  video: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="m16 10 5-3v10l-5-3z" /></>,
   sort: <path d="M4 5h7M4 10h7M4 15h7M4 20h7M17 4v16M14 17l3 3 3-3M14 7l3-3 3 3" />,
   cats: <><rect x="4" y="4" width="7" height="7" /><rect x="13" y="4" width="7" height="7" /><rect x="4" y="13" width="7" height="7" /><rect x="13" y="13" width="7" height="7" /></>,
   qt: <path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7" />,
