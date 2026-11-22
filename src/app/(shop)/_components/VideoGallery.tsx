@@ -162,10 +162,36 @@ function Player({ v, onClose, onPrev, onNext, count }: { v: VideoCard; onClose: 
   );
 }
 
-export function VideoGallery({ videos, mode = "page", initial }: { videos: VideoCard[]; mode?: "page" | "strip"; initial?: { tab?: string; topic?: string; src?: string; v?: string } }) {
-  const [tab, setTab] = useState<Tab>(initial?.tab === "h" || initial?.tab === "v" ? initial.tab : "all");
-  const [topic, setTopic] = useState(initial?.topic && videos.some((v) => v.topic === initial.topic) ? initial.topic : "");
-  const [src, setSrc] = useState(initial?.src && videos.some((v) => v.source === initial.src) ? initial.src : "");
+/** หน้า /videos: หน้าละ 24 คลิป · แถวละ 6 (คลิปแนวนอนกว้าง 2 ช่อง) */
+export const VIDEOS_PER_PAGE = 24;
+
+/** เลขหน้าที่แสดง: หน้าแรก หน้าสุดท้าย และรอบหน้าปัจจุบัน — ที่เหลือเป็น … */
+function pageList(page: number, pages: number): (number | "…")[] {
+  if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+  const set = new Set([1, pages, page - 1, page, page + 1]);
+  const nums = [...set].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  nums.forEach((n, i) => {
+    if (i && n - nums[i - 1] > 1) out.push("…");
+    out.push(n);
+  });
+  return out;
+}
+
+export function VideoGallery({ videos, mode = "page", initial }: { videos: VideoCard[]; mode?: "page" | "strip"; initial?: { tab?: string; topic?: string; src?: string; v?: string; page?: string } }) {
+  const [tab, setTabRaw] = useState<Tab>(initial?.tab === "h" || initial?.tab === "v" ? initial.tab : "all");
+  const [topic, setTopicRaw] = useState(initial?.topic && videos.some((v) => v.topic === initial.topic) ? initial.topic : "");
+  const [src, setSrcRaw] = useState(initial?.src && videos.some((v) => v.source === initial.src) ? initial.src : "");
+  const [page, setPageRaw] = useState(Math.max(1, Math.floor(Number(initial?.page)) || 1));
+  const top = useRef<HTMLDivElement>(null);
+  // เปลี่ยนแท็บ/ตัวกรอง = กลับไปหน้า 1
+  const setTab = (t: Tab) => { setTabRaw(t); setPageRaw(1); };
+  const setTopic = (t: string) => { setTopicRaw(t); setPageRaw(1); };
+  const setSrc = (t: string) => { setSrcRaw(t); setPageRaw(1); };
+  const goPage = (n: number) => {
+    setPageRaw(n);
+    requestAnimationFrame(() => top.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
   const [open, setOpen] = useState<string | null>(initial?.v && videos.some((v) => v.id === initial.v) ? initial.v : null);
 
   const topics = useMemo(() => [...new Set(videos.map((v) => v.topic).filter((t): t is string => !!t))], [videos]);
@@ -174,6 +200,10 @@ export function VideoGallery({ videos, mode = "page", initial }: { videos: Video
   const vert = videos.filter((v) => v.vertical && match(v));
   const horiz = videos.filter((v) => !v.vertical && match(v));
   const shown = mode === "strip" ? videos : [...(tab !== "h" ? vert : []), ...(tab !== "v" ? horiz : [])];
+  const pages = Math.max(1, Math.ceil(shown.length / VIDEOS_PER_PAGE));
+  const curPage = Math.min(page, pages);
+  const onPage = shown.slice((curPage - 1) * VIDEOS_PER_PAGE, curPage * VIDEOS_PER_PAGE);
+  const pageVert = onPage.filter((v) => v.vertical), pageHoriz = onPage.filter((v) => !v.vertical);
 
   // สถานะอยู่ใน URL (แชร์/กดย้อนกลับได้) — เฉพาะหน้า /videos
   useEffect(() => {
@@ -182,10 +212,11 @@ export function VideoGallery({ videos, mode = "page", initial }: { videos: Video
     if (tab !== "all") q.set("tab", tab);
     if (topic) q.set("topic", topic);
     if (src) q.set("src", src);
+    if (curPage > 1) q.set("page", String(curPage));
     if (open) q.set("v", open);
     const next = `${location.pathname}${q.size ? `?${q}` : ""}`;
     if (next !== `${location.pathname}${location.search}`) history.replaceState(history.state, "", next);
-  }, [mode, tab, topic, src, open]);
+  }, [mode, tab, topic, src, curPage, open]);
 
   const cur = open ? videos.find((v) => v.id === open) ?? null : null;
   const step = (d: number) => {
@@ -243,21 +274,38 @@ export function VideoGallery({ videos, mode = "page", initial }: { videos: Video
           )}
         </div>
       )}
-      {tab !== "h" && vert.length > 0 && (
+      <div ref={top} className="vg-top" />
+      {pageVert.length > 0 && (
         <section className="vg-sec" aria-labelledby="vg-v-h">
           <h2 className="vg-h" id="vg-v-h">Shorts · Reels <small>คลิปสั้นแนวตั้ง {vert.length} คลิป</small></h2>
-          <div className={tab === "v" ? "vg-grid is-v" : "vg-row"}>
-            {vert.map((v, i) => <Card key={v.id} v={v} onOpen={() => setOpen(v.id)} eager={i < 4} />)}
+          <div className="vg-grid6">
+            {pageVert.map((v, i) => <Card key={v.id} v={v} onOpen={() => setOpen(v.id)} eager={i < 6} />)}
           </div>
         </section>
       )}
-      {tab !== "v" && horiz.length > 0 && (
+      {pageHoriz.length > 0 && (
         <section className="vg-sec" aria-labelledby="vg-h-h">
           <h2 className="vg-h" id="vg-h-h">วิดีโอ <small>{horiz.length} คลิป</small></h2>
-          <div className="vg-grid is-h">
-            {horiz.map((v, i) => <Card key={v.id} v={v} onOpen={() => setOpen(v.id)} eager={i < 3} />)}
+          <div className="vg-grid6">
+            {pageHoriz.map((v, i) => <Card key={v.id} v={v} onOpen={() => setOpen(v.id)} eager={i < 3} />)}
           </div>
         </section>
+      )}
+      {pages > 1 && (
+        <nav className="vg-pager" aria-label="แบ่งหน้า">
+          <span className="vg-pager-info">หน้า {curPage} จาก {pages} · {shown.length} คลิป</span>
+          <span className="vg-pager-btns">
+            <button type="button" disabled={curPage <= 1} onClick={() => goPage(curPage - 1)} aria-label="หน้าก่อนหน้า">‹ ก่อนหน้า</button>
+            {pageList(curPage, pages).map((n, i) =>
+              n === "…" ? (
+                <span key={`g${i}`} className="vg-gap" aria-hidden="true">…</span>
+              ) : (
+                <button key={n} type="button" className={n === curPage ? "on" : ""} aria-current={n === curPage ? "page" : undefined} aria-label={`หน้า ${n}`} onClick={() => goPage(n)}>{n}</button>
+              ),
+            )}
+            <button type="button" disabled={curPage >= pages} onClick={() => goPage(curPage + 1)} aria-label="หน้าถัดไป">ถัดไป ›</button>
+          </span>
+        </nav>
       )}
       {!vert.length && !horiz.length && <p className="vg-empty">ไม่มีคลิปตามตัวกรองนี้ — <button type="button" onClick={() => { setTopic(""); setSrc(""); setTab("all"); }}>ดูทั้งหมด</button></p>}
       {player}

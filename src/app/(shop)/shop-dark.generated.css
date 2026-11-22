@@ -2003,6 +2003,31 @@ html[data-theme="dark"] .vg-close {
 html[data-theme="dark"] .vg-close:hover {
     background: var(--c-orange)
 }
+html[data-theme="dark"] .vg-pager {
+    border-top: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .vg-pager-info {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .vg-pager button {
+    border: 1.5px solid var(--c-line);
+    background: var(--c-white,#1E2127);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-pager button:hover:not(:disabled) {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .vg-pager button.on {
+    background: #3A404B;
+    border-color: var(--c-ink);
+    color: #fff
+}
+html[data-theme="dark"] .vg-pager button:focus-visible {
+    outline: 3px solid var(--c-orange)
+}
+html[data-theme="dark"] .vg-gap {
+    color: var(--c-muted)
+}
 /*  src/app/(shop)/_lot11/lot11.css  */
 html[data-theme="dark"] .trk-more {
     border-top: 1px solid var(--c-line)
