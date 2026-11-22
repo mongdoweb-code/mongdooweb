@@ -6,8 +6,8 @@ let n = 0;
 const eq = (a: unknown, b: unknown, msg: string) => { assert.deepEqual(a, b, msg); n++; };
 const shown = (v: unknown) => parseNavMenu(v).items.filter((i) => i.show).map((i) => i.key);
 
-// ค่าเริ่มต้น = เมนูเดิม 7 รายการ
-eq(shown({}), ["home", "cats", "all", "best", "finder", "howto", "contact"], "{} = เมนูเดิม");
+// ค่าเริ่มต้น = เมนูเดิม 7 รายการ + วิดีโอ
+eq(shown({}), ["home", "cats", "all", "best", "finder", "howto", "videos", "contact"], "{} = เมนูเดิม + วิดีโอ");
 eq(shown(null), shown({}), "null = เมนูเดิม");
 eq(parseNavMenu({}).icons, { theme: true, search: true, track: true, wishlist: true }, "ไอคอนเปิดทั้งหมด");
 // เรียง/ซ่อน/เปลี่ยนชื่อ · เมนูในระบบที่ไม่มีในค่าที่บันทึก ต่อท้ายแบบซ่อน

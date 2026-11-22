@@ -11,6 +11,7 @@ export const SOURCES = [
   "src/app/(shop)/lot2.css",
   "src/app/(shop)/lot9.css",
   "src/app/(shop)/lot10.css",
+  "src/app/(shop)/_components/video-gallery.css",
   "src/app/(shop)/_lot11/lot11.css",
   "src/app/(shop)/privacy/request/request.css",
   "src/components/sort-toolbar/sort-toolbar.css",

@@ -34,6 +34,7 @@ export const LOG_TYPES: Record<string, string> = {
   REVIEW: "รีวิวสินค้า",
   STOCK_ALERT: "แจ้งเมื่อมีของ",
   PROJECT: "ผลงานติดตั้ง",
+  VIDEO: "วิดีโอ",
   POST: "บทความ",
   SEARCH: "คำค้นหา/คำพ้อง",
   REDIRECT: "Redirect / 404",

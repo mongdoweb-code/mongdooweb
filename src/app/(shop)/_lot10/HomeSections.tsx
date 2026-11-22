@@ -1,6 +1,8 @@
 // ส่วนต่างๆ ของหน้าแรกตามลำดับที่ตั้งในหลังบ้าน (A30) + ส่วนใหม่: ความน่าเชื่อถือ (U30) ผลงานติดตั้ง บทความล่าสุด
 // HTML ส่วนเดิมมาจากต้นแบบ (_markup/home.ts) — ตัดเป็นชิ้นตามหัวคอมเมนต์ของแต่ละ section
 // ส่วนเดิมที่ถูกซ่อนยังอยู่ในหน้า (hidden) เพราะ public/js/home.js อ้างถึง element ในนั้นตอนเริ่มทำงาน
+import { getVideos, visibleVideos } from "@/lib/videos";
+import { VideoGallery } from "../_components/VideoGallery";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { getProjects, getPublishedPosts, thaiDay, visibleNow } from "@/lib/blog";
@@ -216,6 +218,23 @@ async function PostsSection() {
   );
 }
 
+/** วิดีโอแนะนำ: คลิปที่ติ๊ก "แนะนำ" (ไม่มี = คลิปล่าสุด) สูงสุด 10 คลิป · ไม่มีคลิปเลย = ไม่แสดงส่วนนี้ */
+async function VideosSection() {
+  await connection(); // คลิปที่ตั้งเวลาเผยแพร่ขึ้นเองเมื่อถึงเวลา
+  const all = visibleVideos(await getVideos());
+  if (!all.length) return null;
+  const featured = all.filter((v) => v.featured);
+  const list = (featured.length ? featured : all).slice(0, 10);
+  return (
+    <section className="l10-home-sec" aria-labelledby="l10-vid-h" data-home="videos">
+      <div className="container">
+        <Head eyebrow="วิดีโอ" title="ดูไฟทำงานจริง" id="l10-vid-h" more={{ href: "/videos", label: "ดูวิดีโอทั้งหมด" }} />
+        <VideoGallery videos={list} mode="strip" />
+      </div>
+    </section>
+  );
+}
+
 /** เนื้อหาหน้าแรกทั้งหมดตามลำดับที่ตั้งไว้ */
 export async function HomeSections() {
   const [{ sections, why }, projects, info] = await Promise.all([getHomeConfig(), getProjects(), getPublicShopInfo()]);
@@ -231,6 +250,12 @@ export async function HomeSections() {
         if (key === "trust") return show ? <TrustSection key={key} /> : null;
         if (key === "projects") return show ? <ProjectsSection key={key} /> : null;
         if (key === "popular") return show ? <PopularSection key={key} /> : null;
+        if (key === "videos")
+          return show ? (
+            <Suspense key={key} fallback={null}>
+              <VideosSection />
+            </Suspense>
+          ) : null;
         if (key === "posts")
           return show ? (
             <Suspense key={key} fallback={null}>

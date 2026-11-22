@@ -194,6 +194,7 @@ model Product {
   countLines  StockCountLine[]
   reviews     Review[]
   stockAlerts StockAlert[]
+  videos      Video[]
   poItems     PurchaseOrderItem[]
 
   createdAt DateTime @default(now())
@@ -1383,4 +1384,52 @@ model Expense {
 
   @@index([date])
   @@index([category, date])
+}
+
+// ---------- หน้าวิดีโอ (/videos) ----------
+
+enum VideoSource {
+  YOUTUBE
+  FACEBOOK
+  TIKTOK
+  INSTAGRAM
+  UPLOAD // ร้านอัปโหลดเอง (ถ่ายจากมือถือ)
+}
+
+/// คลิปวิดีโอของร้าน: ลิงก์จากแพลตฟอร์ม (ฝังตัวเล่นเมื่อลูกค้ากดเล่น) หรือไฟล์ที่อัปโหลด
+model Video {
+  id         String      @id @default(cuid())
+  source     VideoSource
+  /// ลิงก์ต้นฉบับ (แพลตฟอร์มภายนอก) — ใช้ปุ่ม "เปิดในแอป"
+  url        String?
+  /// รหัสคลิปสำหรับฝัง: YouTube 11 ตัว · TikTok ตัวเลข · Instagram shortcode · Facebook = ไม่ใช้ (ฝังจาก url)
+  externalId String?
+  /// แนวตั้ง 9:16 (Shorts / Reels / TikTok) · false = แนวนอน 16:9
+  vertical   Boolean     @default(false)
+  title      String
+  /// หมวด/หัวข้อ เช่น "วิธีติดตั้ง", "ผลงานลูกค้า" (ตัวกรองบนหน้าเว็บ)
+  topic      String?
+  /// ไฟล์ที่อัปโหลด videos/YYYY/MM/*.mp4
+  fileKey    String?
+  /// รูปปกที่อัปโหลด/สร้างจากคลิป (videos/YYYY/MM/*.webp)
+  posterKey  String?
+  /// รูปปกจากแพลตฟอร์ม (YouTube)
+  thumbUrl   String?
+  seconds    Int?
+  /// ไฟล์อัปโหลดเป็น HEVC (H.265 จาก iPhone) — บางเบราว์เซอร์เล่นไม่ได้
+  hevc       Boolean     @default(false)
+  productId  String?
+  product    Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  isActive   Boolean     @default(true)
+  /// แนะนำ: ขึ้นต้นรายการ + แสดงในหน้าแรก
+  featured   Boolean     @default(false)
+  /// ตั้งเวลาเผยแพร่ (null = ทันที)
+  publishAt  DateTime?
+  sortOrder  Int         @default(0)
+  views      Int         @default(0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([productId])
 }

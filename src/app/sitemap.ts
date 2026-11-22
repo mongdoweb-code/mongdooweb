@@ -6,6 +6,7 @@ import { connection } from "next/server";
 import { sitemapContent } from "@/lib/blog";
 import { prisma } from "@/lib/prisma";
 import { STOREFRONT_TAG } from "@/lib/settings";
+import { getVideos, visibleVideos } from "@/lib/videos";
 
 async function entries() {
   "use cache";
@@ -33,7 +34,7 @@ async function entries() {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
-  const [{ products, categories }, content] = await Promise.all([entries(), sitemapContent()]);
+  const [{ products, categories }, content, videos] = await Promise.all([entries(), sitemapContent(), getVideos()]);
   // บทความที่ตั้งเวลาไว้ ใส่เมื่อถึงเวลาแล้วเท่านั้น (ตัดสินตอนขอ sitemap)
   await connection();
   const now = Date.now();
@@ -45,6 +46,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...products.map((p) => ({ url: `${base}/product/${encodeURIComponent(p.slug)}`, lastModified: p.at, changeFrequency: "weekly" as const, priority: 0.7 })),
     ...(content.projects.length ? [{ url: `${base}/projects`, changeFrequency: "weekly" as const, priority: 0.6 }] : []),
     ...content.projects.map((p) => ({ url: `${base}/projects/${p.slug}`, lastModified: p.at, changeFrequency: "monthly" as const, priority: 0.5 })),
+    ...(visibleVideos(videos, now).length ? [{ url: `${base}/videos`, changeFrequency: "weekly" as const, priority: 0.6 }] : []),
     ...(posts.length ? [{ url: `${base}/blog`, changeFrequency: "weekly" as const, priority: 0.6 }] : []),
     ...posts.map((p) => ({ url: `${base}/blog/${p.slug}`, lastModified: p.at, changeFrequency: "monthly" as const, priority: 0.5 })),
     { url: `${base}/warranty`, changeFrequency: "yearly", priority: 0.3 },

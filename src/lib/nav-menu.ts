@@ -5,7 +5,7 @@
 export type NavKey = string;
 export type NavBuiltin = { key: string; label: string; href: string; show: boolean; note?: string };
 
-/** เมนูในระบบ — 7 ตัวแรกแสดงเป็นค่าเริ่มต้น (เหมือนเมนูเดิม) */
+/** เมนูในระบบ — 8 ตัวแรกแสดงเป็นค่าเริ่มต้น (เมนูเดิม + วิดีโอ) */
 export const NAV_BUILTINS: NavBuiltin[] = [
   { key: "home", label: "หน้าแรก", href: "/", show: true },
   { key: "cats", label: "หมวดสินค้า", href: "", show: true, note: "เมนูแบบเลื่อนลง แสดงหมวดสินค้าทั้งหมด" },
@@ -13,6 +13,7 @@ export const NAV_BUILTINS: NavBuiltin[] = [
   { key: "best", label: "สินค้าขายดี", href: "/#products", show: true },
   { key: "finder", label: "ช่วยเลือกไฟ", href: "/#finder", show: true },
   { key: "howto", label: "วิธีสั่งซื้อ", href: "/how-to-order", show: true },
+  { key: "videos", label: "วิดีโอ", href: "/videos", show: true },
   { key: "contact", label: "ติดต่อเรา", href: "/contact", show: true },
   { key: "projects", label: "ผลงานติดตั้ง", href: "/projects", show: false },
   { key: "blog", label: "บทความ", href: "/blog", show: false },
