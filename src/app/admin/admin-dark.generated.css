@@ -4643,6 +4643,106 @@ html[data-adm-theme="dark"] .vd-star:focus-visible,
 html[data-adm-theme="dark"] .vd-tg:focus-visible {
     outline: 2px solid #16A37B
 }
+/*  src/app/admin/(app)/products/datasheet.css  */
+html[data-adm-theme="dark"] .ds-ed-head h3 small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ds-pill {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ds-pill:hover:not(:disabled) {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .ds-pill.on {
+    background: #3A404B;
+    border-color: var(--c-ink);
+    color: #fff
+}
+html[data-adm-theme="dark"] .ds-pill.ghost {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ds-pill:focus-visible,
+html[data-adm-theme="dark"] .ds-ib:focus-visible {
+    outline: 2px solid #16A37B
+}
+html[data-adm-theme="dark"] .ds-paste {
+    border: 1.5px dashed #4A3220;
+    background: #291E14
+}
+html[data-adm-theme="dark"] .ds-paste label {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ds-paste textarea {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ds-copy input {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ds-msg {
+    color: #6DDAA4
+}
+html[data-adm-theme="dark"] .ds-grp {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ds-gh {
+    background: #1E1C16
+}
+html[data-adm-theme="dark"] .ds-gh input {
+    border: 1px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ds-gh input.en,
+html[data-adm-theme="dark"] .ds-row input.en {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ds-row {
+    border-top: 1px solid #2D3139
+}
+html[data-adm-theme="dark"] .ds-row input {
+    border: 1px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ds-row input:focus,
+html[data-adm-theme="dark"] .ds-gh input:focus {
+    outline: none;
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ds-ib {
+    border: 1px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ds-ib:hover:not(:disabled) {
+    border-color: var(--c-ink);
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ds-ib.del:hover:not(:disabled) {
+    border-color: #B42318;
+    color: #E9675D
+}
+html[data-adm-theme="dark"] .ds-ib.star.on {
+    background: #241A12;
+    border-color: #503622;
+    color: #F18355
+}
+html[data-adm-theme="dark"] .ds-add {
+    border: 0;
+    border-top: 1px dashed var(--c-line);
+    background: #2C2115;
+    color: #F18355
+}
+html[data-adm-theme="dark"] .ds-add:hover {
+    background: #261C12
+}
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {
     color: var(--c-muted)

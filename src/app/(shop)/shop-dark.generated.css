@@ -2028,6 +2028,157 @@ html[data-theme="dark"] .vg-pager button:focus-visible {
 html[data-theme="dark"] .vg-gap {
     color: var(--c-muted)
 }
+/*  src/app/(shop)/product/[slug]/datasheet.css  */
+html[data-theme="dark"] .ds-sub {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ds-pill {
+    border: 1.5px solid var(--c-line);
+    background: var(--c-white);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .ds-pill:hover {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .ds-pill.or {
+    background: var(--c-orange);
+    border-color: var(--c-orange);
+    color: #fff
+}
+html[data-theme="dark"] .ds-pill.or:hover {
+    background: #D9562A;
+    border-color: #D9562A
+}
+html[data-theme="dark"] .ds-chips span {
+    background: #131927;
+    color: #5C8DEA
+}
+html[data-theme="dark"] .ds-a th,
+html[data-theme="dark"] .ds-a td {
+    border-bottom: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .ds-a thead th {
+    border-bottom: 2px solid var(--c-ink)
+}
+html[data-theme="dark"] .ds-a tbody th {
+    color: #D2D0CE
+}
+html[data-theme="dark"] .ds-a tbody tr:nth-child(even) {
+    background: #1B1D22
+}
+html[data-theme="dark"] .ds-note-a {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ds-hl li {
+    border: 1px solid var(--c-line);
+    background: linear-gradient(180deg,var(--c-white),#1B1D23)
+}
+html[data-theme="dark"] .ds-hl i {
+    background: #241A12
+}
+html[data-theme="dark"] .ds-hl small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ds-sheet {
+    border: 1px solid var(--c-line);
+    background: var(--c-white)
+}
+html[data-theme="dark"] .ds-sheet-top {
+    background: #141414;
+    color: #fff
+}
+html[data-theme="dark"] .ds-grp {
+    border-top: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .ds-sheet-top + .ds-grp {
+    border-top: 0
+}
+html[data-theme="dark"] .ds-grp h3 {
+    background: var(--c-cream)
+}
+html[data-theme="dark"] .ds-grp h3 em {
+    border: 1.5px solid #C2410C;
+    color: #F18355
+}
+html[data-theme="dark"] .ds-grp h3 small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ds-r {
+    border-bottom: 1px solid #2D3139
+}
+html[data-theme="dark"] .ds-r:last-child {
+    border-bottom: 0
+}
+html[data-theme="dark"] .ds-r dt {
+    color: #B7B4AF
+}
+html[data-theme="dark"] .ds-r dt small {
+    color: #9F9B93
+}
+html[data-theme="dark"] .ds-note {
+    border-top: 1px solid var(--c-line);
+    background: #1B1D22;
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ds-cmp-h small {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ds-diff {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ds-diff::before {
+    border: 1.5px solid var(--c-line);
+    background: var(--c-white)
+}
+html[data-theme="dark"] .ds-diff-cb:checked + .ds-diff::before {
+    background: var(--c-orange);
+    border-color: var(--c-orange)
+}
+html[data-theme="dark"] .ds-diff-cb:focus-visible + .ds-diff {
+    outline: 2px solid var(--c-orange)
+}
+html[data-theme="dark"] .ds-cmp-wrap {
+    border: 1px solid var(--c-line)
+}
+html[data-theme="dark"] .ds-c th,
+html[data-theme="dark"] .ds-c td {
+    border-bottom: 1px solid #2D3139
+}
+html[data-theme="dark"] .ds-c thead th {
+    background: #141414;
+    color: #fff
+}
+html[data-theme="dark"] .ds-c thead th.cur {
+    background: var(--c-orange)
+}
+html[data-theme="dark"] .ds-c tbody th {
+    color: #D2D0CE;
+    background: #1B1D22
+}
+html[data-theme="dark"] .ds-c td.cur {
+    background: #281C13
+}
+html[data-theme="dark"] .ds-c td.same {
+    color: var(--c-muted)
+}
+html[data-theme="dark"] .ds-c tr:last-child th,
+html[data-theme="dark"] .ds-c tr:last-child td {
+    border-bottom: 0
+}
+html[data-theme="dark"] .ds-c-price small {
+    color: #E9675D
+}
+html[data-theme="dark"] .ds-pick {
+    border: 1.5px solid var(--c-line);
+    color: var(--c-ink)
+}
+html[data-theme="dark"] .ds-pick:hover {
+    border-color: var(--c-ink)
+}
+html[data-theme="dark"] .ds-cur {
+    background: #3A404B;
+    color: #fff
+}
 /*  src/app/(shop)/_lot11/lot11.css  */
 html[data-theme="dark"] .trk-more {
     border-top: 1px solid var(--c-line)

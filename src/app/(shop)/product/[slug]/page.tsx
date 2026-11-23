@@ -1,6 +1,7 @@
 // หน้ารายละเอียดสินค้า — แกลเลอรี, ราคา/สต็อก, เลือกจำนวน, ซื้อคู่กัน, สเปก, คำอธิบาย, สินค้าในหมวด, ดูล่าสุด
 // ล็อต 9: ปุ่มเลือกตัวเลือก (U1), ราคาลดตามเวลา + นับถอยหลัง (U3), รายการโปรด/เปรียบเทียบ (U5/U7),
 // ตารางสเปกแบบมีโครงสร้าง (U6), ลิงก์คำนวณหม้อแปลง (U8), ราคาขายส่ง (U10), ไฟล์ดาวน์โหลด (U11)
+import { DatasheetSection } from "./Datasheet";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getVideos, visibleVideos } from "@/lib/videos";
@@ -138,7 +139,13 @@ function productLd(p: Detail) {
           },
         }
       : {}),
-    ...(p.attrs.length ? { additionalProperty: p.attrs.map((a) => ({ "@type": "PropertyValue", name: a.label, value: a.value })) } : {}),
+    // สเปกตามหมวด + Data Sheet (หัวข้อไม่ซ้ำ) → Google อ่านสเปกได้
+    ...((): Record<string, unknown> => {
+      const props = [...p.attrs.map((a) => ({ name: a.label, value: a.value })), ...(p.datasheet ? p.datasheet.groups.flatMap((g) => g.rows).map((r) => ({ name: r.label || r.en, value: r.value })) : [])]
+        .filter((x, i, a) => x.name && a.findIndex((y) => y.name === x.name) === i)
+        .slice(0, 40);
+      return props.length ? { additionalProperty: props.map((x) => ({ "@type": "PropertyValue", ...x })) } : {};
+    })(),
     // ราคา 0 = "สอบถามราคา" → ไม่ใส่ offers (ห้ามมีราคาว่าง/0 ใน schema)
     ...offer(url, p.price, p.inStock, saleEnd),
   };
@@ -390,6 +397,9 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
             <div dangerouslySetInnerHTML={{ __html: descriptionHtml(p.description) }} />
           </section>
         )}
+
+        {/* Data Sheet ใต้รายละเอียดสินค้า (แบบ A/B ตามตั้งค่า) + ตารางเทียบรุ่น (C) */}
+        <DatasheetSection ds={p.datasheet} name={p.name} sku={p.sku} slug={p.slug} compare={p.datasheetCompare} />
 
         {related.length > 0 && (
           <section className="pdp-related" aria-labelledby="related-h">

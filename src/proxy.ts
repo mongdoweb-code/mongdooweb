@@ -13,7 +13,7 @@
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { categoryRedirect } from "@/lib/legacy-category";
 import { countRedirectHit, findLegacyPost, findRedirect } from "@/lib/redirects";
-import { checkPost, checkProduct, checkProject, faqEmpty, receiptTokenOk, type RouteCheck } from "@/lib/route-checks";
+import { checkPost, checkProduct, checkProject, datasheetExists, faqEmpty, receiptTokenOk, type RouteCheck } from "@/lib/route-checks";
 
 // path ที่ไม่มีหน้าอยู่จริง → catch-all (shop)/[...missing] ตอบหน้า "ไม่พบหน้า" พร้อมโครงหน้าร้านและสถานะ 404
 const SHOP_404_PATH = "/_mdw/not-found";
@@ -89,6 +89,11 @@ export async function proxy(req: NextRequest, event: NextFetchEvent) {
     if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return receipt404();
     const id = decode(pathname.slice("/track/receipt/".length).replace(/\/+$/, ""));
     return (await receiptTokenOk(id, t)) ? undefined : receipt404();
+  }
+  // หน้าพิมพ์ Data Sheet: สินค้าไม่มี/ปิดขาย/ไม่มี Data Sheet → 404 จริง (หน้าเพจสตรีมแล้วตั้งสถานะเองไม่ได้)
+  if (pathname.startsWith("/datasheet/")) {
+    const slug = decode(pathname.slice("/datasheet/".length).replace(/\/+$/, "")).normalize("NFC");
+    return (await datasheetExists(slug)) ? undefined : receipt404();
   }
   if (pathname === "/faq" || pathname === "/faq/") {
     return (await faqEmpty()) ? shop404(req) : pass(req);

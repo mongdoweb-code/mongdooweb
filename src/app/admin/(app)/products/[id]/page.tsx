@@ -8,6 +8,8 @@ import { downloadHref, fileSize, parseDownloads } from "@/lib/product-downloads"
 import { toBkkInput } from "@/lib/product-extras";
 import { parseTiers } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "../../../../../../generated/prisma/client";
+import { EMPTY_DS, parseDatasheet, parseTemplate, type DsGroup } from "@/lib/datasheet";
 import { parseAttrs } from "@/lib/specs";
 import { optionLabel, readOptions } from "@/lib/variants";
 import "../../../lot3.css";
@@ -23,7 +25,18 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
   const admin = await requireAdmin();
   const { id } = await params;
   const sp = await searchParams;
-  const categories = (await prisma.category.findMany({ orderBy: { sortOrder: "asc" } })).map((c) => ({ id: c.id, name: c.nameTh }));
+  const cats = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
+  const categories = cats.map((c) => ({ id: c.id, name: c.nameTh }));
+  // Data Sheet: แม่แบบของแต่ละหมวด · สินค้าที่มี Data Sheet (ให้คัดลอก) · รูปแบบเริ่มต้นของร้าน
+  const [dsProducts, dsShop] = await Promise.all([
+    prisma.product.findMany({ where: { datasheet: { not: Prisma.DbNull } }, orderBy: { name: "asc" }, select: { id: true, sku: true, name: true }, take: 3000 }),
+    prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { datasheetStyle: true } }),
+  ]);
+  const ds = {
+    shopStyle: dsShop?.datasheetStyle ?? "B",
+    templates: Object.fromEntries(cats.map((c) => [c.id, parseTemplate(c.datasheetTemplate)]).filter(([, t]) => (t as DsGroup[]).length)) as Record<string, DsGroup[]>,
+    products: dsProducts.map((p) => ({ id: p.id, label: `${p.sku} · ${p.name}` })),
+  };
   const specDefs = (await prisma.specAttribute.findMany({ orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] })).map(({ createdAt: _c, ...d }) => {
     void _c;
     return d;
@@ -37,6 +50,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
       keywords: "", seoTitle: "", seoDescription: "", weightGram: "", specs: [], images: [], video: null, useAreas: [], lightColor: "ANY",
       includesPsu: false, isAccessory: false, orders: 0,
       extras: { salePrice: "", saleStartsAt: "", saleEndsAt: "", tiers: [], attrs: {}, group: null },
+      datasheet: EMPTY_DS,
     };
   } else {
     const p = await prisma.product.findUnique({ where: { id }, include: { _count: { select: { orderItems: true, docItems: true } }, variantGroup: true } });
@@ -62,6 +76,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
           ? { id: p.variantGroup.id, name: p.variantGroup.name, options: optionLabel(p.variantGroup.optionNames, readOptions(p.variantOptions, p.variantGroup.optionNames)) }
           : null,
       },
+      datasheet: parseDatasheet(p.datasheet),
     };
     downloads = parseDownloads(p.downloads).map((d) => ({ key: d.key, name: d.name, size: fileSize(d.sizeBytes), href: downloadHref(p.slug, d.key) }));
   }
@@ -88,6 +103,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
         siteHost={(process.env.SITE_URL ?? "https://www.mongdooweb.com").replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
         shortText={htmlToText(v.shortDescription || v.description).slice(0, 160)}
         specDefs={specDefs}
+        ds={ds}
       >
         {v.id && <DownloadsBox productId={v.id} files={downloads} />}
       </ProductForm>

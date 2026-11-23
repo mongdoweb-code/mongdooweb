@@ -10,6 +10,17 @@ export type RouteCheck = { kind: "ok" } | { kind: "missing"; exists?: boolean } 
 const OK: RouteCheck = { kind: "ok" };
 
 /** /product/<slug> (ไทย/a-z0-9-): เปิดขายอยู่ = ok · slug เดิมของเว็บเก่า = 301 · ไม่มี/ปิดขาย = 404 */
+/** หน้าพิมพ์ Data Sheet (/datasheet/:slug): สินค้าเปิดขายและมี Data Sheet เท่านั้น */
+export async function datasheetExists(slug: string): Promise<boolean> {
+  if (!slug || slug.length > 200 || slug.includes("/")) return false;
+  try {
+    const p = await prisma.product.findUnique({ where: { slug }, select: { isActive: true, isService: true, datasheet: true, category: { select: { isActive: true } } } });
+    return !!p && p.isActive && !p.isService && p.category.isActive && p.datasheet != null;
+  } catch {
+    return true; // ฐานข้อมูลมีปัญหา → ให้หน้าเพจตัดสินเอง
+  }
+}
+
 export async function checkProduct(slug: string): Promise<RouteCheck> {
   if (!slug || slug.length > 200 || slug.includes("/")) return { kind: "missing" };
   try {
