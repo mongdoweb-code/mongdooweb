@@ -75,17 +75,13 @@ const VALUE_HEAD_RE = /^(spec(ification)?s?|value|ค่า|รายละเ�
 /**
  * ข้อความที่วางจาก Excel / Google Sheets / PDF / เว็บ → กลุ่มและแถว
  * แยกคอลัมน์ด้วย Tab · " | " · ":" · ช่องว่าง 2 ตัวขึ้นไป · "......" (แบบคำอธิบายเดิมของร้าน) · บรรทัดเดียวไม่มีตัวแยก = ชื่อกลุ่ม
- * 3 คอลัมน์ (ไทย | EN | ค่า) ใช้ได้ · ตัด "- " / "• " หน้าบรรทัด
+ * 3 คอลัมน์ (ไทย | EN | ค่า) ใช้ได้ — ในตาราง 3 คอลัมน์ บรรทัด 2 ช่อง (ไทย | EN) = ชื่อกลุ่ม · ตัด "- " / "• " หน้าบรรทัด
  */
 export function parsePaste(text: string): DsGroup[] {
-  const groups: DsGroup[] = [];
-  let cur: DsGroup | null = null;
-  const push = (r: DsRow) => {
-    if (!cur) { cur = { title: "", en: "", rows: [] }; groups.push(cur); }
-    cur.rows.push(r);
-  };
+  // แยกทุกบรรทัดเป็นช่องก่อน แล้วค่อยตัดสินว่าบรรทัดไหนเป็นชื่อกลุ่ม
+  const lines: string[][] = [];
   for (const raw of String(text ?? "").replace(/\r\n?/g, "\n").split("\n")) {
-    const l = raw.replace(/^\s*(?:[-•*·]|\d+[.)])\s+/, "").replace(/ /g, " ").trimEnd();
+    const l = raw.replace(/^\s*(?:[-•*·]|\d+[.)])\s+/, "").replace(/\u00a0/g, " ").trimEnd();
     if (!l.trim()) continue;
     let cells: string[];
     if (l.includes("\t")) cells = l.split("\t");
@@ -96,15 +92,26 @@ export function parsePaste(text: string): DsGroup[] {
     else cells = [l];
     cells = cells.map((c) => c.trim()).filter((c, i, a) => c || (i > 0 && i < a.length - 1));
     if (cells.length >= 2 && HEADER_RE.test(cells[0]) && VALUE_HEAD_RE.test(cells[cells.length - 1])) continue;
-    if (cells.length === 1) {
+    lines.push(cells);
+  }
+  // ตาราง 3 คอลัมน์ (ไทย | EN | ค่า): บรรทัด 2 ช่องคือชื่อกลุ่ม (ไทย | EN) ไม่ใช่แถวข้อมูล
+  const multi = lines.filter((c) => c.length >= 2);
+  const threeCol = multi.length > 0 && multi.filter((c) => c.length >= 3).length * 2 > multi.length;
+  const groups: DsGroup[] = [];
+  let cur: DsGroup | null = null;
+  for (const cells of lines) {
+    if (cells.length === 1 || (threeCol && cells.length === 2)) {
       const t = cells[0].replace(/[:：]$/, "").trim();
-      if (t.length <= DS_LIMITS.title) { cur = { title: t, en: "", rows: [] }; groups.push(cur); }
+      if (t.length <= DS_LIMITS.title) { cur = { title: t, en: (cells[1] ?? "").slice(0, DS_LIMITS.title), rows: [] }; groups.push(cur); }
       continue;
     }
-    const value = cells[cells.length - 1];
-    const label = cells[0];
-    const en = cells.length >= 3 ? cells[1] : "";
-    push({ label: label.slice(0, DS_LIMITS.label), en: en.slice(0, DS_LIMITS.en), value: value.slice(0, DS_LIMITS.value), hl: false });
+    if (!cur) { cur = { title: "", en: "", rows: [] }; groups.push(cur); }
+    cur.rows.push({
+      label: cells[0].slice(0, DS_LIMITS.label),
+      en: (cells.length >= 3 ? cells[1] : "").slice(0, DS_LIMITS.en),
+      value: cells[cells.length - 1].slice(0, DS_LIMITS.value),
+      hl: false,
+    });
   }
   return groups.filter((g) => g.rows.length || g.title);
 }

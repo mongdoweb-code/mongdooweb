@@ -152,3 +152,29 @@ test("รูปแบบ A ต่อสินค้า · ปิดตารา�
   // สินค้าที่ไม่มี Data Sheet → 404
   expect((await page.request.get(`/datasheet/no-such-${TAG}`)).status()).toBe(404);
 });
+
+test("วางข้อความ 3 คอลัมน์แบบ ' | ' (ชื่อกลุ่ม ไทย | EN) → กลุ่มถูกต้อง · ติ๊กดาว · บันทึกลงฐานข้อมูล · หน้าสินค้า/หน้าพิมพ์แสดง", async ({ page }) => {
+  await q(`UPDATE "Product" SET datasheet = NULL WHERE id=$1`, [B.id]);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  await page.goto(`/admin/products/${B.id}`);
+  const e = ed(page);
+  await e.getByRole("button", { name: "วางจาก Excel / ตาราง" }).click();
+  await e.locator("#dsPaste").fill([
+    "ระบบไฟฟ้า | Electrical", "กำลังไฟ | Power | 48W (High Power LED)", "จำนวนหลอด | LED Quantity | 48 ดวง",
+    "แสง | Lighting", "อุณหภูมิสี | Color Temperature | 6000K–6500K",
+    "ตัวโคม | Housing", "ระดับกันน้ำ | IP Rating | IP65 (ใช้กลางแจ้งได้)",
+    "การใช้งาน | Application", "เหมาะสำหรับ | Suitable For | ส่องต้นไม้ / ส่องต้นเสา / ส่องอาคาร",
+  ].join("\n"));
+  await e.getByRole("button", { name: "แปลงเป็นตาราง (ต่อท้าย)" }).click();
+  await expect(e.locator(".ds-grp")).toHaveCount(4);
+  await expect(e.locator(".ds-row")).toHaveCount(5);
+  await e.getByRole("button", { name: "ไฮไลต์ กำลังไฟ" }).click();
+  await e.getByRole("button", { name: "ไฮไลต์ ระดับกันน้ำ" }).click();
+  await save(page);
+  await expect.poll(async () => (await ds(B.id))?.groups.map((g) => g.title).join()).toBe("ระบบไฟฟ้า,แสง,ตัวโคม,การใช้งาน");
+  await page.goto(`/product/${B.slug}`);
+  await expect(page.locator(".pdp-ds .ds-hl li")).toHaveCount(2);
+  await expect(page.locator(".pdp-ds .ds-grp h3").first()).toContainText("Electrical");
+  expect((await page.request.get(`/datasheet/${B.slug}`)).status()).toBe(200);
+});
