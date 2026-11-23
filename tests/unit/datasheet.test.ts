@@ -41,6 +41,12 @@ eq(grouped.map((g) => g.title), ["ระบบไฟฟ้า", "ตัวโค
 eq(grouped[0].rows.map((r) => [r.label, r.en, r.value]), [["กำลังไฟ", "Power", "10W"], ["แรงดัน", "", "AC 220V"]], "3 คอลัมน์ | และ :");
 eq(grouped[1].rows.map((r) => [r.label, r.value]), [["วัสดุ", "อลูมิเนียม"], ["น้ำหนัก", "0.6 kg"]], "...... และช่องว่างหลายตัว · ตัด - หน้าบรรทัด");
 eq(parsePaste("").length, 0, "ว่าง");
+// ตาราง 3 คอลัมน์: บรรทัด "ไทย | EN" = ชื่อกลุ่ม (ไม่กลายเป็นแถว)
+const tri = parsePaste("ระบบไฟฟ้า | Electrical\nกำลังไฟ | Power | 48W (High Power LED)\nแรงดันไฟเข้า | Input Voltage | AC 85–265V\nแสง | Lighting\nสีแสง | Light Color | ขาว");
+eq(tri.map((g) => [g.title, g.en, g.rows.length]), [["ระบบไฟฟ้า", "Electrical", 2], ["แสง", "Lighting", 1]], "กลุ่ม ไทย | EN");
+eq(tri[0].rows[0], { label: "กำลังไฟ", en: "Power", value: "48W (High Power LED)", hl: false }, "แถว 3 คอลัมน์");
+// ตาราง 2 คอลัมน์ล้วน: บรรทัด 2 ช่องยังเป็นแถวข้อมูล
+eq(parsePaste("Power | 10W\nIP | IP65")[0].rows.length, 2, "2 คอลัมน์ = แถว");
 
 // สเปกเดิม → กลุ่มเดียว (สเปกตามหมวดก่อน ไม่ซ้ำหัวข้อ)
 eq(fromSpecs([{ label: "กำลังไฟ", value: "10W" }, { label: "IP", value: "IP68" }], [{ label: "IP", value: "IP65" }])[0].rows.map((r) => r.value), ["IP65", "10W"], "fromSpecs");
