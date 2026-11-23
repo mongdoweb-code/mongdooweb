@@ -63,7 +63,7 @@ export const FIELD_LABEL: Record<string, string> = {
   compareAtSatang: "ราคาก่อนลด (สตางค์)", trackStock: "นับสต็อก", stock: "สต็อก", inStock: "มีของ", isActive: "เปิดขาย",
   isBestSeller: "ขายดี", badge: "ป้าย", shortDescription: "คำอธิบายสั้น", description: "รายละเอียด", keywords: "คำค้น",
   seoTitle: "SEO title", seoDescription: "SEO description", weightGram: "น้ำหนัก (กรัม)", specs: "สเปก", images: "รูป",
-  useAreas: "พื้นที่ใช้งาน", lightColor: "สีไฟ", includesPsu: "มีหม้อแปลง", isAccessory: "อุปกรณ์เสริม", costSatang: "ต้นทุน (สตางค์)",
+  useAreas: "พื้นที่ใช้งาน", lightColor: "สีไฟ", includesPsu: "มีหม้อแปลง", isAccessory: "อุปกรณ์เสริม", supplyType: "คำเตือนการต่อไฟ", supplyNote: "ข้อความคำเตือนการต่อไฟ", costSatang: "ต้นทุน (สตางค์)",
   customerName: "ชื่อผู้รับ", phone: "เบอร์โทร", email: "อีเมล", addressLine: "ที่อยู่", subdistrict: "ตำบล/แขวง", district: "อำเภอ/เขต",
   province: "จังหวัด", postalCode: "รหัสไปรษณีย์", note: "หมายเหตุ", taxInvoice: "ใบกำกับภาษี", tags: "แท็ก",
   legalName: "ชื่อร้าน", addressText: "ที่อยู่ร้าน", lineId: "LINE ID", bankAccounts: "บัญชีธนาคาร", promptpayId: "พร้อมเพย์",

@@ -14,6 +14,7 @@ import { SectionNav, type NavSection } from "../../_components/SectionNav";
 import { SaveResultPopup } from "../../_components/SaveResultPopup";
 import type { Datasheet, DsGroup } from "@/lib/datasheet";
 import { DatasheetEditor } from "./DatasheetEditor";
+import { SUPPLY_LABELS, SUPPLY_NOTE_MAX, SUPPLY_TYPES, supplyNoteFor, type SupplyType } from "@/lib/supply-note";
 
 /** เมนูด่วนด้านบนฟอร์ม — ลำดับตามที่ใช้บ่อย (ส่วนที่ไม่มีในหน้าถูกซ่อนเอง) */
 const SECTIONS: NavSection[] = [
@@ -40,6 +41,8 @@ export type ProductValues = {
   keywords: string; seoTitle: string; seoDescription: string; weightGram: string;
   specs: { label: string; value: string }[]; images: { key: string; url: string }[]; video: VideoValue | null;
   useAreas: string[]; lightColor: string; includesPsu: boolean; isAccessory: boolean;
+  /** คำเตือนการต่อไฟในหน้าสินค้า (แยกรายสินค้า) · supplyAuto = ผลของโหมดอัตโนมัติจากข้อมูลที่บันทึกล่าสุด */
+  supplyType: SupplyType; supplyNote: string; supplyAuto: "low" | "kit" | "mains" | null;
   orders: number;
   /** ล็อต 9: ราคาลดตามเวลา ราคาขายส่ง สเปกตามหมวด กลุ่มตัวเลือก */
   extras: ExtrasValues;
@@ -59,6 +62,16 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
   const [seoTitle, setSeoTitle] = useState(v.seoTitle);
   const [seoDesc, setSeoDesc] = useState(v.seoDescription);
   const [mediaBusy, setMediaBusy] = useState(false);
+  const [supplyType, setSupplyType] = useState<SupplyType>(v.supplyType);
+  const [supplyNote, setSupplyNote] = useState(v.supplyNote);
+  const [psu, setPsu] = useState(v.includesPsu);
+  const [acc, setAcc] = useState(v.isAccessory);
+  // ตัวอย่างกล่องคำเตือน: โหมดอัตโนมัติใช้ผลจากข้อมูลที่บันทึกล่าสุด (หมวด/สเปก) แล้วปรับตามติ๊กที่เปลี่ยนในฟอร์ม
+  const autoKind = acc ? null : v.supplyAuto && psu ? "kit" : v.supplyAuto === "kit" ? "low" : v.supplyAuto;
+  const notePreview = supplyNoteFor({
+    supplyType: supplyType === "AUTO" && !supplyNote.trim() ? (autoKind === "mains" ? "MAINS" : autoKind ? "LOW_VOLTAGE" : "HIDDEN") : supplyType,
+    supplyNote, isAccessory: acc, includesPsu: psu, categorySlug: "", text: "",
+  });
   const [specs, setSpecs] = useState(v.specs.length ? v.specs : [{ label: "", value: "" }]);
   const [track, setTrack] = useState(v.trackStock);
   const [slug, setSlug] = useState(v.slug);
@@ -195,8 +208,27 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               </div>
               <div className="field"><label htmlFor="lightColor">สีแสง</label>
                 <select id="lightColor" name="lightColor" defaultValue={v.lightColor}><option value="WHITE">แสงขาว/วอร์ม</option><option value="RGB">RGB เปลี่ยนสี</option><option value="ANY">ไม่ระบุ</option></select></div>
-              <label className="chk-row"><input type="checkbox" name="includesPsu" defaultChecked={v.includesPsu} /> ชุดพร้อมใช้ (มีหม้อแปลงในกล่อง)</label>
-              <label className="chk-row"><input type="checkbox" name="isAccessory" defaultChecked={v.isAccessory} /> เป็นอุปกรณ์เสริม</label>
+              <label className="chk-row"><input type="checkbox" name="includesPsu" checked={psu} onChange={(e) => setPsu(e.target.checked)} /> ชุดพร้อมใช้ (มีหม้อแปลงในกล่อง)</label>
+              <label className="chk-row"><input type="checkbox" name="isAccessory" checked={acc} onChange={(e) => setAcc(e.target.checked)} /> เป็นอุปกรณ์เสริม</label>
+
+              <h3 style={{ marginTop: 18 }}>คำเตือนการต่อไฟ (หน้าสินค้า)</h3>
+              <div className="field"><label htmlFor="supplyType">ประเภทไฟของสินค้านี้</label>
+                <select id="supplyType" name="supplyType" value={supplyType} onChange={(e) => setSupplyType(e.target.value as SupplyType)}>
+                  {SUPPLY_TYPES.map((t) => <option key={t} value={t}>{SUPPLY_LABELS[t]}</option>)}
+                </select>
+                <small>อัตโนมัติ = แสดงเฉพาะหมวดไฟใต้น้ำ/สระ/น้ำพุ/สวน/Uplight · ถ้าสเปกระบุ AC เช่น &quot;AC 85-265V&quot; จะขึ้นข้อความไฟบ้าน</small></div>
+              <div className="field"><label htmlFor="supplyNote">ข้อความเฉพาะสินค้านี้ <span className="seo-meter">{supplyNote.length}/{SUPPLY_NOTE_MAX}</span></label>
+                <textarea id="supplyNote" name="supplyNote" rows={3} maxLength={SUPPLY_NOTE_MAX} value={supplyNote} onChange={(e) => setSupplyNote(e.target.value)}
+                  placeholder="เว้นว่าง = ใช้ข้อความมาตรฐานตามประเภทไฟ" disabled={supplyType === "HIDDEN"} />
+                <small>ถ้าพิมพ์ไว้ จะแสดงข้อความนี้แทนข้อความมาตรฐาน (ขึ้นบรรทัดใหม่ได้)</small></div>
+              <div className="field" id="supplyPreview">
+                <span className="lbl">ตัวอย่างที่ลูกค้าเห็น</span>
+                {notePreview ? (
+                  <p style={{ background: "var(--c-cream)", padding: "12px 14px", margin: 0, fontSize: 14, whiteSpace: "pre-line", borderLeft: "3px solid var(--c-orange)" }}>
+                    {notePreview.lead}{notePreview.strong && <b>{notePreview.strong}</b>}
+                  </p>
+                ) : <small>ไม่แสดงกล่องคำเตือนในหน้าสินค้านี้</small>}
+              </div>
             </div>
 
             <div className="box" id="sec-seo">

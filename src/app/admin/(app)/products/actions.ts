@@ -1,5 +1,6 @@
 "use server";
 // เพิ่ม/แก้ไข/ลบสินค้า — ราคาเป็นสตางค์, คำอธิบายล้าง HTML, รูปย่อเป็น WebP, ล้างแคชหน้าร้าน
+import { cleanSupplyNote, parseSupplyType } from "@/lib/supply-note";
 import { redirect } from "next/navigation";
 import { refresh } from "next/cache";
 import { Prisma, type LightColor, type UseArea } from "../../../../../generated/prisma/client";
@@ -144,6 +145,8 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     lightColor: COLORS.includes(str(f, "lightColor") as LightColor) ? (str(f, "lightColor") as LightColor) : "ANY",
     includesPsu: f.get("includesPsu") === "on",
     isAccessory: f.get("isAccessory") === "on",
+    supplyType: parseSupplyType(str(f, "supplyType", 20)),
+    supplyNote: cleanSupplyNote(String(f.get("supplyNote") ?? "")) || null,
     ...extras.data,
   };
 

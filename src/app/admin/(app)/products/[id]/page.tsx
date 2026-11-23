@@ -1,4 +1,6 @@
 // /admin/products/new และ /admin/products/:id — เพิ่ม/แก้ไขสินค้า
+import { autoSupplyKind } from "@/lib/supply-note";
+import { supplyText } from "@/lib/supply-text";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
@@ -48,12 +50,12 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
       id: "", name: "", slug: "", sku: "", categoryId: categories[0]?.id ?? "", unit: "ชิ้น", price: "", compareAt: "",
       trackStock: false, stock: 0, inStock: true, isActive: true, isBestSeller: false, badge: "", shortDescription: "", description: "",
       keywords: "", seoTitle: "", seoDescription: "", weightGram: "", specs: [], images: [], video: null, useAreas: [], lightColor: "ANY",
-      includesPsu: false, isAccessory: false, orders: 0,
+      includesPsu: false, isAccessory: false, supplyType: "AUTO", supplyNote: "", supplyAuto: null, orders: 0,
       extras: { salePrice: "", saleStartsAt: "", saleEndsAt: "", tiers: [], attrs: {}, group: null },
       datasheet: EMPTY_DS,
     };
   } else {
-    const p = await prisma.product.findUnique({ where: { id }, include: { _count: { select: { orderItems: true, docItems: true } }, variantGroup: true } });
+    const p = await prisma.product.findUnique({ where: { id }, include: { _count: { select: { orderItems: true, docItems: true } }, variantGroup: true, category: { select: { slug: true } } } });
     if (!p) notFound();
     v = {
       id: p.id, name: p.name, slug: p.slug, sku: p.sku, categoryId: p.categoryId, unit: p.unit,
@@ -65,6 +67,9 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
       images: p.images.map((k) => ({ key: k, url: mediaUrl(k, "sm")! })),
       video: p.videoKey ? { key: p.videoKey, url: mediaUrl(p.videoKey)!, posterKey: p.videoPosterKey, posterUrl: mediaUrl(p.videoPosterKey, "sm"), seconds: p.videoSeconds } : null,
       useAreas: p.useAreas, lightColor: p.lightColor, includesPsu: p.includesPsu, isAccessory: p.isAccessory,
+      supplyType: p.supplyType, supplyNote: p.supplyNote ?? "",
+      // ค่าที่ "อัตโนมัติ" จะได้ตามข้อมูลที่บันทึกไว้ (แสดงเป็นตัวอย่างในฟอร์ม)
+      supplyAuto: autoSupplyKind({ isAccessory: p.isAccessory, includesPsu: p.includesPsu, categorySlug: p.category.slug, text: supplyText(p) }),
       orders: p._count.orderItems + p._count.docItems,
       extras: {
         salePrice: baht(p.salePriceSatang),
