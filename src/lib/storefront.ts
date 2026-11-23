@@ -379,6 +379,8 @@ export async function getProductDetail(slug: string) {
     badge: p.badge,
     isAccessory: p.isAccessory,
     includesPsu: p.includesPsu,
+    supplyType: p.supplyType,
+    supplyNote: p.supplyNote,
     lightColor: p.lightColor.toLowerCase(),
     category: { slug: p.category.slug, th: p.category.nameTh, en: p.category.nameEn },
   };

@@ -24,6 +24,8 @@ import {
   powerOf,
 } from "@/lib/storefront";
 import { optionLabel, selectorRows } from "@/lib/variants";
+import { supplyNoteFor } from "@/lib/supply-note";
+import { supplyText } from "@/lib/supply-text";
 import { PageHead } from "../../_components/PageHead";
 import { PriceBadge } from "../../_components/PriceBits";
 import { ProductCard, ProductGrid, formatBaht } from "../../_components/ProductCard";
@@ -195,7 +197,10 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
   const pv = { price: p.price, compareAt: p.compareAt, sale: p.sale };
   // ไฟแรงดันต่ำ 12/24V ที่ต้องใช้หม้อแปลง → ลิงก์เครื่องคำนวณหม้อแปลง (U8)
   const power = powerOf(p.name) ?? powerOf(htmlToText(`${p.shortDescription ?? ""} ${p.description ?? ""}`));
-  const psuCalc = !p.isAccessory && !p.includesPsu && LIGHT_CATS.has(p.category.slug) && power;
+  // คำเตือนการต่อไฟ (ตั้งแยกรายสินค้าในหลังบ้าน) — ไฟบ้านไม่ต้องใช้หม้อแปลง จึงไม่แสดงลิงก์คำนวณ
+  const supplyNote = supplyNoteFor({ supplyType: p.supplyType, supplyNote: p.supplyNote, isAccessory: p.isAccessory, includesPsu: p.includesPsu, categorySlug: p.category.slug, text: supplyText(p) });
+  const mains = p.supplyType === "MAINS" || supplyNote?.kind === "mains";
+  const psuCalc = !mains && !p.isAccessory && !p.includesPsu && LIGHT_CATS.has(p.category.slug) && power;
   const rows = p.variants ? selectorRows(p.variants, p.slug) : [];
   // ตารางสเปก: สเปกแบบมีโครงสร้างก่อน แล้วสเปกอิสระที่หัวข้อไม่ซ้ำ
   const structured = new Set(p.attrs.map((a) => a.label));
@@ -313,10 +318,10 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
                 เปรียบเทียบ
               </button>
             </div>
-            {!p.isAccessory && ["underwater-light", "pool-light", "fountain-light", "garden-light", "uplight-led"].includes(p.category.slug) && (
-              <p className="pdp-note">
-                {p.includesPsu ? "ชุดพร้อมใช้ มีหม้อแปลงไฟในกล่องแล้ว · " : "ไฟแรงดันต่ำ ต้องต่อผ่านหม้อแปลง · "}
-                <b>ห้ามต่อไฟบ้าน 220V โดยตรง</b>
+            {supplyNote && (
+              <p className={`pdp-note pdp-note-${supplyNote.kind}`} data-supply={supplyNote.kind}>
+                {supplyNote.lead}
+                {supplyNote.strong && <b>{supplyNote.strong}</b>}
               </p>
             )}
             {psuCalc && (

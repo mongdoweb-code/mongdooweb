@@ -113,3 +113,6 @@ cd tests && python home_test_all.py && python home_test_qa.py \
 ```
 `admin_test_docs.py` decodes the printed barcodes/QR with zxing-cpp and uses `tests/vendor/qrcode.min.js` (MIT) so it works offline.
 Screenshots land in `tests/out/`. External images/fonts (Unsplash, Google Fonts, cdnjs QR library) may be blocked in sandboxes — that's expected; the pages have fallbacks.
+
+## PDP power-supply warning (2026-11-23)
+- The box under "ใส่ตะกร้า" is set per product: `Product.supplyType` AUTO|LOW_VOLTAGE|MAINS|HIDDEN + `supplyNote` (≤300 chars, replaces the standard text), migration `20261123120000_product_supply_note`. Pure logic `src/lib/supply-note.ts` (`supplyNoteFor`; AUTO = old behaviour for the 5 wet categories, but "AC 85-265V"-style specs without DC12/24V → mains text "ต่อไฟบ้าน 220V ได้โดยตรง · ควรให้ช่างไฟติดตั้ง"), text source `src/lib/supply-text.ts` (name + short description + specs). Admin product form section `#sec-finder` has the select/textarea + live preview; mains hides the PSU-calculator link (unit test `supply-note.test.ts`).

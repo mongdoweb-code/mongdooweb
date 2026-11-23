@@ -130,6 +130,13 @@ enum LightColor {
   ANY
 }
 
+enum SupplyType {
+  AUTO
+  LOW_VOLTAGE
+  MAINS
+  HIDDEN
+}
+
 model Product {
   id               String   @id @default(cuid())
   sku              String   @unique // เช่น "DL1-ww", "GDL-F24WH-1-2-1-1"
@@ -185,6 +192,10 @@ model Product {
   lightColor  LightColor @default(ANY)
   includesPsu Boolean    @default(false) // ชุดพร้อมใช้ มีหม้อแปลงในกล่องแล้ว (CATALOG.kit)
   isAccessory Boolean    @default(false) // อุปกรณ์เสริม เช่น หม้อแปลง ท่อหด (CATALOG.acc)
+  /// คำเตือนการต่อไฟในหน้าสินค้า: AUTO = ดูจากหมวด/สเปก · LOW_VOLTAGE · MAINS (ไฟบ้าน) · HIDDEN — src/lib/supply-note.ts
+  supplyType  SupplyType @default(AUTO)
+  /// ข้อความคำเตือนเฉพาะสินค้านี้ (แทนข้อความมาตรฐาน) · null = ใช้ข้อความมาตรฐานตาม supplyType
+  supplyNote  String?
 
   badge        String? // "ขายดี", "แนะนำ"
   isBestSeller Boolean @default(false)
