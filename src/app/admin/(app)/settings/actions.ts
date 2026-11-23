@@ -157,6 +157,8 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
       signerTitle: String(f.get("signerTitle") ?? "").replace(/\s+/g, " ").trim().slice(0, 60),
       quotePayInfo: f.get("quotePayInfo") === "on",
       quoteOnlineQr: f.get("quoteOnlineQr") === "on",
+      datasheetStyle: f.get("datasheetStyle") === "A" ? "A" : "B",
+      datasheetCompare: f.get("datasheetCompare") === "on",
       ...(sig.key ? { signatureKey: sig.key } : f.get("removeSignature") === "on" ? { signatureKey: null } : {}),
       ...(stamp.key ? { stampKey: stamp.key } : f.get("removeStamp") === "on" ? { stampKey: null } : {}),
     },

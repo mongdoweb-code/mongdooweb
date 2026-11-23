@@ -12,6 +12,8 @@ import { SaleTierFields, SpecFields, type ExtrasValues } from "./ProductExtras";
 import { ProductMedia, type VideoValue } from "./ProductMedia";
 import { SectionNav, type NavSection } from "../../_components/SectionNav";
 import { SaveResultPopup } from "../../_components/SaveResultPopup";
+import type { Datasheet, DsGroup } from "@/lib/datasheet";
+import { DatasheetEditor } from "./DatasheetEditor";
 
 /** เมนูด่วนด้านบนฟอร์ม — ลำดับตามที่ใช้บ่อย (ส่วนที่ไม่มีในหน้าถูกซ่อนเอง) */
 const SECTIONS: NavSection[] = [
@@ -21,6 +23,7 @@ const SECTIONS: NavSection[] = [
   { id: "sec-seo", label: "SEO และการค้นหา" },
   { id: "sec-finder", label: "ตัวช่วยเลือกไฟ (หน้าแรก)" },
   { id: "sec-specs", label: "สเปกสินค้า" },
+  { id: "sec-datasheet", label: "Data Sheet" },
   { id: "specBox", label: "สเปกตามหมวด" },
   { id: "sec-desc", label: "คำอธิบาย" },
   { id: "downloadsBox", label: "ไฟล์ดาวน์โหลด" },
@@ -40,13 +43,16 @@ export type ProductValues = {
   orders: number;
   /** ล็อต 9: ราคาลดตามเวลา ราคาขายส่ง สเปกตามหมวด กลุ่มตัวเลือก */
   extras: ExtrasValues;
+  datasheet: Datasheet;
 };
+/** ข้อมูลประกอบตัวแก้ไข Data Sheet */
+export type DatasheetLists = { shopStyle: string; templates: Record<string, DsGroup[]>; products: { id: string; label: string }[] };
 
 const USE = [["POOL", "สระว่ายน้ำ"], ["POND", "บ่อปลา/บ่อน้ำ"], ["FOUNTAIN", "น้ำพุ"], ["GARDEN", "สวน"]];
 
-export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText, specDefs, children }: {
+export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText, specDefs, ds, children }: {
   v: ProductValues; categories: { id: string; name: string }[]; saved: boolean; copied?: boolean; owner?: boolean; siteHost?: string; shortText?: string;
-  specDefs: SpecDef[]; children?: React.ReactNode;
+  specDefs: SpecDef[]; ds: DatasheetLists; children?: React.ReactNode;
 }) {
   const [state, onSubmit, pending] = useFormAction<ProductFormState>(saveProduct, saved ? { ok: "เพิ่มสินค้าแล้ว" } : copied ? { ok: "ทำสำเนาแล้ว — สำเนานี้ปิดขายอยู่ แก้ไขแล้วเปิดขายได้" } : {}, { popup: false }); // มีป๊อปอัปของตัวเอง (ดูหน้าสินค้า + ไปช่องที่ผิด)
   const [name, setName] = useState(v.name);
@@ -129,6 +135,8 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               ))}
               <div><button type="button" className="btn btn-outline btn-sm" onClick={() => setSpecs([...specs, { label: "", value: "" }])}>+ เพิ่มสเปก</button></div>
             </div>
+
+            <DatasheetEditor init={v.datasheet} categoryId={cat} shopStyle={ds.shopStyle} templates={ds.templates} products={ds.products.filter((p) => p.id !== v.id)} specs={specs} />
 
             <SpecFields v={v.extras} defs={specDefs} categoryId={cat} fields={state.fields} />
 

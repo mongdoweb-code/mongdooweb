@@ -17,6 +17,7 @@ import { cleanProductSlug, isProductSlug } from "@/lib/slug";
 import { parseCsv } from "@/lib/csv";
 import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
 import { readProductExtras } from "@/lib/product-extras";
+import { dsEmpty, parseDatasheet, type Datasheet } from "@/lib/datasheet";
 import { moveProductToEdge, reorderProducts, topSortOrder } from "@/lib/product-order";
 
 export type ProductFormState = { error?: string; fields?: string[]; ok?: string };
@@ -77,6 +78,15 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
       fields: bad,
     };
 
+  // Data Sheet (ตัวแก้ไขส่ง JSON ทั้งก้อน · ตัดแถวว่าง/เกินกำหนดที่ server) — ว่าง = ไม่มี Data Sheet
+  let datasheet: Datasheet | null = null;
+  try {
+    const ds = parseDatasheet(JSON.parse(str(f, "datasheet", 100000) || "null"));
+    datasheet = dsEmpty(ds) && !ds.note ? null : ds;
+  } catch {
+    return { error: "ข้อมูล Data Sheet ไม่ถูกต้อง — ลองโหลดหน้าใหม่", fields: ["datasheet"] };
+  }
+
   // ล็อต 9: ราคาลดตามช่วงเวลา ราคาขายส่ง สเปกแบบมีโครงสร้าง
   const extras = await readProductExtras(f, categoryId, price);
   if ("error" in extras) return { error: extras.error, fields: extras.fields };
@@ -125,6 +135,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     seoDescription: str(f, "seoDescription", 300) || null,
     weightGram,
     specs,
+    datasheet: datasheet ? (datasheet as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
     images,
     videoKey,
     videoPosterKey,
@@ -271,11 +282,11 @@ export async function duplicateProduct(f: FormData) {
     slug = `${p.slug.slice(0, 180).replace(/-+$/, "")}-copy${n}`;
   }
   // สำเนาไม่รับรีวิว/คะแนน ไม่อยู่ในกลุ่มตัวเลือกเดิม (ค่าตัวเลือกจะซ้ำกัน)
-  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, ratingAvg: _ra, ratingCount: _rc, variantGroupId: _vg, variantOptions: _vo, specs, tierPrices, attrs, downloads, ...rest } = p;
+  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, ratingAvg: _ra, ratingCount: _rc, variantGroupId: _vg, variantOptions: _vo, specs, tierPrices, attrs, downloads, datasheet, ...rest } = p;
   void [_id, _c, _u, _w, _l, _v, _s, _ra, _rc, _vg, _vo];
   const json = (v: Prisma.JsonValue) => (v === null ? Prisma.DbNull : (v as Prisma.InputJsonValue));
   const copy = await prisma.product.create({
-    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), downloads: downloads as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), sortOrder: await topSortOrder(), isPinned: false, isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
+    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), datasheet: datasheet == null ? Prisma.DbNull : json(datasheet), downloads: downloads as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), sortOrder: await topSortOrder(), isPinned: false, isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
   });
   await logAdmin(admin.id, "PRODUCT", `ทำสำเนาสินค้า ${p.sku} → ${sku}`);
   redirect(`/admin/products/${copy.id}?copied=1`);

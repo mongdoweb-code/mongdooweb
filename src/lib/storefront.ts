@@ -1,5 +1,6 @@
 // ข้อมูลหน้าร้านจากฐานข้อมูล แปลงเป็นรูปแบบเดียวกับต้นแบบ (CATALOG / DEFAULT_CATEGORIES / DEFAULT_SLIDES)
 // เพื่อให้สคริปต์ที่ย้ายมา (public/js/*.js) ใช้ได้โดยไม่ต้องแก้ตรรกะ
+import { dsCompare, dsEmpty, dsStyleOf, parseDatasheet } from "@/lib/datasheet";
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { mediaUrl } from "@/lib/media";
@@ -298,6 +299,9 @@ export async function getProductDetail(slug: string) {
   const defs = defsFor(await getSpecDefs(), p.categoryId);
   const attrs = parseAttrs(p.attrs);
   const dp = displayPrice(p, now);
+  // Data Sheet (แบบ A/B ตามสินค้า → ค่าร้าน) + ตารางเทียบรุ่น (แบบ C) จาก Data Sheet ของสมาชิกในกลุ่มตัวเลือก
+  const dsSet = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { datasheetStyle: true, datasheetCompare: true } });
+  const datasheet = parseDatasheet(p.datasheet);
 
   // กลุ่มตัวเลือก (U1): สมาชิกที่เปิดขาย ≥ 2 ตัวเท่านั้นจึงแสดงปุ่มเลือก
   let variants: VariantGroupView | null = null;
@@ -321,11 +325,30 @@ export async function getProductDetail(slug: string) {
     };
   }
 
+  const dsCmp =
+    dsSet?.datasheetCompare !== false && variants && p.variantGroup
+      ? dsCompare(
+          members.map((m) => {
+            const o = readOptions(m.variantOptions, p.variantGroup!.optionNames);
+            return {
+              slug: m.slug,
+              label: Object.values(o).filter(Boolean).join(" · ") || m.name,
+              current: m.id === p.id,
+              price: bahtFromSatang(displayPrice(m, now).priceSatang),
+              inStock: available(m),
+              ds: parseDatasheet(m.datasheet),
+            };
+          }),
+        )
+      : null;
+
   return {
     id: p.id,
     slug: p.slug,
     sku: p.sku,
     name: p.name,
+    datasheet: dsEmpty(datasheet) ? null : { ...datasheet, style: dsStyleOf(datasheet, dsSet?.datasheetStyle ?? "B") },
+    datasheetCompare: dsCmp,
     description: p.description,
     shortDescription: p.shortDescription,
     seoTitle: p.seoTitle,

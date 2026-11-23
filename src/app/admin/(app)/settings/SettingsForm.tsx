@@ -18,6 +18,7 @@ export type SettingsValues = {
   logoUrl: string | null;
   signatureUrl: string | null; stampUrl: string | null; signerName: string; signerTitle: string; quotePayInfo: boolean; quoteOnlineQr: boolean;
   announcementEnabled: boolean; announcementText: string; announcementHref: string;
+  datasheetStyle: string; datasheetCompare: boolean;
   ga4Id: string; metaPixelId: string;
   autoCancelDays: number; lowStockThreshold: number; lineLowStock: boolean; lineDailySummary: boolean;
 };
@@ -140,6 +141,18 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
           <h3>การตรวจสลิปและแจ้งเตือน</h3>
           <div className="field"><label htmlFor="slipCheckWithin">ระยะเวลาตรวจสลิป (แสดงหลังลูกค้าสั่งซื้อ)</label><input id="slipCheckWithin" name="slipCheckWithin" defaultValue={v.slipCheckWithin} required {...bad("slipCheckWithin")} /></div>
           <label className="chk-row"><input type="checkbox" name="newOrderSound" defaultChecked={v.newOrderSound} /> เล่นเสียงเตือนเมื่อมีสลิปใหม่ (ต้องเปิดหน้าคำสั่งซื้อค้างไว้)</label>
+        </div>
+
+        <div className="box" id="datasheet">
+          <h3>Data Sheet หน้าสินค้า</h3>
+          <div className="field">
+            <label htmlFor="datasheetStyle">รูปแบบเริ่มต้น (สินค้าแต่ละตัวเลือกเองได้ในหน้าแก้ไขสินค้า)</label>
+            <select id="datasheetStyle" name="datasheetStyle" defaultValue={v.datasheetStyle}>
+              <option value="B">B · Data Sheet มืออาชีพ (จัดกลุ่ม + แถบไฮไลต์ + ไทย/EN)</option>
+              <option value="A">A · ตารางเรียบ (รายการ | Specification)</option>
+            </select>
+          </div>
+          <label className="chk-row"><input type="checkbox" name="datasheetCompare" defaultChecked={v.datasheetCompare} /> แสดงตารางเทียบทุกรุ่น (แบบ C) ในสินค้าที่มีหลายรุ่น และมี Data Sheet ตั้งแต่ 2 รุ่น</label>
         </div>
 
         <div className="box" id="announcement">
