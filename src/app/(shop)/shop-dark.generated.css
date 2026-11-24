@@ -466,12 +466,56 @@ html[data-theme="dark"] .footer .logo small {
 html[data-theme="dark"] .footer .f-h {
     color: #fff
 }
-html[data-theme="dark"] .footer ul a:hover,
-html[data-theme="dark"] .footer .contact a:hover {
+html[data-theme="dark"] .f-hi {
+    background: rgba(242,107,56,.14);
+    color: var(--c-orange);
+    border: 1px solid rgba(242,107,56,.28)
+}
+html[data-theme="dark"] .f-links a {
+    color: #A39C8F
+}
+html[data-theme="dark"] .f-ic {
+    color: #A5A19A
+}
+html[data-theme="dark"] .f-links a:hover,
+html[data-theme="dark"] .f-links a:focus-visible,
+html[data-theme="dark"] .f-more:hover,
+html[data-theme="dark"] .f-more:focus-visible {
+    color: #fff
+}
+html[data-theme="dark"] .f-links a:hover .f-ic,
+html[data-theme="dark"] .f-links a:focus-visible .f-ic,
+html[data-theme="dark"] .f-more:hover .f-ic,
+html[data-theme="dark"] .f-more:focus-visible .f-ic {
     color: var(--c-orange)
 }
-html[data-theme="dark"] .footer .contact li span {
+html[data-theme="dark"] .f-more {
+    color: var(--c-orange)
+}
+html[data-theme="dark"] .f-more .f-ic {
+    color: currentColor
+}
+html[data-theme="dark"] .c-ic {
+    background: #1c1c1c;
+    border: 1px solid #2c2c2c;
+    color: #A99E89
+}
+html[data-theme="dark"] .c-tx {
+    color: #D7CFC1
+}
+html[data-theme="dark"] .c-tx small {
     color: #9F9B93
+}
+html[data-theme="dark"] .footer .contact a {
+    color: #D7CFC1
+}
+html[data-theme="dark"] .footer .contact a:hover,
+html[data-theme="dark"] .footer .contact a:focus-visible {
+    color: var(--c-orange)
+}
+html[data-theme="dark"] .footer .contact li:hover .c-ic {
+    border-color: rgba(242,107,56,.45);
+    color: var(--c-orange)
 }
 html[data-theme="dark"] .social a {
     border: 1px solid #2f2f2f;
@@ -483,7 +527,7 @@ html[data-theme="dark"] .social a:hover {
     background: #1f1f1f
 }
 html[data-theme="dark"] .line-cta {
-    background: #1c1c1c;
+    background: #1a1a1a;
     border: 1px solid #2a2a2a
 }
 html[data-theme="dark"] .line-cta .lc-ico {
@@ -496,19 +540,35 @@ html[data-theme="dark"] .line-cta b {
 html[data-theme="dark"] .line-cta small {
     color: #9F9B93
 }
-html[data-theme="dark"] .f-pay span {
+html[data-theme="dark"] .f-pay>span {
     border: 1px solid #2f2f2f;
-    color: #A99E89
+    color: #A99E89;
+    background: #1a1a1a
 }
-html[data-theme="dark"] .f-pay svg {
+html[data-theme="dark"] .f-pay .f-ic {
     color: var(--c-orange)
 }
 html[data-theme="dark"] .privacy {
-    border-top: 1px solid #2a2a2a
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a
+}
+html[data-theme="dark"] .pv-ic {
+    background: rgba(242,107,56,.14);
+    color: var(--c-orange);
+    border: 1px solid rgba(242,107,56,.28)
+}
+html[data-theme="dark"] .privacy p a {
+    color: #D7CFC1
+}
+html[data-theme="dark"] .privacy p a:hover {
+    color: var(--c-orange)
 }
 html[data-theme="dark"] .privacy button {
     border: 1px solid #3a3a3a;
     color: #fff
+}
+html[data-theme="dark"] .privacy button svg {
+    color: var(--c-orange)
 }
 html[data-theme="dark"] .privacy button:hover {
     border-color: var(--c-orange)
@@ -520,6 +580,15 @@ html[data-theme="dark"] .todo {
 html[data-theme="dark"] .footer-bottom {
     border-top: 1px solid #2a2a2a;
     color: #9F9B93
+}
+html[data-theme="dark"] .fb-links a {
+    color: #9F9B93
+}
+html[data-theme="dark"] .fb-links a:hover {
+    color: var(--c-orange)
+}
+html[data-theme="dark"] .fb-links span {
+    color: #A39C8F
 }
 html[data-theme="dark"] .float-line {
     background: #06C755;
