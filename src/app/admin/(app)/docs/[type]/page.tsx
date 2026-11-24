@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
 import { Icons } from "../../../_components/RowActions";
-import { deleteDraft, reviseQuote } from "../actions";
+import { deleteDraft, reviseQuote, toggleDocPin } from "../actions";
 import { VoidIcon } from "../DocForms";
 import { Pagination } from "../../../_components/Pagination";
 import { notFound } from "next/navigation";
@@ -181,6 +181,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
           <thead>
             <tr>
               <th>เลขที่ / วันที่</th><th>ลูกค้า</th>
+              <th className="c-pin"><span className="pin-th" data-tip="ปักหมุดไว้บนสุด">{PIN_ICON}</span><span className="sr-only">ปักหมุด</span></th>
               <th>{type === "QUOTATION" ? "ยืนราคาถึง" : type === "INVOICE" ? "ครบกำหนด / ค้างชำระ" : type === "CREDIT_NOTE" ? "อ้างอิงใบเสร็จ / เหตุผล" : type === "DELIVERY" ? "อ้างอิง / เซ็นรับ" : "ชำระโดย / อ้างอิง"}</th>
               <th className="r">ยอดรวม</th><th>สถานะ</th><th className="r col-acts">การดำเนินการ</th>
             </tr>
@@ -202,7 +203,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                   <>{d.paymentMethod ?? "—"}{d.order && <span className="sub">{d.order.orderNo}</span>}</>
                 );
               return (
-                <tr key={d.id} className={st === "void" ? "row-off" : ""}>
+                <tr key={d.id} className={`${st === "void" ? "row-off" : ""}${d.pinnedAt ? " is-pinned" : ""}`} data-pinned={d.pinnedAt ? "" : undefined}>
                   <td>
                     <Link className="row-link" href={href}>
                       <b className={d.docNo ? "num" : "draft-no"}>{d.docNo ?? "ฉบับร่าง"}</b>
@@ -210,6 +211,14 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                     </Link>
                   </td>
                   <td><b>{d.customer?.name ?? "—"}</b>{d.customer && <span className="sub">รหัส {d.customer.code}</span>}</td>
+                  <td className="c-pin">
+                    {(d.pinnedAt || st !== "void") && (
+                      <form action={toggleDocPin} data-no-popup>
+                        <input type="hidden" name="id" value={d.id} />
+                        <button type="submit" className={`pin-btn${d.pinnedAt ? " on" : ""}`} aria-pressed={!!d.pinnedAt} aria-label={`${d.pinnedAt ? "เลิกปักหมุด" : "ปักหมุด"} ${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} data-tip={d.pinnedAt ? "เลิกปักหมุด" : "ปักหมุดไว้บนสุด"}>{PIN_ICON}</button>
+                      </form>
+                    )}
+                  </td>
                   <td className="num" style={{ fontSize: 13.5 }}>{c4}</td>
                   <td className="r num"><b style={st === "void" ? { textDecoration: "line-through" } : undefined}>{money(d.grandSatang)}</b></td>
                   <td>
@@ -225,7 +234,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
               );
             })}
           </tbody>
-          {rows.length > 0 && <SumRows v={sv} page={pageSum} lead={3} trail={2} unit="ฉบับ" />}
+          {rows.length > 0 && <SumRows v={sv} page={pageSum} lead={4} trail={2} unit="ฉบับ" />}
         </table>
         {hiding && voidCount > 0 && rows.length > 0 && page === pages && (
           <p className="void-note" role="note">ซ่อนใบที่ยกเลิกไว้ {voidCount.toLocaleString("th-TH")} ฉบับ · <VoidSetLink show href={`${base}${qs({ void: "show" })}`}>แสดงด้วย</VoidSetLink> หรือ <Link className="link" href={`${base}${qs({ tab: "void" })}`}>ดูเฉพาะที่ยกเลิก</Link></p>
@@ -241,6 +250,11 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
     </main>
   );
 }
+
+/** หมุดปัก (เส้น) — ปุ่มที่ปักแล้วเติมสี */
+const PIN_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4h6l-1 5 4 3v2H6v-2l4-3z" /><path d="M12 14v7" /></svg>
+);
 
 const PRINT = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="7" /></svg>
