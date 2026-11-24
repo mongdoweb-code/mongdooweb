@@ -78,3 +78,27 @@ export async function listDocs(type: DocTypeT, f: DocFilter, size = f.per) {
   });
   return { rows, total, page, pages };
 }
+
+/** ยอดรวมตามตัวกรองปัจจุบัน (ทุกหน้า ไม่ใช่แค่หน้าที่เห็น) — ไม่นับใบที่ยกเลิก ยกเว้นอยู่ในแท็บ "ยกเลิก" */
+export type DocTotals = {
+  count: number; grand: number; paid: number; vat: number; qtyMilli: number;
+  /** ใบยกเลิกที่อยู่ในผลค้นหาแต่ไม่นับยอด (แท็บทั้งหมด + แสดงใบยกเลิก) */
+  voidSkipped: number;
+  /** แท็บ "ยกเลิก" = ยอดของใบที่ยกเลิก (ไม่ใช่ยอดขาย) */
+  voidTab: boolean;
+};
+
+export async function docTotals(type: DocTypeT, f: DocFilter): Promise<DocTotals> {
+  const where = docWhere(type, f);
+  const voidTab = f.tab === "void";
+  const counted: Prisma.SalesDocumentWhereInput = voidTab ? where : { AND: [where, NOT_VOID] };
+  const [agg, voidSkipped, qty] = await Promise.all([
+    prisma.salesDocument.aggregate({ where: counted, _count: { _all: true }, _sum: { grandSatang: true, paidSatang: true, vatSatang: true } }),
+    !voidTab && f.tab === "all" && f.showVoid ? prisma.salesDocument.count({ where: { AND: [where, { status: "VOID" }] } }) : Promise.resolve(0),
+    type === "DELIVERY" ? prisma.salesDocumentItem.aggregate({ where: { document: counted, OR: [{ sku: null }, { sku: { notIn: ["Shipping", "COD"] } }] }, _sum: { qtyMilli: true } }) : Promise.resolve(null),
+  ]);
+  return {
+    count: agg._count._all, grand: agg._sum.grandSatang ?? 0, paid: agg._sum.paidSatang ?? 0, vat: agg._sum.vatSatang ?? 0,
+    qtyMilli: qty?._sum.qtyMilli ?? 0, voidSkipped, voidTab,
+  };
+}
