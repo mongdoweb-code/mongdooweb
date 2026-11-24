@@ -282,7 +282,7 @@ function renderCats(){
       </div></div>
     </div>`).join('');
 
-  $('#footerCats').innerHTML = CATS.slice(0, 5).map(c => `<li><a href="${esc(catHref(c))}">${esc(c.th)}</a></li>`).join('');
+  $('#footerCats').innerHTML = CATS.slice(0, 6).map(c => `<li><a href="${esc(catHref(c))}"><span class="f-ic">${catIcon(c)}</span><span>${esc(c.th)}</span></a></li>`).join('');
 }
 renderCats();
 
