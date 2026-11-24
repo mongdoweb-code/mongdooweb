@@ -33,13 +33,14 @@ export async function confirmClick(page: Page, button: string, confirm: string) 
   await page.click(`.dlg button:has-text("${confirm}")${V}`);
 }
 
-type CatalogItem = { id: string; name: string; price: number; inStock: boolean };
+type CatalogItem = { id: string; name: string; price: number; inStock: boolean; maxQty?: number };
 /** สินค้าที่สั่งซื้อได้ตัวแรกจากข้อมูลหน้าร้าน */
-export async function buyableProduct(page: Page) {
+export async function buyableProduct(page: Page, minQty = 2) {
   await page.goto("/");
   const catalog = await page.evaluate(() => JSON.parse(document.getElementById("mdw-data")!.textContent!).catalog as CatalogItem[]);
   // แคชหน้าร้านอาจยังมีสินค้าทดสอบที่เทสต์อื่นลบไปแล้ว — เลือกตัวแรกที่หน้าสินค้าเปิดได้จริง
-  for (const p of catalog.filter((c) => c.price > 0 && c.inStock).slice(0, 15)) {
+  // ข้ามสินค้าที่สต็อกเหลือน้อยกว่าจำนวนที่เทสต์จะสั่ง (เทสต์อื่น/การลองซ้ำอาจซื้อสินค้าทดสอบตัวเดียวกันไปแล้ว)
+  for (const p of catalog.filter((c) => c.price > 0 && c.inStock && (c.maxQty == null || c.maxQty >= minQty)).slice(0, 15)) {
     if ((await page.request.get(`/product/${p.id}`)).ok()) return p;
   }
   expect(false, "ต้องมีสินค้าที่มีราคาและมีของอย่างน้อย 1 รายการ").toBeTruthy();
