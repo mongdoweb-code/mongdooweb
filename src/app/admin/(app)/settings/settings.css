@@ -6,7 +6,7 @@
 .cb-opt:has(input:focus-visible){outline:2px solid #F26B38;outline-offset:2px}
 .cb-prev{position:relative;display:block;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:#F2F0EB;border:1px solid #E7E3DB}
 .cb-img{position:absolute;inset:18% 22%;border-radius:6px;background:linear-gradient(135deg,#C9C4BA,#9E978A)}
-.cb-prev b{position:absolute;color:#FFFFFF;background:rgba(242,107,56,.8);font-size:10.5px;font-weight:600;white-space:nowrap}
+.cb-prev b{position:absolute;color:#FFFFFF;background:rgba(168,60,18,.85);font-size:10.5px;font-weight:600;white-space:nowrap}
 .cb-a b{top:8px;left:8px;height:20px;line-height:20px;padding:0 8px;border-radius:999px}
 .cb-b b{top:8px;left:8px;padding:2px 7px;line-height:1.5;border-radius:4px}
 .cb-c b{top:0;left:0;height:19px;line-height:19px;padding:0 8px 0 7px;font-size:10px;border-radius:0 0 8px 0}

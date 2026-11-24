@@ -436,11 +436,11 @@ main .btn-sm.btn-primary,.pdp-bar .btn-primary{font-size:15px;background:#B5461C
 .mega-link:hover .mi img.ci-img,.mega-link:focus-visible .mi img.ci-img{filter:brightness(0) invert(1)}
 .cat-ph img.ci-img{width:56px;height:56px;object-fit:contain;opacity:.9}
 
-/* ป้ายบนการ์ดสินค้า — เลือกแบบได้ที่ตั้งค่าร้าน (data-badge a|b|c ครอบเนื้อหาหน้า) · ส้มโทนเดียวกับปุ่มรถเข็น โปร่งแสง 80% · ป้ายลดราคาคงสีแดง */
+/* ป้ายบนการ์ดสินค้า — เลือกแบบได้ที่ตั้งค่าร้าน (data-badge a|b|c ครอบเนื้อหาหน้า) · ส้มเข้มโปร่งแสง 85% (ตัวอักษรขาวยังอ่านชัดตาม WCAG ≥ 4.5:1 แม้พื้นหลังรูปขาว) · ป้ายลดราคาคงสีแดง */
 [data-badge] :is(.prod-card,.prod-img) .prod-badge{font-size:10.5px;font-weight:600;letter-spacing:.1px;white-space:nowrap;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 /* :root[data-badge] (แอตทริบิวต์อยู่ที่ <html>) = ชนะกฎสีของหน้าหมวด/ธีมกลางคืน — ป้ายใช้สีเดียวกันทั้งสองธีม */
-:root[data-badge] :is(.prod-card,.prod-img) .prod-badge:not(.badge-sale){background:rgba(242,107,56,.8);color:#FFFFFF}
-:root[data-badge] :is(.prod-card,.prod-img) .prod-badge.badge-sale{background:rgba(192,57,43,.88);color:#FFFFFF}
+:root[data-badge] :is(.prod-card,.prod-img) .prod-badge:not(.badge-sale){background:rgba(168,60,18,.85);color:#FFFFFF}
+:root[data-badge] :is(.prod-card,.prod-img) .prod-badge.badge-sale{background:rgba(176,40,30,.9);color:#FFFFFF}
 [data-badge="a"] :is(.prod-card,.prod-img) .prod-badge{top:8px;left:8px;height:20px;line-height:20px;padding:0 8px;border-radius:999px}
 [data-badge="b"] :is(.prod-card,.prod-img) .prod-badge{top:8px;left:8px;padding:2px 7px;line-height:1.5;border-radius:4px}
 [data-badge="c"] :is(.prod-card,.prod-img) .prod-badge{top:0;left:0;height:19px;line-height:19px;padding:0 8px 0 7px;font-size:10px;border-radius:0 0 8px 0}

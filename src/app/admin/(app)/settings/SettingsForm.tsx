@@ -158,7 +158,7 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
 
         <div className="box" id="cardBadge">
           <h3>ป้ายบนการ์ดสินค้า</h3>
-          <p className="sub" style={{ marginTop: -4 }}>ป้ายมุมรูปสินค้า (เช่น ขายดี, 4000k — แก้ข้อความได้ที่ช่อง “ป้ายบนการ์ด” ในหน้าแก้ไขสินค้า) · สีส้มโปร่งแสง 80% · ป้าย “ลด xx%” คงสีแดง</p>
+          <p className="sub" style={{ marginTop: -4 }}>ป้ายมุมรูปสินค้า (เช่น ขายดี, 4000k — แก้ข้อความได้ที่ช่อง “ป้ายบนการ์ด” ในหน้าแก้ไขสินค้า) · สีส้มโปร่งแสง · ป้าย “ลด xx%” คงสีแดง</p>
           <div className="cb-opts" role="radiogroup" aria-label="รูปแบบป้ายบนการ์ดสินค้า">
             {([["A", "แคปซูลเล็ก", "มุมโค้งมน ห่างขอบ 8px"], ["B", "สี่เหลี่ยมมุมโค้งเล็ก", "ทรงเดิมแต่เล็กลง"], ["C", "ป้ายชิดมุม", "ติดมุมบนซ้าย บังรูปน้อยที่สุด"]] as const).map(([k, t, d]) => (
               <label key={k} className="cb-opt">

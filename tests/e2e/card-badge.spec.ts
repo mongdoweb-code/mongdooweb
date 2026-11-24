@@ -36,7 +36,7 @@ test("ตั้งค่าร้าน → แบบ A/B/C → หน้าร�
       expect(parseFloat(size)).toBeLessThanOrEqual(10.5);
       // สีพื้น: ส้มโปร่งแสง (ป้ายทั่วไป) หรือแดงโปร่งแสง (ลดราคา) — ไม่ใช่ส้มทึบแบบเดิม
       const bg = await badge.evaluate((e) => getComputedStyle(e).backgroundColor);
-      expect(bg, bg).toMatch(/^rgba\((242, 107, 56, 0\.8|192, 57, 43, 0\.88)\)$/);
+      expect(bg, bg).toMatch(/^rgba\((168, 60, 18, 0\.85|176, 40, 30, 0\.9)\)$/);
     }
   }
   await shop.context().close();
