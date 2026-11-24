@@ -10,7 +10,9 @@ import { requireAdmin } from "@/lib/auth";
 import { docDate, docDateTime, fromYmd, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST, DOC_TABS } from "@/lib/doc-render";
 import { cookies } from "next/headers";
-import { DOC_VOID_COOKIE, NOT_VOID, hidesVoid, listDocs, parseDocFilter } from "@/lib/doc-list";
+import { DOC_VOID_COOKIE, NOT_VOID, docTotals, hidesVoid, listDocs, parseDocFilter } from "@/lib/doc-list";
+import { SumCard, SumRows, sumView } from "../DocTotals";
+import "../doc-sum.css";
 import { VoidSetLink, VoidToggle } from "../VoidToggle";
 import { isDocType, quoteEditBlock, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
@@ -25,7 +27,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   const meta = DOC_META[type];
   const today = todayYmd();
   const monthStart = fromYmd(today.slice(0, 8) + "01");
-  const { rows, total, page, pages } = await listDocs(type, f);
+  const [{ rows, total, page, pages }, totals] = await Promise.all([listDocs(type, f), docTotals(type, f)]);
   const era = (await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { dateEra: true } }))?.dateEra ?? "AD";
 
   // KPI
@@ -85,6 +87,17 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
     ];
   }
 
+  // ยอดรวมตามตัวกรอง (การ์ดมุมขวาบน + แถวท้ายตาราง)
+  const chips = [
+    f.tab !== "all" ? DOC_TABS[type].find(([k]) => k === f.tab)?.[1] : "",
+    f.work ? WORK_FILTERS.find(([k]) => k === f.work)?.[1] : "",
+    f.from || f.to ? `${f.from ? docDate(f.from, era) : "…"} – ${f.to ? docDate(f.to, era) : "…"}` : "",
+    f.q ? `ค้นหา “${f.q.length > 18 ? `${f.q.slice(0, 18)}…` : f.q}”` : "",
+  ].filter((c): c is string => !!c);
+  const sv = sumView(type, totals, chips, f.work, !!f.q); // คำค้นอยู่ท้าย chips เสมอ
+  const live = rows.filter((d) => f.tab === "void" || d.status !== "VOID");
+  const pageSum = pages > 1 ? { count: live.length, grand: live.reduce((a, d) => a + d.grandSatang, 0), neg: type === "CREDIT_NOTE" && f.tab !== "void" } : null;
+
   const qs = (patch: Record<string, string | number>) => {
     const v = new URLSearchParams(Object.entries({ tab: f.tab === "all" ? "" : f.tab, work: f.work, q: f.q, from: f.from, to: f.to, per: f.per === 20 ? "" : f.per, page: "", ...patch }).map(([k, x]) => [k, String(x)]).filter(([, x]) => x));
     const s = v.toString();
@@ -112,7 +125,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
       {flash && <div className="login-info" role="status" style={{ marginBottom: 12 }}>{flash}</div>}
       {typeof sp.err === "string" && <div className="login-err" role="alert" style={{ marginBottom: 12 }}>{sp.err.slice(0, 200)}</div>}
 
-      <div className="kpis">
+      <div className="kpis has-sum" style={{ "--kn": kpis.length } as React.CSSProperties}>
         {kpis.map((k) =>
           k.tab ? (
             <Link key={k.label} className={`kpi ${k.hot ? "hot" : ""}`} href={`${base}${qs({ tab: k.tab })}`}><span>{k.label}</span><b className="num">{k.value}</b><small>{k.sub}</small></Link>
@@ -120,6 +133,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
             <div key={k.label} className="kpi"><span>{k.label}</span><b className="num">{k.value}</b><small>{k.sub}</small></div>
           ),
         )}
+        <SumCard v={sv} />
       </div>
 
       <section className="panel">
@@ -205,6 +219,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
               );
             })}
           </tbody>
+          {rows.length > 0 && <SumRows v={sv} page={pageSum} />}
         </table>
         {hiding && voidCount > 0 && rows.length > 0 && page === pages && (
           <p className="void-note" role="note">ซ่อนใบที่ยกเลิกไว้ {voidCount.toLocaleString("th-TH")} ฉบับ · <VoidSetLink show href={`${base}${qs({ void: "show" })}`}>แสดงด้วย</VoidSetLink> หรือ <Link className="link" href={`${base}${qs({ tab: "void" })}`}>ดูเฉพาะที่ยกเลิก</Link></p>

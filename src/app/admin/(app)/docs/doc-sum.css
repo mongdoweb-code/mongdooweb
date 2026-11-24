@@ -1,0 +1,63 @@
+/* ยอดรวมตามตัวกรอง (หน้ารายการเอกสารขาย): การ์ดสีเด่นมุมขวาบน + แถวรวมท้ายตาราง — สีตามบริบท (ประเภทเอกสาร / สถานะงาน / ยกเลิก) */
+.dsum-blue{--t1:#1C5F96;--t2:#2F80C4;--tl:#EAF3FB;--tb:#BFD8EE;--tx:#123F66}
+.dsum-violet{--t1:#5236A0;--t2:#7558CF;--tl:#F1EDFB;--tb:#D3C8F1;--tx:#36246E}
+.dsum-green{--t1:#1A6E45;--t2:#26975F;--tl:#E9F6EF;--tb:#BFE3CD;--tx:#14492F}
+.dsum-teal{--t1:#0E6B64;--t2:#159488;--tl:#E6F5F3;--tb:#B7E0DA;--tx:#0B4742}
+.dsum-orange{--t1:#B8491C;--t2:#EE6A35;--tl:#FFF1EA;--tb:#F8CDB8;--tx:#7A2F10}
+.dsum-red{--t1:#9C2F22;--t2:#CF4A39;--tl:#FCEDEB;--tb:#F0C4BE;--tx:#6B1F16}
+.dsum-gray{--t1:#55524D;--t2:#78746D;--tl:#F1F0ED;--tb:#D9D6D0;--tx:#3A3834}
+
+/* แถว KPI: การ์ดยอดรวมอยู่ท้ายแถว (ขวาสุด) กว้างกว่าการ์ดอื่น */
+@media (min-width:1200px){
+  .main .kpis.has-sum{grid-template-columns:repeat(var(--kn),minmax(0,1fr)) minmax(0,1.55fr)}
+}
+@media (max-width:1199px){
+  .main .kpis.has-sum .dsum{grid-column:1/-1}
+}
+.kpi.dsum{position:relative;display:flex;flex-direction:column;gap:2px;padding:16px 20px;border-top:0;background:linear-gradient(135deg,var(--t1),var(--t2));color:#FFFFFF;overflow:hidden}
+.kpi.dsum::after{content:"";position:absolute;right:-28px;top:-28px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
+.dsum-top{display:flex;align-items:center;gap:8px;min-width:0}
+/* การ์ด KPI ทั่วไปตั้ง span เป็นสีจาง/บล็อก — ในการ์ดยอดรวมให้ใช้สีขาวและจัดวางเอง */
+.kpi.dsum span{color:#FFFFFF;font-size:inherit}
+.kpi.dsum .dsum-ic{display:grid}
+.kpi.dsum .dsum-chips{display:flex}
+.dsum-ic{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;border-radius:6px;background:rgba(255,255,255,.18)}
+.dsum-ic svg{width:15px;height:15px}
+.kpi.dsum .dsum-h{display:inline;font-size:13px;font-weight:700;color:#FFFFFF;letter-spacing:.2px}
+.dsum-chips{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.dsum-chips i{font-style:normal;font-size:11.5px;font-weight:600;line-height:20px;padding:0 8px;border-radius:999px;background:rgba(255,255,255,.2);white-space:nowrap}
+.kpi.dsum .dsum-lbl{margin-top:8px;font-size:12px;color:rgba(255,255,255,.82)}
+.kpi.dsum .dsum-amt{font-size:28px;line-height:1.2;color:#FFFFFF;letter-spacing:-.3px}
+.dsum-stats{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0 0;padding-top:8px;border-top:1px solid rgba(255,255,255,.22)}
+.dsum-stats div{display:flex;flex-direction:column}
+.dsum-stats dt{font-size:11.5px;color:rgba(255,255,255,.78)}
+.dsum-stats dd{margin:0;font-size:13.5px;font-weight:700}
+.kpi.dsum .dsum-note{margin-top:6px;font-size:11.5px;color:rgba(255,255,255,.75)}
+
+/* แถวท้ายตาราง */
+.dsum-foot td{border-bottom:0}
+.dsum-page td{padding:10px 16px;background:#FAF9F6;border-top:1px solid #E3E0D8;font-size:13px;color:#55524D}
+.dsum-page td.r{font-weight:700;color:#1C1C1C}
+.dsum-page .sub-inline{color:#8A867E}
+.dsum-row td{padding:14px 16px;background:var(--tl);border-top:2px solid var(--t1);color:var(--tx);vertical-align:middle}
+.dsum-row td:first-child{box-shadow:inset 4px 0 0 var(--t1)}
+.dsum-row-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.dsum-row-h .dsum-ic{background:var(--t1);color:#FFFFFF}
+.dsum-row-h b{font-size:14.5px}
+.dsum-row .dsum-chips i{background:#FFFFFF;border:1px solid var(--tb);color:var(--tx)}
+.dsum-row-sub{display:block;margin-top:4px;font-size:12px;opacity:.8}
+.dsum-row td.dsum-row-amt{font-size:18px;font-weight:800;color:var(--t1);white-space:nowrap}
+.dsum-row-stats{text-align:left}
+.dsum-row-stats span{display:inline-flex;flex-direction:column;margin-right:18px;vertical-align:middle}
+.dsum-row-stats small{font-size:11.5px;opacity:.75}
+.dsum-row-stats b{font-size:13.5px}
+
+/* ธีมกลางคืน (การ์ดสีเข้มใช้ได้ทั้งสองธีม · แถวท้ายตารางใช้พื้นเข้มแทนพื้นอ่อน) */
+html[data-adm-theme="dark"] .dsum-page td{background:#1F1F1D;border-top-color:#34322E;color:#B9B4AB}
+html[data-adm-theme="dark"] .dsum-page td.r{color:#EDE9E1}
+html[data-adm-theme="dark"] .dsum-row td{background:color-mix(in srgb,var(--t1) 22%,#171716);color:#ECE8E0}
+html[data-adm-theme="dark"] .dsum-row td.dsum-row-amt{color:color-mix(in srgb,var(--t2) 55%,#FFFFFF)}
+html[data-adm-theme="dark"] .dsum-row .dsum-chips i{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:#ECE8E0}
+html[data-adm-theme="dark"] .kpi.dsum{background:linear-gradient(135deg,var(--t1),var(--t2));color:#FFFFFF;border-color:transparent}
+html[data-adm-theme="dark"] .kpi.dsum span,html[data-adm-theme="dark"] .kpi.dsum b,html[data-adm-theme="dark"] .kpi.dsum dd{color:#FFFFFF}
+html[data-adm-theme="dark"] .kpi.dsum small,html[data-adm-theme="dark"] .kpi.dsum dt{color:rgba(255,255,255,.8)}
