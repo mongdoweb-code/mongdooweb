@@ -72,7 +72,8 @@ export async function listDocs(type: DocTypeT, f: DocFilter, size = f.per) {
   const page = Math.min(pages, f.page);
   const rows = await prisma.salesDocument.findMany({
     where,
-    orderBy: [{ issueDate: { sort: "desc", nulls: "first" } }, { docNo: "desc" }, { createdAt: "desc" }],
+    // ใบที่ปักหมุดอยู่บนสุด (ปักล่าสุดก่อน) แล้วจึงเรียงตามวันที่ตามเดิม
+    orderBy: [{ pinnedAt: { sort: "desc", nulls: "last" } }, { issueDate: { sort: "desc", nulls: "first" } }, { docNo: "desc" }, { createdAt: "desc" }],
     skip: (page - 1) * size,
     take: size,
     include: { customer: { select: { code: true, name: true } }, _count: { select: { items: true, derived: { where: LINKED_WHERE } } }, order: { select: { orderNo: true } }, source: { select: { docNo: true } }, workBy: { select: { displayName: true } } },

@@ -671,6 +671,8 @@ model SalesDocument {
   workAt          DateTime?
   workById        String?
   workBy          Admin?    @relation("DocWorkBy", fields: [workById], references: [id], onDelete: SetNull)
+  // ปักหมุด (ภายในร้าน ใช้ร่วมกันทุกคน) — ใบที่ปักหมุดอยู่บนสุดของรายการ เรียงตามเวลาที่ปักล่าสุด
+  pinnedAt        DateTime?
   // ตัวเลือกต่อเอกสาร (ติ๊กในตัวแก้ไข) — ค่าเริ่มต้นของเอกสารใหม่มาจากตั้งค่าร้าน
   signImage       Boolean   @default(true) // ใส่ลายเซ็น/ตราประทับอิเล็กทรอนิกส์ (ต้องอัปโหลดในตั้งค่าร้านก่อน)
   signBlank       Boolean   @default(false) // ช่องลงนามฝั่งร้านเว้นว่าง (ไม่มีลายเซ็น ชื่อ วันที่) — เซ็นชื่อ+วันที่ด้วยมือภายหลัง
@@ -699,6 +701,7 @@ model SalesDocument {
   @@index([dueDate])
   @@index([type, status, followUpAt])
   @@index([type, workState])
+  @@index([type, pinnedAt])
 }
 
 model SalesDocumentItem {

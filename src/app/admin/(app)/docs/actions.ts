@@ -713,3 +713,14 @@ export async function setDocWork(f: FormData): Promise<{ ok?: string; error?: st
   refresh();
   return { ok: state ? `ตั้งเป็น "${WORK_META[state].label}" แล้ว` : "ล้างสถานะงานแล้ว" };
 }
+
+/** ปักหมุด / เลิกปักหมุด (ปุ่มในหน้ารายการ) — ใบที่ปักหมุดอยู่บนสุดของรายการ ใช้ร่วมกันทุกคน */
+export async function toggleDocPin(f: FormData) {
+  const admin = await requireAdmin();
+  const id = str(f, "id", 40);
+  const d = await prisma.salesDocument.findUnique({ where: { id }, select: { type: true, docNo: true, pinnedAt: true } });
+  if (!d) return;
+  await prisma.salesDocument.update({ where: { id }, data: { pinnedAt: d.pinnedAt ? null : new Date() } });
+  await logAdmin(admin.id, "DOC", `${DOC_META[d.type].th.split(" /")[0]} ${d.docNo ?? "(ฉบับร่าง)"}: ${d.pinnedAt ? "เลิกปักหมุด" : "ปักหมุด"}`);
+  refresh();
+}
