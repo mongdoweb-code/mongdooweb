@@ -10,7 +10,7 @@ import { Client } from "pg";
 import { readZip } from "../src/lib/zip";
 
 /** ตารางที่ migration ใส่ข้อมูลเริ่มต้นให้เอง (ฐานข้อมูลใหม่จึงไม่ว่าง) — ไฟล์สำรองมีชุดที่ร้านใช้จริงอยู่แล้ว */
-const MIGRATION_SEEDED = new Set(["SearchSynonym"]);
+const MIGRATION_SEEDED = new Set(["SearchSynonym", "ProductNotice"]);
 
 async function main() {
   const args = process.argv.slice(2);

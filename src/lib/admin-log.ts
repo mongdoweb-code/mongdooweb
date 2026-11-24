@@ -22,6 +22,7 @@ export const LOG_TYPES: Record<string, string> = {
   ADMIN_USER: "ผู้ใช้หลังบ้าน",
   PASSWORD: "เปลี่ยนรหัสผ่าน",
   PRODUCT: "สินค้า",
+  NOTICE: "ข้อความแจ้งเตือนสินค้า",
   CATEGORY: "หมวดหมู่",
   SLIDES: "สไลด์หน้าแรก",
   CONTENT_ROLLBACK: "ย้อนเวอร์ชัน",

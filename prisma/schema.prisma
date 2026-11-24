@@ -156,6 +156,9 @@ model Product {
   specs            Json? // [{"label":"กำลังไฟ","value":"10W COB"}, ...]
   /// Data Sheet เต็มรูปแบบ (กลุ่ม/หัวข้อ ไทย+EN/ค่า/ไฮไลต์/หมายเหตุ/รูปแบบ) — src/lib/datasheet.ts · null = ไม่มี
   datasheet        Json?
+  /// ข้อความแจ้งเตือนใต้ปุ่มสั่งซื้อ: เลือกจากคลังเอง (ProductNotice.id) · ปิดข้อความที่แสดงอัตโนมัติ (ทุกสินค้า/ตามหมวด) เฉพาะตัวนี้
+  noticeIds        String[]  @default([])
+  noticeOff        String[]  @default([])
   images           String[] // storage keys เรียงตามลำดับแสดง
   videoKey         String? // วิดีโอสินค้า MP4 (videos/…) — 1 คลิปต่อสินค้า ≤30 MB 10–60 วินาที
   videoPosterKey   String? // ภาพหน้าปกวิดีโอ (videos/….webp) สร้างจากเฟรมในเบราว์เซอร์ตอนอัปโหลด
@@ -1439,4 +1442,33 @@ model Video {
 
   @@index([isActive, sortOrder])
   @@index([productId])
+}
+
+enum NoticeTone {
+  INFO
+  WARNING
+  DANGER
+  SUCCESS
+}
+
+enum NoticeScope {
+  MANUAL // แสดงเฉพาะสินค้าที่ติ๊กเลือก
+  ALL // ทุกสินค้า
+  CATEGORIES // ทุกสินค้าในหมวดที่เลือก
+}
+
+/// คลังข้อความแจ้งเตือนหน้าสินค้า (เช่น "ไฟแรงดันต่ำ ต้องต่อผ่านหม้อแปลง · **ห้ามต่อไฟบ้าน 220V โดยตรง**") — src/lib/notices.ts
+model ProductNotice {
+  id            String      @id @default(cuid())
+  name          String // ชื่อเรียกในหลังบ้าน
+  text          String // ข้อความหน้าร้าน (**ตัวหนา**)
+  tone          NoticeTone  @default(WARNING)
+  icon          String      @default("bolt")
+  scope         NoticeScope @default(MANUAL)
+  categoryIds   String[]    @default([])
+  skipAccessory Boolean     @default(true) // แสดงอัตโนมัติ: ข้ามสินค้าที่เป็นอุปกรณ์เสริม
+  isActive      Boolean     @default(true)
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }

@@ -1,0 +1,17 @@
+/* ข้อความแจ้งเตือนหน้าสินค้า — ไอคอน 20px ตรงกับบรรทัดแรก · ระยะในกล่องเท่ากันทั้ง 4 ด้าน (12/16) */
+.ntc-list{display:grid;gap:8px}
+.ntc{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:start;padding:12px 16px;border:1px solid var(--ntc-bd);border-radius:10px;background:var(--ntc-bg);color:var(--ntc-tx);font-size:14.5px;line-height:1.6;text-align:left}
+.ntc.no-ic{grid-template-columns:minmax(0,1fr)}
+.ntc-ic{display:grid;place-items:center;width:22px;height:23px;color:var(--ntc-ic)}
+.ntc-ic svg{width:20px;height:20px}
+.ntc-tx{margin:0;overflow-wrap:anywhere}
+.ntc-tx b{font-weight:700;color:var(--ntc-b)}
+.ntc-warning{--ntc-bg:#FFF5EB;--ntc-bd:#F8D2B0;--ntc-ic:#D9541E;--ntc-tx:#5B3518;--ntc-b:#9A3412}
+.ntc-info{--ntc-bg:#F7F4EE;--ntc-bd:#E4DCCD;--ntc-ic:#6B6458;--ntc-tx:#3B3934;--ntc-b:#141414}
+.ntc-danger{--ntc-bg:#FDF0F0;--ntc-bd:#F3C4C4;--ntc-ic:#C62828;--ntc-tx:#5B1C1C;--ntc-b:#A51D1D}
+.ntc-success{--ntc-bg:#EEF8F1;--ntc-bd:#C2E5CE;--ntc-ic:#1E7B45;--ntc-tx:#1C4A2E;--ntc-b:#15602F}
+/* ธีมกลางคืน (หน้าร้าน data-theme / หลังบ้าน data-adm-theme) — ไม่ผ่านตัวสร้างสีอัตโนมัติ เพราะใช้ตัวแปรของตัวเอง */
+:is(html[data-theme="dark"],html[data-adm-theme="dark"]) .ntc-warning{--ntc-bg:#2A1D14;--ntc-bd:#5A3519;--ntc-ic:#FF8A50;--ntc-tx:#F1DCCB;--ntc-b:#FFB98F}
+:is(html[data-theme="dark"],html[data-adm-theme="dark"]) .ntc-info{--ntc-bg:#22211F;--ntc-bd:#3A3833;--ntc-ic:#C9C2B5;--ntc-tx:#E3DED5;--ntc-b:#FFFFFF}
+:is(html[data-theme="dark"],html[data-adm-theme="dark"]) .ntc-danger{--ntc-bg:#2B1616;--ntc-bd:#5E2525;--ntc-ic:#FF7070;--ntc-tx:#F3D6D6;--ntc-b:#FFA3A3}
+:is(html[data-theme="dark"],html[data-adm-theme="dark"]) .ntc-success{--ntc-bg:#14261B;--ntc-bd:#24502F;--ntc-ic:#5BD08A;--ntc-tx:#D2EEDC;--ntc-b:#8FE3B0}

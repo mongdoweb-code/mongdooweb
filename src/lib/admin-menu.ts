@@ -38,6 +38,7 @@ export const ADMIN_MENU: AdminMenuItem[] = [
   { key: "suppliers", href: "/admin/suppliers", label: "ผู้ขาย", icon: "truck", group: G2, ownerOnly: true },
   { key: "coupons", href: "/admin/coupons", label: "คูปองส่วนลด", icon: "coupon", group: G2 },
   { key: "specs", href: "/admin/specs", label: "สเปกสินค้าต่อหมวด", icon: "specs", group: G2 },
+  { key: "notices", href: "/admin/notices", label: "ข้อความแจ้งเตือนสินค้า", icon: "bell", group: G2 },
   { key: "slides", href: "/admin/slides", label: "สไลด์หน้าแรก", icon: "slides", group: G2 },
   { key: "media", href: "/admin/media", label: "ตรวจรูปภาพ", icon: "image", group: G2 },
   { key: "pages", href: "/admin/pages", label: "หน้าเนื้อหา / FAQ", icon: "pages", group: G2 },

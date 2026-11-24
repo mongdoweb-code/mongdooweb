@@ -18,6 +18,7 @@ import { parseCsv } from "@/lib/csv";
 import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
 import { readProductExtras } from "@/lib/product-extras";
 import { dsEmpty, parseDatasheet, type Datasheet } from "@/lib/datasheet";
+import { parseProductNotices } from "@/lib/notices";
 import { moveProductToEdge, reorderProducts, topSortOrder } from "@/lib/product-order";
 
 export type ProductFormState = { error?: string; fields?: string[]; ok?: string };
@@ -87,6 +88,11 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     return { error: "ข้อมูล Data Sheet ไม่ถูกต้อง — ลองโหลดหน้าใหม่", fields: ["datasheet"] };
   }
 
+  // ข้อความแจ้งเตือนหน้าสินค้า: เลือกจากคลัง + ปิดข้อความอัตโนมัติเฉพาะตัวนี้ (รับเฉพาะ id ที่มีอยู่จริง)
+  const noticeLib = new Set((await prisma.productNotice.findMany({ select: { id: true } })).map((n) => n.id));
+  const notices = f.has("notices") ? parseProductNotices(str(f, "notices", 5000), noticeLib) : undefined;
+  if (notices === null) return { error: "ข้อมูลข้อความแจ้งเตือนไม่ถูกต้อง — ลองโหลดหน้าใหม่", fields: ["notices"] };
+
   // ล็อต 9: ราคาลดตามช่วงเวลา ราคาขายส่ง สเปกแบบมีโครงสร้าง
   const extras = await readProductExtras(f, categoryId, price);
   if ("error" in extras) return { error: extras.error, fields: extras.fields };
@@ -144,6 +150,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     lightColor: COLORS.includes(str(f, "lightColor") as LightColor) ? (str(f, "lightColor") as LightColor) : "ANY",
     includesPsu: f.get("includesPsu") === "on",
     isAccessory: f.get("isAccessory") === "on",
+    ...(notices ?? {}),
     ...extras.data,
   };
 
