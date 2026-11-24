@@ -46,5 +46,7 @@ export async function getStorefrontExtras() {
     metaPixelId: validPixel(s.metaPixelId),
     faq: parseFaq(s.faq),
     nav: parseNavMenu(s.navMenu),
+    /** รูปแบบป้ายบนการ์ดสินค้า a | b | c */
+    badge: ((["A", "B", "C"].includes(s.cardBadgeStyle) ? s.cardBadgeStyle : "A").toLowerCase()) as "a" | "b" | "c",
   };
 }

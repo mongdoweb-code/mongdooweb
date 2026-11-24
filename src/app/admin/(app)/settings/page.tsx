@@ -45,7 +45,7 @@ export default async function SettingsPage() {
             logoUrl: mediaUrl(s.logoKey),
             signatureUrl: mediaUrl(s.signatureKey), stampUrl: mediaUrl(s.stampKey), signerName: s.signerName, signerTitle: s.signerTitle,
             quotePayInfo: s.quotePayInfo, quoteOnlineQr: s.quoteOnlineQr,
-            datasheetStyle: s.datasheetStyle, datasheetCompare: s.datasheetCompare,
+            datasheetStyle: s.datasheetStyle, datasheetCompare: s.datasheetCompare, cardBadgeStyle: s.cardBadgeStyle,
             announcementEnabled: s.announcementEnabled, announcementText: s.announcementText, announcementHref: s.announcementHref ?? "",
             ga4Id: s.ga4Id ?? "", metaPixelId: s.metaPixelId ?? "",
             autoCancelDays: s.autoCancelDays, lowStockThreshold: s.lowStockThreshold, lineLowStock: s.lineLowStock, lineDailySummary: s.lineDailySummary,

@@ -4908,6 +4908,31 @@ html[data-adm-theme="dark"] .pn-new {
 html[data-adm-theme="dark"] .pn-new-prev>span {
     color: #ACA9A4
 }
+/*  src/app/admin/(app)/settings/settings.css  */
+html[data-adm-theme="dark"] .cb-opt {
+    border: 1.5px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .cb-opt:has(input:checked) {
+    border-color: #F26B38
+}
+html[data-adm-theme="dark"] .cb-opt:has(input:focus-visible) {
+    outline: 2px solid #F26B38
+}
+html[data-adm-theme="dark"] .cb-prev {
+    background: #16171B;
+    border: 1px solid #2C2F38
+}
+html[data-adm-theme="dark"] .cb-img {
+    background: linear-gradient(135deg,#121210,#100F0F)
+}
+html[data-adm-theme="dark"] .cb-prev b {
+    color: #FFFFFF;
+    background: rgba(242,107,56,.8)
+}
+html[data-adm-theme="dark"] .cb-txt small {
+    color: #ACA9A4
+}
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {
     color: var(--c-muted)

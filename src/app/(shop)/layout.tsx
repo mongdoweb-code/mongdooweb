@@ -35,6 +35,8 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
     <>
       {/* ธีมกลางวัน/กลางคืน: ตั้งก่อนวาดหน้า */}
       <script dangerouslySetInnerHTML={{ __html: SHOP_THEME_BOOT }} />
+      {/* รูปแบบป้ายบนการ์ดสินค้า (ตั้งค่าร้าน) — ตั้งที่ <html data-badge> ก่อนวาดหน้า ให้ครอบทุกการ์ดแม้ส่วนที่โหลดตามมาทีหลัง */}
+      <script dangerouslySetInnerHTML={{ __html: `document.documentElement.dataset.badge=${JSON.stringify(extras.badge)}` }} />
       {!extras.announcement && <style>{":root{--tb-h:0px}"}</style>}
       {/* display: contents → wrapper ไม่สร้างกล่อง ทำให้ header ยัง sticky ตาม body เหมือนต้นแบบ */}
       <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderShellTop({ announcement: extras.announcement, freeShipMinBaht, hasFaq, productCount, nav: extras.nav }) }} />
