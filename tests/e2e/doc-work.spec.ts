@@ -77,6 +77,7 @@ test("หน้ารายการใบเสนอราคา: ป้าย
   await expect(page.getByRole("dialog", { name: /ตั้งสถานะงาน/ })).toHaveCount(0);
   await tag2.click();
   await page.getByRole("dialog", { name: /ตั้งสถานะงาน/ }).getByRole("button", { name: "เสร็จสิ้น" }).click();
+  await expect(page.locator("tr", { hasText: QT_NO })).toHaveCount(0); // บันทึกเสร็จ = หลุดจากตัวกรอง "ต้องดำเนินการ" (รอก่อนเปลี่ยนหน้า)
   await page.goto(`/admin/docs/QUOTATION?q=${QT_NO}`);
   const tag3 = page.locator("tr", { hasText: QT_NO }).locator(".wtag");
   await expect(tag3).toHaveClass(/wt-done/);
@@ -121,11 +122,12 @@ test("หน้าเอกสารใบเสร็จ: ปุ่มคู่
   const csv = await page.request.get(`/admin/docs.csv?type=RECEIPT&work=done&q=${RC_NO}`);
   const text = await csv.text();
   expect(text).toContain("สถานะงาน");
-  const line = text.split("\r\n").find((l) => l.includes(RC_NO))!;
+  const line = text.split("\r\n").find((l) => l.startsWith(`"${RC_NO}"`))!; // บรรทัดข้อมูล (หัวไฟล์มีคำค้นอยู่ด้วย)
   expect(line).toContain('"เสร็จสิ้น"');
   expect(line).toContain("ส่งใบเสร็จตัวจริงทางไปรษณีย์");
   const none = await (await page.request.get(`/admin/docs.csv?type=RECEIPT&work=todo&q=${RC_NO}`)).text();
-  expect(none).not.toContain(RC_NO);
+  expect(none.split("\r\n").some((l) => l.startsWith(`"${RC_NO}"`))).toBe(false);
+  expect(none).toContain("ยอดรวม (0 ฉบับ)");
 
   // กดปุ่มเดิมซ้ำ = ล้าง
   await page.goto(`/admin/docs/RECEIPT/${RC}`);

@@ -1,5 +1,5 @@
 // GET /admin/orders.csv — ส่งออกคำสั่งซื้อตามตัวกรองปัจจุบัน (มี BOM ให้ Excel อ่านภาษาไทยได้)
-import { STATUS_LABEL, listOrders, parseFilter } from "@/lib/admin-orders";
+import { RANGES, STATUS_LABEL, TABS, bkkToday, listOrders, orderSpan, parseFilter } from "@/lib/admin-orders";
 import { routeAdmin } from "@/lib/auth";
 import { formatPhone } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
@@ -45,9 +45,32 @@ export async function GET(req: Request) {
       (o.remoteFeeSatang / 100).toFixed(2),
     ].map(q).join(","),
   );
+  // หัวไฟล์: ตัวกรอง · ท้ายไฟล์: ยอดรวม/เฉลี่ย ไม่นับคำสั่งซื้อที่ยกเลิก — ตรงกับการ์ดยอดรวมในหน้าคำสั่งซื้อ
+  const money = (s: number) => (s / 100).toFixed(2);
+  const counted = orders.filter((o) => o.status !== "CANCELLED");
+  const sum = (k: "totalSatang" | "discountSatang" | "codFeeSatang" | "remoteFeeSatang") => counted.reduce((a, o) => a + o[k], 0);
+  const pad = (cells: unknown[]) => [...cells, ...Array(Math.max(0, head.length - cells.length)).fill("")].map(q).join(",");
+  const span = orderSpan(f, bkkToday());
+  const dmy = (ymd: string) => ymd.split("-").reverse().join("/");
+  const at = new Date().toLocaleString("en-GB", { timeZone: "Asia/Bangkok", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "");
+  const chips = [
+    TABS.find(([k]) => k === f.tab)![1],
+    f.range !== "all" ? `${RANGES[f.range]}${span ? ` (${dmy(span.from)} – ${dmy(span.to)})` : ""}` : "",
+    f.q ? `ค้นหา “${f.q}”` : "",
+  ].filter(Boolean);
+  const cancelled = orders.length - counted.length;
+  const top = [
+    pad(["คำสั่งซื้อหน้าเว็บ — ส่งออกจากหลังบ้าน"]),
+    pad([`ตัวกรอง: ${chips.join(" · ")} · ${cancelled ? `ไม่รวมที่ยกเลิก ${cancelled} รายการในยอดรวม` : "ไม่มีรายการที่ยกเลิก"} · ส่งออกเมื่อ ${at}`]),
+  ];
+  const bottom = [
+    pad([]),
+    pad([`ยอดรวม (${counted.length} คำสั่งซื้อ)`, "", "", "", "", "", "", "", "", money(sum("totalSatang")), "", "", "", "", "", money(sum("discountSatang")), money(sum("codFeeSatang")), money(sum("remoteFeeSatang"))]),
+    pad(["เฉลี่ยต่อคำสั่งซื้อ", "", "", "", "", "", "", "", "", money(counted.length ? Math.round(sum("totalSatang") / counted.length) : 0)]),
+  ];
   await prisma.adminLog.create({ data: { type: "ORDERS_EXPORT", note: `ส่งออก CSV ${orders.length} รายการ`, adminId: admin.id } });
   const name = `orders-${f.tab.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`;
-  return new Response("﻿" + [head.map(q).join(","), ...lines].join("\r\n"), {
+  return new Response("﻿" + [...top, head.map(q).join(","), ...lines, ...bottom].join("\r\n"), {
     headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "no-store" },
   });
 }

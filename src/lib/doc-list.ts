@@ -1,10 +1,11 @@
 // รายการเอกสารขาย (หน้า list + CSV) — ตัวกรองอยู่ใน URL
 import "server-only";
 import type { Prisma } from "../../generated/prisma/client";
-import { fromYmd, type DocTypeT } from "@/lib/doc-calc";
+import { docDate, fromYmd, type DocTypeT } from "@/lib/doc-calc";
+import { QUICK_LABEL, matchQuick } from "@/lib/date-ranges";
 import { DOC_TABS, type DocSt } from "@/lib/doc-render";
 import { LINKED_WHERE, statusWhere } from "@/lib/docs";
-import { parseWorkFilter, workWhere, type WorkFilter } from "@/lib/doc-work";
+import { WORK_FILTERS, parseWorkFilter, workWhere, type WorkFilter } from "@/lib/doc-work";
 import { phoneDigits } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -101,4 +102,15 @@ export async function docTotals(type: DocTypeT, f: DocFilter): Promise<DocTotals
     count: agg._count._all, grand: agg._sum.grandSatang ?? 0, paid: agg._sum.paidSatang ?? 0, vat: agg._sum.vatSatang ?? 0,
     qtyMilli: qty?._sum.qtyMilli ?? 0, voidSkipped, voidTab,
   };
+}
+
+/** ป้ายบอกตัวกรองที่ใช้อยู่ (ใช้ทั้งการ์ดยอดรวมและหัวไฟล์ CSV) — คำค้นอยู่ท้ายสุดเสมอ */
+export function docFilterChips(type: DocTypeT, f: DocFilter, today: string, era: "AD" | "BE", fullSearch = false): string[] {
+  const quick = f.from && f.to ? matchQuick(f.from, f.to, today) : null;
+  return [
+    f.tab !== "all" ? DOC_TABS[type].find(([k]) => k === f.tab)?.[1] : "",
+    f.work ? WORK_FILTERS.find(([k]) => k === f.work)?.[1] : "",
+    quick ? `${QUICK_LABEL[quick]}${fullSearch ? ` (${docDate(f.from, era)} – ${docDate(f.to, era)})` : ""}` : f.from || f.to ? `${f.from ? docDate(f.from, era) : "…"} – ${f.to ? docDate(f.to, era) : "…"}` : "",
+    f.q ? `ค้นหา “${!fullSearch && f.q.length > 18 ? `${f.q.slice(0, 18)}…` : f.q}”` : "",
+  ].filter((c): c is string => !!c);
 }

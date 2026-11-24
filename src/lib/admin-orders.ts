@@ -3,6 +3,7 @@ import "server-only";
 import type { OrderStatus, Prisma } from "../../generated/prisma/client";
 import { nextCustomerCode } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
+import { quickSpan, type QuickKey, type Span } from "@/lib/date-ranges";
 
 export const STATUS_LABEL: Record<OrderStatus, string> = {
   AWAITING_SLIP: "รอแนบสลิป",
@@ -33,7 +34,10 @@ export const REJECT_REASONS = [
 ];
 export const CARRIERS = ["Kerry Express", "Flash Express", "ไปรษณีย์ไทย (EMS)", "J&T Express"];
 
-export const RANGES = { all: "ทั้งหมด", today: "วันนี้", "7": "7 วัน", "30": "30 วัน", custom: "กำหนดเอง" } as const;
+export const RANGES = { all: "ทั้งหมด", today: "วันนี้", yest: "เมื่อวาน", "7": "7 วันล่าสุด", "30": "30 วันล่าสุด", month: "เดือนนี้", last: "เดือนก่อน", year: "ปีนี้", custom: "กำหนดเอง" } as const;
+/** ช่วงในลิงก์ (?range=) ↔ ปุ่มช่วงเวลาด่วนที่ใช้ร่วมกับหน้าเอกสารขาย */
+export const RANGE_QUICK = { today: "today", yest: "yest", "7": "d7", "30": "d30", month: "month", last: "last", year: "year" } as const satisfies Partial<Record<keyof typeof RANGES, QuickKey>>;
+export const QUICK_RANGE = Object.fromEntries(Object.entries(RANGE_QUICK).map(([r, q]) => [q, r])) as Record<QuickKey, keyof typeof RANGES>;
 export type Range = keyof typeof RANGES;
 
 export type OrderFilter = { tab: Tab; q: string; range: Range; from: string; to: string; page: number; size: number };
@@ -82,11 +86,21 @@ function bkkMidnight(d: Date) {
 }
 const fromYmd = (s: string) => new Date(`${s}T00:00:00+07:00`);
 
+/** วันนี้ตามเวลาไทย "YYYY-MM-DD" */
+export const bkkToday = () => new Date(Date.now() + TZ_OFFSET).toISOString().slice(0, 10);
+
+/** ช่วงวันที่ของตัวกรอง (ทั้งหมด / กำหนดเองที่ไม่ครบ = null) — ใช้เทียบช่วงก่อนหน้า */
+export function orderSpan(f: OrderFilter, today = bkkToday()): Span | null {
+  if (f.range in RANGE_QUICK) return quickSpan(RANGE_QUICK[f.range as keyof typeof RANGE_QUICK], today);
+  if (f.range === "custom" && f.from && f.to) return { from: f.from, to: f.to };
+  return null;
+}
+
 function rangeWhere(f: OrderFilter): { where: Prisma.OrderWhereInput; badRange: boolean } {
-  const today = bkkMidnight(new Date());
-  if (f.range === "today") return { where: { createdAt: { gte: today } }, badRange: false };
-  if (f.range === "7" || f.range === "30")
-    return { where: { createdAt: { gte: new Date(today.getTime() - (Number(f.range) - 1) * 864e5) } }, badRange: false };
+  if (f.range in RANGE_QUICK) {
+    const s = quickSpan(RANGE_QUICK[f.range as keyof typeof RANGE_QUICK], bkkToday());
+    return { where: { createdAt: { gte: fromYmd(s.from), lt: new Date(fromYmd(s.to).getTime() + 864e5) } }, badRange: false };
+  }
   if (f.range === "custom") {
     const from = f.from ? fromYmd(f.from) : null;
     const to = f.to ? new Date(fromYmd(f.to).getTime() + 864e5) : null;
@@ -141,10 +155,31 @@ async function duplicatesFor(slips: { orderId: string; sha256: string }[]) {
 
 // ---------- รายการ ----------
 
-export async function listOrders(f: OrderFilter) {
+/** เงื่อนไขของตัวกรอง (แท็บ + ช่วงวันที่ + คำค้น) — ใช้ทั้งรายการ ยอดรวม และ CSV */
+export function ordersWhere(f: OrderFilter): { where: Prisma.OrderWhereInput; badRange: boolean } {
   const { where: rw, badRange } = rangeWhere(f);
   const base: Prisma.OrderWhereInput = { AND: [rw, searchWhere(f.q)] };
-  const where: Prisma.OrderWhereInput = f.tab === "ALL" ? base : { AND: [base, tabWhere(f.tab)] };
+  return { where: f.tab === "ALL" ? base : { AND: [base, tabWhere(f.tab)] }, badRange };
+}
+
+export type OrderTotals = { count: number; total: number; shipping: number; discount: number; codFee: number; slips: number; cancelled: number };
+/** ยอดรวมตามตัวกรอง (ทุกหน้า) — ไม่นับคำสั่งซื้อที่ยกเลิก · span = ใช้ช่วงวันที่นี้แทน (เทียบช่วงก่อนหน้า) */
+export async function orderTotals(f: OrderFilter, span?: Span): Promise<OrderTotals> {
+  const { where } = ordersWhere(span ? { ...f, range: "custom", from: span.from, to: span.to } : f);
+  const counted: Prisma.OrderWhereInput = { AND: [where, { status: { not: "CANCELLED" } }] };
+  const [agg, cancelled, slips] = await Promise.all([
+    prisma.order.aggregate({ where: counted, _count: { _all: true }, _sum: { totalSatang: true, shippingSatang: true, discountSatang: true, codFeeSatang: true } }),
+    f.tab === "ALL" ? prisma.order.count({ where: { AND: [where, { status: "CANCELLED" }] } }) : Promise.resolve(0),
+    f.tab === "PENDING_VERIFICATION" && !span ? prisma.paymentSlip.aggregate({ where: { order: counted, status: { not: "REJECTED" } }, _sum: { declaredAmountSatang: true } }) : Promise.resolve(null),
+  ]);
+  return {
+    count: agg._count._all, total: agg._sum.totalSatang ?? 0, shipping: agg._sum.shippingSatang ?? 0, discount: agg._sum.discountSatang ?? 0,
+    codFee: agg._sum.codFeeSatang ?? 0, slips: slips?._sum.declaredAmountSatang ?? 0, cancelled,
+  };
+}
+
+export async function listOrders(f: OrderFilter) {
+  const { where, badRange } = ordersWhere(f);
   const total = await prisma.order.count({ where });
   const pages = Math.max(1, Math.ceil(total / f.size));
   const page = Math.min(f.page, pages);
