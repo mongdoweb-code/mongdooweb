@@ -159,6 +159,7 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
       quoteOnlineQr: f.get("quoteOnlineQr") === "on",
       datasheetStyle: f.get("datasheetStyle") === "A" ? "A" : "B",
       datasheetCompare: f.get("datasheetCompare") === "on",
+      cardBadgeStyle: ["A", "B", "C"].includes(String(f.get("cardBadgeStyle"))) ? String(f.get("cardBadgeStyle")) : "A",
       ...(sig.key ? { signatureKey: sig.key } : f.get("removeSignature") === "on" ? { signatureKey: null } : {}),
       ...(stamp.key ? { stampKey: stamp.key } : f.get("removeStamp") === "on" ? { stampKey: null } : {}),
     },

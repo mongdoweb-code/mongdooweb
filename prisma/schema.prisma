@@ -468,6 +468,8 @@ model ShopSetting {
   /// Data Sheet หน้าสินค้า: รูปแบบเริ่มต้น "A" ตารางเรียบ · "B" มืออาชีพ (จัดกลุ่ม + ไฮไลต์) · ตารางเทียบรุ่น (C) เปิด/ปิด
   datasheetStyle   String  @default("B")
   datasheetCompare Boolean @default(true)
+  /// ป้ายบนการ์ดสินค้าหน้าร้าน: "A" แคปซูลเล็ก · "B" สี่เหลี่ยมมุมโค้งเล็ก · "C" ป้ายชิดมุม (ส้มโปร่งแสง 80%)
+  cardBadgeStyle   String  @default("A")
   backupRetentionDays Int      @default(14)
 
   updatedAt DateTime @updatedAt
