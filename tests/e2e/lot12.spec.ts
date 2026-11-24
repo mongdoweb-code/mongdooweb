@@ -381,16 +381,22 @@ test("A29 บันทึกก่อน/หลัง: สินค้า ตั
 test("A27 ค้นหาทั้งระบบ Ctrl+K / '/' — คำสั่งซื้อ ลูกค้า สินค้า แป้นพิมพ์ + ตามสิทธิ์", async ({ page, browser }) => {
   await login(page);
   await page.goto("/admin/dashboard");
-  await page.keyboard.press("Control+k");
-  await expect(page.locator("#gsInput" + V)).toBeFocused();
+  // กดซ้ำจนช่องค้นหาเปิด — ตัวรับแป้นพิมพ์ผูกหลังหน้าโหลด JS เสร็จ (กดเร็วเกินไปจะยังไม่มีผล)
+  await expect(async () => {
+    await page.keyboard.press("Control+k");
+    await expect(page.locator("#gsInput" + V)).toBeFocused({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
   await page.fill("#gsInput" + V, ids.orderNo);
   await expect(page.locator("#gsList [role=option]" + V).first()).toContainText(ids.orderNo);
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`open=${ids.orderNo}`));
   // "/" เปิด, ค้นเบอร์โทร → ลูกค้า + คำสั่งซื้อ, ↓ เลือกรายการถัดไป, Esc ปิด
   await page.goto("/admin/dashboard");
-  await page.locator("body").click({ position: { x: 5, y: 300 } });
-  await page.keyboard.press("/");
+  await expect(async () => {
+    await page.locator("body").click({ position: { x: 5, y: 300 } });
+    await page.keyboard.press("/");
+    await expect(page.locator("#gsInput" + V)).toBeFocused({ timeout: 1000 });
+  }).toPass({ timeout: 15000 });
   await page.fill("#gsInput" + V, PHONE);
   await expect(page.locator(".gs-grp:has-text('ลูกค้า')" + V)).toBeVisible();
   await expect(page.locator(".gs-grp:has-text('คำสั่งซื้อ')" + V)).toBeVisible();
