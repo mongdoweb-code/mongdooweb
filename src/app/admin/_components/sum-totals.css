@@ -1,4 +1,4 @@
-/* ยอดรวมตามตัวกรอง (หน้ารายการเอกสารขาย): การ์ดสีเด่นมุมขวาบน + แถวรวมท้ายตาราง — สีตามบริบท (ประเภทเอกสาร / สถานะงาน / ยกเลิก) */
+/* ยอดรวมตามตัวกรอง (หน้ารายการเอกสารขาย + หน้าคำสั่งซื้อ): การ์ดสีเด่นมุมขวาบน + แถวรวมท้ายตาราง + ปุ่มช่วงเวลาด่วน + ลูกศรเทียบ — สีตามบริบท */
 .dsum-blue{--t1:#1C5F96;--t2:#2F80C4;--tl:#EAF3FB;--tb:#BFD8EE;--tx:#123F66}
 .dsum-violet{--t1:#5236A0;--t2:#7558CF;--tl:#F1EDFB;--tb:#D3C8F1;--tx:#36246E}
 .dsum-green{--t1:#1A6E45;--t2:#26975F;--tl:#E9F6EF;--tb:#BFE3CD;--tx:#14492F}
@@ -61,3 +61,25 @@ html[data-adm-theme="dark"] .dsum-row .dsum-chips i{background:rgba(255,255,255,
 html[data-adm-theme="dark"] .kpi.dsum{background:linear-gradient(135deg,var(--t1),var(--t2));color:#FFFFFF;border-color:transparent}
 html[data-adm-theme="dark"] .kpi.dsum span,html[data-adm-theme="dark"] .kpi.dsum b,html[data-adm-theme="dark"] .kpi.dsum dd{color:#FFFFFF}
 html[data-adm-theme="dark"] .kpi.dsum small,html[data-adm-theme="dark"] .kpi.dsum dt{color:rgba(255,255,255,.8)}
+
+/* ลูกศรเทียบช่วงก่อนหน้า (good = ดีขึ้น · bad = แย่ลง · ใบลดหนี้สลับความหมาย) */
+.kpi.dsum .dsum-cmp{display:inline-flex;align-items:center;align-self:flex-start;margin-top:4px;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:700;background:rgba(255,255,255,.2);color:#FFFFFF}
+.kpi.dsum .dsum-cmp.cmp-bad{background:rgba(0,0,0,.22)}
+.dsum-row-cmp{display:inline-flex;align-items:center;height:20px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:#E8F5EE;color:#1E7A4D;border:1px solid #BFE3CD}
+.dsum-row-cmp.cmp-bad{background:#FCEDEB;color:#A33224;border-color:#F0C4BE}
+.dsum-row-cmp.cmp-same{background:#F1F0ED;color:#55524D;border-color:#D9D6D0}
+
+/* ปุ่มช่วงเวลาด่วน */
+.rgq-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 16px;border-bottom:1px solid #E3E0D8}
+.rgq-l{font-size:13px;font-weight:600;color:#6B6862;margin-right:4px}
+.rgq{display:inline-flex;align-items:center;height:30px;padding:0 13px;border:1px solid #E3E0D8;border-radius:999px;background:#FFFFFF;font-size:13px;color:#1C1C1C;transition:border-color .15s,background .15s}
+.rgq:hover{border-color:#F26B38}
+.rgq.on{background:#141414;border-color:#141414;color:#FFFFFF;font-weight:600}
+.rgq-shown{margin-left:auto;font-size:12.5px;color:#6B6862;font-variant-numeric:tabular-nums}
+html[data-adm-theme="dark"] .rgq-bar{border-bottom-color:#34322E}
+html[data-adm-theme="dark"] .rgq{background:#1F1F1D;border-color:#3A3833;color:#ECE8E0}
+html[data-adm-theme="dark"] .rgq.on{background:#F26B38;border-color:#F26B38;color:#FFFFFF}
+html[data-adm-theme="dark"] .rgq-l,html[data-adm-theme="dark"] .rgq-shown{color:#B9B4AB}
+html[data-adm-theme="dark"] .dsum-row-cmp{background:rgba(91,208,138,.15);color:#8FE3B0;border-color:rgba(91,208,138,.35)}
+html[data-adm-theme="dark"] .dsum-row-cmp.cmp-bad{background:rgba(255,112,112,.14);color:#FFA3A3;border-color:rgba(255,112,112,.35)}
+html[data-adm-theme="dark"] .dsum-row-cmp.cmp-same{background:rgba(255,255,255,.06);color:#C9C2B5;border-color:rgba(255,255,255,.15)}

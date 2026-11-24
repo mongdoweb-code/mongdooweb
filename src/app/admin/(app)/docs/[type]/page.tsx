@@ -10,9 +10,10 @@ import { requireAdmin } from "@/lib/auth";
 import { docDate, docDateTime, fromYmd, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST, DOC_TABS } from "@/lib/doc-render";
 import { cookies } from "next/headers";
-import { DOC_VOID_COOKIE, NOT_VOID, docTotals, hidesVoid, listDocs, parseDocFilter } from "@/lib/doc-list";
-import { SumCard, SumRows, sumView } from "../DocTotals";
-import "../doc-sum.css";
+import { DOC_VOID_COOKIE, NOT_VOID, docFilterChips, docTotals, hidesVoid, listDocs, parseDocFilter } from "@/lib/doc-list";
+import { sumView } from "../DocTotals";
+import { QuickRanges, SumCard, SumRows } from "../../../_components/SumTotals";
+import { change, matchQuick, prevSpan, quickSpan } from "@/lib/date-ranges";
 import { VoidSetLink, VoidToggle } from "../VoidToggle";
 import { isDocType, quoteEditBlock, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
@@ -87,16 +88,16 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
     ];
   }
 
-  // ยอดรวมตามตัวกรอง (การ์ดมุมขวาบน + แถวท้ายตาราง)
-  const chips = [
-    f.tab !== "all" ? DOC_TABS[type].find(([k]) => k === f.tab)?.[1] : "",
-    f.work ? WORK_FILTERS.find(([k]) => k === f.work)?.[1] : "",
-    f.from || f.to ? `${f.from ? docDate(f.from, era) : "…"} – ${f.to ? docDate(f.to, era) : "…"}` : "",
-    f.q ? `ค้นหา “${f.q.length > 18 ? `${f.q.slice(0, 18)}…` : f.q}”` : "",
-  ].filter((c): c is string => !!c);
-  const sv = sumView(type, totals, chips, f.work, !!f.q); // คำค้นอยู่ท้าย chips เสมอ
+  // ยอดรวมตามตัวกรอง (การ์ดมุมขวาบน + แถวท้ายตาราง) · ช่วงเวลาด่วน · เทียบช่วงก่อนหน้า (เมื่อเลือกช่วงวันที่ครบ)
+  const quick = f.from && f.to ? matchQuick(f.from, f.to, today) : null;
+  const rangeKey = quick ?? (f.from || f.to ? "custom" : "all");
+  const prev = f.from && f.to ? prevSpan({ from: f.from, to: f.to }, today) : null;
+  const prevTot = prev ? await docTotals(type, { ...f, from: prev.from, to: prev.to }) : null;
+  const chips = docFilterChips(type, f, today, era);
+  const sv = sumView(type, totals, chips, f.work, !!f.q, prev && prevTot ? change(totals.grand, prevTot.grand, prev.label) : null); // คำค้นอยู่ท้าย chips เสมอ
   const live = rows.filter((d) => f.tab === "void" || d.status !== "VOID");
-  const pageSum = pages > 1 ? { count: live.length, grand: live.reduce((a, d) => a + d.grandSatang, 0), neg: type === "CREDIT_NOTE" && f.tab !== "void" } : null;
+  const liveSum = live.reduce((a, d) => a + d.grandSatang, 0);
+  const pageSum = pages > 1 ? { count: live.length, amount: `${type === "CREDIT_NOTE" && f.tab !== "void" && liveSum > 0 ? "−" : ""}${money(liveSum)}`, note: f.tab === "void" ? "" : "ไม่รวมใบที่ยกเลิก" } : null;
 
   const qs = (patch: Record<string, string | number>) => {
     const v = new URLSearchParams(Object.entries({ tab: f.tab === "all" ? "" : f.tab, work: f.work, q: f.q, from: f.from, to: f.to, per: f.per === 20 ? "" : f.per, page: "", ...patch }).map(([k, x]) => [k, String(x)]).filter(([, x]) => x));
@@ -155,6 +156,11 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
           ))}
           {f.tab !== "void" && <VoidToggle show={f.showVoid} count={voidCount} active={f.tab === "all"} href={`${base}${qs({ void: f.showVoid ? "hide" : "show" })}`} voidHref={`${base}${qs({ tab: "void" })}`} />}
         </div>
+        <QuickRanges
+          active={rangeKey}
+          href={(k) => { const r = k === "all" ? { from: "", to: "" } : quickSpan(k, today); return `${base}${qs({ from: r.from, to: r.to })}`; }}
+          shown={f.from || f.to ? `${f.from ? docDate(f.from, era) : "…"} – ${f.to ? docDate(f.to, era) : "…"}` : undefined}
+        />
         <form className="toolbar2 doc-filter" action={base}>
           {f.tab !== "all" && <input type="hidden" name="tab" value={f.tab} />}
           {f.work && <input type="hidden" name="work" value={f.work} />}
@@ -219,7 +225,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
               );
             })}
           </tbody>
-          {rows.length > 0 && <SumRows v={sv} page={pageSum} />}
+          {rows.length > 0 && <SumRows v={sv} page={pageSum} lead={3} trail={2} unit="ฉบับ" />}
         </table>
         {hiding && voidCount > 0 && rows.length > 0 && page === pages && (
           <p className="void-note" role="note">ซ่อนใบที่ยกเลิกไว้ {voidCount.toLocaleString("th-TH")} ฉบับ · <VoidSetLink show href={`${base}${qs({ void: "show" })}`}>แสดงด้วย</VoidSetLink> หรือ <Link className="link" href={`${base}${qs({ tab: "void" })}`}>ดูเฉพาะที่ยกเลิก</Link></p>

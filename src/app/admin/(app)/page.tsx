@@ -9,7 +9,6 @@ import {
   EDITABLE,
   REFUNDABLE,
   REFUND_REASONS,
-  RANGES,
   REJECT_REASONS,
   STATUS_LABEL,
   TABS,
@@ -23,7 +22,16 @@ import {
   branchLabel,
   parseTaxInvoice,
   type OrderFilter,
+  QUICK_RANGE,
+  RANGE_QUICK,
+  bkkToday,
+  orderSpan,
+  orderTotals,
+  type OrderTotals,
+  type Tab,
 } from "@/lib/admin-orders";
+import { QUICK_LABEL, change, prevSpan, type Change } from "@/lib/date-ranges";
+import { QuickRanges, SumCard, SumRows, type SumTone, type SumView } from "../_components/SumTotals";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { addrText as addrLine, fmtTaxId } from "@/lib/doc-calc";
@@ -43,6 +51,28 @@ const MODES = ["reject", "edit", "pay", "cancel", "refund"] as const;
 
 const baht = (satang: number) =>
   "฿" + (satang / 100).toLocaleString("th-TH", { minimumFractionDigits: satang % 100 ? 2 : 0, maximumFractionDigits: 2 });
+/** "YYYY-MM-DD" → "DD/MM/YYYY" */
+const dmy = (ymd: string) => ymd.split("-").reverse().join("/");
+
+const TAB_TONE: Record<Tab, SumTone> = { PENDING_VERIFICATION: "orange", COD: "orange", PAID: "blue", SHIPPED: "green", REJECTED: "red", AWAITING_SLIP: "gray", ALL: "violet" };
+/** ยอดรวมของคำสั่งซื้อตามตัวกรอง → การ์ด/แถวท้ายตาราง (ใช้ SumTotals ร่วมกับหน้าเอกสารขาย) */
+function orderSumView(tab: Tab, t: OrderTotals, chips: string[], searching: boolean, cmp: Change | null): SumView {
+  const stats: [string, string][] = [["จำนวน", `${t.count.toLocaleString("th-TH")} คำสั่งซื้อ`], ["ค่าส่ง", baht(t.shipping)]];
+  if (t.discount > 0) stats.push(["ส่วนลด", baht(t.discount)]);
+  if (tab === "PENDING_VERIFICATION") stats.push(["ยอดตามสลิป", baht(t.slips)]);
+  if (t.codFee > 0) stats.push(["ค่าธรรมเนียม COD", baht(t.codFee)]);
+  return {
+    tone: TAB_TONE[tab],
+    chips,
+    rowChips: searching ? [...chips.slice(0, -1), "ผลการค้นหา"] : chips,
+    label: tab === "SHIPPED" ? "ยอดขายที่จัดส่งแล้ว" : tab === "COD" ? "ยอดเก็บเงินปลายทางรวม" : "ยอดคำสั่งซื้อรวม",
+    amount: baht(t.total),
+    stats,
+    note: t.cancelled ? `ไม่รวมที่ยกเลิก ${t.cancelled.toLocaleString("th-TH")} รายการ` : "รวมทุกหน้าตามตัวกรอง",
+    cmp,
+  };
+}
+
 const fmt = (d: Date, opt: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" }) =>
   d.toLocaleString("th-TH", { ...opt, timeZone: "Asia/Bangkok" });
 
@@ -71,7 +101,14 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
   const open = typeof sp.open === "string" ? sp.open.slice(0, 40) : null;
   const mode: Mode = MODES.find((m) => m === sp.mode) ?? null;
   const bulk = f.tab === "PAID";
-  const [list, stats] = await Promise.all([listOrders(f), orderStats()]);
+  const today = bkkToday();
+  const span = orderSpan(f, today);
+  const prev = span ? prevSpan(span, today) : null;
+  const [list, stats, totals, prevTot] = await Promise.all([listOrders(f), orderStats(), orderTotals(f), prev ? orderTotals(f, prev) : Promise.resolve(null)]);
+  const quick = f.range in RANGE_QUICK ? RANGE_QUICK[f.range as keyof typeof RANGE_QUICK] : null;
+  const rangeChip = quick ? QUICK_LABEL[quick] : span ? `${dmy(span.from)} – ${dmy(span.to)}` : f.range === "custom" && (f.from || f.to) ? `${f.from ? dmy(f.from) : "…"} – ${f.to ? dmy(f.to) : "…"}` : "";
+  const sv = orderSumView(f.tab, totals, [TABS.find(([k]) => k === f.tab)![1], rangeChip, f.q ? `ค้นหา “${f.q.length > 18 ? `${f.q.slice(0, 18)}…` : f.q}”` : ""].filter(Boolean), !!f.q, prev && prevTot ? change(totals.total, prevTot.total, prev.label) : null);
+  const liveRows = list.rows.filter((o) => o.status !== "CANCELLED");
   const count = (s: keyof typeof STATUS_LABEL | "COD") => stats.count[s] ?? 0;
   const allCount = Object.values(stats.count).reduce((a, b) => a + (b ?? 0), 0);
   const pend = count("PENDING_VERIFICATION");
@@ -114,7 +151,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
       </div>
 
       {sp.created === "1" && open && <div className="ok-box" role="status" style={{ marginBottom: 12 }} id="createdMsg">สร้างคำสั่งซื้อ {open} แล้ว</div>}
-      <div className="kpis">
+      <div className="kpis has-sum" style={{ "--kn": count("COD") > 0 ? 5 : 4 } as React.CSSProperties}>
         <a className={`kpi ${pend ? "hot" : ""}`} href={href({ tab: "PENDING_VERIFICATION", page: 1 })}>
           <span>รอตรวจสลิป</span>
           <b className="num">{pend}</b>
@@ -142,6 +179,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
           <b className="num">{count("SHIPPED")}</b>
           <small>ทั้งหมด</small>
         </a>
+        <SumCard v={sv} />
       </div>
 
       <SalesChart days={stats.days} />
@@ -164,18 +202,16 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
             <input id="q" name="q" type="search" defaultValue={f.q} placeholder="ค้นหาเลขที่, ชื่อ, เบอร์โทร, เลขพัสดุ" />
           </form>
         </div>
-        <form className="toolbar2" action="/admin">
-          {f.tab !== "PENDING_VERIFICATION" && <input type="hidden" name="tab" value={f.tab} />}
-          {f.q && <input type="hidden" name="q" value={f.q} />}
-          <span className="lbl" id="rangeLbl">ช่วงวันที่</span>
-          <div className="seg" role="group" aria-labelledby="rangeLbl">
-            {(["all", "today", "7", "30", "custom"] as const).map((r) => (
-              <a key={r} aria-current={f.range === r ? "true" : undefined} href={href({ range: r, page: 1 })}>
-                {RANGES[r]}
-              </a>
-            ))}
-          </div>
-          {f.range === "custom" && (
+        <QuickRanges
+          active={f.range === "all" ? "all" : quick ?? "custom"}
+          href={(k) => href({ range: k === "all" ? "all" : QUICK_RANGE[k], page: 1 })}
+          custom={<a className={`rgq${f.range === "custom" ? " on" : ""}`} href={href({ range: "custom", page: 1 })} aria-current={f.range === "custom" ? "true" : undefined} data-range="custom">กำหนดเอง</a>}
+          shown={span ? `${dmy(span.from)} – ${dmy(span.to)}` : undefined}
+        />
+        {(f.range === "custom" || list.badRange) && (
+          <form className="toolbar2" action="/admin">
+            {f.tab !== "PENDING_VERIFICATION" && <input type="hidden" name="tab" value={f.tab} />}
+            {f.q && <input type="hidden" name="q" value={f.q} />}
             <div className="date-custom">
               <input type="hidden" name="range" value="custom" />
               <label className="sr-only" htmlFor="dFrom">ตั้งแต่วันที่</label>
@@ -185,9 +221,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
               <input type="date" id="dTo" name="to" defaultValue={f.to} />
               <button className="btn btn-outline btn-sm" type="submit">ใช้ช่วงนี้</button>
             </div>
-          )}
-          <span className="err-msg">{list.badRange ? "วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด" : ""}</span>
-        </form>
+            <span className="err-msg">{list.badRange ? "วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด" : ""}</span>
+          </form>
+        )}
         {bulk && list.rows.length > 0 && (
           <>
             <form id="bulkForm" hidden />
@@ -282,6 +318,15 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
               );
             })}
           </tbody>
+          {list.rows.length > 0 && (
+            <SumRows
+              v={sv}
+              lead={bulk ? 4 : 3}
+              trail={3}
+              unit="คำสั่งซื้อ"
+              page={list.pages > 1 ? { count: liveRows.length, amount: baht(liveRows.reduce((a, o) => a + o.totalSatang, 0)), note: f.tab === "ALL" ? "ไม่รวมที่ยกเลิก" : "" } : null}
+            />
+          )}
         </table>
         {list.rows.length === 0 && (
           <div className="empty">

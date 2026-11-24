@@ -2,8 +2,8 @@
 import { docDate, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST } from "@/lib/doc-render";
 import { cookies } from "next/headers";
-import { DOC_VOID_COOKIE, docWhere, parseDocFilter } from "@/lib/doc-list";
-import { asSnap, isDocType, statusOf, ymdOf } from "@/lib/docs";
+import { DOC_VOID_COOKIE, docFilterChips, docWhere, hidesVoid, parseDocFilter } from "@/lib/doc-list";
+import { asSnap, isDocType, statusOf, todayYmd, ymdOf } from "@/lib/docs";
 import { logAdmin } from "@/lib/admin-log";
 import { routeAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -34,9 +34,27 @@ export async function GET(req: Request) {
       d.workState ? WORK_META[d.workState].label : "", d.workNote, d.workBy?.displayName,
     ].map(q).join(",");
   });
+  // หัวไฟล์: ชื่อเอกสาร + ตัวกรอง · ท้ายไฟล์: ยอดรวม/เฉลี่ย (ไม่นับใบที่ยกเลิก ยกเว้นส่งออกแท็บ "ยกเลิก") — ตรงกับการ์ดยอดรวมในหน้ารายการ
+  const voidTab = f.tab === "void";
+  const counted = rows.filter((d) => voidTab || d.status !== "VOID");
+  const sum = (k: "subtotalSatang" | "discountSatang" | "vatSatang" | "grandSatang" | "paidSatang") => counted.reduce((a, d) => a + d[k], 0);
+  const voidN = rows.length - counted.length;
+  const pad = (cells: unknown[]) => [...cells, ...Array(Math.max(0, head.length - cells.length)).fill("")].map(q).join(",");
+  const at = new Date().toLocaleString("en-GB", { timeZone: "Asia/Bangkok", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "");
+  const chips = docFilterChips(type, f, todayYmd(), "AD", true);
+  const top = [
+    pad([`${DOC_META[type].th} — ส่งออกจากหลังบ้าน`]),
+    pad([`ตัวกรอง: ${chips.join(" · ") || "ทั้งหมด"} · ${voidTab ? "เฉพาะใบที่ยกเลิก (ไม่นับเป็นยอดขาย)" : voidN ? `ไม่รวมใบที่ยกเลิก ${voidN} ฉบับในยอดรวม` : hidesVoid(f) ? "ไม่รวมใบที่ยกเลิก" : "ไม่มีใบที่ยกเลิก"} · ส่งออกเมื่อ ${at}`]),
+  ];
+  const owe = type === "INVOICE" ? counted.filter((d) => d.status !== "DRAFT").reduce((a, d) => a + Math.max(0, d.grandSatang - d.paidSatang), 0) : 0;
+  const bottom = [
+    pad([]),
+    pad([`${voidTab ? "ยอดของใบที่ยกเลิก" : "ยอดรวม"} (${counted.length} ฉบับ)`, "", "", "", "", "", "", "", money(sum("subtotalSatang")), money(sum("discountSatang")), money(sum("vatSatang")), money(sum("grandSatang")), type === "INVOICE" ? money(sum("paidSatang")) : "", type === "INVOICE" ? money(owe) : ""]),
+    pad(["เฉลี่ยต่อฉบับ", "", "", "", "", "", "", "", "", "", "", counted.length ? money(Math.round(sum("grandSatang") / counted.length)) : "0.00"]),
+  ];
   await logAdmin(admin.id, "ORDERS_EXPORT", `ส่งออก CSV ${DOC_META[type].th} ${rows.length} รายการ`);
   const name = `${DOC_META[type].short}-${ymdBkk(new Date())}.csv`;
-  return new Response("﻿" + [head.map(q).join(","), ...lines].join("\r\n"), {
+  return new Response("﻿" + [...top, head.map(q).join(","), ...lines, ...bottom].join("\r\n"), {
     headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "no-store" },
   });
 }
