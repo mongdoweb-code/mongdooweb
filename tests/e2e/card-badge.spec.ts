@@ -34,6 +34,9 @@ test("ตั้งค่าร้าน → แบบ A/B/C → หน้าร�
       const info = await badge.evaluate((e) => [...document.querySelectorAll("[data-badge]")].map((x) => x.getAttribute("data-badge")).join(",") + " / own=" + e.closest("[data-badge]")?.getAttribute("data-badge"));
       expect(expectRadius[k](radius), `${k}: ${radius} ${info}`).toBe(true);
       expect(parseFloat(size)).toBeLessThanOrEqual(10.5);
+      // สีพื้น: ส้มโปร่งแสง (ป้ายทั่วไป) หรือแดงโปร่งแสง (ลดราคา) — ไม่ใช่ส้มทึบแบบเดิม
+      const bg = await badge.evaluate((e) => getComputedStyle(e).backgroundColor);
+      expect(bg, bg).toMatch(/^rgba\((242, 107, 56, 0\.8|192, 57, 43, 0\.88)\)$/);
     }
   }
   await shop.context().close();
