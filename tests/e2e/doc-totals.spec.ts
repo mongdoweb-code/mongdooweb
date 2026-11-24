@@ -40,7 +40,7 @@ test("ใบเสร็จ: ทั้งหมด (ไม่รวมยกเ�
   await expect(row.locator(".dsum-row-amt")).toHaveText(baht(one.grandSatang));
 });
 
-test("ใบแจ้งหนี้: ชำระแล้ว / ค้างชำระ · สถานะงาน 'เสร็จสิ้น' เปลี่ยนเป็นสีคราม · หลายหน้ามีแถวรวมหน้านี้", async ({ page }) => {
+test("ใบแจ้งหนี้: ชำระแล้ว / ค้างชำระ · สถานะงาน 'เสร็จสิ้น' เปลี่ยนเป็นสีเขียว · หลายหน้ามีแถวรวมหน้านี้", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page);
   const [iv] = await q<{ c: string; s: string; p: string }>(`SELECT count(*) c, coalesce(sum("grandSatang"),0) s, coalesce(sum("paidSatang"),0) p FROM "SalesDocument" WHERE type='INVOICE' AND status <> 'VOID'`);
@@ -54,7 +54,7 @@ test("ใบแจ้งหนี้: ชำระแล้ว / ค้างช
 
   const [done] = await q<{ s: string }>(`SELECT coalesce(sum("grandSatang"),0) s FROM "SalesDocument" WHERE type='INVOICE' AND status <> 'VOID' AND "workState"='DONE'`);
   await page.goto("/admin/docs/INVOICE?void=hide&work=done");
-  await expect(card).toHaveClass(/dsum-indigo/);
+  await expect(card).toHaveClass(/dsum-green/);
   await expect(card.locator(".dsum-chips")).toHaveText("เสร็จสิ้น");
   await expect(card.locator(".dsum-amt")).toHaveText(baht(n(done.s)));
 });

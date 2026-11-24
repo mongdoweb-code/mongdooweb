@@ -1,18 +1,18 @@
 /* สีสถานะเอกสารขาย (ป้าย + สีพื้นแถว) · ดาวปักไว้บนสุด · แถบค้นหา/วันที่แบบแคปซูล — หน้ารายการเอกสาร / หน้าดูเอกสาร / หน้าลูกค้า
    สถานะเอกสาร = พื้นอ่อนมีจุด (แต่ละสถานะสีของตัวเอง) · สถานะงาน = ป้ายสีทึบ ชมพู/คราม (admin.css .wt-*) — คนละชุดสีกัน */
-.ds-draft{--ds:#475569;--dsb:#F1F5F9;--dsr:#F8FAFC;--dsl:#94A3B8}
-.ds-open{--ds:#A16207;--dsb:#FEF3C7;--dsr:#FFFBEA;--dsl:#EAB308}
-.ds-accepted,.ds-paid,.ds-delivered{--ds:#047857;--dsb:#D1FAE5;--dsr:#F0FDF6;--dsl:#10B981}
-.ds-rejected{--ds:#BE123C;--dsb:#FFE4E6;--dsr:#FFF5F6;--dsl:#F43F5E}
-.ds-expired{--ds:#6B5E4E;--dsb:#EDE9E3;--dsr:#F8F6F2;--dsl:#A8A29E}
-.ds-unpaid{--ds:#C2410C;--dsb:#FFEDD5;--dsr:#FFF8F1;--dsl:#F97316}
-.ds-partial{--ds:#0369A1;--dsb:#E0F2FE;--dsr:#F3FAFF;--dsl:#0EA5E9}
-.ds-overdue{--ds:#B91C1C;--dsb:#FEE2E2;--dsr:#FFF4F4;--dsl:#EF4444}
-.ds-issued{--ds:#0F766E;--dsb:#CCFBF1;--dsr:#F0FDFA;--dsl:#14B8A6}
-.ds-shipping{--ds:#6D28D9;--dsb:#EDE9FE;--dsr:#F8F5FF;--dsl:#8B5CF6}
-.ds-void{--ds:#FFFFFF;--dsb:#2B2B2B;--dsr:#F4F4F3;--dsl:#2B2B2B}
-.dst[class*="ds-"]{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border-radius:999px;background:var(--dsb);color:var(--ds);font-size:11.5px;font-weight:700}
-.dst[class*="ds-"]::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.ds-draft{--ds:#5B6676;--dsb:#F3F5F8;--dsd:#A3AEBD;--dsr:#F8FAFC;--dsl:#94A3B8}
+.ds-open{--ds:#8C6A1A;--dsb:#FFF6D6;--dsd:#E0B23A;--dsr:#FFFBEA;--dsl:#EAB308}
+.ds-accepted,.ds-paid,.ds-delivered{--ds:#3B7A5A;--dsb:#E4F6EC;--dsd:#4CBF86;--dsr:#F0FDF6;--dsl:#10B981}
+.ds-rejected{--ds:#A54056;--dsb:#FDEBEE;--dsd:#EE7C92;--dsr:#FFF5F6;--dsl:#F43F5E}
+.ds-expired{--ds:#76695A;--dsb:#F1EEE9;--dsd:#B7ADA1;--dsr:#F8F6F2;--dsl:#A8A29E}
+.ds-unpaid{--ds:#A65424;--dsb:#FFF0E2;--dsd:#F3A060;--dsr:#FFF8F1;--dsl:#F97316}
+.ds-partial{--ds:#2D6F99;--dsb:#E8F5FD;--dsd:#5DB8E8;--dsr:#F3FAFF;--dsl:#0EA5E9}
+.ds-overdue{--ds:#A8393A;--dsb:#FDEBEB;--dsd:#EE8080;--dsr:#FFF4F4;--dsl:#EF4444}
+.ds-issued{--ds:#2F7A72;--dsb:#E1F7F3;--dsd:#4CC4B3;--dsr:#F0FDFA;--dsl:#14B8A6}
+.ds-shipping{--ds:#6A4BB0;--dsb:#F1EDFD;--dsd:#A58BEB;--dsr:#F8F5FF;--dsl:#8B5CF6}
+.ds-void{--ds:#FFFFFF;--dsb:#4A4845;--dsd:#C9C4BA;--dsr:#F4F4F3;--dsl:#2B2B2B}
+.dst[class*="ds-"]{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border-radius:999px;background:var(--dsb);color:var(--ds);font-size:11.5px;font-weight:600}
+.dst[class*="ds-"]::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--dsd,currentColor);flex:none}
 
 /* สีพื้นแถวตามสถานะเอกสาร (อ่อนมาก) + แถบสีซ้าย 4px — มองทั้งแถวก็รู้สถานะ */
 .doc-tbl tbody tr[class*="ds-"] td{background:var(--dsr);transition:background .15s}
@@ -22,11 +22,11 @@
 .doc-tbl tbody tr.ds-void td:not(:last-child){color:#8A867E}
 
 /* ดาวปักไว้บนสุด (ใช้ร่วมกันทุกคน) */
-.doc-tbl th.c-pin,.doc-tbl td.c-pin{width:46px;padding-left:4px;padding-right:4px;text-align:center}
+.doc-tbl th.c-pin,.doc-tbl td.c-pin{width:52px;padding-left:4px;padding-right:4px;text-align:center}
 .pin-th{display:inline-grid;place-items:center;color:#F59E0B}
-.pin-th svg{width:15px;height:15px;fill:#FBBF24}
-.pin-btn{width:32px;height:32px;display:inline-grid;place-items:center;border-radius:10px;color:#C9C4BA;transition:color .15s,background .15s,transform .15s}
-.pin-btn svg{width:19px;height:19px}
+.pin-th svg{width:17px;height:17px;fill:#FBBF24}
+.pin-btn{width:38px;height:38px;display:inline-grid;place-items:center;border-radius:10px;color:#C9C4BA;transition:color .15s,background .15s,transform .15s}
+.pin-btn svg{width:24px;height:24px}
 .pin-btn:hover{color:#F59E0B;background:#FFFBEB;transform:scale(1.08)}
 .pin-btn.on{color:#F59E0B}
 .pin-btn.on svg{fill:#FBBF24;filter:drop-shadow(0 1px 2px rgba(245,158,11,.45))}
@@ -82,5 +82,5 @@ html[data-adm-theme="dark"] .df-clear:hover{border-color:#ECE8E0;color:#ECE8E0}
   .doc-tbl tbody tr[class*="ds-"]{background:var(--dsr);box-shadow:inset 4px 0 0 var(--dsl);padding-left:50px!important}
   .doc-tbl tbody tr[class*="ds-"] td,.doc-tbl tbody tr[class*="ds-"]:hover td{background:transparent}
   .doc-tbl tbody tr[class*="ds-"] td:first-child{box-shadow:none}
-  .doc-tbl td.c-pin{position:absolute;left:10px;top:9px;width:auto!important;padding:0}
+  .doc-tbl td.c-pin{position:absolute;left:7px;top:6px;width:auto!important;padding:0}
 }
