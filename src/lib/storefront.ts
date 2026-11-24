@@ -6,6 +6,8 @@ import { cacheLife, cacheTag } from "next/cache";
 import { mediaUrl } from "@/lib/media";
 import { displayPrice, nextPriceChange, revalidateFor, saleInfo, tierInfo, type SaleInfo, type TierInfo } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { noticesFor } from "@/lib/notices";
+import { getNoticeLibrary } from "@/lib/notices-db";
 import { downloadHref, parseDownloads } from "@/lib/product-downloads";
 import { getSpecDefs } from "@/lib/product-data";
 import { getSynonymGroups } from "@/lib/search";
@@ -302,6 +304,7 @@ export async function getProductDetail(slug: string) {
   // Data Sheet (แบบ A/B ตามสินค้า → ค่าร้าน) + ตารางเทียบรุ่น (แบบ C) จาก Data Sheet ของสมาชิกในกลุ่มตัวเลือก
   const dsSet = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { datasheetStyle: true, datasheetCompare: true } });
   const datasheet = parseDatasheet(p.datasheet);
+  const notices = noticesFor(await getNoticeLibrary(), p);
 
   // กลุ่มตัวเลือก (U1): สมาชิกที่เปิดขาย ≥ 2 ตัวเท่านั้นจึงแสดงปุ่มเลือก
   let variants: VariantGroupView | null = null;
@@ -349,6 +352,7 @@ export async function getProductDetail(slug: string) {
     name: p.name,
     datasheet: dsEmpty(datasheet) ? null : { ...datasheet, style: dsStyleOf(datasheet, dsSet?.datasheetStyle ?? "B") },
     datasheetCompare: dsCmp,
+    notices,
     description: p.description,
     shortDescription: p.shortDescription,
     seoTitle: p.seoTitle,

@@ -30,6 +30,7 @@
 .pdp-meta{font-size:14px;color:var(--c-muted)}
 .pdp-actions{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}
 .pdp-note{background:var(--c-cream);padding:16px 18px;font-size:15px;margin-top:8px}
+.pdp-notes{margin-top:16px}
 .spec-table{width:100%;border-collapse:collapse;margin-top:24px;font-size:15px}
 .spec-table th,.spec-table td{text-align:left;padding:10px 0;border-bottom:1px solid var(--c-line);vertical-align:top}
 .spec-table th{width:40%;font-weight:500;color:var(--c-muted)}

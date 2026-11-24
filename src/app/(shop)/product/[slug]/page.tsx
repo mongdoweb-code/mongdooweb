@@ -1,6 +1,7 @@
 // หน้ารายละเอียดสินค้า — แกลเลอรี, ราคา/สต็อก, เลือกจำนวน, ซื้อคู่กัน, สเปก, คำอธิบาย, สินค้าในหมวด, ดูล่าสุด
 // ล็อต 9: ปุ่มเลือกตัวเลือก (U1), ราคาลดตามเวลา + นับถอยหลัง (U3), รายการโปรด/เปรียบเทียบ (U5/U7),
 // ตารางสเปกแบบมีโครงสร้าง (U6), ลิงก์คำนวณหม้อแปลง (U8), ราคาขายส่ง (U10), ไฟล์ดาวน์โหลด (U11)
+import { NoticeList } from "@/components/notice/NoticeBox";
 import { DatasheetSection } from "./Datasheet";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -313,12 +314,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
                 เปรียบเทียบ
               </button>
             </div>
-            {!p.isAccessory && ["underwater-light", "pool-light", "fountain-light", "garden-light", "uplight-led"].includes(p.category.slug) && (
-              <p className="pdp-note">
-                {p.includesPsu ? "ชุดพร้อมใช้ มีหม้อแปลงไฟในกล่องแล้ว · " : "ไฟแรงดันต่ำ ต้องต่อผ่านหม้อแปลง · "}
-                <b>ห้ามต่อไฟบ้าน 220V โดยตรง</b>
-              </p>
-            )}
+            <NoticeList items={p.notices} className="pdp-notes" />
             {psuCalc && (
               <p className="pdp-psu">
                 ใช้หลายดวง? <a className="link-more" href={`/tools/psu-calculator?light=${encodeURIComponent(p.slug)}`} data-psu-link>

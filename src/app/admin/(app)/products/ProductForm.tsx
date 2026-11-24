@@ -14,11 +14,14 @@ import { SectionNav, type NavSection } from "../../_components/SectionNav";
 import { SaveResultPopup } from "../../_components/SaveResultPopup";
 import type { Datasheet, DsGroup } from "@/lib/datasheet";
 import { DatasheetEditor } from "./DatasheetEditor";
+import { NoticePicker } from "./NoticePicker";
+import type { NoticeRow } from "@/lib/notices";
 
 /** เมนูด่วนด้านบนฟอร์ม — ลำดับตามที่ใช้บ่อย (ส่วนที่ไม่มีในหน้าถูกซ่อนเอง) */
 const SECTIONS: NavSection[] = [
   { id: "sec-info", label: "ข้อมูลสินค้า" },
   { id: "productMedia", label: "รูปสินค้า" },
+  { id: "sec-notice", label: "ข้อความแจ้งเตือน" },
   { id: "sec-price", label: "ราคาและการขาย" },
   { id: "sec-seo", label: "SEO และการค้นหา" },
   { id: "sec-finder", label: "ตัวช่วยเลือกไฟ (หน้าแรก)" },
@@ -44,15 +47,17 @@ export type ProductValues = {
   /** ล็อต 9: ราคาลดตามเวลา ราคาขายส่ง สเปกตามหมวด กลุ่มตัวเลือก */
   extras: ExtrasValues;
   datasheet: Datasheet;
+  /** ข้อความแจ้งเตือนหน้าสินค้า: เลือกจากคลัง · ปิดข้อความอัตโนมัติ */
+  notices: { ids: string[]; off: string[] };
 };
 /** ข้อมูลประกอบตัวแก้ไข Data Sheet */
 export type DatasheetLists = { shopStyle: string; templates: Record<string, DsGroup[]>; products: { id: string; label: string }[] };
 
 const USE = [["POOL", "สระว่ายน้ำ"], ["POND", "บ่อปลา/บ่อน้ำ"], ["FOUNTAIN", "น้ำพุ"], ["GARDEN", "สวน"]];
 
-export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText, specDefs, ds, children }: {
+export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText, specDefs, ds, noticeLib, children }: {
   v: ProductValues; categories: { id: string; name: string }[]; saved: boolean; copied?: boolean; owner?: boolean; siteHost?: string; shortText?: string;
-  specDefs: SpecDef[]; ds: DatasheetLists; children?: React.ReactNode;
+  specDefs: SpecDef[]; ds: DatasheetLists; noticeLib: NoticeRow[]; children?: React.ReactNode;
 }) {
   const [state, onSubmit, pending] = useFormAction<ProductFormState>(saveProduct, saved ? { ok: "เพิ่มสินค้าแล้ว" } : copied ? { ok: "ทำสำเนาแล้ว — สำเนานี้ปิดขายอยู่ แก้ไขแล้วเปิดขายได้" } : {}, { popup: false }); // มีป๊อปอัปของตัวเอง (ดูหน้าสินค้า + ไปช่องที่ผิด)
   const [name, setName] = useState(v.name);
@@ -123,6 +128,8 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
             </div>
 
             <ProductMedia images={v.images} video={v.video} onBusy={setMediaBusy} invalid={{ images: state.fields?.includes("newImages"), video: state.fields?.includes("video") }} />
+
+            <NoticePicker lib={noticeLib} init={v.notices} categoryId={cat} categoryName={(id) => categories.find((c) => c.id === id)?.name} isAccessory={v.isAccessory} />
 
             <div className="box" id="sec-specs">
               <h3>สเปกสินค้า</h3>

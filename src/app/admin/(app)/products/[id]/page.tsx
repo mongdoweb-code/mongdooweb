@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "../../../../../../generated/prisma/client";
 import { EMPTY_DS, parseDatasheet, parseTemplate, type DsGroup } from "@/lib/datasheet";
 import { parseAttrs } from "@/lib/specs";
+import { getNoticeLibrary } from "@/lib/notices-db";
 import { optionLabel, readOptions } from "@/lib/variants";
 import "../../../lot3.css";
 import { DownloadsBox } from "../DownloadsBox";
@@ -51,6 +52,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
       includesPsu: false, isAccessory: false, orders: 0,
       extras: { salePrice: "", saleStartsAt: "", saleEndsAt: "", tiers: [], attrs: {}, group: null },
       datasheet: EMPTY_DS,
+      notices: { ids: [], off: [] },
     };
   } else {
     const p = await prisma.product.findUnique({ where: { id }, include: { _count: { select: { orderItems: true, docItems: true } }, variantGroup: true } });
@@ -77,6 +79,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
           : null,
       },
       datasheet: parseDatasheet(p.datasheet),
+      notices: { ids: p.noticeIds, off: p.noticeOff },
     };
     downloads = parseDownloads(p.downloads).map((d) => ({ key: d.key, name: d.name, size: fileSize(d.sizeBytes), href: downloadHref(p.slug, d.key) }));
   }
@@ -102,6 +105,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
         key={v.id || "new"} v={v} categories={categories} saved={sp.saved === "1"} copied={sp.copied === "1"} owner={admin.role === "OWNER"}
         siteHost={(process.env.SITE_URL ?? "https://www.mongdooweb.com").replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
         shortText={htmlToText(v.shortDescription || v.description).slice(0, 160)}
+        noticeLib={await getNoticeLibrary()}
         specDefs={specDefs}
         ds={ds}
       >

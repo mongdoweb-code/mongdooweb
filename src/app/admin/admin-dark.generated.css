@@ -4743,6 +4743,187 @@ html[data-adm-theme="dark"] .ds-add {
 html[data-adm-theme="dark"] .ds-add:hover {
     background: #261C12
 }
+/*  src/app/admin/(app)/notices/notices.css  */
+html[data-adm-theme="dark"] .ntc-page .panel {
+    border: 1px solid #2B2F37
+}
+html[data-adm-theme="dark"] .ntc-n {
+    background: #16171B;
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .ntc-prev {
+    border: 1px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ntc-prev-h {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .ntc-prev-buy i {
+    background: #16171B
+}
+html[data-adm-theme="dark"] .ntc-prev-buy i+i {
+    background: #1A110C
+}
+html[data-adm-theme="dark"] .ntc-prev-empty {
+    color: #9E9B94;
+    border: 1px dashed #2A2D35
+}
+html[data-adm-theme="dark"] .ntf-bold {
+    border: 1px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ntf-bold:hover {
+    border-color: #F26B38
+}
+html[data-adm-theme="dark"] .ntf textarea {
+    border: 1px solid #2A2D35
+}
+html[data-adm-theme="dark"] .ntf textarea[aria-invalid] {
+    border-color: #C0392B
+}
+html[data-adm-theme="dark"] .ntf small code {
+    background: #16171B
+}
+html[data-adm-theme="dark"] .ntf-over {
+    color: #DD7469
+}
+html[data-adm-theme="dark"] .ntf-set {
+    border: 0
+}
+html[data-adm-theme="dark"] .ntf-tone {
+    border: 1.5px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ntf-tone i {
+    background: var(--ntc-bg);
+    border: 2px solid var(--ntc-ic)
+}
+html[data-adm-theme="dark"] .ntf-tone small {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .ntf-tone.is-on {
+    border-color: var(--ntc-ic)
+}
+html[data-adm-theme="dark"] .ntf-tone:has(input:focus-visible) {
+    outline: 2px solid #F26B38
+}
+html[data-adm-theme="dark"] .ntf-ic {
+    border: 1.5px solid #2B2F37;
+    background: #1E2127;
+    color: #D3D1CD
+}
+html[data-adm-theme="dark"] .ntf-ic:hover {
+    border-color: #F26B38;
+    color: #F18055
+}
+html[data-adm-theme="dark"] .ntf-ic.is-on {
+    border-color: #F26B38;
+    background: #261912;
+    color: #E38363
+}
+html[data-adm-theme="dark"] .ntc-scope {
+    border: 1.5px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ntc-scope small {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .ntc-scope.is-on {
+    border-color: #F26B38;
+    background: #291C14
+}
+html[data-adm-theme="dark"] .ntc-cats[aria-invalid] {
+    outline: 2px solid #C0392B
+}
+html[data-adm-theme="dark"] .ntc-chip {
+    border: 1px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ntc-chip.is-on {
+    border-color: #F26B38;
+    background: #261912;
+    color: #E68560
+}
+html[data-adm-theme="dark"] .ntc-hint {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .ntc-pick-bar input,
+html[data-adm-theme="dark"] .ntc-pick-bar select {
+    border: 1px solid #2A2D35;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ntc-pick {
+    border: 1px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ntc-pick li+li {
+    border-top: 1px solid #2D3139
+}
+html[data-adm-theme="dark"] .ntc-pick label:hover {
+    background: #231F19
+}
+html[data-adm-theme="dark"] .ntc-pick label.is-on {
+    background: #291C14
+}
+html[data-adm-theme="dark"] .ntc-pick em {
+    color: #ACA9A4;
+    background: #16171B
+}
+html[data-adm-theme="dark"] .ntc-empty {
+    color: #9E9B94
+}
+html[data-adm-theme="dark"] .ntc-scope-cell {
+    color: #D3D1CD
+}
+html[data-adm-theme="dark"] .ntc-tg {
+    border: 0;
+    background: #121211
+}
+html[data-adm-theme="dark"] .ntc-tg i {
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ntc-tg[aria-checked="true"] {
+    background: #16A37B
+}
+html[data-adm-theme="dark"] .pn-sub {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .pn-item {
+    border: 1.5px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .pn-item.is-on {
+    border-color: #F26B38;
+    background: #2C1F15
+}
+html[data-adm-theme="dark"] .pn-meta {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .pn-meta b {
+    color: #D3D1CD
+}
+html[data-adm-theme="dark"] .pn-tag {
+    background: #16171B;
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .pn-tag.auto {
+    background: #111B22;
+    color: #64A9E2
+}
+html[data-adm-theme="dark"] .pn-tag.off {
+    background: #1B1413;
+    color: #DE7669
+}
+html[data-adm-theme="dark"] .pn-count {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .pn-new {
+    border: 1.5px dashed #2A2D35;
+    background: #25221A
+}
+html[data-adm-theme="dark"] .pn-new-prev>span {
+    color: #ACA9A4
+}
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {
     color: var(--c-muted)
