@@ -1,6 +1,6 @@
 /* ข้อความแจ้งเตือนหน้าสินค้า — ไอคอน 20px ตรงกับบรรทัดแรก · ระยะในกล่องเท่ากันทั้ง 4 ด้าน (12/16) */
 .ntc-list{display:grid;gap:8px}
-.ntc{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:start;padding:12px 16px;border:1px solid var(--ntc-bd);border-radius:10px;background:var(--ntc-bg);color:var(--ntc-tx);font-size:14.5px;line-height:1.6;text-align:left}
+.ntc{display:grid;grid-template-columns:22px minmax(0,1fr);gap:12px;align-items:start;padding:12px 16px;border:1px solid var(--ntc-bd);border-radius:0;background:var(--ntc-bg);color:var(--ntc-tx);font-size:14.5px;line-height:1.6;text-align:left}
 .ntc.no-ic{grid-template-columns:minmax(0,1fr)}
 .ntc-ic{display:grid;place-items:center;width:22px;height:23px;color:var(--ntc-ic)}
 .ntc-ic svg{width:20px;height:20px}
