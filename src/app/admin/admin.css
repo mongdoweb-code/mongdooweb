@@ -2129,10 +2129,10 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .st-cell{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 .wtag{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px 0 7px;border:1.5px solid;border-radius:999px;background:#fff;font:600 12px/1 var(--font);white-space:nowrap;cursor:pointer;position:relative;transition:background .15s,border-color .15s,color .15s}
 .wtag svg{width:15px;height:15px;flex:none}
-.wtag.wt-todo{color:#FFFFFF;border-color:#DB2777;background:#DB2777;font-weight:700}
-.wtag.wt-todo:hover{border-color:#BE185D;background:#BE185D}
-.wtag.wt-done{color:#FFFFFF;border-color:#4338CA;background:#4338CA;font-weight:700}
-.wtag.wt-done:hover{border-color:#3730A3;background:#3730A3}
+.wtag.wt-todo{color:#B3322B;border-color:#F3B0AA;background:#FDECEC;font-weight:700}
+.wtag.wt-todo:hover{border-color:#B3322B}
+.wtag.wt-done{color:#257A47;border-color:#9FD8B3;background:#E7F6EC;font-weight:700}
+.wtag.wt-done:hover{border-color:#257A47}
 .wt-empty{color:#8A867E;border:1.5px dashed #CFCAC0;background:#FFFFFF;padding:0 9px}
 .wt-empty span[aria-hidden]{font-size:14px;line-height:1}
 .wt-empty:hover,.wt-empty[aria-expanded="true"]{color:var(--c-orange);border-color:var(--c-orange)}
@@ -2141,10 +2141,10 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .wt-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .wt-opt{display:flex;align-items:center;justify-content:center;gap:6px;height:38px;border:1.5px solid;border-radius:999px;font:600 13px/1 var(--font);background:#fff}
 .wt-opt svg{width:16px;height:16px}
-.wt-opt.wt-todo{color:#BE185D;border-color:#F5B5D3}
-.wt-opt.wt-done{color:#4338CA;border-color:#C3C0F5}
-.wt-opt.on.wt-todo{background:#DB2777;border-color:#DB2777;color:#fff}
-.wt-opt.on.wt-done{background:#4338CA;border-color:#4338CA;color:#fff}
+.wt-opt.wt-todo{color:#B3322B;border-color:#F3B0AA}
+.wt-opt.wt-done{color:#257A47;border-color:#9FD8B3}
+.wt-opt.on.wt-todo{background:#FDECEC;border-color:#B3322B;color:#B3322B;box-shadow:inset 0 0 0 1px #B3322B}
+.wt-opt.on.wt-done{background:#E7F6EC;border-color:#257A47;color:#257A47;box-shadow:inset 0 0 0 1px #257A47}
 .wt-lbl{display:grid;gap:4px;font-size:12px;color:var(--c-muted);font-weight:600}
 .wt-lbl input{height:36px;padding:0 10px;border:1.5px solid var(--c-line);font-size:13.5px;color:var(--c-ink);width:100%}
 .wt-err{color:var(--c-err);font-size:12.5px}
@@ -2159,10 +2159,10 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .wf svg{width:15px;height:15px}
 .wf em{font-style:normal;font-size:11.5px;background:var(--c-cream);padding:1px 7px;border-radius:999px;color:var(--c-muted);min-width:20px;text-align:center}
 .wf:hover{border-color:var(--c-ink)}
-.wf-todo svg{color:#DB2777}.wf-done svg{color:#4338CA}
+.wf-todo svg{color:#B3322B}.wf-done svg{color:#257A47}
 .wf.on{background:var(--c-ink);border-color:var(--c-ink);color:#fff}
 .wf.on em{background:rgba(255,255,255,.2);color:#fff}
-.wf-todo.on{background:#DB2777;border-color:#DB2777}.wf-done.on{background:#4338CA;border-color:#4338CA}
+.wf-todo.on{background:#C2413A;border-color:#C2413A}.wf-done.on{background:#2E8B57;border-color:#2E8B57}
 .wf.on svg{color:#fff}
 /* ซ่อน/แสดงใบที่ยกเลิก (รายการเอกสารขาย) */
 .void-tg-wrap{margin-left:auto;display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -2187,11 +2187,11 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .wp-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 10px}
 .wp-btn{display:flex;align-items:center;justify-content:center;gap:7px;height:42px;border:1.5px solid;border-radius:999px;background:#fff;font:700 14px/1 var(--font)}
 .wp-btn svg{width:18px;height:18px}
-.wp-btn.wt-todo{color:#BE185D;border-color:#F5B5D3}
-.wp-btn.wt-done{color:#4338CA;border-color:#C3C0F5}
+.wp-btn.wt-todo{color:#B3322B;border-color:#F3B0AA}
+.wp-btn.wt-done{color:#257A47;border-color:#9FD8B3}
 .wp-btn:hover:not(:disabled){filter:brightness(.97)}
-.wp-btn.on.wt-todo{background:#DB2777;border-color:#DB2777;color:#fff}
-.wp-btn.on.wt-done{background:#4338CA;border-color:#4338CA;color:#fff}
+.wp-btn.on.wt-todo{background:#FDECEC;border-color:#B3322B;color:#B3322B;box-shadow:inset 0 0 0 1px #B3322B}
+.wp-btn.on.wt-done{background:#E7F6EC;border-color:#257A47;color:#257A47;box-shadow:inset 0 0 0 1px #257A47}
 .wp-btn.on.wt-todo svg path[stroke]{stroke:#B5461C}
 .wp-btn.on.wt-done svg path[stroke]{stroke:#1F7A4D}
 .wp-lbl{display:block;font-size:12.5px;font-weight:600;color:var(--c-muted);margin-bottom:4px}

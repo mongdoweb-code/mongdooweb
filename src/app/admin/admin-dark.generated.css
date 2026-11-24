@@ -2632,22 +2632,20 @@ html[data-adm-theme="dark"] .wtag {
     background: #1E2127
 }
 html[data-adm-theme="dark"] .wtag.wt-todo {
-    color: #FFFFFF;
-    border-color: #DB2777;
-    background: #DB2777
+    color: #DB716B;
+    border-color: #4F2724;
+    background: #261212
 }
 html[data-adm-theme="dark"] .wtag.wt-todo:hover {
-    border-color: #BE185D;
-    background: #BE185D
+    border-color: #B3322B
 }
 html[data-adm-theme="dark"] .wtag.wt-done {
-    color: #FFFFFF;
-    border-color: #4338CA;
-    background: #4338CA
+    color: #72D499;
+    border-color: #2B4233;
+    background: #141E17
 }
 html[data-adm-theme="dark"] .wtag.wt-done:hover {
-    border-color: #3730A3;
-    background: #3730A3
+    border-color: #257A47
 }
 html[data-adm-theme="dark"] .wt-empty {
     color: #9E9B94;
@@ -2672,22 +2670,22 @@ html[data-adm-theme="dark"] .wt-opt {
     background: #1E2127
 }
 html[data-adm-theme="dark"] .wt-opt.wt-todo {
-    color: #EA5C97;
-    border-color: #502439
+    color: #DB716B;
+    border-color: #4F2724
 }
 html[data-adm-theme="dark"] .wt-opt.wt-done {
-    color: #766ED8;
-    border-color: #282650
+    color: #72D499;
+    border-color: #2B4233
 }
 html[data-adm-theme="dark"] .wt-opt.on.wt-todo {
-    background: #DB2777;
-    border-color: #DB2777;
-    color: #fff
+    background: #261212;
+    border-color: #B3322B;
+    color: #DB716B
 }
 html[data-adm-theme="dark"] .wt-opt.on.wt-done {
-    background: #4338CA;
-    border-color: #4338CA;
-    color: #fff
+    background: #141E17;
+    border-color: #257A47;
+    color: #72D499
 }
 html[data-adm-theme="dark"] .wt-lbl {
     color: var(--c-muted)
@@ -2727,10 +2725,10 @@ html[data-adm-theme="dark"] .wf:hover {
     border-color: var(--c-ink)
 }
 html[data-adm-theme="dark"] .wf-todo svg {
-    color: #E5629C
+    color: #DB716B
 }
 html[data-adm-theme="dark"] .wf-done svg {
-    color: #766ED8
+    color: #72D499
 }
 html[data-adm-theme="dark"] .wf.on {
     background: #3A404B;
@@ -2742,12 +2740,12 @@ html[data-adm-theme="dark"] .wf.on em {
     color: #fff
 }
 html[data-adm-theme="dark"] .wf-todo.on {
-    background: #DB2777;
-    border-color: #DB2777
+    background: #C2413A;
+    border-color: #C2413A
 }
 html[data-adm-theme="dark"] .wf-done.on {
-    background: #4338CA;
-    border-color: #4338CA
+    background: #2E8B57;
+    border-color: #2E8B57
 }
 html[data-adm-theme="dark"] .wf.on svg {
     color: #fff
@@ -2802,22 +2800,22 @@ html[data-adm-theme="dark"] .wp-btn {
     background: #1E2127
 }
 html[data-adm-theme="dark"] .wp-btn.wt-todo {
-    color: #EA5C97;
-    border-color: #502439
+    color: #DB716B;
+    border-color: #4F2724
 }
 html[data-adm-theme="dark"] .wp-btn.wt-done {
-    color: #766ED8;
-    border-color: #282650
+    color: #72D499;
+    border-color: #2B4233
 }
 html[data-adm-theme="dark"] .wp-btn.on.wt-todo {
-    background: #DB2777;
-    border-color: #DB2777;
-    color: #fff
+    background: #261212;
+    border-color: #B3322B;
+    color: #DB716B
 }
 html[data-adm-theme="dark"] .wp-btn.on.wt-done {
-    background: #4338CA;
-    border-color: #4338CA;
-    color: #fff
+    background: #141E17;
+    border-color: #257A47;
+    color: #72D499
 }
 html[data-adm-theme="dark"] .wp-btn.on.wt-todo svg path[stroke] {
     stroke: #E68560
