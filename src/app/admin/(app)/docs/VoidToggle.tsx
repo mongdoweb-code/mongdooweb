@@ -43,7 +43,7 @@ export function VoidToggle({ show, count, active, href, voidHref }: { show: bool
         <em className="num">{count}</em>
       </Link>
       {count > 0 && (
-        <Link className="void-only" href={voidHref}>ดูเฉพาะที่ยกเลิก</Link>
+        <Link className="void-only" href={voidHref}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m5.7 5.7 12.6 12.6" /></svg>ดูเฉพาะที่ยกเลิก</Link>
       )}
     </span>
   );

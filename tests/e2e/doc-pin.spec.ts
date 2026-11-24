@@ -33,6 +33,7 @@ test("ปักหมุดใบเก่า 2 ใบ → อยู่บนส
   await row(a).locator(".pin-btn").click();
   await expect(row(a).locator(".pin-btn")).toHaveAttribute("aria-pressed", "true");
   await expect(row(a)).toHaveClass(/is-pinned/);
+  await expect(row(a).locator(".pinned-tag")).toHaveText("★ ปักไว้");
   expect(await amount()).toBe(before);
 
   await page.goto(`/admin/docs/QUOTATION?void=hide&q=${b}`);
@@ -52,4 +53,29 @@ test("ปักหมุดใบเก่า 2 ใบ → อยู่บนส
   await rows.nth(0).locator(".pin-btn").click();
   await expect(page.locator(".doc-tbl tbody tr.is-pinned" + V, { hasText: a })).toHaveCount(0);
   expect((await q<{ n: string }>(`SELECT count(*) n FROM "SalesDocument" WHERE "docNo" = ANY($1) AND "pinnedAt" IS NOT NULL`, [picked]))[0].n).toBe("0");
+});
+
+test("สีสถานะ: ป้ายและพื้นแถวตามสถานะเอกสาร · สถานะงานคนละชุดสี · ช่องค้นหา/วันที่/ดูเฉพาะที่ยกเลิก เป็นแคปซูล", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  await page.goto("/admin/docs/QUOTATION?void=hide");
+  const first = page.locator(".doc-tbl tbody tr[data-st]" + V).first();
+  const st = await first.getAttribute("data-st");
+  await expect(first).toHaveClass(new RegExp(`ds-${st}`));
+  await expect(first.locator(`.dst.ds-${st}`)).toBeVisible();
+  // พื้นแถวไม่ใช่สีขาว + แถบสีซ้าย
+  const bg = await first.locator("td").nth(1).evaluate((e) => getComputedStyle(e).backgroundColor);
+  expect(bg).not.toBe("rgb(255, 255, 255)");
+  expect(await first.locator("td").first().evaluate((e) => getComputedStyle(e).boxShadow)).toContain("inset");
+  // สีของแต่ละสถานะไม่ซ้ำกัน: รอตอบรับ (เหลือง) ≠ ต้องดำเนินการ (ชมพู) · ตอบรับแล้ว (เขียว) ≠ เสร็จสิ้น (คราม)
+  const color = async (sel: string) => page.evaluate((s) => { const el = document.createElement("span"); el.className = s; document.querySelector(".doc-tbl")!.appendChild(el); const c = getComputedStyle(el).backgroundColor; el.remove(); return c; }, sel);
+  const [open, todo, acc, done] = await Promise.all([color("dst ds-open"), color("wtag wt-todo"), color("dst ds-accepted"), color("wtag wt-done")]);
+  expect(new Set([open, todo, acc, done]).size).toBe(4);
+  // แคปซูล
+  for (const sel of [".df-search", ".df-dates", ".df-go"]) expect(await page.locator(sel + V).evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThan(15);
+  await page.goto("/admin/docs/QUOTATION?void=hide");
+  const only = page.locator(".void-only" + V);
+  if (await only.count()) expect(await only.evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThan(10);
+  // หัวคอลัมน์ดาว
+  await expect(page.locator(".doc-tbl th.c-pin .pin-th svg" + V)).toBeVisible();
 });

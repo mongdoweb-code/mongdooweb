@@ -1,0 +1,86 @@
+/* สีสถานะเอกสารขาย (ป้าย + สีพื้นแถว) · ดาวปักไว้บนสุด · แถบค้นหา/วันที่แบบแคปซูล — หน้ารายการเอกสาร / หน้าดูเอกสาร / หน้าลูกค้า
+   สถานะเอกสาร = พื้นอ่อนมีจุด (แต่ละสถานะสีของตัวเอง) · สถานะงาน = ป้ายสีทึบ ชมพู/คราม (admin.css .wt-*) — คนละชุดสีกัน */
+.ds-draft{--ds:#475569;--dsb:#F1F5F9;--dsr:#F8FAFC;--dsl:#94A3B8}
+.ds-open{--ds:#A16207;--dsb:#FEF3C7;--dsr:#FFFBEA;--dsl:#EAB308}
+.ds-accepted,.ds-paid,.ds-delivered{--ds:#047857;--dsb:#D1FAE5;--dsr:#F0FDF6;--dsl:#10B981}
+.ds-rejected{--ds:#BE123C;--dsb:#FFE4E6;--dsr:#FFF5F6;--dsl:#F43F5E}
+.ds-expired{--ds:#6B5E4E;--dsb:#EDE9E3;--dsr:#F8F6F2;--dsl:#A8A29E}
+.ds-unpaid{--ds:#C2410C;--dsb:#FFEDD5;--dsr:#FFF8F1;--dsl:#F97316}
+.ds-partial{--ds:#0369A1;--dsb:#E0F2FE;--dsr:#F3FAFF;--dsl:#0EA5E9}
+.ds-overdue{--ds:#B91C1C;--dsb:#FEE2E2;--dsr:#FFF4F4;--dsl:#EF4444}
+.ds-issued{--ds:#0F766E;--dsb:#CCFBF1;--dsr:#F0FDFA;--dsl:#14B8A6}
+.ds-shipping{--ds:#6D28D9;--dsb:#EDE9FE;--dsr:#F8F5FF;--dsl:#8B5CF6}
+.ds-void{--ds:#FFFFFF;--dsb:#2B2B2B;--dsr:#F4F4F3;--dsl:#2B2B2B}
+.dst[class*="ds-"]{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border-radius:999px;background:var(--dsb);color:var(--ds);font-size:11.5px;font-weight:700}
+.dst[class*="ds-"]::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+
+/* สีพื้นแถวตามสถานะเอกสาร (อ่อนมาก) + แถบสีซ้าย 4px — มองทั้งแถวก็รู้สถานะ */
+.doc-tbl tbody tr[class*="ds-"] td{background:var(--dsr);transition:background .15s}
+.doc-tbl tbody tr[class*="ds-"] td:first-child{box-shadow:inset 4px 0 0 var(--dsl)}
+.doc-tbl tbody tr[class*="ds-"]:hover td{background:color-mix(in srgb,var(--dsr) 80%,var(--dsl) 8%)}
+.doc-tbl tbody tr.ds-void td{opacity:1}
+.doc-tbl tbody tr.ds-void td:not(:last-child){color:#8A867E}
+
+/* ดาวปักไว้บนสุด (ใช้ร่วมกันทุกคน) */
+.doc-tbl th.c-pin,.doc-tbl td.c-pin{width:46px;padding-left:4px;padding-right:4px;text-align:center}
+.pin-th{display:inline-grid;place-items:center;color:#F59E0B}
+.pin-th svg{width:15px;height:15px;fill:#FBBF24}
+.pin-btn{width:32px;height:32px;display:inline-grid;place-items:center;border-radius:10px;color:#C9C4BA;transition:color .15s,background .15s,transform .15s}
+.pin-btn svg{width:19px;height:19px}
+.pin-btn:hover{color:#F59E0B;background:#FFFBEB;transform:scale(1.08)}
+.pin-btn.on{color:#F59E0B}
+.pin-btn.on svg{fill:#FBBF24;filter:drop-shadow(0 1px 2px rgba(245,158,11,.45))}
+.pin-btn:focus-visible{outline:2px solid #F59E0B;outline-offset:1px}
+.pinned-tag{display:inline-flex;align-items:center;gap:3px;margin-left:6px;height:18px;padding:0 7px;border-radius:999px;background:#FEF3C7;color:#92400E;font-size:10.5px;font-weight:700;vertical-align:2px;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.pin-btn{transition:none}.pin-btn:hover{transform:none}}
+
+/* แถบค้นหา + ช่วงวันที่ แบบแคปซูล (เข้าชุดกับปุ่มกรองด้านบน) */
+.doc-filter{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.df-search{flex:1;min-width:240px;display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1.5px solid #E3E0D8;border-radius:999px;background:#FFFFFF;color:#8A867E;transition:border-color .15s,box-shadow .15s}
+.df-search svg{width:16px;height:16px;flex:none}
+.df-search input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:14px;color:#1C1C1C}
+.df-dates{display:flex;align-items:center;height:40px;padding:0 8px 0 14px;border:1.5px solid #E3E0D8;border-radius:999px;background:#FFFFFF;color:#8A867E;transition:border-color .15s,box-shadow .15s}
+.df-dates svg{width:16px;height:16px;flex:none;margin-right:6px}
+.df-dates input{height:100%;border:0;outline:0;background:none;font-size:13.5px;color:#1C1C1C;width:138px;min-width:0}
+.df-dates span{margin:0 6px;font-size:13px}
+.df-search:focus-within,.df-dates:focus-within{border-color:#F26B38;box-shadow:0 0 0 3px rgba(242,107,56,.15)}
+.df-go{height:40px;padding:0 20px;border-radius:999px;background:#141414;color:#FFFFFF;font-weight:700;font-size:14px}
+.df-go:hover{background:#333333}
+.df-clear{display:inline-flex;align-items:center;height:40px;padding:0 14px;border:1.5px solid #E3E0D8;border-radius:999px;background:#FFFFFF;font-size:13px;color:#6B6862}
+.df-clear:hover{border-color:#1C1C1C;color:#1C1C1C}
+@media (max-width:760px){
+  .df-search{flex:1 1 100%}
+  .df-dates{flex:1 1 100%}
+  .df-dates input{flex:1;width:auto}
+  .df-go{flex:1}
+}
+
+/* ธีมกลางคืน */
+html[data-adm-theme="dark"] .ds-draft{--ds:#CBD5E1;--dsb:rgba(148,163,184,.18);--dsr:rgba(148,163,184,.05)}
+html[data-adm-theme="dark"] .ds-open{--ds:#FCD34D;--dsb:rgba(234,179,8,.18);--dsr:rgba(234,179,8,.06)}
+html[data-adm-theme="dark"] :is(.ds-accepted,.ds-paid,.ds-delivered){--ds:#6EE7B7;--dsb:rgba(16,185,129,.18);--dsr:rgba(16,185,129,.06)}
+html[data-adm-theme="dark"] .ds-rejected{--ds:#FDA4AF;--dsb:rgba(244,63,94,.18);--dsr:rgba(244,63,94,.06)}
+html[data-adm-theme="dark"] .ds-expired{--ds:#D6CFC4;--dsb:rgba(168,162,158,.2);--dsr:rgba(168,162,158,.06)}
+html[data-adm-theme="dark"] .ds-unpaid{--ds:#FDBA74;--dsb:rgba(249,115,22,.18);--dsr:rgba(249,115,22,.06)}
+html[data-adm-theme="dark"] .ds-partial{--ds:#7DD3FC;--dsb:rgba(14,165,233,.18);--dsr:rgba(14,165,233,.06)}
+html[data-adm-theme="dark"] .ds-overdue{--ds:#FCA5A5;--dsb:rgba(239,68,68,.2);--dsr:rgba(239,68,68,.07)}
+html[data-adm-theme="dark"] .ds-issued{--ds:#5EEAD4;--dsb:rgba(20,184,166,.18);--dsr:rgba(20,184,166,.06)}
+html[data-adm-theme="dark"] .ds-shipping{--ds:#C4B5FD;--dsb:rgba(139,92,246,.2);--dsr:rgba(139,92,246,.06)}
+html[data-adm-theme="dark"] .ds-void{--ds:#1C1C1C;--dsb:#D6D3CD;--dsr:rgba(255,255,255,.03);--dsl:#6E6A63}
+html[data-adm-theme="dark"] .doc-tbl tbody tr.ds-void td:not(:last-child){color:#8D887F}
+html[data-adm-theme="dark"] .pin-btn{color:#6E6A63}
+html[data-adm-theme="dark"] .pin-btn:hover{background:rgba(245,158,11,.14);color:#FBBF24}
+html[data-adm-theme="dark"] .pinned-tag{background:rgba(245,158,11,.2);color:#FCD34D}
+html[data-adm-theme="dark"] :is(.df-search,.df-dates,.df-clear){background:#1F1F1D;border-color:#3A3833;color:#B9B4AB}
+html[data-adm-theme="dark"] :is(.df-search input,.df-dates input){color:#ECE8E0;color-scheme:dark}
+html[data-adm-theme="dark"] .df-go{background:#F26B38}
+html[data-adm-theme="dark"] .df-go:hover{background:#D9562A}
+html[data-adm-theme="dark"] .df-clear:hover{border-color:#ECE8E0;color:#ECE8E0}
+
+/* มือถือ: ตารางกลายเป็นการ์ด (admin.css) → สีพื้นทั้งการ์ด + แถบซ้ายที่การ์ด แทนการระบายทีละช่อง */
+@media (max-width:860px){
+  .doc-tbl tbody tr[class*="ds-"]{background:var(--dsr);box-shadow:inset 4px 0 0 var(--dsl);padding-left:50px!important}
+  .doc-tbl tbody tr[class*="ds-"] td,.doc-tbl tbody tr[class*="ds-"]:hover td{background:transparent}
+  .doc-tbl tbody tr[class*="ds-"] td:first-child{box-shadow:none}
+  .doc-tbl td.c-pin{position:absolute;left:10px;top:9px;width:auto!important;padding:0}
+}

@@ -14,6 +14,7 @@ import { deleteCustomer, mergeCustomer, setMarketingOptOut } from "../actions";
 import { CustomerForm, type CustomerValues } from "../CustomerForm";
 import { CustomerExtras } from "../CustomerExtras";
 import "../../../lot12.css";
+import "../../../_components/doc-status.css";
 
 export const instant = false;
 
@@ -131,7 +132,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
                         <Link className="link" href={docPath(d)}>{DOC_META[d.type].short} {d.docNo ?? "ฉบับร่าง"}</Link>
                         <span className="sub">{d.issueDate ? docDate(ymdBkk(d.issueDate), "AD") : "—"}</span>
                         <b className="num">{money(d.grandSatang)}</b>
-                        <span className={`dst dst-${cl}`}>{l}</span>
+                        <span className={`dst dst-${cl} ds-${statusOf(d)}`}>{l}</span>
                       </li>
                     );
                   })}
