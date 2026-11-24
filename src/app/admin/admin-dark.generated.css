@@ -277,10 +277,11 @@ html[data-adm-theme="dark"] .tab.on em {
 }
 html[data-adm-theme="dark"] .search input {
     border: 1.5px solid var(--c-line);
-    outline: none
+    outline: none;
+    background: #1E2127
 }
 html[data-adm-theme="dark"] .search input:focus {
-    border-color: var(--c-ink)
+    border-color: var(--c-orange)
 }
 html[data-adm-theme="dark"] .search svg {
     color: var(--c-muted)
@@ -309,6 +310,10 @@ html[data-adm-theme="dark"] .seg label:has(input:focus-visible) {
 html[data-adm-theme="dark"] .date-custom input {
     border: 1.5px solid var(--c-line);
     background: #1E2127
+}
+html[data-adm-theme="dark"] .date-custom input:focus {
+    outline: none;
+    border-color: var(--c-orange)
 }
 html[data-adm-theme="dark"] .date-custom span {
     color: var(--c-muted)
@@ -2626,30 +2631,33 @@ html[data-adm-theme="dark"] .wtag {
     border: 1.5px solid;
     background: #1E2127
 }
-html[data-adm-theme="dark"] .wt-todo {
-    color: #E68560;
-    border-color: #4D2F23;
-    background: #281B13
+html[data-adm-theme="dark"] .wtag.wt-todo {
+    color: #FFFFFF;
+    border-color: #DB2777;
+    background: #DB2777
 }
-html[data-adm-theme="dark"] .wt-todo:hover {
-    border-color: #B5461C
+html[data-adm-theme="dark"] .wtag.wt-todo:hover {
+    border-color: #BE185D;
+    background: #BE185D
 }
-html[data-adm-theme="dark"] .wt-done {
-    color: #6DDAA4;
-    border-color: #2C4035;
-    background: #16231B
+html[data-adm-theme="dark"] .wtag.wt-done {
+    color: #FFFFFF;
+    border-color: #4338CA;
+    background: #4338CA
 }
-html[data-adm-theme="dark"] .wt-done:hover {
-    border-color: #1F7A4D
+html[data-adm-theme="dark"] .wtag.wt-done:hover {
+    border-color: #3730A3;
+    background: #3730A3
 }
 html[data-adm-theme="dark"] .wt-empty {
-    color: var(--c-muted);
-    border: 1.5px dashed var(--c-line);
-    background: transparent
+    color: #9E9B94;
+    border: 1.5px dashed #3C3A34;
+    background: #1E2127
 }
-html[data-adm-theme="dark"] .wt-empty:hover {
-    color: var(--c-ink);
-    border-color: var(--c-ink)
+html[data-adm-theme="dark"] .wt-empty:hover,
+html[data-adm-theme="dark"] .wt-empty[aria-expanded="true"] {
+    color: var(--c-orange);
+    border-color: var(--c-orange)
 }
 html[data-adm-theme="dark"] .wt-dot {
     background: var(--c-orange)
@@ -2664,34 +2672,22 @@ html[data-adm-theme="dark"] .wt-opt {
     background: #1E2127
 }
 html[data-adm-theme="dark"] .wt-opt.wt-todo {
-    color: #E68560;
-    border-color: #4D2F23
+    color: #EA5C97;
+    border-color: #502439
 }
 html[data-adm-theme="dark"] .wt-opt.wt-done {
-    color: #6DDAA4;
-    border-color: #2C4035
+    color: #766ED8;
+    border-color: #282650
 }
 html[data-adm-theme="dark"] .wt-opt.on.wt-todo {
-    background: #B5461C;
-    border-color: #B5461C;
+    background: #DB2777;
+    border-color: #DB2777;
     color: #fff
 }
 html[data-adm-theme="dark"] .wt-opt.on.wt-done {
-    background: #1F7A4D;
-    border-color: #1F7A4D;
+    background: #4338CA;
+    border-color: #4338CA;
     color: #fff
-}
-html[data-adm-theme="dark"] .wt-opt.on svg path[stroke="#fff"] {
-    stroke: currentColor
-}
-html[data-adm-theme="dark"] .wt-opt.on svg path[fill="currentColor"] {
-    fill: #fff
-}
-html[data-adm-theme="dark"] .wt-opt.on.wt-todo svg path[stroke] {
-    stroke: #E68560
-}
-html[data-adm-theme="dark"] .wt-opt.on.wt-done svg path[stroke] {
-    stroke: #6DDAA4
 }
 html[data-adm-theme="dark"] .wt-lbl {
     color: var(--c-muted)
@@ -2731,10 +2727,10 @@ html[data-adm-theme="dark"] .wf:hover {
     border-color: var(--c-ink)
 }
 html[data-adm-theme="dark"] .wf-todo svg {
-    color: #E68560
+    color: #E5629C
 }
 html[data-adm-theme="dark"] .wf-done svg {
-    color: #6DDAA4
+    color: #766ED8
 }
 html[data-adm-theme="dark"] .wf.on {
     background: #3A404B;
@@ -2746,30 +2742,15 @@ html[data-adm-theme="dark"] .wf.on em {
     color: #fff
 }
 html[data-adm-theme="dark"] .wf-todo.on {
-    background: #B5461C;
-    border-color: #B5461C
+    background: #DB2777;
+    border-color: #DB2777
 }
 html[data-adm-theme="dark"] .wf-done.on {
-    background: #1F7A4D;
-    border-color: #1F7A4D
+    background: #4338CA;
+    border-color: #4338CA
 }
 html[data-adm-theme="dark"] .wf.on svg {
     color: #fff
-}
-html[data-adm-theme="dark"] .wf.on svg path[stroke="#fff"] {
-    stroke: currentColor
-}
-html[data-adm-theme="dark"] .wf-todo.on svg path[fill] {
-    fill: #fff
-}
-html[data-adm-theme="dark"] .wf-todo.on svg path[stroke] {
-    stroke: #E68560
-}
-html[data-adm-theme="dark"] .wf-done.on svg path[fill] {
-    fill: #fff
-}
-html[data-adm-theme="dark"] .wf-done.on svg path[stroke] {
-    stroke: #6DDAA4
 }
 html[data-adm-theme="dark"] .void-tg {
     border: 1.5px solid var(--c-line);
@@ -2796,10 +2777,18 @@ html[data-adm-theme="dark"] .void-tg em {
     color: var(--c-muted)
 }
 html[data-adm-theme="dark"] .void-only {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .void-only svg {
     color: var(--c-muted)
 }
 html[data-adm-theme="dark"] .void-only:hover {
-    color: var(--c-ink)
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .void-only:focus-visible {
+    outline: 2px solid #16A37B
 }
 html[data-adm-theme="dark"] .void-note {
     border-top: 1px dashed var(--c-line);
@@ -2813,25 +2802,22 @@ html[data-adm-theme="dark"] .wp-btn {
     background: #1E2127
 }
 html[data-adm-theme="dark"] .wp-btn.wt-todo {
-    color: #E68560;
-    border-color: #4D2F23
+    color: #EA5C97;
+    border-color: #502439
 }
 html[data-adm-theme="dark"] .wp-btn.wt-done {
-    color: #6DDAA4;
-    border-color: #2C4035
+    color: #766ED8;
+    border-color: #282650
 }
 html[data-adm-theme="dark"] .wp-btn.on.wt-todo {
-    background: #B5461C;
-    border-color: #B5461C;
+    background: #DB2777;
+    border-color: #DB2777;
     color: #fff
 }
 html[data-adm-theme="dark"] .wp-btn.on.wt-done {
-    background: #1F7A4D;
-    border-color: #1F7A4D;
+    background: #4338CA;
+    border-color: #4338CA;
     color: #fff
-}
-html[data-adm-theme="dark"] .wp-btn.on svg path[fill="currentColor"] {
-    fill: #fff
 }
 html[data-adm-theme="dark"] .wp-btn.on.wt-todo svg path[stroke] {
     stroke: #E68560

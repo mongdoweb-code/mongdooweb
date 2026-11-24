@@ -18,7 +18,7 @@ const n = (x: number) => x.toLocaleString("th-TH");
 const qty = (milli: number) => (milli / 1000).toLocaleString("th-TH", { maximumFractionDigits: 3 });
 
 export function sumView(type: DocTypeT, t: DocTotals, chips: string[], work: string, searching = false, cmp: Change | null = null): SumView {
-  const tone: SumTone = t.voidTab ? "gray" : type === "CREDIT_NOTE" ? "red" : work === "done" ? "green" : work === "todo" ? "orange" : TYPE_TONE[type];
+  const tone: SumTone = t.voidTab ? "gray" : type === "CREDIT_NOTE" ? "red" : work === "done" ? "indigo" : work === "todo" ? "pink" : TYPE_TONE[type];
   const neg = type === "CREDIT_NOTE" && !t.voidTab && t.grand > 0 ? "−" : "";
   const stats: [string, string][] = [["จำนวน", `${n(t.count)} ฉบับ`]];
   if (type === "INVOICE" && !t.voidTab) stats.push(["ชำระแล้ว", `฿${money(t.paid)}`], ["ค้างชำระ", `฿${money(Math.max(0, t.grand - t.paid))}`]);

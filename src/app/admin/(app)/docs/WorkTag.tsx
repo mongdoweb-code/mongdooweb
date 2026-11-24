@@ -8,11 +8,12 @@ import { WORK_META, WORK_NOTE_MAX, type WorkState } from "@/lib/doc-work";
 import { setDocWork } from "./actions";
 import { notifySave } from "../../_components/save-notify";
 
+/** ต้องดำเนินการ = นาฬิกา · เสร็จสิ้น = เครื่องหมายถูก (เส้น ใช้สีตัวอักษร) */
 const TodoIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="currentColor" /><path d="M8.5 9.5h7" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" /></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></svg>
 );
 const DoneIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z" fill="currentColor" /><path d="m8.7 9.6 2.2 2.2 4.4-4.4" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
 );
 export const WorkIcon = ({ state }: { state: WorkState }) => (state === "TODO" ? <TodoIcon /> : <DoneIcon />);
 

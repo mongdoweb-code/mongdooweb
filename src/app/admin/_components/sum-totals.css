@@ -5,6 +5,8 @@
 .dsum-teal{--t1:#0E6B64;--t2:#159488;--tl:#E6F5F3;--tb:#B7E0DA;--tx:#0B4742}
 .dsum-orange{--t1:#B8491C;--t2:#EE6A35;--tl:#FFF1EA;--tb:#F8CDB8;--tx:#7A2F10}
 .dsum-red{--t1:#9C2F22;--t2:#CF4A39;--tl:#FCEDEB;--tb:#F0C4BE;--tx:#6B1F16}
+.dsum-pink{--t1:#BE185D;--t2:#E0408A;--tl:#FDF0F6;--tb:#F5B5D3;--tx:#6E0F37}
+.dsum-indigo{--t1:#3730A3;--t2:#5B54E0;--tl:#EEF0FE;--tb:#C3C0F5;--tx:#25206E}
 .dsum-gray{--t1:#55524D;--t2:#78746D;--tl:#F1F0ED;--tb:#D9D6D0;--tx:#3A3834}
 
 /* แถว KPI: การ์ดยอดรวมอยู่ท้ายแถว (ขวาสุด) กว้างกว่าการ์ดอื่น */
@@ -83,19 +85,3 @@ html[data-adm-theme="dark"] .rgq-l,html[data-adm-theme="dark"] .rgq-shown{color:
 html[data-adm-theme="dark"] .dsum-row-cmp{background:rgba(91,208,138,.15);color:#8FE3B0;border-color:rgba(91,208,138,.35)}
 html[data-adm-theme="dark"] .dsum-row-cmp.cmp-bad{background:rgba(255,112,112,.14);color:#FFA3A3;border-color:rgba(255,112,112,.35)}
 html[data-adm-theme="dark"] .dsum-row-cmp.cmp-same{background:rgba(255,255,255,.06);color:#C9C2B5;border-color:rgba(255,255,255,.15)}
-
-/* ปักหมุดในรายการเอกสาร (คอลัมน์แคบหลังชื่อลูกค้า) — ใบที่ปักอยู่บนสุดและมีแถบส้มด้านซ้าย */
-.doc-tbl th.c-pin,.doc-tbl td.c-pin{width:44px;padding-left:4px;padding-right:4px;text-align:center}
-.pin-th{display:inline-grid;place-items:center;color:#8A867E}
-.pin-th svg{width:15px;height:15px}
-.pin-btn{width:32px;height:32px;display:inline-grid;place-items:center;border-radius:8px;color:#B9B4AB;transition:color .15s,background .15s}
-.pin-btn svg{width:17px;height:17px}
-.pin-btn:hover{color:#F26B38;background:#FFF1EA}
-.pin-btn.on{color:#F26B38}
-.pin-btn.on svg{fill:currentColor}
-.doc-tbl tr.is-pinned td{background:#FFFAF5}
-.doc-tbl tr.is-pinned td:first-child{box-shadow:inset 3px 0 0 #F26B38}
-html[data-adm-theme="dark"] .pin-btn{color:#6E6A63}
-html[data-adm-theme="dark"] .pin-btn:hover{background:rgba(242,107,56,.15);color:#FF8A50}
-html[data-adm-theme="dark"] .pin-btn.on{color:#FF8A50}
-html[data-adm-theme="dark"] .doc-tbl tr.is-pinned td{background:rgba(242,107,56,.07)}

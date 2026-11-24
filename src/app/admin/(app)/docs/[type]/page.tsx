@@ -13,6 +13,7 @@ import { cookies } from "next/headers";
 import { DOC_VOID_COOKIE, NOT_VOID, docFilterChips, docTotals, hidesVoid, listDocs, parseDocFilter } from "@/lib/doc-list";
 import { sumView } from "../DocTotals";
 import { QuickRanges, SumCard, SumRows } from "../../../_components/SumTotals";
+import "../../../_components/doc-status.css";
 import { change, matchQuick, prevSpan, quickSpan } from "@/lib/date-ranges";
 import { VoidSetLink, VoidToggle } from "../VoidToggle";
 import { isDocType, quoteEditBlock, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
@@ -164,24 +165,27 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
         <form className="toolbar2 doc-filter" action={base}>
           {f.tab !== "all" && <input type="hidden" name="tab" value={f.tab} />}
           {f.work && <input type="hidden" name="work" value={f.work} />}
-          <label className="search" style={{ flex: 1, minWidth: 220 }}>
+          <label className="df-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
             <span className="sr-only">ค้นหาเอกสาร</span>
             <input name="q" type="search" defaultValue={f.q} placeholder="เลขที่, ชื่อ/รหัสลูกค้า, เบอร์โทร, เลขผู้เสียภาษี, สินค้า" />
           </label>
-          <span className="lbl">วันที่</span>
-          <label className="sr-only" htmlFor="dFrom">ตั้งแต่วันที่</label>
-          <input className="sel" type="date" id="dFrom" name="from" defaultValue={f.from} />
-          <span>ถึง</span>
-          <label className="sr-only" htmlFor="dTo">ถึงวันที่</label>
-          <input className="sel" type="date" id="dTo" name="to" defaultValue={f.to} />
-          <button className="btn btn-outline btn-sm" type="submit">ค้นหา</button>
-          {(f.q || f.from || f.to) && <Link className="link" href={`${base}${qs({ q: "", from: "", to: "" })}`}>ล้างตัวกรอง</Link>}
+          <div className="df-dates" role="group" aria-label="ช่วงวันที่">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>
+            <label className="sr-only" htmlFor="dFrom">ตั้งแต่วันที่</label>
+            <input type="date" id="dFrom" name="from" defaultValue={f.from} />
+            <span>ถึง</span>
+            <label className="sr-only" htmlFor="dTo">ถึงวันที่</label>
+            <input type="date" id="dTo" name="to" defaultValue={f.to} />
+          </div>
+          <button className="df-go" type="submit">ค้นหา</button>
+          {(f.q || f.from || f.to) && <Link className="df-clear" href={`${base}${qs({ q: "", from: "", to: "" })}`}>ล้างตัวกรอง</Link>}
         </form>
         <table className="tbl doc-tbl">
           <thead>
             <tr>
               <th>เลขที่ / วันที่</th><th>ลูกค้า</th>
-              <th className="c-pin"><span className="pin-th" data-tip="ปักหมุดไว้บนสุด">{PIN_ICON}</span><span className="sr-only">ปักหมุด</span></th>
+              <th className="c-pin"><span className="pin-th" data-tip="ปักดาวไว้บนสุด">{STAR_ICON}</span><span className="sr-only">ปักดาว</span></th>
               <th>{type === "QUOTATION" ? "ยืนราคาถึง" : type === "INVOICE" ? "ครบกำหนด / ค้างชำระ" : type === "CREDIT_NOTE" ? "อ้างอิงใบเสร็จ / เหตุผล" : type === "DELIVERY" ? "อ้างอิง / เซ็นรับ" : "ชำระโดย / อ้างอิง"}</th>
               <th className="r">ยอดรวม</th><th>สถานะ</th><th className="r col-acts">การดำเนินการ</th>
             </tr>
@@ -203,10 +207,10 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                   <>{d.paymentMethod ?? "—"}{d.order && <span className="sub">{d.order.orderNo}</span>}</>
                 );
               return (
-                <tr key={d.id} className={`${st === "void" ? "row-off" : ""}${d.pinnedAt ? " is-pinned" : ""}`} data-pinned={d.pinnedAt ? "" : undefined}>
+                <tr key={d.id} className={`ds-${st}${st === "void" ? " row-off" : ""}${d.pinnedAt ? " is-pinned" : ""}`} data-st={st} data-pinned={d.pinnedAt ? "" : undefined}>
                   <td>
                     <Link className="row-link" href={href}>
-                      <b className={d.docNo ? "num" : "draft-no"}>{d.docNo ?? "ฉบับร่าง"}</b>
+                      <b className={d.docNo ? "num" : "draft-no"}>{d.docNo ?? "ฉบับร่าง"}</b>{d.pinnedAt && <span className="pinned-tag">★ ปักไว้</span>}
                       <span className="sub">{d.issueDate ? docDate(ymdBkk(d.issueDate), era) : `สร้าง ${docDate(ymdBkk(d.createdAt), era)}`} · {d._count.items} รายการ</span>
                     </Link>
                   </td>
@@ -215,7 +219,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                     {(d.pinnedAt || st !== "void") && (
                       <form action={toggleDocPin} data-no-popup>
                         <input type="hidden" name="id" value={d.id} />
-                        <button type="submit" className={`pin-btn${d.pinnedAt ? " on" : ""}`} aria-pressed={!!d.pinnedAt} aria-label={`${d.pinnedAt ? "เลิกปักหมุด" : "ปักหมุด"} ${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} data-tip={d.pinnedAt ? "เลิกปักหมุด" : "ปักหมุดไว้บนสุด"}>{PIN_ICON}</button>
+                        <button type="submit" className={`pin-btn${d.pinnedAt ? " on" : ""}`} aria-pressed={!!d.pinnedAt} aria-label={`${d.pinnedAt ? "เลิกปักดาว" : "ปักดาวไว้บนสุด"} ${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} data-tip={d.pinnedAt ? "เลิกปักดาว" : "ปักดาวไว้บนสุด"}>{STAR_ICON}</button>
                       </form>
                     )}
                   </td>
@@ -223,7 +227,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                   <td className="r num"><b style={st === "void" ? { textDecoration: "line-through" } : undefined}>{money(d.grandSatang)}</b></td>
                   <td>
                     <div className="st-cell">
-                      <span className={`dst dst-${stc}`}>{stl}</span>
+                      <span className={`dst dst-${stc} ds-${st}`}>{stl}</span>
                       <WorkTag id={d.id} state={d.workState} note={d.workNote} by={d.workBy?.displayName} at={d.workAt ? docDateTime(d.workAt, era) : null} label={`${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} />
                     </div>
                   </td>
@@ -251,9 +255,9 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   );
 }
 
-/** หมุดปัก (เส้น) — ปุ่มที่ปักแล้วเติมสี */
-const PIN_ICON = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 4h6l-1 5 4 3v2H6v-2l4-3z" /><path d="M12 14v7" /></svg>
+/** ดาวปักไว้บนสุด (เส้น) — ปักแล้วเติมสีทองด้วย CSS */
+const STAR_ICON = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" /></svg>
 );
 
 const PRINT = (

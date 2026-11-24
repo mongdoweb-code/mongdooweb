@@ -4,7 +4,7 @@ import Link from "next/link";
 import { QUICK_RANGES, changeText, type Change, type QuickKey } from "@/lib/date-ranges";
 import "./sum-totals.css";
 
-export type SumTone = "blue" | "violet" | "green" | "teal" | "orange" | "red" | "gray";
+export type SumTone = "blue" | "violet" | "green" | "teal" | "orange" | "red" | "gray" | "pink" | "indigo";
 export type SumView = {
   tone: SumTone;
   /** ป้ายตัวกรองที่ใช้อยู่ เช่น ["รอตอบรับ", "ต้องดำเนินการ"] (ว่าง = ทั้งหมด) */
