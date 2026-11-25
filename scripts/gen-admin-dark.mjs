@@ -34,7 +34,7 @@ export const OUT = "src/app/admin/admin-dark.generated.css";
 const ROOT = 'html[data-adm-theme="dark"]';
 
 // ส่วนที่ต้องคงสีสว่าง/สีเดิม (กระดาษ เอกสาร ใบปะหน้า หน้าพิมพ์ โซนการตลาดที่มืดอยู่แล้ว ตัวอย่างธีม)
-const EXCLUDE = /\.side\b|\.logo-mark|\.sheet\b|\.sh-|\.label\b|\.lb-|\.lsheet|#docMeasure|\.pv-sheet|\.pp-sheets|\.de-pv\b|\.lg-hero|\.lg-fx|\.lg-strip|\.lg-parts|\.lg-gal|\.lg-hl|\.lg-stats|\.lg-head|\.lg-glow|\.lg-sub|\.lg-eyebrow|\.lg-orb|\.lg-beam|\.lg-grid|\.lg-preview|\.lp-t-|\.lp-theme i\b|\.bk-|\.cp-sw|\.cp-grid|\.swatch|\.lp-pv-box|\.wy-pv/;
+const EXCLUDE = /\.side\b|\.logo-mark|\.sheet\b|\.sh-|\.label\b|\.lb-|\.lsheet|#docMeasure|\.pv-sheet|\.pp-sheets|\.de-pv\b|\.lg-hero|\.lg-fx|\.lg-strip|\.lg-parts|\.lg-gal|\.lg-hl|\.lg-stats|\.lg-head|\.lg-glow|\.lg-sub|\.lg-eyebrow|\.lg-orb|\.lg-beam|\.lg-grid|\.lg-preview|\.lp-t-|\.lp-theme i\b|\.bk-|\.cp-sw|\.cp-grid|\.swatch|\.lp-pv-box|\.wy-pv|\.dtl-pv\b/;
 
 const PROPS = /^(background|background-color|background-image|color|border|border-(top|right|bottom|left)|border(-(top|right|bottom|left))?-color|outline|outline-color|fill|stroke|caret-color|text-decoration-color|column-rule|column-rule-color)$/;
 

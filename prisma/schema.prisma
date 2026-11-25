@@ -425,6 +425,8 @@ model ShopSetting {
   signerTitle    String  @default("") // ตำแหน่ง เช่น "ผู้จัดการฝ่ายขาย"
   quotePayInfo   Boolean @default(true) // ใบเสนอราคา: แสดงบัญชีธนาคาร
   quoteOnlineQr  Boolean @default(true) // ใบเสนอราคา/ใบแจ้งหนี้: QR เปิดดู/ยืนยันออนไลน์
+  docTagline     String? @db.Text // แถบข้อความท้ายเอกสารทุกใบ (null = ข้อความเดิม DOC_TAGLINE)
+  docTaglineOn   Boolean @default(true) // แสดงแถบข้อความท้ายเอกสาร
 
   // หน้าร้าน: แถบประกาศ + วิเคราะห์การใช้งาน (โหลดเมื่อลูกค้ายินยอมคุกกี้เท่านั้น)
   announcementEnabled Boolean @default(true)

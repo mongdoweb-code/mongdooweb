@@ -31,3 +31,12 @@
 .cb-txt b{display:block;font-size:13.5px}
 .cb-txt small{display:block;font-size:12px;color:#6B6862}
 @media (max-width:700px){.cb-opts{grid-template-columns:1fr}}
+
+/* ข้อความท้ายเอกสาร: ตัวอย่างกว้างเท่าพื้นที่พิมพ์ A4 (184 มม.) ย่อให้พอดีกล่องด้วย container */
+.dtl textarea{width:100%;resize:vertical;min-height:54px}
+.dtl-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:4px}
+.dtl-pv-wrap{margin-top:10px;overflow-x:auto}
+.dtl-pv-l{display:block;font-size:12px;color:var(--c-muted);margin-bottom:4px}
+.dtl-pv{width:184mm;max-width:none;box-sizing:border-box;border:.3mm solid #a3a3a3;border-radius:2.5mm;text-align:center;padding:1.8mm 2mm;font-family:var(--font-noto-thai),'Noto Sans Thai',sans-serif;font-size:7.8pt;font-weight:600;line-height:1.45;letter-spacing:-.05pt;background:#FAFAFA;color:#161616}
+.dtl-off{padding:10px 12px;border:1px dashed var(--c-line);color:var(--c-muted);font-size:13px}
+.dtl-warn{display:block;margin-top:6px;color:#9A5B00;font-weight:600}
