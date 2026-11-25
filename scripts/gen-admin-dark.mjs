@@ -25,6 +25,7 @@ export const SOURCES = [
   "src/app/admin/(app)/products/datasheet.css",
   "src/app/admin/(app)/notices/notices.css",
   "src/app/admin/(app)/settings/settings.css",
+  "src/app/admin/(app)/products/badges.css",
   "src/app/admin/(app)/settings/login/login-settings.css",
   "src/app/admin/login/login.css",
   "src/components/sort-toolbar/sort-toolbar.css",

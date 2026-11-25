@@ -6,6 +6,8 @@ import { diffOf, logAdmin, refreshStorefront } from "@/lib/admin-log";
 import { requireAdmin } from "@/lib/auth";
 import { bahtText } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { parseBadges } from "@/lib/badges";
+import type { Prisma } from "../../../../../generated/prisma/client";
 import { setStock } from "@/lib/stock";
 import { queueRestockIfAvailableNow } from "@/lib/stock-alerts";
 
@@ -101,7 +103,7 @@ export async function quickSaveProduct(f: FormData): Promise<QuickResult & { fie
 
   const data = {
     name, sku, categoryId, priceSatang: price, compareAtSatang: compareAt,
-    isActive: f.get("isActive") === "on", isBestSeller: f.get("isBestSeller") === "on", badge: s("badge", 20) || null,
+    isActive: f.get("isActive") === "on", isBestSeller: f.get("isBestSeller") === "on", ...quickBadges(f),
   };
   await prisma.$transaction(async (tx) => {
     if (old.trackStock && !trackStock && old.stock !== 0) await setStock(tx, id, 0, { reason: "EDIT", adminId: admin.id, note: "เลิกนับสต็อก (แก้ไขด่วน)" });
@@ -117,4 +119,10 @@ export async function quickSaveProduct(f: FormData): Promise<QuickResult & { fie
   refreshStorefront();
   refresh();
   return { ok: "บันทึกแล้ว" };
+}
+
+/** ป้ายบนการ์ด (แผงแก้ไขด่วน): badges JSON · badge = ป้ายแรก */
+function quickBadges(f: FormData): { badges: Prisma.InputJsonValue; badge: string | null } {
+  const list = f.has("badges") ? parseBadges(String(f.get("badges") ?? "[]")) : parseBadges([{ t: String(f.get("badge") ?? ""), c: "orange" }]);
+  return { badges: list as unknown as Prisma.InputJsonValue, badge: list[0]?.t ?? null };
 }

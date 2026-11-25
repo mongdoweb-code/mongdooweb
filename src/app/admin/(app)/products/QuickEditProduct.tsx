@@ -3,12 +3,14 @@
 import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { QuickDrawer, useQuickOpen } from "../../_components/QuickDrawer";
+import { BadgesEditor } from "./BadgesEditor";
+import type { Badge } from "@/lib/badges";
 import type { QuickResult } from "./quick-actions";
 import { notifySave } from "../../_components/save-notify";
 
 export type QuickProduct = {
   kind: "product"; id: string; name: string; sku: string; categoryId: string; price: string; compareAt: string;
-  trackStock: boolean; stock: number; inStock: boolean; isActive: boolean; isBestSeller: boolean; badge: string; img: string | null; slug: string;
+  trackStock: boolean; stock: number; inStock: boolean; isActive: boolean; isBestSeller: boolean; badge: string; badges: Badge[]; img: string | null; slug: string;
 };
 
 export function QuickEditProduct({ categories, action }: { categories: { id: string; name: string }[]; action: (f: FormData) => Promise<QuickResult & { fields?: string[] }> }) {
@@ -94,7 +96,7 @@ export function QuickEditProduct({ categories, action }: { categories: { id: str
               <legend>🏷️ การขาย</legend>
               <label className="chk-row"><input type="checkbox" name="isActive" defaultChecked={p.isActive} /> เปิดขายบนหน้าร้าน</label>
               <label className="chk-row"><input type="checkbox" name="isBestSeller" defaultChecked={p.isBestSeller} /> แสดงใน &quot;สินค้าขายดี&quot; หน้าแรก</label>
-              <div className="field"><label htmlFor="qeBadge">ป้ายบนการ์ด</label><input id="qeBadge" name="badge" defaultValue={p.badge} maxLength={20} placeholder="เช่น ขายดี, แนะนำ, ใหม่" /></div>
+              <div className="field"><label htmlFor="qeBadge">ป้ายบนการ์ด</label><BadgesEditor init={p.badges} id="qeBadge" /></div>
             </fieldset>
           </form>
         )}

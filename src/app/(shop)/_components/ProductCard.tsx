@@ -34,7 +34,7 @@ const MoreIcon = () => (
 export function ProductCard({ p, eager = false, note, options }: { p: CatalogItem; eager?: boolean; note?: string; options?: number }) {
   const href = `/product/${encodeURIComponent(p.id)}`;
   // ส่งเฉพาะข้อมูลราคาไปยัง client component (ไม่ส่งทั้งสินค้า)
-  const pv = { price: p.price, compareAt: p.compareAt ?? null, sale: p.sale ?? null, badge: p.badge ?? null };
+  const pv = { price: p.price, compareAt: p.compareAt ?? null, sale: p.sale ?? null, badge: p.badge ?? null, badges: p.badges ?? null };
   return (
     <article className="prod-card" id={`prod-${p.id}`}>
       {/* data-more = รูปอื่นของสินค้า — ชี้เมาส์ค้างแล้วเลื่อนแสดงทีละรูปแบบ fade (public/js/shell.js) */}

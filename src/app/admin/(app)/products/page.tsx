@@ -20,6 +20,7 @@ import { QuickEditProduct, type QuickProduct } from "./QuickEditProduct";
 import { quickField, quickSaveProduct } from "./quick-actions";
 import "../../lot3.css";
 import { BoltIcon } from "../../_components/BoltIcon";
+import { badgesOf } from "@/lib/badges";
 
 const STATUS = { all: "ทั้งหมด", pinned: "ปักหมุด", active: "เปิดขาย", inactive: "ปิดขาย", out: "สินค้าหมด", inquire: "สอบถามราคา", low: "สต็อกใกล้หมด" } as const;
 type Status = keyof typeof STATUS;
@@ -125,7 +126,7 @@ export default async function ProductsAdminPage({ searchParams }: PageProps<"/ad
   const quick = (p: (typeof rows)[number], img: string | null): QuickProduct => ({
     kind: "product", id: p.id, name: p.name, sku: p.sku, categoryId: p.categoryId, slug: p.slug, img,
     price: p.priceSatang ? String(p.priceSatang / 100) : "", compareAt: p.compareAtSatang ? String(p.compareAtSatang / 100) : "",
-    trackStock: p.trackStock, stock: p.stock, inStock: p.inStock, isActive: p.isActive, isBestSeller: p.isBestSeller, badge: p.badge ?? "",
+    trackStock: p.trackStock, stock: p.stock, inStock: p.inStock, isActive: p.isActive, isBestSeller: p.isBestSeller, badge: p.badge ?? "", badges: badgesOf(p),
   });
   const body = rows.map((p) => {
     const img = mediaUrl(p.images[0], "sm");

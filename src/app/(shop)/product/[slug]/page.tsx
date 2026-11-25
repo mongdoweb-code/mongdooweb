@@ -215,7 +215,7 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
       <PageHead crumbs={crumbs} selfHref={selfHref} title="" />
       <div className="container pg-body">
         <div className="pdp">
-          <Gallery images={p.images} video={p.video} alt={p.name} badge={<PriceBadge p={{ ...pv, badge: p.badge }} />} />
+          <Gallery images={p.images} video={p.video} alt={p.name} badge={<PriceBadge p={{ ...pv, badge: p.badge, badges: p.badges }} />} />
           <div>
             <a className="eyebrow" href={catHref}>
               {p.category.th}

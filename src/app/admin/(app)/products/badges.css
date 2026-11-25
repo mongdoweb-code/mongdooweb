@@ -1,0 +1,25 @@
+/* ตัวแก้ไขป้ายบนการ์ด (หลายป้าย) — หน้าแก้ไขสินค้า + แผงแก้ไขด่วน */
+.bge{display:grid;gap:8px}
+.bge-box{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:44px;padding:6px;border:1.5px solid #E3E0D8;border-radius:10px;background:#FFFFFF;cursor:text}
+.bge-box:focus-within{border-color:#F26B38;box-shadow:0 0 0 3px rgba(242,107,56,.15)}
+.bge-box input[type=text]{flex:1;min-width:150px;height:30px;border:0;outline:0;padding:0 6px;font-size:14px;background:transparent}
+.bge-chip{display:inline-flex;align-items:center;gap:3px;height:32px;padding:0 4px 0 2px;border:1px solid #E3E0D8;border-radius:999px;background:#FAF9F6;cursor:grab}
+.bge-drag{color:#B9B4AB;padding:0 3px;font-size:13px}
+.bge-pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;color:#FFFFFF;font-size:11.5px;font-weight:600;background:rgb(var(--bc,168 60 18) / .9);white-space:nowrap}
+.bge-chip select{height:24px;border:0;background:transparent;font-size:12px;color:#6B6862;cursor:pointer}
+.bge-mv,.bge-x{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;color:#6B6862;font-size:14px;line-height:1}
+.bge-mv:hover:not(:disabled),.bge-x:hover{background:#EDEAE4;color:#1C1C1C}
+.bge-mv:disabled{opacity:.3;cursor:default}
+.bge-x{background:#EDEAE4}
+.bge-sugg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px;color:#6B6862}
+.bge-sugg button{height:28px;padding:0 10px;border:1px dashed #D9D5CC;border-radius:999px;background:#FFFFFF;font-size:12.5px;color:#3B3934}
+.bge-sugg button:hover{border-color:#F26B38;color:#B5461C}
+.bge-msg{color:#B3322B;font-size:12.5px}
+.bge-hint{font-size:12px;color:#8A867E}
+.bc-orange{--bc:168 60 18}.bc-green{--bc:21 112 62}.bc-blue{--bc:29 78 150}.bc-dark{--bc:20 20 20}
+html[data-adm-theme="dark"] .bge-box{background:#1F1F1D;border-color:#3A3833}
+html[data-adm-theme="dark"] .bge-box input[type=text]{color:#ECE8E0}
+html[data-adm-theme="dark"] .bge-chip{background:#262523;border-color:#3A3833}
+html[data-adm-theme="dark"] .bge-chip select{color:#C9C2B5;color-scheme:dark}
+html[data-adm-theme="dark"] .bge-x{background:#34322E;color:#C9C2B5}
+html[data-adm-theme="dark"] .bge-sugg button{background:#1F1F1D;border-color:#4A4741;color:#ECE8E0}

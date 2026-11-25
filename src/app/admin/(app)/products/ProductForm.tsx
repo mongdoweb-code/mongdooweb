@@ -15,6 +15,8 @@ import { SaveResultPopup } from "../../_components/SaveResultPopup";
 import type { Datasheet, DsGroup } from "@/lib/datasheet";
 import { DatasheetEditor } from "./DatasheetEditor";
 import { NoticePicker } from "./NoticePicker";
+import { BadgesEditor } from "./BadgesEditor";
+import type { Badge } from "@/lib/badges";
 import type { NoticeRow } from "@/lib/notices";
 
 /** เมนูด่วนด้านบนฟอร์ม — ลำดับตามที่ใช้บ่อย (ส่วนที่ไม่มีในหน้าถูกซ่อนเอง) */
@@ -39,7 +41,7 @@ const SECTIONS: NavSection[] = [
 export type ProductValues = {
   id: string; name: string; slug: string; sku: string; categoryId: string; unit: string;
   price: string; compareAt: string; trackStock: boolean; stock: number; inStock: boolean;
-  isActive: boolean; isBestSeller: boolean; badge: string; shortDescription: string; description: string;
+  isActive: boolean; isBestSeller: boolean; badge: string; badges: Badge[]; shortDescription: string; description: string;
   keywords: string; seoTitle: string; seoDescription: string; weightGram: string;
   specs: { label: string; value: string }[]; images: { key: string; url: string }[]; video: VideoValue | null;
   useAreas: string[]; lightColor: string; includesPsu: boolean; isAccessory: boolean;
@@ -55,9 +57,9 @@ export type DatasheetLists = { shopStyle: string; templates: Record<string, DsGr
 
 const USE = [["POOL", "สระว่ายน้ำ"], ["POND", "บ่อปลา/บ่อน้ำ"], ["FOUNTAIN", "น้ำพุ"], ["GARDEN", "สวน"]];
 
-export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText, specDefs, ds, noticeLib, children }: {
+export function ProductForm({ v, categories, saved, copied, owner, siteHost, shortText, specDefs, ds, noticeLib, badgeSuggest = [], children }: {
   v: ProductValues; categories: { id: string; name: string }[]; saved: boolean; copied?: boolean; owner?: boolean; siteHost?: string; shortText?: string;
-  specDefs: SpecDef[]; ds: DatasheetLists; noticeLib: NoticeRow[]; children?: React.ReactNode;
+  specDefs: SpecDef[]; ds: DatasheetLists; noticeLib: NoticeRow[]; badgeSuggest?: string[]; children?: React.ReactNode;
 }) {
   const [state, onSubmit, pending] = useFormAction<ProductFormState>(saveProduct, saved ? { ok: "เพิ่มสินค้าแล้ว" } : copied ? { ok: "ทำสำเนาแล้ว — สำเนานี้ปิดขายอยู่ แก้ไขแล้วเปิดขายได้" } : {}, { popup: false }); // มีป๊อปอัปของตัวเอง (ดูหน้าสินค้า + ไปช่องที่ผิด)
   const [name, setName] = useState(v.name);
@@ -175,7 +177,7 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
               )}
               <label className="chk-row"><input type="checkbox" name="isActive" defaultChecked={v.isActive} /> เปิดขายบนหน้าร้าน</label>
               <label className="chk-row"><input type="checkbox" name="isBestSeller" defaultChecked={v.isBestSeller} /> แสดงใน &quot;สินค้าขายดี&quot; หน้าแรก</label>
-              <div className="field"><label htmlFor="badge">ป้ายบนการ์ด</label><input id="badge" name="badge" defaultValue={v.badge} maxLength={20} placeholder="เช่น ขายดี, แนะนำ, ใหม่" /></div>
+              <div className="field"><label htmlFor="badges">ป้ายบนการ์ด</label><BadgesEditor init={v.badges} suggest={badgeSuggest} /></div>
               <div className="act-row">
                 <button className="btn btn-primary" type="submit" disabled={pending || mediaBusy} title={mediaBusy ? "รอรูป/วิดีโออัปโหลดเสร็จก่อน" : undefined}>{pending ? "กำลังบันทึก…" : mediaBusy ? "กำลังอัปโหลดไฟล์…" : "บันทึกสินค้า"}</button>
                 <Link className="btn btn-outline" href="/admin/products">กลับ</Link>

@@ -12,6 +12,8 @@ import { Prisma } from "../../../../../../generated/prisma/client";
 import { EMPTY_DS, parseDatasheet, parseTemplate, type DsGroup } from "@/lib/datasheet";
 import { parseAttrs } from "@/lib/specs";
 import { getNoticeLibrary } from "@/lib/notices-db";
+import { badgesOf } from "@/lib/badges";
+import { badgeSuggestions } from "../badge-data";
 import { optionLabel, readOptions } from "@/lib/variants";
 import "../../../lot3.css";
 import { DownloadsBox } from "../DownloadsBox";
@@ -47,7 +49,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
   if (id === "new") {
     v = {
       id: "", name: "", slug: "", sku: "", categoryId: categories[0]?.id ?? "", unit: "ชิ้น", price: "", compareAt: "",
-      trackStock: false, stock: 0, inStock: true, isActive: true, isBestSeller: false, badge: "", shortDescription: "", description: "",
+      trackStock: false, stock: 0, inStock: true, isActive: true, isBestSeller: false, badge: "", badges: [], shortDescription: "", description: "",
       keywords: "", seoTitle: "", seoDescription: "", weightGram: "", specs: [], images: [], video: null, useAreas: [], lightColor: "ANY",
       includesPsu: false, isAccessory: false, orders: 0,
       extras: { salePrice: "", saleStartsAt: "", saleEndsAt: "", tiers: [], attrs: {}, group: null },
@@ -60,7 +62,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
     v = {
       id: p.id, name: p.name, slug: p.slug, sku: p.sku, categoryId: p.categoryId, unit: p.unit,
       price: baht(p.priceSatang), compareAt: baht(p.compareAtSatang), trackStock: p.trackStock, stock: p.stock, inStock: p.inStock,
-      isActive: p.isActive, isBestSeller: p.isBestSeller, badge: p.badge ?? "", shortDescription: p.shortDescription ?? "",
+      isActive: p.isActive, isBestSeller: p.isBestSeller, badge: p.badge ?? "", badges: badgesOf(p), shortDescription: p.shortDescription ?? "",
       description: p.description ?? "", keywords: p.keywords ?? "", seoTitle: p.seoTitle ?? "", seoDescription: p.seoDescription ?? "",
       weightGram: p.weightGram != null ? String(p.weightGram) : "",
       specs: Array.isArray(p.specs) ? (p.specs as { label: string; value: string }[]).map((s) => ({ label: String(s.label ?? ""), value: String(s.value ?? "") })) : [],
@@ -106,6 +108,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
         siteHost={(process.env.SITE_URL ?? "https://www.mongdooweb.com").replace(/^https?:\/\//, "").replace(/\/.*$/, "")}
         shortText={htmlToText(v.shortDescription || v.description).slice(0, 160)}
         noticeLib={await getNoticeLibrary()}
+        badgeSuggest={await badgeSuggestions()}
         specDefs={specDefs}
         ds={ds}
       >

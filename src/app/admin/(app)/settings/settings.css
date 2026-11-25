@@ -6,10 +6,28 @@
 .cb-opt:has(input:focus-visible){outline:2px solid #F26B38;outline-offset:2px}
 .cb-prev{position:relative;display:block;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:#F2F0EB;border:1px solid #E7E3DB}
 .cb-img{position:absolute;inset:18% 22%;border-radius:6px;background:linear-gradient(135deg,#C9C4BA,#9E978A)}
-.cb-prev b{position:absolute;color:#FFFFFF;background:rgba(168,60,18,.85);font-size:10.5px;font-weight:600;white-space:nowrap}
-.cb-a b{top:8px;left:8px;height:20px;line-height:20px;padding:0 8px;border-radius:999px}
-.cb-b b{top:8px;left:8px;padding:2px 7px;line-height:1.5;border-radius:4px}
-.cb-c b{top:0;left:0;height:19px;line-height:19px;padding:0 8px 0 7px;font-size:10px;border-radius:0 0 8px 0}
+.cb-badges{position:absolute;inset:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px;pointer-events:none}
+.cb-prev b{position:static;color:#FFFFFF;background:rgb(var(--bc,168 60 18) / var(--bo,.85));font-size:10.5px;font-weight:600;white-space:nowrap}
+.cb-prev .cb-sale{--bc:176 40 30}.cb-prev .cb-blue{--bc:29 78 150}
+.cb-a b{height:20px;line-height:20px;padding:0 8px;border-radius:999px}
+.cb-b b{padding:2px 7px;line-height:1.5;border-radius:4px}
+.cb-c .cb-badges{padding:0;gap:3px}
+.cb-c b{height:19px;line-height:19px;padding:0 8px 0 7px;font-size:10px;border-radius:0 8px 8px 0}
+.cb-c b:first-child{border-radius:0 0 8px 0}
+.cbl-2 .cb-badges{flex-direction:row;flex-wrap:wrap;align-content:flex-start}
+.cbl-3 .cb-badges{display:block}
+.cbl-3 b:first-child{position:absolute;top:8px;left:8px}
+.cb-c.cbl-3 b:first-child{top:0;left:0}
+.cbl-3 b:not(:first-child){float:right;clear:right;margin-bottom:4px}
+.cb-c.cbl-3 b:not(:first-child){border-radius:0 0 0 8px;margin-bottom:3px}
+.cb-c.cbl-2 b:not(:first-child){border-radius:0 0 6px 6px}
+.cb-h{display:block;margin:14px 0 8px;font-size:13px;font-weight:600;color:#6B6862}
+.cb-live{display:flex;align-items:flex-end;gap:12px;margin:6px 0 4px}
+.cb-big{width:200px;flex:none}
+.cb-live small{font-size:12px;color:#8A867E}
+.cb-op{margin-top:14px}
+.cb-op input[type=range]{width:100%;max-width:420px;accent-color:#F26B38}
+.cb-warn{color:#B3322B}
 .cb-txt b{display:block;font-size:13.5px}
 .cb-txt small{display:block;font-size:12px;color:#6B6862}
 @media (max-width:700px){.cb-opts{grid-template-columns:1fr}}

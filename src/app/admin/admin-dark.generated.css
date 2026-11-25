@@ -4928,10 +4928,78 @@ html[data-adm-theme="dark"] .cb-img {
 }
 html[data-adm-theme="dark"] .cb-prev b {
     color: #FFFFFF;
-    background: rgba(168,60,18,.85)
+    background: rgb(var(--bc,168 60 18) / var(--bo,.85))
+}
+html[data-adm-theme="dark"] .cb-h {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .cb-live small {
+    color: #9E9B94
+}
+html[data-adm-theme="dark"] .cb-warn {
+    color: #DB716B
 }
 html[data-adm-theme="dark"] .cb-txt small {
     color: #ACA9A4
+}
+/*  src/app/admin/(app)/products/badges.css  */
+html[data-adm-theme="dark"] .bge-box {
+    border: 1.5px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .bge-box:focus-within {
+    border-color: #F26B38
+}
+html[data-adm-theme="dark"] .bge-box input[type=text] {
+    border: 0;
+    outline: 0;
+    background: transparent
+}
+html[data-adm-theme="dark"] .bge-chip {
+    border: 1px solid #2B2F37;
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .bge-drag {
+    color: #A29C90
+}
+html[data-adm-theme="dark"] .bge-pill {
+    color: #FFFFFF;
+    background: rgb(var(--bc,168 60 18) / .9)
+}
+html[data-adm-theme="dark"] .bge-chip select {
+    border: 0;
+    background: transparent;
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .bge-mv,
+html[data-adm-theme="dark"] .bge-x {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .bge-mv:hover:not(:disabled),
+html[data-adm-theme="dark"] .bge-x:hover {
+    background: #121417;
+    color: #E7E7E7
+}
+html[data-adm-theme="dark"] .bge-x {
+    background: #121417
+}
+html[data-adm-theme="dark"] .bge-sugg {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .bge-sugg button {
+    border: 1px dashed #2A2D35;
+    background: #1E2127;
+    color: #D3D1CD
+}
+html[data-adm-theme="dark"] .bge-sugg button:hover {
+    border-color: #F26B38;
+    color: #E68560
+}
+html[data-adm-theme="dark"] .bge-msg {
+    color: #DB716B
+}
+html[data-adm-theme="dark"] .bge-hint {
+    color: #9E9B94
 }
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {

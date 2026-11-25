@@ -5,6 +5,7 @@ import { useFormAction } from "../../_components/useFormAction";
 import { saveSettings, type FormState } from "./actions";
 import { PromptPayPreview } from "./PromptPayPreview";
 import "./settings.css";
+import { BADGE_LAYOUTS, BADGE_OPACITY_DEFAULT, BADGE_OPACITY_MAX, BADGE_OPACITY_MIN, type BadgeLayout } from "@/lib/badges";
 
 export type SettingsValues = {
   legalName: string; phone: string; email: string; lineId: string; lineOaUrl: string; website: string; addressText: string;
@@ -19,7 +20,7 @@ export type SettingsValues = {
   logoUrl: string | null;
   signatureUrl: string | null; stampUrl: string | null; signerName: string; signerTitle: string; quotePayInfo: boolean; quoteOnlineQr: boolean;
   announcementEnabled: boolean; announcementText: string; announcementHref: string;
-  datasheetStyle: string; datasheetCompare: boolean; cardBadgeStyle: string;
+  datasheetStyle: string; datasheetCompare: boolean; cardBadgeStyle: string; cardBadgeLayout: string; cardBadgeOpacity: number;
   ga4Id: string; metaPixelId: string;
   autoCancelDays: number; lowStockThreshold: number; lineLowStock: boolean; lineDailySummary: boolean;
 };
@@ -30,6 +31,9 @@ const fmt = (n: number) => n.toLocaleString("th-TH", { maximumFractionDigits: 2 
 export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<string, string> }) {
   const [state, onSubmit, pending] = useFormAction<FormState>(saveSettings, {});
   const [accounts, setAccounts] = useState(v.bankAccounts.length ? v.bankAccounts : [{ bank: "KBANK", account: "", holder: "" }]);
+  const [bStyle, setBStyle] = useState(["A", "B", "C"].includes(v.cardBadgeStyle) ? v.cardBadgeStyle : "A");
+  const [bLayout, setBLayout] = useState<string>(v.cardBadgeLayout || "1");
+  const [bOpacity, setBOpacity] = useState(v.cardBadgeOpacity || BADGE_OPACITY_DEFAULT);
   const [tiers, setTiers] = useState(v.tiers.length ? v.tiers : [{ min: "0", fee: "0" }]);
   const [express, setExpress] = useState(v.expressEnabled);
   const [vat, setVat] = useState(v.vatEnabled);
@@ -158,15 +162,40 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
 
         <div className="box" id="cardBadge">
           <h3>ป้ายบนการ์ดสินค้า</h3>
-          <p className="sub" style={{ marginTop: -4 }}>ป้ายมุมรูปสินค้า (เช่น ขายดี, 4000k — แก้ข้อความได้ที่ช่อง “ป้ายบนการ์ด” ในหน้าแก้ไขสินค้า) · สีส้มโปร่งแสง · ป้าย “ลด xx%” คงสีแดง</p>
+          <p className="sub" style={{ marginTop: -4 }}>ป้ายมุมรูปสินค้า (ใส่ได้หลายป้ายต่อสินค้า ที่ช่อง “ป้ายบนการ์ด” ในหน้าแก้ไขสินค้า) · ป้าย “ลด xx%” สีแดงอยู่ลำดับแรกเสมอ</p>
+          <div className="cb-live">
+            <span className={`cb-prev cb-big cb-${bStyle.toLowerCase()} cbl-${bLayout}`} style={{ "--bo": bOpacity / 100 } as React.CSSProperties} aria-label="ตัวอย่างการ์ดตามที่เลือก">
+              <i className="cb-img" />
+              <span className="cb-badges"><b className="cb-sale">ลด 13%</b><b>3000K</b><b className="cb-blue">12-24V</b></span>
+            </span>
+            <small>ตัวอย่างตามที่เลือก (ยังไม่บันทึก)</small>
+          </div>
+          <span className="lbl cb-h">ทรงป้าย</span>
           <div className="cb-opts" role="radiogroup" aria-label="รูปแบบป้ายบนการ์ดสินค้า">
             {([["A", "แคปซูลเล็ก", "มุมโค้งมน ห่างขอบ 8px"], ["B", "สี่เหลี่ยมมุมโค้งเล็ก", "ทรงเดิมแต่เล็กลง"], ["C", "ป้ายชิดมุม", "ติดมุมบนซ้าย บังรูปน้อยที่สุด"]] as const).map(([k, t, d]) => (
               <label key={k} className="cb-opt">
-                <input type="radio" name="cardBadgeStyle" value={k} defaultChecked={(v.cardBadgeStyle || "A") === k} />
-                <span className={`cb-prev cb-${k.toLowerCase()}`} aria-hidden="true"><i className="cb-img" /><b>ขายดี</b></span>
+                <input type="radio" name="cardBadgeStyle" value={k} checked={bStyle === k} onChange={() => setBStyle(k)} />
+                <span className={`cb-prev cb-${k.toLowerCase()} cbl-1`} aria-hidden="true"><i className="cb-img" /><span className="cb-badges"><b>ขายดี</b></span></span>
                 <span className="cb-txt"><b>แบบ {k} · {t}</b><small>{d}</small></span>
               </label>
             ))}
+          </div>
+          <span className="lbl cb-h">การจัดวางเมื่อมีหลายป้าย</span>
+          <div className="cb-opts" role="radiogroup" aria-label="การจัดวางป้ายบนการ์ด">
+            {(Object.entries(BADGE_LAYOUTS) as [BadgeLayout, { label: string; hint: string }][]).map(([k, o]) => (
+              <label key={k} className="cb-opt">
+                <input type="radio" name="cardBadgeLayout" value={k} checked={bLayout === k} onChange={() => setBLayout(k)} />
+                <span className={`cb-prev cb-${bStyle.toLowerCase()} cbl-${k}`} aria-hidden="true"><i className="cb-img" /><span className="cb-badges"><b className="cb-sale">ลด 13%</b><b>3000K</b><b className="cb-blue">12-24V</b></span></span>
+                <span className="cb-txt"><b>แบบ {k} · {o.label}</b><small>{o.hint}</small></span>
+              </label>
+            ))}
+          </div>
+          <div className="field cb-op">
+            <label htmlFor="cardBadgeOpacity">ความทึบของพื้นป้าย <b className="num">{bOpacity}%</b></label>
+            <input type="range" id="cardBadgeOpacity" name="cardBadgeOpacity" min={BADGE_OPACITY_MIN} max={BADGE_OPACITY_MAX} step={5} value={bOpacity} onChange={(e) => setBOpacity(Number(e.target.value))} />
+            <small className={bOpacity < BADGE_OPACITY_DEFAULT ? "cb-warn" : undefined}>
+              {bOpacity < BADGE_OPACITY_DEFAULT ? `ต่ำกว่า ${BADGE_OPACITY_DEFAULT}% ตัวอักษรขาวอาจอ่านยากบนรูปพื้นขาว` : "100% = ทึบ ไม่โปร่งแสง · ค่าแนะนำ 85% ขึ้นไป (อ่านชัดทุกรูป)"}
+            </small>
           </div>
         </div>
 
