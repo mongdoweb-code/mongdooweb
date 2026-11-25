@@ -96,6 +96,7 @@ export default async function DocEditPage({ params, searchParams }: PageProps<"/
       printedAt={docDateTime(new Date(), s.dateEra)}
       lists={{ methods: PAY_METHODS, carriers: CARRIERS, units: UNITS, reasons: CREDIT_REASONS }}
       showCost={owner}
+      copied={typeof sp.copied === "string" && id !== "new" ? sp.copied.slice(0, 40) : undefined}
     />
   );
 }

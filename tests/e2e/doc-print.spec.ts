@@ -153,7 +153,7 @@ test("ตัวเลือกต่อเอกสาร: ติ๊ก/ไม�
   // ทำสำเนาเป็นฉบับใหม่ → ตัวเลือกติดไปด้วย
   await page.goto(`/admin/docs/QUOTATION/${id2}`);
   await page.getByRole("button", { name: "ทำสำเนาเป็นฉบับใหม่" }).click();
-  await page.waitForURL(/\/edit$/);
+  await page.waitForURL(/\/edit(\?|$)/);
   await expect(page.getByRole("checkbox", { name: /ใส่ลายเซ็นอิเล็กทรอนิกส์/ })).not.toBeChecked();
 });
 

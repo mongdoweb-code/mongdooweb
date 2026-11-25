@@ -2845,6 +2845,27 @@ html[data-adm-theme="dark"] .link.back-btn:hover {
 html[data-adm-theme="dark"] .link.back-btn:focus-visible {
     outline: 2px solid #1d4e96
 }
+html[data-adm-theme="dark"] .de-copied {
+    border: 1px solid #2B3C4C;
+    border-left: 4px solid #7C5CD6
+}
+html[data-adm-theme="dark"] .dcp-x {
+    border: 0;
+    background: transparent;
+    color: inherit
+}
+html[data-adm-theme="dark"] .dcp-x:hover {
+    background: rgba(0,0,0,.06)
+}
+html[data-adm-theme="dark"] .dcp-warn {
+    color: #F1B155
+}
+html[data-adm-theme="dark"] .dcp-ok {
+    color: #64E3A6
+}
+html[data-adm-theme="dark"] .dcp-list s {
+    color: #999999
+}
 /*  src/app/admin/lot3.css  */
 html[data-adm-theme="dark"] .l3-kpi {
     background: #1E2127;

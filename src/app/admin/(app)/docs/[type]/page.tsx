@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
 import { Icons } from "../../../_components/RowActions";
-import { deleteDraft, reviseQuote, toggleDocPin } from "../actions";
+import { deleteDraft, duplicateDoc, reviseQuote, toggleDocPin } from "../actions";
 import { VoidIcon } from "../DocForms";
 import { Pagination } from "../../../_components/Pagination";
 import { notFound } from "next/navigation";
@@ -16,7 +16,7 @@ import { QuickRanges, SumCard, SumRows } from "../../../_components/SumTotals";
 import "../../../_components/doc-status.css";
 import { change, matchQuick, prevSpan, quickSpan } from "@/lib/date-ranges";
 import { VoidSetLink, VoidToggle } from "../VoidToggle";
-import { isDocType, quoteEditBlock, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
+import { copyBlock, isDocType, quoteEditBlock, statusOf, statusWhere, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
 import { WORK_FILTERS, workWhere } from "@/lib/doc-work";
 import { WorkIcon as WorkTagIcon, WorkTag } from "../WorkTag";
@@ -264,8 +264,8 @@ const PRINT = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="7" /></svg>
 );
 
-/** ดู · แก้ไข · พิมพ์ · ยกเลิก · ลบ — ปุ่มที่ใช้ไม่ได้ตามสถานะจะจางพร้อมบอกเหตุผลเมื่อชี้ */
-function DocActions({ d, href, label }: { d: { id: string; type: string; status: string; docNo: string | null; _count: { derived: number } }; href: string; label: string }) {
+/** ทำสำเนา · ดู · แก้ไข · พิมพ์ · ยกเลิก · ลบ — ปุ่มที่ใช้ไม่ได้ตามสถานะจะจางพร้อมบอกเหตุผลเมื่อชี้ */
+function DocActions({ d, href, label }: { d: { id: string; type: string; status: string; docNo: string | null; isDeposit: boolean; _count: { derived: number } }; href: string; label: string }) {
   const draft = d.status === "DRAFT", voided = d.status === "VOID";
   // ใบเสนอราคารอตอบรับที่ยังไม่มีเอกสารต่อเนื่อง → แก้ไขเลขที่เดิม (ฉบับแก้ไขเลขใหม่อยู่ในหน้าเอกสาร)
   const sameNo = d.type === "QUOTATION" && !quoteEditBlock(d, d._count.derived) && !draft;
@@ -275,6 +275,13 @@ function DocActions({ d, href, label }: { d: { id: string; type: string; status:
   const revisable = d.type === "QUOTATION" && ["ISSUED", "REJECTED"].includes(d.status);
   return (
     <div className="row-acts">
+      {/* ทำสำเนา = ฉบับร่างใหม่ (ลูกค้าเดิมสั่งซ้ำ): วันที่/วันยืนราคาตั้งใหม่ ข้อมูลลูกค้าล่าสุด แล้วเปิดตัวแก้ไขพร้อมแถบตรวจราคา */}
+      {copyBlock(d) ? off("ra-dup", Icons.copy, copyBlock(d)!, "ทำสำเนา") : (
+        <form action={duplicateDoc}>
+          <input type="hidden" name="id" value={d.id} />
+          <button type="submit" className="ra ra-dup" data-tip="ทำสำเนาเป็นฉบับใหม่ (ลูกค้าสั่งซ้ำ)" aria-label={`ทำสำเนา ${label}`}>{Icons.copy}</button>
+        </form>
+      )}
       <Link className="ra ra-view" href={href} data-tip="ดู" aria-label={`ดู ${label}`}>{Icons.eye}</Link>
       {draft ? (
         <Link className="ra ra-edit" href={`${href}/edit`} data-tip="แก้ไข" aria-label={`แก้ไข ${label}`}>{Icons.edit}</Link>

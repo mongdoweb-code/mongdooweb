@@ -97,11 +97,13 @@ const growToFit = (t: HTMLTextAreaElement) => {
   if (t.scrollHeight > t.clientHeight + 1) t.style.height = `${t.scrollHeight + 2}px`;
 };
 
-export function DocEditor({ init, title, back, customers: cust0, products, shop, vatEnabled, vatRateBp, refText, printedAt, lists, showCost = false }: {
+export function DocEditor({ init, title, back, customers: cust0, products, shop, vatEnabled, vatRateBp, refText, printedAt, lists, showCost = false, copied }: {
   init: EditorInit; title: string; back: string; customers: Cust[]; products: Prod[]; shop: ShopHead; vatEnabled: boolean; vatRateBp: number;
   refText: string; printedAt: string; lists: { methods: string[]; carriers: string[]; units: string[]; reasons?: string[] };
   /** เจ้าของร้าน: แสดงต้นทุน/กำไร (ไม่พิมพ์บนเอกสาร) */
   showCost?: boolean;
+  /** เพิ่งทำสำเนามาจากเอกสารเลขนี้ → แสดงแถบตรวจราคา/สินค้าเลิกขายเทียบกับข้อมูลปัจจุบัน */
+  copied?: string;
 }) {
   const isCn = init.type === "CREDIT_NOTE";
   const draftKey = `mdw_doc_draft_${init.id ?? `new-${init.type}`}`;
@@ -112,6 +114,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
   const [restore, setRestore] = useState<typeof v | null>(null);
   const [showPv, setShowPv] = useState(true);
   const [picker, setPicker] = useState(false);
+  const [copyBar, setCopyBar] = useState(!!copied);
   const saveBtn = useRef<HTMLButtonElement>(null);
   const prodById = new Map(products.map((p) => [p.id, p]));
   const set = <K extends keyof typeof v>(k: K, val: (typeof v)[K]) => { setV((x) => ({ ...x, [k]: val })); setDirty(true); };
@@ -263,6 +266,20 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
     set("items", [...v.items.filter((l) => l.name.trim() || l.price), withKey({ productId: p?.id ?? "", sku: "Shipping", name: p?.name ?? "ค่าส่งสินค้า", detail: v.carrier, unit: p?.unit ?? "กล่อง", qty: "1", price: ((p?.price ?? 6000) / 100).toFixed(2), discount: "", image: null })]);
   };
 
+  // สำเนา (ลูกค้าสั่งซ้ำ): ราคาในฉบับเดิมอาจไม่ใช่ราคาปัจจุบัน · สินค้าบางตัวอาจเลิกขายแล้ว
+  const priceDiff = v.items.flatMap((l) => {
+    const p = l.productId ? prodById.get(l.productId) : undefined;
+    if (!p || p.service || !p.price || !l.name.trim()) return [];
+    const now = priceFor(p, l.qty);
+    return Math.round(num(l.price) * 100) === Math.round(Number(now) * 100) ? [] : [{ key: l.key, name: l.name, was: l.price, now }];
+  });
+  const gone = v.items.filter((l) => l.productId && l.name.trim() && (!prodById.get(l.productId) || prodById.get(l.productId)!.off)).map((l) => l.name);
+  const usePricesNow = () => {
+    const by = new Map(priceDiff.map((d) => [d.key, d.now]));
+    set("items", v.items.map((l) => (by.has(l.key) ? { ...l, price: by.get(l.key)! } : l)));
+  };
+  const baht = (s: string) => `฿${money(Math.round(num(s) * 100))}`;
+
   return (
     <main className="main doc-edit">
       <div className="page-head">
@@ -281,6 +298,30 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
           <button className="btn btn-outline de-pvtoggle-btn" type="button" onClick={() => setShowPv((x) => !x)}>{showPv ? "ซ่อนตัวอย่าง" : "แสดงตัวอย่าง"}</button>
         </div>
       </div>
+      {copyBar && (
+        <div className="login-info de-copied" role="status" data-copied>
+          <div className="dcp-head">
+            <b>ทำสำเนาจาก {copied} แล้ว — เป็นฉบับร่างใหม่ (ยังไม่ออกเลขที่)</b>
+            <button type="button" className="dcp-x" onClick={() => setCopyBar(false)} aria-label="ปิดแถบแจ้งเตือน">×</button>
+          </div>
+          <p>ตั้งวันที่เอกสารเป็นวันนี้{init.type === "QUOTATION" ? " และนับวันยืนราคาใหม่" : init.type === "INVOICE" ? " และนับวันครบกำหนดใหม่" : ""} · ใช้ที่อยู่/ข้อมูลลูกค้าล่าสุด · ตรวจจำนวนและราคาก่อนกดออกเอกสาร</p>
+          {priceDiff.length > 0 ? (
+            <>
+              <p className="dcp-warn">ราคาสินค้า {priceDiff.length} รายการไม่ตรงกับราคาปัจจุบัน:</p>
+              <ul className="dcp-list">
+                {priceDiff.map((d) => <li key={d.key}>{d.name}: <s>{baht(d.was)}</s> → <b>{baht(d.now)}</b></li>)}
+              </ul>
+              <div className="act-row">
+                <button type="button" className="btn btn-primary btn-sm" onClick={usePricesNow} data-use-prices>ใช้ราคาปัจจุบันทั้งหมด</button>
+                <span className="sub-inline">หรือคงราคาเดิมไว้ (เช่น ราคาที่ตกลงกับลูกค้าไว้)</span>
+              </div>
+            </>
+          ) : (
+            <p className="dcp-ok">✓ ราคาทุกรายการตรงกับราคาปัจจุบัน</p>
+          )}
+          {gone.length > 0 && <p className="dcp-warn">สินค้าที่ปิดขาย/ไม่มีในระบบแล้ว: {gone.join(", ")} — ตรวจว่ายังขายได้หรือเปลี่ยนรุ่น</p>}
+        </div>
+      )}
       {restore && (
         <div className="login-info dc-restore" role="status">
           มีข้อมูลที่พิมพ์ค้างไว้ในเครื่องนี้ (ยังไม่ได้บันทึก)
