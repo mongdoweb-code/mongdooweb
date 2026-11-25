@@ -34,6 +34,11 @@ const nextConfig: NextConfig = {
     // อัปโหลดรูปสินค้า/สไลด์/โลโก้จากหลังบ้าน (หลายรูปต่อครั้ง รูปละไม่เกิน 10 MB)
     serverActions: { bodySizeLimit: "40mb" },
     proxyClientMaxBodySize: "40mb",
+    // build บน Railway: จำกัดจำนวน worker + จำนวนหน้าที่สร้างพร้อมกัน (แต่ละ worker เปิด connection ฐานข้อมูลเอง
+    // เครื่อง build มีหลาย core → connection รวมเกิน max_connections ของ Postgres ได้) · หน้าที่สร้างไม่สำเร็จลองใหม่ 2 ครั้งก่อนให้ build ล้ม
+    cpus: 4,
+    staticGenerationMaxConcurrency: 4,
+    staticGenerationRetryCount: 2,
   },
   // header ความปลอดภัยพื้นฐานทุกหน้า: กันฝังเว็บในเฟรม (clickjacking), กันเดาชนิดไฟล์, บังคับ https, จำกัดสิทธิ์อุปกรณ์
   async headers() {
