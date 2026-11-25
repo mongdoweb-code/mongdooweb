@@ -45,6 +45,7 @@ import { BulkLabels, EditOrderForm } from "./orders/OrderForms";
 import { confirmCodOrder, settleCod } from "./orders/cod-actions";
 import "../lot3.css";
 import { TaskPanel } from "./tasks/TaskPanel";
+import { DateRangeFilter } from "../_components/DateRangeFilter";
 
 type Mode = "reject" | "edit" | "pay" | "cancel" | "refund" | null;
 const MODES = ["reject", "edit", "pay", "cancel", "refund"] as const;
@@ -212,15 +213,8 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
           <form className="toolbar2" action="/admin">
             {f.tab !== "PENDING_VERIFICATION" && <input type="hidden" name="tab" value={f.tab} />}
             {f.q && <input type="hidden" name="q" value={f.q} />}
-            <div className="date-custom">
-              <input type="hidden" name="range" value="custom" />
-              <label className="sr-only" htmlFor="dFrom">ตั้งแต่วันที่</label>
-              <input type="date" id="dFrom" name="from" defaultValue={f.from} />
-              <span>ถึง</span>
-              <label className="sr-only" htmlFor="dTo">ถึงวันที่</label>
-              <input type="date" id="dTo" name="to" defaultValue={f.to} />
-              <button className="btn btn-outline btn-sm" type="submit">ใช้ช่วงนี้</button>
-            </div>
+            <input type="hidden" name="range" value="custom" />
+            <DateRangeFilter key={`${f.from}|${f.to}`} from={f.from} to={f.to} />
             <span className="err-msg">{list.badRange ? "วันที่เริ่มต้องไม่อยู่หลังวันที่สิ้นสุด" : ""}</span>
           </form>
         )}

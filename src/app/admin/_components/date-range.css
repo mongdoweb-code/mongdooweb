@@ -1,0 +1,30 @@
+/* ช่วงวันที่แบบ A: ช่องแคปซูลโค้งมนรับกับช่องค้นหา (สูง 46px · ป้ายกำกับเล็กด้านบนในช่อง) */
+.dr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dr-box{position:relative;display:flex;flex-direction:column;justify-content:center;height:46px;min-width:186px;padding:0 38px 0 18px;border:1.5px solid #E3E0D8;border-radius:999px;background:#FFFFFF;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.dr-box:hover{border-color:#C9C5BC}
+.dr-box:focus-within{border-color:#F26B38;box-shadow:0 0 0 3px rgba(242,107,56,.15)}
+.dr-lbl{font-size:11px;font-weight:700;color:#8A867E;line-height:1.25;cursor:pointer;pointer-events:none}
+.dr-val{display:flex;align-items:center;gap:7px;font-size:14.5px;line-height:1.4;color:#1C1C1C;pointer-events:none}
+.dr-val svg{width:15px;height:15px;flex:none;color:#8A867E}
+.dr-val b{font-weight:700;font-variant-numeric:tabular-nums}
+.dr-val em{font-style:normal;font-size:12.5px;color:#8A867E}
+.dr-ph{color:#A8A49C}
+/* ช่อง date จริง: ซ้อนเต็มช่องแบบโปร่งใส (คลิกได้ทั้งแคปซูล · ตัวช่วยอ่านหน้าจอยังอ่านได้) */
+.dr-box input[type=date]{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;cursor:pointer;z-index:1}
+.dr-box input[type=date]::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;cursor:pointer}
+.dr-x{position:absolute;right:10px;top:50%;transform:translateY(-50%);z-index:2;width:22px;height:22px;border:0;border-radius:50%;background:#F1EFEA;color:#6B665E;font-size:14px;line-height:22px;padding:0;cursor:pointer}
+.dr-x:hover{background:#E3E0D8;color:#1C1C1C}
+.dr-arrow{color:#8A867E;font-size:17px}
+.dr-days{height:28px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;background:#E9F7EF;color:#15803D;font-size:12.5px;font-weight:700;white-space:nowrap}
+@media (max-width:860px){
+  .dr{flex:1 1 100%}
+  .dr-box{flex:1;min-width:0}
+  .dr-arrow{display:none}
+}
+/* แถวที่มีช่วงวันที่: ช่องค้นหา/ตัวเลือก/ปุ่ม สูงเท่าช่องวันที่ (46px) ให้แนวโค้งตรงกันทั้งแถว */
+.doc-filter .df-search,.doc-filter .df-go,.doc-filter .df-clear{height:46px}
+.toolbar2:has(.dr) .search input,.toolbar2:has(.dr) .sel,.toolbar2:has(.dr) > .btn,.toolbar2:has(.dr) > input[type=search]{height:46px;border-radius:999px}
+.toolbar2:has(.dr) > .btn{padding:0 20px}
+.l3-filter:has(.dr){align-items:flex-end}
+.l3-filter:has(.dr) > .btn{height:46px;border-radius:999px;padding:0 22px}
+.l3-filter:has(.dr) .field :is(input,select){height:46px;border-radius:999px;padding:0 16px}

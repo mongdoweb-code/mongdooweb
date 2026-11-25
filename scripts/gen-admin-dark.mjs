@@ -14,6 +14,7 @@ export const SOURCES = [
   "src/app/admin/lot3.css",
   "src/app/admin/lot12.css",
   "src/app/admin/_components/quickbar.css",
+  "src/app/admin/_components/date-range.css",
   "src/app/admin/(app)/_lot10/lot10.css",
   "src/app/admin/(app)/coupons/coupons.css",
   "src/app/admin/(app)/home/why/why.css",

@@ -2866,14 +2866,14 @@ html[data-adm-theme="dark"] .dcp-ok {
 html[data-adm-theme="dark"] .dcp-list s {
     color: #999999
 }
-html[data-adm-theme="dark"] .toolbar2 .sel {
+html[data-adm-theme="dark"] .toolbar2 select.sel {
     background-color: #1E2127;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
 }
-html[data-adm-theme="dark"] .toolbar2 .sel:hover {
+html[data-adm-theme="dark"] .toolbar2 select.sel:hover {
     border-color: var(--c-ink)
 }
-html[data-adm-theme="dark"] .toolbar2 .sel:focus-visible {
+html[data-adm-theme="dark"] .toolbar2 select.sel:focus-visible {
     outline: 2px solid var(--c-orange)
 }
 /*  src/app/admin/lot3.css  */
@@ -3889,6 +3889,51 @@ html[data-adm-theme="dark"] .qb-foot {
         border-left: 0;
         border-top: 1px solid var(--c-line)
     }
+}
+/*  src/app/admin/_components/date-range.css  */
+html[data-adm-theme="dark"] .dr-box {
+    border: 1.5px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .dr-box:hover {
+    border-color: #3B3935
+}
+html[data-adm-theme="dark"] .dr-box:focus-within {
+    border-color: #F26B38
+}
+html[data-adm-theme="dark"] .dr-lbl {
+    color: #9E9B94
+}
+html[data-adm-theme="dark"] .dr-val {
+    color: #E7E7E7
+}
+html[data-adm-theme="dark"] .dr-val svg {
+    color: #9E9B94
+}
+html[data-adm-theme="dark"] .dr-val em {
+    color: #9E9B94
+}
+html[data-adm-theme="dark"] .dr-ph {
+    color: #A09B92
+}
+html[data-adm-theme="dark"] .dr-box input[type=date] {
+    border: 0
+}
+html[data-adm-theme="dark"] .dr-x {
+    border: 0;
+    background: #15171B;
+    color: #AFABA4
+}
+html[data-adm-theme="dark"] .dr-x:hover {
+    background: #101215;
+    color: #E7E7E7
+}
+html[data-adm-theme="dark"] .dr-arrow {
+    color: #9E9B94
+}
+html[data-adm-theme="dark"] .dr-days {
+    background: #141F19;
+    color: #61E593
 }
 /*  src/app/admin/(app)/_lot10/lot10.css  */
 html[data-adm-theme="dark"] .l10-row {

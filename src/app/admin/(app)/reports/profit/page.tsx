@@ -9,6 +9,7 @@ import { expenseSummary } from "@/lib/expenses";
 import { getSettings } from "@/lib/settings";
 import { baht, monthTh, qtyText, shortDate } from "../_ui";
 import "../../../lot3.css";
+import { DateRange } from "../../../_components/DateRange";
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("th-TH", { maximumFractionDigits: 1 })}%`);
@@ -55,8 +56,7 @@ export default async function ProfitPage({ searchParams }: PageProps<"/admin/rep
         <form className="l3-filter" action="/admin/reports/profit">
           <input type="hidden" name="preset" value="custom" />
           {by !== "product" && <input type="hidden" name="by" value={by} />}
-          <div className="field"><label htmlFor="pFrom">ตั้งแต่วันที่</label><input id="pFrom" type="date" name="from" defaultValue={f.from} required /></div>
-          <div className="field"><label htmlFor="pTo">ถึงวันที่</label><input id="pTo" type="date" name="to" defaultValue={f.to} required /></div>
+          <DateRange key={`${f.from}|${f.to}`} from={f.from} to={f.to} fromId="pFrom" toId="pTo" era={s.dateEra} required />
           <button className="btn btn-dark" type="submit">ดูรายงาน</button>
         </form>
         <nav className="l3-tabs" aria-label="มุมมอง">

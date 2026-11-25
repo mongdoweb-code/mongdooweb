@@ -21,6 +21,7 @@ import { copyBlock, isDocType, quoteEditBlock, statusOf, statusWhere, todayYmd, 
 import { prisma } from "@/lib/prisma";
 import { WORK_FILTERS, workWhere } from "@/lib/doc-work";
 import { WorkIcon as WorkTagIcon, WorkTag } from "../WorkTag";
+import { DateRange } from "../../../_components/DateRange";
 
 export default async function DocsListPage({ params, searchParams }: PageProps<"/admin/docs/[type]">) {
   await requireAdmin();
@@ -171,14 +172,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
             <span className="sr-only">ค้นหาเอกสาร</span>
             <input name="q" type="search" defaultValue={f.q} placeholder="เลขที่, ชื่อ/รหัสลูกค้า, เบอร์โทร, เลขผู้เสียภาษี, สินค้า" />
           </label>
-          <div className="df-dates" role="group" aria-label="ช่วงวันที่">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>
-            <label className="sr-only" htmlFor="dFrom">ตั้งแต่วันที่</label>
-            <input type="date" id="dFrom" name="from" defaultValue={f.from} />
-            <span>ถึง</span>
-            <label className="sr-only" htmlFor="dTo">ถึงวันที่</label>
-            <input type="date" id="dTo" name="to" defaultValue={f.to} />
-          </div>
+          <DateRange key={`${f.from}|${f.to}`} from={f.from} to={f.to} era={era} />
           <button className="df-go" type="submit">ค้นหา</button>
           {(f.q || f.from || f.to) && <Link className="df-clear" href={`${base}${qs({ q: "", from: "", to: "" })}`}>ล้างตัวกรอง</Link>}
         </form>

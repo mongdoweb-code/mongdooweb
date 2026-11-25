@@ -12,6 +12,7 @@ import { STOCK_REASONS, isStockReason } from "@/lib/stock";
 import { MoveTable } from "./MoveTable";
 import { saveLowStock } from "./actions";
 import "../../lot3.css";
+import { DateRangeFilter } from "../../_components/DateRangeFilter";
 
 const TABS = { all: "สินค้าที่นับสต็อก", low: "ใกล้หมด", moves: "ประวัติการเคลื่อนไหว" } as const;
 type Tab = keyof typeof TABS;
@@ -174,8 +175,7 @@ async function Moves({ sp, qs, page, per }: { sp: Record<string, string | string
             {Object.entries(STOCK_REASONS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </div>
-        <div className="field"><label htmlFor="mf">ตั้งแต่</label><input id="mf" type="date" name="from" defaultValue={from} /></div>
-        <div className="field"><label htmlFor="mt">ถึง</label><input id="mt" type="date" name="to" defaultValue={to} /></div>
+        <DateRangeFilter key={`${from}|${to}`} from={from} to={to} fromId="mf" toId="mt" />
         <button className="btn btn-outline" type="submit">กรอง</button>
       </form>
       <div className="l3-panel">

@@ -2221,7 +2221,8 @@ p:has(> .link.back-btn){margin:0 0 10px}
 .de-copied .act-row .btn{width:auto;flex:none}
 
 /* แถบค้นหา/กรอง (toolbar2) ทุกหน้า: ตัวเลือกหมวด + ปุ่ม เป็นแคปซูลโค้งมนแบบเดียวกับช่องค้นหา (2026-11-25) */
-.toolbar2 .sel{height:38px;border-radius:999px;padding:0 38px 0 16px;-webkit-appearance:none;appearance:none;background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:14px;cursor:pointer;min-width:180px}
-.toolbar2 .sel:hover{border-color:var(--c-ink)}
-.toolbar2 .sel:focus-visible{outline:2px solid var(--c-orange);outline-offset:1px}
+.toolbar2 select.sel{height:38px;border-radius:999px;padding:0 38px 0 16px;-webkit-appearance:none;appearance:none;background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:14px;cursor:pointer;min-width:180px}
+.toolbar2 select.sel:hover{border-color:var(--c-ink)}
+.toolbar2 select.sel:focus-visible{outline:2px solid var(--c-orange);outline-offset:1px}
 .toolbar2 > .btn{height:38px;border-radius:999px;padding:0 20px}
+.toolbar2 input.sel{border-radius:999px;padding:0 16px}
