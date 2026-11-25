@@ -77,10 +77,23 @@ html[data-adm-theme="dark"] .df-go{background:#F26B38}
 html[data-adm-theme="dark"] .df-go:hover{background:#D9562A}
 html[data-adm-theme="dark"] .df-clear:hover{border-color:#ECE8E0;color:#ECE8E0}
 
+/* เส้นแบ่งโซน ใบที่ปักดาว | ใบอื่น (2026-11-25) */
+.doc-tbl tbody tr.pin-sep td{padding:14px 16px 6px;background:var(--c-bg,#F5F3EF);border-top:2px solid #F59E0B;border-bottom:1px solid var(--c-line)}
+.doc-tbl tbody tr.pin-sep:hover td{background:var(--c-bg,#F5F3EF)}
+.pin-sep span{font-size:11.5px;font-weight:700;letter-spacing:.03em;color:#8A867E}
+/* เลขที่ + ชื่อลูกค้า คลิกเปิดเอกสาร: ชี้แล้วขีดเส้นใต้ */
+.doc-tbl a.row-link:hover b{color:var(--c-orange-dk,#C2410C);text-decoration:underline;text-underline-offset:3px}
+html[data-adm-theme="dark"] .doc-tbl tbody tr.pin-sep td,html[data-adm-theme="dark"] .doc-tbl tbody tr.pin-sep:hover td{background:#141413;border-top-color:#B45309;border-bottom-color:#3A3833}
+html[data-adm-theme="dark"] .pin-sep span{color:#8D887F}
+html[data-adm-theme="dark"] .doc-tbl a.row-link:hover b{color:#FB923C}
+
 /* มือถือ: ตารางกลายเป็นการ์ด (admin.css) → สีพื้นทั้งการ์ด + แถบซ้ายที่การ์ด แทนการระบายทีละช่อง */
 @media (max-width:860px){
   .doc-tbl tbody tr[class*="ds-"]{background:var(--dsr);box-shadow:inset 4px 0 0 var(--dsl);padding-left:50px!important}
   .doc-tbl tbody tr[class*="ds-"] td,.doc-tbl tbody tr[class*="ds-"]:hover td{background:transparent}
   .doc-tbl tbody tr[class*="ds-"] td:first-child{box-shadow:none}
   .doc-tbl td.c-pin{position:absolute;left:7px;top:6px;width:auto!important;padding:0}
+  .doc-tbl tbody tr.pin-sep{display:block;border:0;background:transparent;box-shadow:none;padding:6px 0 0!important}
+  .doc-tbl tbody tr.pin-sep td{display:block;padding:10px 4px 4px;background:transparent}
+  .doc-tbl tbody tr.pin-sep td::before{content:none}
 }

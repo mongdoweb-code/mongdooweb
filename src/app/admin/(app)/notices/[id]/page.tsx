@@ -19,7 +19,7 @@ export default async function NoticeEditPage({ params }: PageProps<"/admin/notic
     <main className="main ntc-page">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/notices">← ข้อความแจ้งเตือนทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/notices">← ข้อความแจ้งเตือนทั้งหมด</Link></p>
           <h1>แก้ไขข้อความแจ้งเตือน</h1>
           <p>{n.name}</p>
         </div>

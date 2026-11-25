@@ -7,6 +7,7 @@ import { mediaUrl } from "@/lib/media";
 import { displayPrice, nextPriceChange, revalidateFor, saleInfo, tierInfo, type SaleInfo, type TierInfo } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { noticesFor } from "@/lib/notices";
+import { badgesOf, type Badge } from "@/lib/badges";
 import { getNoticeLibrary } from "@/lib/notices-db";
 import { downloadHref, parseDownloads } from "@/lib/product-downloads";
 import { getSpecDefs } from "@/lib/product-data";
@@ -40,6 +41,8 @@ export type CatalogItem = {
   inStock: boolean;
   maxQty?: number;
   badge?: string;
+  /** ป้ายบนการ์ด (หลายป้าย) — มีเมื่อมีป้ายอย่างน้อย 1 ป้าย */
+  badges?: Badge[];
   best?: boolean;
   use: string[];
   color: "white" | "rgb" | "any";
@@ -144,6 +147,7 @@ export async function getShopData() {
       inStock: available(p),
       ...(p.trackStock ? { maxQty: p.stock } : {}),
       ...(p.badge ? { badge: p.badge } : {}),
+      ...(badgesOf(p).length ? { badges: badgesOf(p) } : {}),
       ...(p.isBestSeller ? { best: true } : {}),
       use: p.useAreas.map((u) => u.toLowerCase()),
       color: p.lightColor.toLowerCase() as CatalogItem["color"],
@@ -381,6 +385,7 @@ export async function getProductDetail(slug: string) {
     /** หน้าหลักของกลุ่มตัวเลือก (canonical) */
     canonicalSlug: variants?.primarySlug ?? p.slug,
     badge: p.badge,
+    badges: badgesOf(p),
     isAccessory: p.isAccessory,
     includesPsu: p.includesPsu,
     lightColor: p.lightColor.toLowerCase(),

@@ -9,7 +9,7 @@ import { moveStock } from "@/lib/stock";
 import { requireAdmin } from "@/lib/auth";
 import { fromYmd, money, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
 import { DOC_META } from "@/lib/doc-render";
-import { LOST_REASONS, lockQuoteForEdit, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, ymdOf, type Tx } from "@/lib/docs";
+import { LOST_REASONS, copyBlock, lockQuoteForEdit, custSnapshot, customerFromOrder, defaultTerms, docPath, isDocType, todayYmd, totalsFor, ymdOf, type Tx } from "@/lib/docs";
 import { DocUserError, issueDocTx, recordDepositTx, recordInvoicePaymentTx } from "@/lib/doc-payments";
 import { customerForTaxInvoice, parseTaxInvoice } from "@/lib/admin-orders";
 import { formatPhone, isValidThaiTaxId } from "@/lib/format";
@@ -457,8 +457,13 @@ export async function duplicateDoc(f: FormData) {
   const admin = await requireAdmin();
   const d = await prisma.salesDocument.findUnique({ where: { id: str(f, "id", 40) } });
   if (!d) redirect("/admin/docs/QUOTATION");
+  // ใบลดหนี้ต้องสร้างจากใบเสร็จ · ใบเสร็จมัดจำต้องรับจากใบเสนอราคา (สำเนาจะกลายเป็นใบเสร็จธรรมดาที่ไม่ผูกกับอะไร)
+  const block = copyBlock(d);
+  if (block) redirect(`/admin/docs/${d.type}?err=${encodeURIComponent(block)}`);
   const n = await copyToDraft(d.id, d.type, admin.id, {}, `ทำสำเนาจาก ${d.docNo ?? "ฉบับร่าง"}`);
-  redirect(`${docPath(n)}/edit`);
+  await logAdmin(admin.id, "DOC", `ทำสำเนา${DOC_META[d.type].th} ${d.docNo ?? "ฉบับร่าง"} → ฉบับร่างใหม่`);
+  // ?copied= ให้ตัวแก้ไขแสดงแถบตรวจราคา/สินค้าเลิกขาย เทียบกับข้อมูลปัจจุบัน
+  redirect(`${docPath(n)}/edit?copied=${encodeURIComponent(d.docNo ?? "ฉบับร่าง")}`);
 }
 
 export async function deleteDraft(f: FormData) {

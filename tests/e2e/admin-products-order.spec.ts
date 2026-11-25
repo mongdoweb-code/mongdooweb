@@ -240,3 +240,21 @@ test("จัดการรวดเร็ว: แก้ราคา/สต็�
   await page.keyboard.press("Escape");
   await expect(dlg).toHaveCount(0);
 });
+
+test("แถบค้นหา: เลือกหมวดแล้วค้นหาทันที (ไม่ต้องกดปุ่ม) · คำค้นติดไปด้วย · ตัวเลือก/ปุ่มเป็นแคปซูล", async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 1000 });
+  await login(page);
+  await page.goto("/admin/products");
+  const sel = page.locator("#cat" + V);
+  const opt = await sel.locator("option").nth(1).evaluate((o) => ({ v: (o as HTMLOptionElement).value, t: o.textContent }));
+  expect(parseFloat(await sel.evaluate((e) => getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThan(15);
+  expect(parseFloat(await page.locator(".toolbar2 > .btn" + V).first().evaluate((e) => getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThan(15);
+  await page.locator('.toolbar2 input[name="q"]' + V).fill("led");
+  // ตัวเลือกแสดงผลหลัง hydrate: เลือกซ้ำจนหน้าเปลี่ยน
+  await expect(async () => {
+    await sel.selectOption(opt.v);
+    await page.waitForURL((u) => u.searchParams.get("cat") === opt.v, { timeout: 2000 });
+  }).toPass({ timeout: 15_000 });
+  expect(new URL(page.url()).searchParams.get("q")).toBe("led");
+  await expect(page.locator("#cat" + V)).toHaveValue(opt.v);
+});

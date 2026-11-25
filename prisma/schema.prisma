@@ -190,6 +190,8 @@ model Product {
   isAccessory Boolean    @default(false) // อุปกรณ์เสริม เช่น หม้อแปลง ท่อหด (CATALOG.acc)
 
   badge        String? // "ขายดี", "แนะนำ"
+  /// ป้ายบนการ์ด (หลายป้าย) [{ t: ข้อความ, c: orange|green|blue|dark }] สูงสุด 4 — src/lib/badges.ts · badge (เดิม) = ข้อความป้ายแรก
+  badges           Json      @default("[]")
   isBestSeller Boolean @default(false)
   isActive     Boolean @default(true)
 
@@ -423,6 +425,8 @@ model ShopSetting {
   signerTitle    String  @default("") // ตำแหน่ง เช่น "ผู้จัดการฝ่ายขาย"
   quotePayInfo   Boolean @default(true) // ใบเสนอราคา: แสดงบัญชีธนาคาร
   quoteOnlineQr  Boolean @default(true) // ใบเสนอราคา/ใบแจ้งหนี้: QR เปิดดู/ยืนยันออนไลน์
+  docTagline     String? @db.Text // แถบข้อความท้ายเอกสารทุกใบ (null = ข้อความเดิม DOC_TAGLINE)
+  docTaglineOn   Boolean @default(true) // แสดงแถบข้อความท้ายเอกสาร
 
   // หน้าร้าน: แถบประกาศ + วิเคราะห์การใช้งาน (โหลดเมื่อลูกค้ายินยอมคุกกี้เท่านั้น)
   announcementEnabled Boolean @default(true)
@@ -470,6 +474,10 @@ model ShopSetting {
   datasheetCompare Boolean @default(true)
   /// ป้ายบนการ์ดสินค้าหน้าร้าน: "A" แคปซูลเล็ก · "B" สี่เหลี่ยมมุมโค้งเล็ก · "C" ป้ายชิดมุม (ส้มโปร่งแสง 80%)
   cardBadgeStyle   String  @default("A")
+  /// การจัดวางเมื่อมีหลายป้าย: "1" เรียงลงแนวตั้ง · "2" เรียงแนวนอน · "3" แยกมุม
+  cardBadgeLayout  String  @default("1")
+  /// ความทึบของพื้นป้าย (%) 70–100
+  cardBadgeOpacity Int     @default(85)
   backupRetentionDays Int      @default(14)
 
   updatedAt DateTime @updatedAt

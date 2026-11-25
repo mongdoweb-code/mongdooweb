@@ -2832,6 +2832,50 @@ html[data-adm-theme="dark"] .wp-note input {
 html[data-adm-theme="dark"] .timeline li.t-WORK::before {
     background: #B5461C
 }
+html[data-adm-theme="dark"] .link.back-btn {
+    background: #131923;
+    border: 1.5px solid #2B3749;
+    color: #6597E1
+}
+html[data-adm-theme="dark"] .link.back-btn:hover {
+    background: #1d4e96;
+    border-color: #1d4e96;
+    color: #fff
+}
+html[data-adm-theme="dark"] .link.back-btn:focus-visible {
+    outline: 2px solid #1d4e96
+}
+html[data-adm-theme="dark"] .de-copied {
+    border: 1px solid #2B3C4C;
+    border-left: 4px solid #7C5CD6
+}
+html[data-adm-theme="dark"] .dcp-x {
+    border: 0;
+    background: transparent;
+    color: inherit
+}
+html[data-adm-theme="dark"] .dcp-x:hover {
+    background: rgba(0,0,0,.06)
+}
+html[data-adm-theme="dark"] .dcp-warn {
+    color: #F1B155
+}
+html[data-adm-theme="dark"] .dcp-ok {
+    color: #64E3A6
+}
+html[data-adm-theme="dark"] .dcp-list s {
+    color: #999999
+}
+html[data-adm-theme="dark"] .toolbar2 .sel {
+    background-color: #1E2127;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+}
+html[data-adm-theme="dark"] .toolbar2 .sel:hover {
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .toolbar2 .sel:focus-visible {
+    outline: 2px solid var(--c-orange)
+}
 /*  src/app/admin/lot3.css  */
 html[data-adm-theme="dark"] .l3-kpi {
     background: #1E2127;
@@ -4928,10 +4972,85 @@ html[data-adm-theme="dark"] .cb-img {
 }
 html[data-adm-theme="dark"] .cb-prev b {
     color: #FFFFFF;
-    background: rgba(168,60,18,.85)
+    background: rgb(var(--bc,168 60 18) / var(--bo,.85))
+}
+html[data-adm-theme="dark"] .cb-h {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .cb-live small {
+    color: #9E9B94
+}
+html[data-adm-theme="dark"] .cb-warn {
+    color: #DB716B
 }
 html[data-adm-theme="dark"] .cb-txt small {
     color: #ACA9A4
+}
+html[data-adm-theme="dark"] .dtl-off {
+    border: 1px dashed var(--c-line);
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .dtl-warn {
+    color: #F1B155
+}
+/*  src/app/admin/(app)/products/badges.css  */
+html[data-adm-theme="dark"] .bge-box {
+    border: 1.5px solid #2B2F37;
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .bge-box:focus-within {
+    border-color: #F26B38
+}
+html[data-adm-theme="dark"] .bge-box input[type=text] {
+    border: 0;
+    outline: 0;
+    background: transparent
+}
+html[data-adm-theme="dark"] .bge-chip {
+    border: 1px solid #2B2F37;
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .bge-drag {
+    color: #A29C90
+}
+html[data-adm-theme="dark"] .bge-pill {
+    color: #FFFFFF;
+    background: rgb(var(--bc,168 60 18) / .9)
+}
+html[data-adm-theme="dark"] .bge-chip select {
+    border: 0;
+    background: transparent;
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .bge-mv,
+html[data-adm-theme="dark"] .bge-x {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .bge-mv:hover:not(:disabled),
+html[data-adm-theme="dark"] .bge-x:hover {
+    background: #121417;
+    color: #E7E7E7
+}
+html[data-adm-theme="dark"] .bge-x {
+    background: #121417
+}
+html[data-adm-theme="dark"] .bge-sugg {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .bge-sugg button {
+    border: 1px dashed #2A2D35;
+    background: #1E2127;
+    color: #D3D1CD
+}
+html[data-adm-theme="dark"] .bge-sugg button:hover {
+    border-color: #F26B38;
+    color: #E68560
+}
+html[data-adm-theme="dark"] .bge-msg {
+    color: #DB716B
+}
+html[data-adm-theme="dark"] .bge-hint {
+    color: #9E9B94
 }
 /*  src/app/admin/(app)/settings/login/login-settings.css  */
 html[data-adm-theme="dark"] .lp-form .box h3 small {

@@ -24,7 +24,7 @@ test("ปักหมุดใบเก่า 2 ใบ → อยู่บนส
   test.skip(docs.length < 2, "ต้องมีใบเสนอราคาอย่างน้อย 2 ใบ");
   picked = docs.map((d) => d.docNo);
   const [a, b] = picked;
-  const rows = page.locator(".doc-tbl tbody tr" + V);
+  const rows = page.locator(".doc-tbl tbody tr[data-st]" + V);
   const row = (no: string) => page.locator(".doc-tbl tbody tr" + V, { hasText: no });
   const amount = async () => page.locator("[data-doc-sum] .dsum-amt" + V).innerText();
 
@@ -44,6 +44,13 @@ test("ปักหมุดใบเก่า 2 ใบ → อยู่บนส
   await page.goto("/admin/docs/QUOTATION?void=hide");
   await expect(rows.nth(0)).toContainText(b);
   await expect(rows.nth(1)).toContainText(a);
+  // เส้นแบ่งโซน: อยู่ถัดจากใบที่ปักดาวใบสุดท้ายพอดี (มีใบอื่นต่อจากนั้น)
+  const sep = page.locator(".doc-tbl tbody tr.pin-sep" + V);
+  await expect(sep).toHaveCount(1);
+  expect(await sep.evaluate((e) => [e.previousElementSibling?.classList.contains("is-pinned"), e.nextElementSibling?.classList.contains("is-pinned")])).toEqual([true, false]);
+  // ชื่อลูกค้าคลิกเปิดเอกสารได้เหมือนเลขที่
+  const custLink = rows.nth(0).locator("td").nth(1).locator("a.row-link");
+  expect(await custLink.getAttribute("href")).toBe(await rows.nth(0).locator("td").first().locator("a.row-link").getAttribute("href"));
   expect((await q<{ n: string }>(`SELECT count(*) n FROM "SalesDocument" WHERE "docNo" = ANY($1) AND "pinnedAt" IS NOT NULL`, [picked]))[0].n).toBe("2");
 
   // เลิกปัก b → a ขึ้นแถวแรก · b ไม่อยู่บนสุดแล้ว
@@ -52,6 +59,10 @@ test("ปักหมุดใบเก่า 2 ใบ → อยู่บนส
   await expect(rows.nth(1)).not.toContainText(b);
   await rows.nth(0).locator(".pin-btn").click();
   await expect(page.locator(".doc-tbl tbody tr.is-pinned" + V, { hasText: a })).toHaveCount(0);
+  if (!(await page.locator(".doc-tbl tbody tr.is-pinned" + V).count())) await expect(page.locator(".doc-tbl tbody tr.pin-sep" + V)).toHaveCount(0);
+  // คลิกชื่อลูกค้า → หน้าเอกสาร
+  await rows.nth(0).locator("td").nth(1).locator("a.row-link").click();
+  await page.waitForURL(/\/admin\/docs\/QUOTATION\/[^/?]+$/);
   expect((await q<{ n: string }>(`SELECT count(*) n FROM "SalesDocument" WHERE "docNo" = ANY($1) AND "pinnedAt" IS NOT NULL`, [picked]))[0].n).toBe("0");
 });
 

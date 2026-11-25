@@ -2200,3 +2200,28 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .wpanel .sub{display:block;line-height:1.5}
 .timeline li.t-WORK::before{background:#B5461C}
 .wp-note .btn{width:auto;flex:none}
+
+/* ปุ่มกลับ "← …ทั้งหมด" เหนือหัวหน้า (2026-11-25): กล่องเหลี่ยมสูงเท่าแถบเมนูด่วนด้านบน สีฟ้าอ่อนต่างจากปุ่มอื่น กดง่าย */
+.link.back-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px 0 11px;background:#eaf1fb;border:1.5px solid #b9cde9;color:#1d4e96;font-size:13.5px;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.link.back-btn:hover{background:#1d4e96;border-color:#1d4e96;color:#fff}
+.link.back-btn:focus-visible{outline:2px solid #1d4e96;outline-offset:2px}
+p:has(> .link.back-btn){margin:0 0 10px}
+
+/* แถบหลังทำสำเนาเอกสาร (ลูกค้าสั่งซ้ำ): ตรวจราคาปัจจุบัน / สินค้าเลิกขาย */
+.de-copied{margin-bottom:16px;border:1px solid #CFE0F1;border-left:4px solid #7C5CD6;padding:12px 14px}
+.de-copied p{margin:6px 0 0;font-size:13.5px}
+.dcp-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.dcp-x{flex:none;width:28px;height:28px;border:0;background:transparent;color:inherit;font-size:20px;line-height:1;cursor:pointer}
+.dcp-x:hover{background:rgba(0,0,0,.06)}
+.dcp-warn{color:#9A5B00;font-weight:600}
+.dcp-ok{color:#16794A;font-weight:600}
+.dcp-list{margin:4px 0 8px;padding-left:20px;list-style:disc;font-size:13.5px}
+.dcp-list s{color:#8a8a8a}
+.de-copied .act-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
+.de-copied .act-row .btn{width:auto;flex:none}
+
+/* แถบค้นหา/กรอง (toolbar2) ทุกหน้า: ตัวเลือกหมวด + ปุ่ม เป็นแคปซูลโค้งมนแบบเดียวกับช่องค้นหา (2026-11-25) */
+.toolbar2 .sel{height:38px;border-radius:999px;padding:0 38px 0 16px;-webkit-appearance:none;appearance:none;background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:14px;cursor:pointer;min-width:180px}
+.toolbar2 .sel:hover{border-color:var(--c-ink)}
+.toolbar2 .sel:focus-visible{outline:2px solid var(--c-orange);outline-offset:1px}
+.toolbar2 > .btn{height:38px;border-radius:999px;padding:0 20px}

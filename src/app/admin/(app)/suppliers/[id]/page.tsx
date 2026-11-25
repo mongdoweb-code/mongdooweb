@@ -59,7 +59,7 @@ export default async function SupplierPage({ params, searchParams }: PageProps<"
     <main className="main" id="page-supplier">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/suppliers">← ผู้ขายทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/suppliers">← ผู้ขายทั้งหมด</Link></p>
           <h1>{s ? s.name : "เพิ่มผู้ขาย"}</h1>
           {s && <p>{s.isActive ? <span className="dst dst-ok">ใช้งานอยู่</span> : <span className="dst dst-gray">ปิดใช้</span>}{s.terms ? ` · ${s.terms}` : ""}</p>}
         </div>

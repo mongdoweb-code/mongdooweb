@@ -25,7 +25,7 @@ export default async function StockProductPage({ params, searchParams }: PagePro
     <main className="main" id="page-stock-item">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/stock">← สต็อกสินค้า</Link></p>
+          <p><Link className="link back-btn" href="/admin/stock">← สต็อกสินค้า</Link></p>
           <h1>{p.name}</h1>
           <p>{p.sku} · {p.category.nameTh}{p.isActive ? "" : " · ปิดขาย"}</p>
         </div>

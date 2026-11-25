@@ -32,7 +32,7 @@ export default async function ExpensePage({ params }: PageProps<"/admin/expenses
     <main className="main" id="page-expense">
       <div className="page-head">
         <div>
-          <p><Link className="link" href={`/admin/expenses${e ? `?month=${ymdBkk(e.date).slice(0, 7)}` : ""}`}>← ค่าใช้จ่ายร้าน</Link></p>
+          <p><Link className="link back-btn" href={`/admin/expenses${e ? `?month=${ymdBkk(e.date).slice(0, 7)}` : ""}`}>← ค่าใช้จ่ายร้าน</Link></p>
           <h1>{e ? "แก้ไขค่าใช้จ่าย" : "บันทึกค่าใช้จ่าย"}</h1>
           <p>ใส่ยอดตามบิล แนบรูปใบเสร็จไว้เป็นหลักฐาน — ใช้คำนวณกำไรสุทธิในรายงานกำไร</p>
         </div>

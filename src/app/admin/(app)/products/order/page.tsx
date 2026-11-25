@@ -44,7 +44,7 @@ export default async function ProductOrderPage() {
     <main className="main ob-page">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/products">← สินค้า</Link></p>
+          <p><Link className="link back-btn" href="/admin/products">← สินค้า</Link></p>
           <h1>จัดเรียงสินค้าหน้าร้าน</h1>
           <p>ลำดับนี้ใช้กับ “สินค้าทั้งหมด” หน้าหมวด และผลค้นหา เมื่อลูกค้าเรียงแบบ “แนะนำ” (ค่าเริ่มต้น) · สินค้าใหม่/ทำสำเนาขึ้นบนสุดให้อัตโนมัติ</p>
         </div>

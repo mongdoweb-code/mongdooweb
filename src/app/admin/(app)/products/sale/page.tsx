@@ -33,7 +33,7 @@ export default async function SalePage() {
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/products">← สินค้าทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/products">← สินค้าทั้งหมด</Link></p>
           <h1>ลดราคาตามเวลา</h1>
           <p>ราคาที่คิดเงินจริงคำนวณที่เซิร์ฟเวอร์ตามเวลาตอนสั่งซื้อ · หน้าร้านแสดงป้าย &quot;ลด x%&quot; ราคาเดิมขีดฆ่า และนับถอยหลังเมื่อเหลือไม่ถึง 7 วัน</p>
         </div>

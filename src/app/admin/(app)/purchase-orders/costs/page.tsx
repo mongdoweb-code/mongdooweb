@@ -34,7 +34,7 @@ export default async function CostsPage({ searchParams }: PageProps<"/admin/purc
     <main className="main" id="page-costs">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/purchase-orders">← ใบสั่งซื้อ</Link></p>
+          <p><Link className="link back-btn" href="/admin/purchase-orders">← ใบสั่งซื้อ</Link></p>
           <h1>ต้นทุนสินค้า</h1>
           <p>ต้นทุนล่าสุดต่อหน่วย — อัปเดตเองเมื่อรับของตามใบสั่งซื้อ · ใช้คำนวณ<Link className="link" href="/admin/reports/profit">รายงานกำไร</Link> · พนักงานไม่เห็นหน้านี้</p>
         </div>

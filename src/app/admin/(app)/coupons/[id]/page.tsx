@@ -25,7 +25,7 @@ export default async function CouponDetailPage({ params, searchParams }: PagePro
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/coupons">← คูปองทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/coupons">← คูปองทั้งหมด</Link></p>
           <h1 className="num">{c.code}</h1>
           <p>{couponLabel(c)} · {c.isActive ? "เปิดใช้งาน" : "ปิดอยู่"}</p>
         </div>

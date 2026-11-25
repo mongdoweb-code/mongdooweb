@@ -4,6 +4,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { STOREFRONT_TAG, getSettings } from "@/lib/settings";
 import { parseNavMenu } from "@/lib/nav-menu";
+import { cleanOpacity, isBadgeLayout } from "@/lib/badges";
 
 export type FaqItem = { q: string; a: string };
 
@@ -47,6 +48,9 @@ export async function getStorefrontExtras() {
     faq: parseFaq(s.faq),
     nav: parseNavMenu(s.navMenu),
     /** รูปแบบป้ายบนการ์ดสินค้า a | b | c */
+    /** การจัดวางเมื่อมีหลายป้าย 1|2|3 และความทึบของพื้นป้าย (0.7–1) */
+    badgeLayout: isBadgeLayout(s.cardBadgeLayout) ? s.cardBadgeLayout : "1",
+    badgeOpacity: cleanOpacity(s.cardBadgeOpacity) / 100,
     badge: ((["A", "B", "C"].includes(s.cardBadgeStyle) ? s.cardBadgeStyle : "A").toLowerCase()) as "a" | "b" | "c",
   };
 }

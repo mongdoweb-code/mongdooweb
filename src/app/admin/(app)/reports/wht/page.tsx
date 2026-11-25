@@ -26,7 +26,7 @@ export default async function WhtReportPage({ searchParams }: PageProps<"/admin/
     <main className="main" id="page-wht">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/reports">← รายงานยอดขาย</Link></p>
+          <p><Link className="link back-btn" href="/admin/reports">← รายงานยอดขาย</Link></p>
           <h1>ภาษีถูกหัก ณ ที่จ่าย</h1>
           <p>เดือน {monthTh(month)} · ภาษีที่ลูกค้าหักไว้ตอนจ่ายเงิน — ใช้เครดิตภาษีตอนยื่นแบบ (ต้องมีหนังสือรับรอง 50 ทวิ ตัวจริง)</p>
         </div>

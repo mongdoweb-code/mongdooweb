@@ -25,7 +25,7 @@ export default async function VideoEditPage({ params }: PageProps<"/admin/videos
     <main className="main vd-page">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/videos">← วิดีโอทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/videos">← วิดีโอทั้งหมด</Link></p>
           <h1>แก้ไขคลิป</h1>
           <p>{VIDEO_SOURCES[v.source].name} · เพิ่มเมื่อ {docDateTime(v.createdAt, s.dateEra)} · ดู {v.views.toLocaleString("th-TH")} ครั้ง</p>
         </div>

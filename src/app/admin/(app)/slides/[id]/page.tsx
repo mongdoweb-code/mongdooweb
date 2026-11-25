@@ -30,7 +30,7 @@ export default async function SlideEditPage({ params, searchParams }: PageProps<
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/slides">← สไลด์ทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/slides">← สไลด์ทั้งหมด</Link></p>
           <h1>{v.id ? "แก้ไขสไลด์" : "เพิ่มสไลด์"}</h1>
         </div>
       </div>

@@ -2,6 +2,7 @@
 // ราคา/ป้ายลดราคาที่คำนวณตามเวลาจริงของเครื่องลูกค้า (U3)
 // ข้อมูลหน้าร้านถูกแคชไว้ → ช่วงลดราคาเริ่ม/หมดระหว่างที่แคชยังไม่หมดอายุ ราคาบนหน้าก็ต้องเปลี่ยนตามทันที
 // render แรก (ตอน hydrate) ใช้ค่าที่ server คำนวณ → ตรงกับ HTML เสมอ แล้วค่อยใช้เวลาจริงหลัง mount
+import { badgesOf, type Badge as BadgeT } from "@/lib/badges";
 import { useCallback, useSyncExternalStore } from "react";
 import { percentOff, viewPrice, type SaleInfo } from "@/lib/pricing";
 import { formatBaht } from "./format";
@@ -26,20 +27,26 @@ export function useNow(step = 1000): number | null {
   return useSyncExternalStore(subscribe, get, () => null);
 }
 
-type Priced = { price: number; compareAt?: number | null; sale?: SaleInfo | null; badge?: string | null };
+type Priced = { price: number; compareAt?: number | null; sale?: SaleInfo | null; badge?: string | null; badges?: BadgeT[] | null };
 
-/** ป้ายบนรูปสินค้า: ลดราคาตามเวลา → "ลด x%" ก่อนเสมอ · ไม่งั้นป้ายที่ร้านตั้ง หรือ % จากราคาขีดฆ่า */
-function badgeOf(p: Priced, now: number | null) {
+/** ป้ายบนรูปสินค้า: "ลด x%" (ลดตามเวลา หรือราคาขีดฆ่า) อยู่ลำดับแรกเสมอ แล้วตามด้วยป้ายที่ร้านตั้ง (สูงสุด 4 ป้าย สีตามที่เลือก) */
+function badgesFor(p: Priced, now: number | null) {
   const v = viewPrice(p, now);
-  if (v.on && v.compareAt) return { text: `ลด ${percentOff(v.price, v.compareAt)}%`, sale: true };
-  if (p.badge) return { text: p.badge, sale: false };
-  if (v.compareAt) return { text: `ลด ${percentOff(v.price, v.compareAt)}%`, sale: true };
-  return null;
+  const own = badgesOf({ badges: p.badges, badge: p.badge });
+  const sale = v.compareAt ? [{ t: `ลด ${percentOff(v.price, v.compareAt)}%`, c: "sale" as const }] : [];
+  return [...sale, ...own];
 }
 
 function Badge({ p, now, className }: { p: Priced; now: number | null; className: string }) {
-  const b = badgeOf(p, now);
-  return b ? <span className={`${className}${b.sale ? " badge-sale" : ""}`}>{b.text}</span> : null;
+  const list = badgesFor(p, now);
+  if (!list.length) return null;
+  return (
+    <span className="prod-badges" data-n={list.length}>
+      {list.map((b, i) => (
+        <span key={i} className={`${className}${b.c === "sale" ? " badge-sale" : ` bc-${b.c}`}`}>{b.t}</span>
+      ))}
+    </span>
+  );
 }
 function LiveBadge({ p, className }: { p: Priced; className: string }) {
   return <Badge p={p} now={useNow()} className={className} />;

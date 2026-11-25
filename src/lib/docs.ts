@@ -3,7 +3,7 @@ import "server-only";
 import QRCode from "qrcode";
 import type { Customer, DocType, Prisma, SalesDocument, ShopSetting } from "../../generated/prisma/client";
 import { addrText, calcTotals, docDateTime, fromYmd, promptPayPayload, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
-import { DOC_META, displayStatus, type CustSnap, type DocSt, type DocView, type LabelData, type Sender, type ShopHead } from "@/lib/doc-render";
+import { DOC_META, displayStatus, docTaglineOf, type CustSnap, type DocSt, type DocView, type LabelData, type Sender, type ShopHead } from "@/lib/doc-render";
 import { formatPhone } from "@/lib/format";
 import { customerPhones, formatPhoneEntry } from "@/lib/phones";
 import { mediaUrl } from "@/lib/media";
@@ -77,6 +77,7 @@ export function shopHead(s: ShopSetting): ShopHead {
     promptpayName: s.promptpayName,
     signature: (s.signatureKey && mediaUrl(s.signatureKey)) || "", stamp: (s.stampKey && mediaUrl(s.stampKey)) || "",
     signerName: s.signerName, signerTitle: s.signerTitle, quotePayInfo: s.quotePayInfo,
+    tagline: docTaglineOf(s),
   };
 }
 export const senderOf = (s: ShopSetting): Sender => ({ name: s.legalName, phone: s.phone, address: s.addressText, logo: (s.logoKey && mediaUrl(s.logoKey)) || DEFAULT_LOGO });
@@ -190,6 +191,13 @@ export const docPath = (d: { type: DocTypeT; id: string }) => `/admin/docs/${DOC
 export const LINKED_WHERE: Prisma.SalesDocumentWhereInput = { status: { not: "VOID" }, type: { not: "QUOTATION" } };
 
 /** null = แก้เลขที่เดิมได้ · ข้อความ = เหตุผลที่แก้ไม่ได้ */
+/** ทำสำเนาเป็นฉบับร่างใหม่ไม่ได้เพราะอะไร (null = ทำได้) — ใช้ทั้งปุ่มในรายการ หน้าเอกสาร และ server action */
+export function copyBlock(d: { type: string; isDeposit?: boolean }): string | null {
+  if (d.type === "CREDIT_NOTE") return "ใบลดหนี้ทำสำเนาไม่ได้ — สร้างจากหน้าใบเสร็จรับเงิน";
+  if (d.isDeposit) return "ใบเสร็จรับเงินมัดจำทำสำเนาไม่ได้ — รับมัดจำจากหน้าใบเสนอราคา";
+  return null;
+}
+
 export function quoteEditBlock(q: { type: string; status: string }, linked: number): string | null {
   if (q.type !== "QUOTATION") return "แก้ไขเลขที่เดิมได้เฉพาะใบเสนอราคา";
   if (q.status === "DRAFT") return null;

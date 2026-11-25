@@ -27,7 +27,7 @@ export default async function StockCountsPage({ searchParams }: PageProps<"/admi
     <main className="main" id="page-count">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/stock">← สต็อกสินค้า</Link></p>
+          <p><Link className="link back-btn" href="/admin/stock">← สต็อกสินค้า</Link></p>
           <h1>นับสต็อกทั้งร้าน</h1>
           <p>เปิดรอบนับ → พิมพ์ใบนับ/กรอกยอดที่นับได้ (บันทึกเป็นระยะได้) → กด &quot;ปรับสต็อกตามยอดนับ&quot; ครั้งเดียว ทุกรายการลงประวัติสต็อก</p>
         </div>

@@ -33,7 +33,7 @@ export default async function DailyClosePage({ searchParams }: PageProps<"/admin
     <main className="main" id="page-daily">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/reports">← รายงานยอดขาย</Link></p>
+          <p><Link className="link back-btn" href="/admin/reports">← รายงานยอดขาย</Link></p>
           <h1>ปิดยอดประจำวัน</h1>
           <p>เงินที่ร้านได้รับในวัน {docDate(day, era)} จากทุกช่องทาง — ตรวจกับบัญชีธนาคาร/เงินสดแล้วกด &quot;ปิดยอด&quot;</p>
         </div>

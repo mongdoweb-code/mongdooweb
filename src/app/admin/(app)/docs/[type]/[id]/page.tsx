@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { docDate, docDateTime, money, ymdBkk } from "@/lib/doc-calc";
 import { DOC_META, DOC_ST } from "@/lib/doc-render";
-import { quoteEditBlock, DOC_INCLUDE, LOST_REASONS, docLabel, PAY_METHODS, asSnap, docPath, isDocType, statusOf, toView, todayYmd, ymdOf } from "@/lib/docs";
+import { copyBlock, quoteEditBlock, DOC_INCLUDE, LOST_REASONS, docLabel, PAY_METHODS, asSnap, docPath, isDocType, statusOf, toView, todayYmd, ymdOf } from "@/lib/docs";
 import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { ConfirmSubmit } from "../../../../_components/AdminClient";
@@ -68,7 +68,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
     <main className="main doc-view">
       <div className="page-head">
         <div>
-          <p><Link className="link" href={`/admin/docs/${d.type}`}>← {label}ทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href={`/admin/docs/${d.type}`}>← {label}ทั้งหมด</Link></p>
           <h1 className="dv-title"><span className={d.docNo ? "num" : "draft-no"}>{d.docNo ?? `${label} (ฉบับร่าง)`}</span><span className={`dst dst-${stc} ds-${st}`}>{stl}</span></h1>
           <p>{c.name ?? "—"}{d.issueDate ? ` · วันที่ ${docDate(ymdBkk(d.issueDate), era)}` : ""}</p>
         </div>
@@ -185,7 +185,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
               )}
               {((d.type === "QUOTATION" && ["ISSUED", "ACCEPTED"].includes(d.status)) || (d.type === "INVOICE" && ["ISSUED", "PARTIAL", "PAID"].includes(d.status)) || (d.type === "RECEIPT" && d.status === "ISSUED")) &&
                 act(createDelivery, d.derived.some((x) => x.type === "DELIVERY" && x.status === "DRAFT") ? "ใบส่งของที่ร่างไว้" : "สร้างใบส่งของ", "btn btn-outline")}
-              {d.status !== "DRAFT" && d.type !== "CREDIT_NOTE" && act(duplicateDoc, "ทำสำเนาเป็นฉบับใหม่", "btn btn-ghost")}
+              {!copyBlock(d) && act(duplicateDoc, "ทำสำเนาเป็นฉบับใหม่ (ลูกค้าสั่งซ้ำ)", "btn btn-ghost")}
             </div>
           </div>
 

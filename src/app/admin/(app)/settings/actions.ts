@@ -2,12 +2,14 @@
 // บันทึกตั้งค่าร้าน / โลโก้ / แถบประกาศ / รหัสวิเคราะห์ / งานอัตโนมัติ — เจ้าของร้านเท่านั้น
 // (รหัสผ่านย้ายไป /admin/account, ผู้ใช้ย้ายไป /admin/users)
 import { refresh } from "next/cache";
+import { cleanDocTagline } from "@/lib/doc-render";
 import { diffOf, refreshStorefront, logAdmin } from "@/lib/admin-log";
 import { requireOwner } from "@/lib/auth";
 import { isValidThaiTaxId } from "@/lib/format";
 import { MediaError, saveImage } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { BANKS, parseBankAccounts, parseShippingTiers } from "@/lib/settings";
+import { cleanOpacity, isBadgeLayout } from "@/lib/badges";
 
 export type FormState = { ok?: string; error?: string; fields?: string[] };
 
@@ -157,8 +159,12 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
       signerTitle: String(f.get("signerTitle") ?? "").replace(/\s+/g, " ").trim().slice(0, 60),
       quotePayInfo: f.get("quotePayInfo") === "on",
       quoteOnlineQr: f.get("quoteOnlineQr") === "on",
+      docTagline: cleanDocTagline(f.get("docTagline")),
+      docTaglineOn: f.get("docTaglineOn") === "on",
       datasheetStyle: f.get("datasheetStyle") === "A" ? "A" : "B",
       datasheetCompare: f.get("datasheetCompare") === "on",
+      cardBadgeLayout: isBadgeLayout(f.get("cardBadgeLayout")) ? String(f.get("cardBadgeLayout")) : "1",
+      cardBadgeOpacity: cleanOpacity(f.get("cardBadgeOpacity")),
       cardBadgeStyle: ["A", "B", "C"].includes(String(f.get("cardBadgeStyle"))) ? String(f.get("cardBadgeStyle")) : "A",
       ...(sig.key ? { signatureKey: sig.key } : f.get("removeSignature") === "on" ? { signatureKey: null } : {}),
       ...(stamp.key ? { stampKey: stamp.key } : f.get("removeStamp") === "on" ? { stampKey: null } : {}),

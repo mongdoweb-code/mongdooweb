@@ -19,6 +19,7 @@ import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
 import { readProductExtras } from "@/lib/product-extras";
 import { dsEmpty, parseDatasheet, type Datasheet } from "@/lib/datasheet";
 import { parseProductNotices } from "@/lib/notices";
+import { parseBadges } from "@/lib/badges";
 import { moveProductToEdge, reorderProducts, topSortOrder } from "@/lib/product-order";
 
 export type ProductFormState = { error?: string; fields?: string[]; ok?: string };
@@ -133,7 +134,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     inStock: trackStock ? stock > 0 : f.get("inStock") === "on",
     isActive: f.get("isActive") === "on",
     isBestSeller: f.get("isBestSeller") === "on",
-    badge: str(f, "badge", 20) || null,
+    ...badgeFields(f),
     shortDescription: sanitizeDescription(str(f, "shortDescription", 5000)) || null,
     description: sanitizeDescription(str(f, "description", 200000)) || null,
     keywords: str(f, "keywords", 2000) || null,
@@ -289,11 +290,11 @@ export async function duplicateProduct(f: FormData) {
     slug = `${p.slug.slice(0, 180).replace(/-+$/, "")}-copy${n}`;
   }
   // สำเนาไม่รับรีวิว/คะแนน ไม่อยู่ในกลุ่มตัวเลือกเดิม (ค่าตัวเลือกจะซ้ำกัน)
-  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, ratingAvg: _ra, ratingCount: _rc, variantGroupId: _vg, variantOptions: _vo, specs, tierPrices, attrs, downloads, datasheet, ...rest } = p;
+  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, ratingAvg: _ra, ratingCount: _rc, variantGroupId: _vg, variantOptions: _vo, specs, tierPrices, attrs, downloads, datasheet, badges, ...rest } = p;
   void [_id, _c, _u, _w, _l, _v, _s, _ra, _rc, _vg, _vo];
   const json = (v: Prisma.JsonValue) => (v === null ? Prisma.DbNull : (v as Prisma.InputJsonValue));
   const copy = await prisma.product.create({
-    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), datasheet: datasheet == null ? Prisma.DbNull : json(datasheet), downloads: downloads as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), sortOrder: await topSortOrder(), isPinned: false, isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
+    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), datasheet: datasheet == null ? Prisma.DbNull : json(datasheet), downloads: downloads as Prisma.InputJsonValue, badges: badges as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), sortOrder: await topSortOrder(), isPinned: false, isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
   });
   await logAdmin(admin.id, "PRODUCT", `ทำสำเนาสินค้า ${p.sku} → ${sku}`);
   redirect(`/admin/products/${copy.id}?copied=1`);
@@ -338,4 +339,10 @@ export async function confirmImport(_prev: ImportState, f: FormData): Promise<Im
   await logAdmin(admin.id, "PRODUCT", `นำเข้า CSV แก้สินค้า ${n} รายการ${skipped ? ` (ข้าม ${skipped} แถวที่ผิด)` : ""}`);
   refreshStorefront();
   return { ok: `บันทึกแล้ว ${n} รายการ${skipped ? ` · ข้าม ${skipped} แถวที่ไม่ผ่านการตรวจ` : ""} — หน้าร้านแสดงข้อมูลใหม่ทันที`, count: n };
+}
+
+/** ป้ายบนการ์ด: ฟอร์มใหม่ส่ง badges (JSON) · ฟอร์มเก่า/นำเข้าส่ง badge (ข้อความเดียว) — badge = ป้ายแรกเสมอ */
+function badgeFields(f: FormData): { badges: Prisma.InputJsonValue; badge: string | null } {
+  const list = f.has("badges") ? parseBadges(String(f.get("badges") ?? "[]")) : parseBadges([{ t: String(f.get("badge") ?? ""), c: "orange" }]);
+  return { badges: list as unknown as Prisma.InputJsonValue, badge: list[0]?.t ?? null };
 }

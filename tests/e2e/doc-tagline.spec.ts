@@ -90,3 +90,45 @@ test("ใบแจ้งหนี้หลายหน้า: แถบท้า
   await page.goto(`/admin/print/doc/${IV}`);
   await checkSheets(page, 2);
 });
+
+// ตั้งค่าร้าน → ข้อความท้ายเอกสาร: แก้ข้อความ (ตัวอย่างสด) → หน้าพิมพ์ใช้ข้อความใหม่ · ปิด → ไม่มีแถบ · "ใช้ข้อความเดิม" → กลับเป็นค่าเดิม (เก็บ null)
+test("ตั้งค่าข้อความท้ายเอกสาร: แก้ / ปิด / กลับค่าเดิม", async ({ page }) => {
+  const V = ":visible";
+  const [old] = await q<{ t: string | null; on: boolean }>(`SELECT "docTagline" t, "docTaglineOn" "on" FROM "ShopSetting" WHERE id='shop'`);
+  const save = async () => {
+    await page.locator("button[type=submit]:has-text('บันทึกการตั้งค่า')" + V).first().click();
+  };
+  const NEW = `ไฟใต้น้ำ | ไฟสระว่ายน้ำ ทดสอบ ${TAG}`;
+  try {
+    await page.setViewportSize({ width: 1400, height: 1000 });
+    await login(page);
+    await page.goto("/admin/settings#docTagline");
+    const box = page.locator("#docTaglineText");
+    await expect(async () => { await box.fill(NEW); await expect(page.locator("[data-tagline-preview]")).toHaveText(NEW, { timeout: 500 }); }).toPass({ timeout: 10_000 });
+    await save();
+    await expect.poll(async () => (await q<{ t: string | null }>(`SELECT "docTagline" t FROM "ShopSetting" WHERE id='shop'`))[0].t).toBe(NEW);
+    await page.goto(`/admin/print/doc/${IV}`);
+    await expect(page.locator(".pp-sheets .sh-thanks")).toHaveText(NEW);
+
+    // ปิด → ไม่มีแถบ (ข้อความยังเก็บไว้)
+    await page.goto("/admin/settings#docTagline");
+    const on = page.locator('#docTagline input[name="docTaglineOn"]');
+    await expect(async () => { await on.uncheck(); await expect(page.locator("#docTagline .dtl-off")).toBeVisible({ timeout: 500 }); }).toPass({ timeout: 10_000 });
+    await save();
+    await expect.poll(async () => (await q<{ t: string | null; on: boolean }>(`SELECT "docTagline" t, "docTaglineOn" "on" FROM "ShopSetting" WHERE id='shop'`))[0]).toEqual({ t: NEW, on: false });
+    await page.goto(`/admin/print/doc/${IV}`);
+    await expect(page.locator(".pp-sheets .sheet").first()).toBeVisible();
+    await expect(page.locator(".pp-sheets .sh-thanks")).toHaveCount(0);
+
+    // เปิดอีกครั้ง + ใช้ข้อความเดิม → เก็บ null และพิมพ์ข้อความเดิม
+    await page.goto("/admin/settings#docTagline");
+    await expect(async () => { await on.check(); await expect(box).toBeEnabled({ timeout: 500 }); }).toPass({ timeout: 10_000 });
+    await page.getByRole("button", { name: "ใช้ข้อความเดิม" }).click();
+    await save();
+    await expect.poll(async () => (await q<{ t: string | null; on: boolean }>(`SELECT "docTagline" t, "docTaglineOn" "on" FROM "ShopSetting" WHERE id='shop'`))[0]).toEqual({ t: null, on: true });
+    await page.goto(`/admin/print/doc/${IV}`);
+    await expect(page.locator(".pp-sheets .sh-thanks")).toContainText("ไฟใต้น้ำ | ไฟส่องน้ำพุ");
+  } finally {
+    await q(`UPDATE "ShopSetting" SET "docTagline"=$1, "docTaglineOn"=$2 WHERE id='shop'`, [old.t, old.on]);
+  }
+});

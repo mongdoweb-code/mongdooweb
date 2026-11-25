@@ -267,10 +267,20 @@ const Slider = (() => {
 /* =========================================================
    PRODUCTS + JSON-LD ItemList (U23, U25)
    ========================================================= */
+/* ป้ายบนการ์ด: ลดราคาก่อน แล้วป้ายที่ร้านตั้ง (สีตามที่เลือก) — เหมือน PriceBits ฝั่ง server */
+const BADGE_COLORS = ['orange', 'green', 'blue', 'dark'];
+function badgesHtml(p) {
+  const own = Array.isArray(p.badges) && p.badges.length ? p.badges : p.badge ? [{ t: p.badge, c: 'orange' }] : [];
+  const sale = p.compareAt && p.compareAt > p.price ? [{ t: `ลด ${Math.round((1 - p.price / p.compareAt) * 100)}%`, c: 'sale' }] : [];
+  const list = [...sale, ...own].slice(0, 5);
+  if (!list.length) return '';
+  return `<span class="prod-badges" data-n="${list.length}">${list.map(b => `<span class="prod-badge ${b.c === 'sale' ? 'badge-sale' : 'bc-' + (BADGE_COLORS.includes(b.c) ? b.c : 'orange')}">${esc(b.t)}</span>`).join('')}</span>`;
+}
+
 $('#prodGrid').innerHTML = PRODUCTS.map(p => `
   <article class="prod-card reveal" id="prod-${esc(p.id)}">
     <a class="prod-img" href="/product/${encodeURIComponent(p.id)}" tabindex="-1" aria-hidden="true">
-      ${p.badge ? `<span class="prod-badge">${esc(p.badge)}</span>` : ''}
+      ${badgesHtml(p)}
       ${thumb(p)}
     </a>
     <div class="prod-body">

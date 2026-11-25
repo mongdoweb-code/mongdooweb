@@ -18,7 +18,7 @@ export default async function NavMenuPage() {
     <main className="main" id="page-nav">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/home">← หน้าแรกและความน่าเชื่อถือ</Link></p>
+          <p><Link className="link back-btn" href="/admin/home">← หน้าแรกและความน่าเชื่อถือ</Link></p>
           <h1>เมนูหน้าร้าน (Navbar)</h1>
           <p>เลือกเมนูที่แสดงบนแถบด้านบนของหน้าร้าน เรียงลำดับ เปลี่ยนชื่อ เพิ่มลิงก์เอง และเปิด/ปิดไอคอนด้านขวา</p>
         </div>

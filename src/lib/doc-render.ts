@@ -34,6 +34,8 @@ export type ShopHead = {
   signature?: string; stamp?: string; signerName?: string; signerTitle?: string;
   /** ใบเสนอราคา: แสดงบัญชีธนาคาร */
   quotePayInfo?: boolean;
+  /** แถบข้อความท้ายเอกสาร (ไม่ระบุ = DOC_TAGLINE · "" = ไม่แสดง) */
+  tagline?: string;
 };
 export type DocView = {
   type: DocTypeT; no: string | null; status: string; issueDate: string; validUntil: string; dueDate: string;
@@ -72,8 +74,17 @@ function bankList(banks: ShopHead["banks"]) {
   return `${same ? `<div class="bk-holder">ชื่อบัญชี <b>${esc(holders[0])}</b></div>` : ""}<ul class="bk-list">${li.join("")}</ul>`;
 }
 
-/** แถบท้ายเอกสารทุกใบ — สินค้า/บริการของร้าน */
+/** แถบท้ายเอกสารทุกใบ — สินค้า/บริการของร้าน (ค่าเริ่มต้น · แก้ได้ที่ ตั้งค่าร้าน → ข้อความท้ายเอกสาร) */
+export const DOC_TAGLINE_MAX = 200;
 export const DOC_TAGLINE = "ไฟใต้น้ำ | ไฟส่องน้ำพุ | ไฟสระน้ำ Pool villa | โคมไฟส่องต้นไม้ | ไฟส่องถนน | ไฟฝังพื้น | ไฟย้อมสีตึก | ดาวไลท์ฝังฝ้า ไฟแอลอีดีงานแสงสีทุกประเภท";
+
+/** ข้อความท้ายเอกสารที่จะพิมพ์ ("" = ไม่แสดง) จากตั้งค่าร้าน */
+export const docTaglineOf = (s: { docTagline: string | null; docTaglineOn: boolean }) => (s.docTaglineOn ? s.docTagline?.trim() || DOC_TAGLINE : "");
+/** ทำความสะอาดข้อความที่พิมพ์มา: ขึ้นบรรทัด/ช่องว่างซ้อน → ช่องว่างเดียว · ตัดที่ DOC_TAGLINE_MAX · ตรงกับค่าเดิม = null */
+export const cleanDocTagline = (raw: unknown) => {
+  const t = String(raw ?? "").replace(/\s+/g, " ").trim().slice(0, DOC_TAGLINE_MAX);
+  return !t || t === DOC_TAGLINE ? null : t;
+};
 
 export const DOC_META: Record<DocTypeT, { th: string; en: string; short: string; path: string }> = {
   QUOTATION: { th: "ใบเสนอราคา", en: "QUOTATION", short: "QT", path: "QUOTATION" },
@@ -239,6 +250,7 @@ export function buildDocParts(d: DocView): DocParts {
   // ใบส่งของ: ไม่มีราคา/ยอดเงิน · รวมจำนวน · ส่งที่ · ข้อความรับรองการรับของ
   const qtyTotal = d.items.reduce((n, it) => n + it.qtyMilli, 0);
   const doShip = c.shipTo?.name ? `${esc(c.shipTo.name)}${c.shipTo.phone ? ` โทร ${esc(c.shipTo.phone)}` : ""} · ${esc(addrText(c.shipTo.address))}` : esc(addrText(c.address)) || "—";
+  const tagline = d.shop.tagline ?? DOC_TAGLINE;
   const doTail = `<div class="sh-end">
       <section class="sh-tail sh-dotail">
         <div class="sh-tl">
@@ -250,7 +262,7 @@ export function buildDocParts(d: DocView): DocParts {
         <div class="sh-tr"><dl class="sh-tot"><dt>จำนวนรายการ</dt><dd>${d.items.length}</dd><dt class="g">รวมจำนวน</dt><dd class="g">${qtyShow(qtyTotal)}</dd></dl></div>
       </section>
       ${sign}
-      <div class="sh-thanks">${DOC_TAGLINE}</div>
+      ${tagline ? `<div class="sh-thanks">${esc(tagline)}</div>` : ""}
     </div>`;
   // ใบแจ้งหนี้: แยกแถว "หักเงินมัดจำ" ตามใบเสร็จมัดจำ · ส่วนที่เหลือของยอดที่ชำระ = ชำระแล้ว
   const deps = d.type === "INVOICE" ? (d.deposits ?? []) : [];
@@ -270,7 +282,7 @@ export function buildDocParts(d: DocView): DocParts {
         ${ivOnline}</div>
       </section>
       ${sign}
-      <div class="sh-thanks">${DOC_TAGLINE}</div>
+      ${tagline ? `<div class="sh-thanks">${esc(tagline)}</div>` : ""}
     </div>`;
   const foot = `<footer class="sh-foot"><span>${esc(label)} · พิมพ์เมื่อ ${esc(d.printedAt)}</span><span>หน้า {{P}} / {{N}}</span></footer>`;
   const mark = d.status === "VOID" ? `<div class="sh-mark void"><span>ยกเลิก</span>${d.voidReason ? `<em>${esc(d.voidReason)}</em>` : ""}</div>` : d.status === "DRAFT" ? '<div class="sh-mark draft"><span>ฉบับร่าง</span></div>' : "";

@@ -24,7 +24,7 @@ export default async function VatReportPage({ searchParams }: PageProps<"/admin/
     <main className="main" id="page-vat">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/reports">← รายงานยอดขาย</Link></p>
+          <p><Link className="link back-btn" href="/admin/reports">← รายงานยอดขาย</Link></p>
           <h1>รายงานภาษีขาย</h1>
           <p>เดือนภาษี {monthTh(month)}</p>
         </div>
