@@ -83,7 +83,7 @@ test("สีสถานะ: ป้ายและพื้นแถวตาม
   const [open, todo, acc, done] = await Promise.all([color("dst ds-open"), color("wtag wt-todo"), color("dst ds-accepted"), color("wtag wt-done")]);
   expect(new Set([open, todo, acc, done]).size).toBe(4);
   // แคปซูล
-  for (const sel of [".df-search", ".df-dates", ".df-go"]) expect(await page.locator(sel + V).evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThan(15);
+  for (const sel of [".df-search", ".dr-box", ".df-go"]) expect(await page.locator(sel + V).first().evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThan(15);
   await page.goto("/admin/docs/QUOTATION?void=hide");
   const only = page.locator(".void-only" + V);
   if (await only.count()) expect(await only.evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius))).toBeGreaterThan(10);
