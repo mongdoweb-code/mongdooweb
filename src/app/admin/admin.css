@@ -921,9 +921,9 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .sh-sign b{display:block}
 .sh-sign span{display:block;font-size:8pt;color:#555;margin-top:1mm}
 .sh-thanks{border:.3mm solid #a3a3a3;border-radius:0;text-align:center;padding:1.8mm 2mm;margin-top:6mm;font-size:7.8pt;font-weight:600;line-height:1.45;letter-spacing:-.05pt;background:#FAFAFA;color:#161616;box-sizing:border-box}
-/* รูปแบบแถบ (ตั้งค่าร้าน → ข้อความท้ายเอกสาร): A กรอบเหลี่ยม (ค่าข้างบน) · B แถบสีแบรนด์ · C เส้นคู่บน–ล่าง + จุดคั่นสีส้ม */
+/* รูปแบบแถบ (ตั้งค่าร้าน → ข้อความท้ายเอกสาร): A กรอบเหลี่ยม (ค่าข้างบน) · B แถบสีแบรนด์ · C ข้อความเรียบ ไม่มีกรอบ/เส้น + จุดคั่นสีส้ม */
 .sh-thanks.tl-b{background:#C2410C;color:#FFFFFF;border-color:#C2410C}
-.sh-thanks.tl-c{background:none;border-width:.35mm 0;border-color:#1C1C1C;color:#2B2B2B;font-weight:500;padding:1.6mm 2mm}
+.sh-thanks.tl-c{background:none;border:0;color:#2B2B2B;font-weight:500;padding:1.6mm 2mm}
 .sh-thanks .tl-sep{font-style:normal;color:#C2410C;padding:0 .9mm}
 /* แถบท้าย (DOC_TAGLINE) ชิดล่างสุดของแผ่นสุดท้าย เหนือบรรทัด "พิมพ์เมื่อ · หน้า x/y" — ทุกเอกสาร/ทุกหน้าที่ใช้ DocSheets
    ตอนวัดแบ่งหน้า (#docMeasure) ยังอยู่ในเนื้อเอกสารตามปกติ → ความสูงถูกนับเผื่อไว้แล้ว ย้ายลงล่างจึงไม่ทับเนื้อหา */

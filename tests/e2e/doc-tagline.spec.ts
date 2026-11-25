@@ -110,7 +110,7 @@ test("ตั้งค่าข้อความท้ายเอกสาร: 
     await page.goto(`/admin/print/doc/${IV}`);
     await expect(page.locator(".pp-sheets .sh-thanks")).toHaveText(NEW);
 
-    // รูปแบบ: ตัวอย่างครบ 3 แบบ · เลือก C (เส้นคู่ + จุดคั่นแทน |) → หน้าพิมพ์ใช้แบบ C
+    // รูปแบบ: ตัวอย่างครบ 3 แบบ · เลือก C (ข้อความเรียบ + จุดคั่นแทน |) → หน้าพิมพ์ใช้แบบ C
     await page.goto("/admin/settings#docTagline");
     await expect(page.locator("[data-tagline-preview]")).toHaveCount(3);
     const optC = page.locator('.dtl-opt[data-style="C"]');
@@ -122,7 +122,8 @@ test("ตั้งค่าข้อความท้ายเอกสาร: 
     const band = page.locator(".pp-sheets .sh-thanks");
     await expect(band).toHaveClass(/tl-c/);
     await expect(band.locator(".tl-sep")).toHaveCount(1);
-    expect(await band.evaluate((e) => [getComputedStyle(e).borderLeftWidth, getComputedStyle(e).borderTopStyle])).toEqual(["0px", "solid"]);
+    // แบบ C ไม่มีกรอบ/เส้น
+    expect(await band.evaluate((e) => [getComputedStyle(e).borderTopWidth, getComputedStyle(e).borderBottomWidth, getComputedStyle(e).borderLeftWidth])).toEqual(["0px", "0px", "0px"]);
 
     // ปิด → ไม่มีแถบ (ข้อความยังเก็บไว้)
     await page.goto("/admin/settings#docTagline");
