@@ -2876,6 +2876,23 @@ html[data-adm-theme="dark"] .toolbar2 select.sel:hover {
 html[data-adm-theme="dark"] .toolbar2 select.sel:focus-visible {
     outline: 2px solid var(--c-orange)
 }
+html[data-adm-theme="dark"] .wn-sugg {
+    color: #ACA9A4
+}
+html[data-adm-theme="dark"] .wn-sugg button {
+    border: 1px dashed #2A2D35;
+    background: #1E2127;
+    color: #D3D1CD
+}
+html[data-adm-theme="dark"] .wn-sugg button:hover:not(:disabled) {
+    border-color: #F26B38;
+    color: #E68560
+}
+html[data-adm-theme="dark"] .wn-sugg button.on {
+    border-color: #2E4537;
+    background: #15201A;
+    color: #68DE95
+}
 /*  src/app/admin/lot3.css  */
 html[data-adm-theme="dark"] .l3-kpi {
     background: #1E2127;

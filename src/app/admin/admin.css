@@ -2226,3 +2226,12 @@ p:has(> .link.back-btn){margin:0 0 10px}
 .toolbar2 select.sel:focus-visible{outline:2px solid var(--c-orange);outline-offset:1px}
 .toolbar2 > .btn{height:38px;border-radius:999px;padding:0 20px}
 .toolbar2 input.sel{border-radius:999px;padding:0 16px}
+
+/* แท็กคำที่ใช้บ่อยในหมายเหตุสถานะงาน (หน้าเอกสาร + เมนูในรายการ) — แบบเดียวกับแท็ก "ใช้บ่อย" ของป้ายบนการ์ด */
+.wn-sugg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:2px 0 10px;font-size:12.5px;color:#6B6862}
+.wn-sugg > span{font-weight:600;margin-right:2px}
+.wn-sugg button{height:28px;padding:0 10px;border:1px dashed #D9D5CC;border-radius:999px;background:#FFFFFF;font-size:12.5px;color:#3B3934;cursor:pointer;white-space:nowrap}
+.wn-sugg button:hover:not(:disabled){border-color:#F26B38;color:#B5461C}
+.wn-sugg button.on{border-style:solid;border-color:#BFE3CD;background:#ECF8F1;color:#166534;cursor:default}
+.wn-sugg.sm{gap:5px;margin:0}
+.wn-sugg.sm button{height:26px;padding:0 9px;font-size:12px}

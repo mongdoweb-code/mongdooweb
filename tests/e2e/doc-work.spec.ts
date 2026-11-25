@@ -136,3 +136,33 @@ test("หน้าเอกสารใบเสร็จ: ปุ่มคู่
   const [r] = await q<{ s: string | null }>(`SELECT "workState" s FROM "SalesDocument" WHERE id=$1`, [RC]);
   expect(r.s).toBeNull();
 });
+
+test("แท็กคำที่ใช้บ่อย: หน้าเอกสาร + เมนูในรายการ — กดแล้วเติมหมายเหตุ ไม่ซ้ำ แล้วบันทึก", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page);
+  await page.goto(`/admin/docs/RECEIPT/${RC}`);
+  const panel = page.locator("#docWork");
+  const tags = panel.locator("[data-work-tags]");
+  await expect(tags).toContainText("ใช้บ่อย:");
+  await expect(tags.getByRole("button", { name: "+ จัดส่งแล้ว" })).toBeVisible();
+  const note = panel.locator("#workNote");
+  await expect(async () => { await note.fill(""); await tags.getByRole("button", { name: "+ จัดส่งแล้ว" }).click(); await expect(note).toHaveValue("จัดส่งแล้ว", { timeout: 500 }); }).toPass({ timeout: 10_000 });
+  await tags.getByRole("button", { name: "+ ส่งใบเสร็จตัวจริง" }).click();
+  await expect(note).toHaveValue("จัดส่งแล้ว · ส่งใบเสร็จตัวจริง");
+  // แท็กที่ใส่แล้วกดซ้ำไม่ได้ (✓)
+  await expect(tags.getByRole("button", { name: "✓ จัดส่งแล้ว" })).toBeDisabled();
+  await panel.getByRole("button", { name: "บันทึก" }).click();
+  await expect.poll(async () => (await q<{ n: string | null }>(`SELECT "workNote" n FROM "SalesDocument" WHERE id=$1`, [RC]))[0].n).toBe("จัดส่งแล้ว · ส่งใบเสร็จตัวจริง");
+
+  // เมนูในรายการใบเสนอราคา: แท็กของใบเสนอราคา
+  await page.goto(`/admin/docs/QUOTATION?q=${QT_NO}`);
+  const row = page.locator("tr", { hasText: QT_NO });
+  await row.hover();
+  await row.locator(".wtag").click();
+  const pop = page.getByRole("dialog", { name: `ตั้งสถานะงาน: ใบเสนอราคา ${QT_NO}` });
+  await pop.getByLabel("หมายเหตุ (ไม่บังคับ)").fill("");
+  await pop.locator("[data-work-tags]").getByRole("button", { name: "+ โทรติดตาม" }).click();
+  await expect(pop.getByLabel("หมายเหตุ (ไม่บังคับ)")).toHaveValue("โทรติดตาม");
+  await pop.getByRole("button", { name: "ต้องดำเนินการ", exact: true }).click();
+  await expect.poll(async () => (await q<{ n: string | null }>(`SELECT "workNote" n FROM "SalesDocument" WHERE id=$1`, [QT]))[0].n).toBe("โทรติดตาม");
+});

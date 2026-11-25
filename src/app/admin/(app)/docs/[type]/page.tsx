@@ -21,6 +21,7 @@ import { copyBlock, isDocType, quoteEditBlock, statusOf, statusWhere, todayYmd, 
 import { prisma } from "@/lib/prisma";
 import { WORK_FILTERS, workWhere } from "@/lib/doc-work";
 import { WorkIcon as WorkTagIcon, WorkTag } from "../WorkTag";
+import { workNoteSuggestions } from "../work-data";
 import { DateRange } from "../../../_components/DateRange";
 
 export default async function DocsListPage({ params, searchParams }: PageProps<"/admin/docs/[type]">) {
@@ -33,6 +34,8 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
   const monthStart = fromYmd(today.slice(0, 8) + "01");
   const [{ rows, total, page, pages }, totals] = await Promise.all([listDocs(type, f), docTotals(type, f)]);
   const era = (await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { dateEra: true } }))?.dateEra ?? "AD";
+  // แท็กคำที่ใช้บ่อยในหมายเหตุสถานะงาน (คำนวณครั้งเดียวต่อหน้า)
+  const noteTags = await workNoteSuggestions(type);
 
   // KPI
   const sum = (w: Parameters<typeof prisma.salesDocument.aggregate>[0]["where"]) =>
@@ -236,7 +239,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                   <td>
                     <div className="st-cell">
                       <span className={`dst dst-${stc} ds-${st}`}>{stl}</span>
-                      <WorkTag id={d.id} state={d.workState} note={d.workNote} by={d.workBy?.displayName} at={d.workAt ? docDateTime(d.workAt, era) : null} label={`${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} />
+                      <WorkTag id={d.id} state={d.workState} note={d.workNote} by={d.workBy?.displayName} at={d.workAt ? docDateTime(d.workAt, era) : null} label={`${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} suggest={noteTags} />
                     </div>
                   </td>
                   <td className="r">
