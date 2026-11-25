@@ -524,6 +524,9 @@ html[data-adm-theme="dark"] .timeline small {
 html[data-adm-theme="dark"] .lightbox {
     background: rgba(10,10,10,.9)
 }
+html[data-adm-theme="dark"] .set-foot {
+    border-top: 1px solid var(--c-line)
+}
 html[data-adm-theme="dark"] .unsaved {
     color: var(--c-warn)
 }
@@ -5047,6 +5050,29 @@ html[data-adm-theme="dark"] .cb-warn {
 }
 html[data-adm-theme="dark"] .cb-txt small {
     color: #ACA9A4
+}
+html[data-adm-theme="dark"] .dtl .dtl-docs {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .dtl-row small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .dtl-h small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .dtl-opt {
+    border: 1.5px solid var(--c-line);
+    background: #1C1E24
+}
+html[data-adm-theme="dark"] .dtl-opt:hover {
+    border-color: #3B3935
+}
+html[data-adm-theme="dark"] .dtl-opt.on {
+    border-color: #F26B38;
+    background: #2A1B14
+}
+html[data-adm-theme="dark"] .dtl-name small {
+    color: var(--c-muted)
 }
 html[data-adm-theme="dark"] .dtl-off {
     border: 1px dashed var(--c-line);

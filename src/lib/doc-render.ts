@@ -36,6 +36,8 @@ export type ShopHead = {
   quotePayInfo?: boolean;
   /** แถบข้อความท้ายเอกสาร (ไม่ระบุ = DOC_TAGLINE · "" = ไม่แสดง) */
   tagline?: string;
+  /** รูปแบบแถบ (ไม่ระบุ = A) */
+  taglineStyle?: DocTaglineStyle;
 };
 export type DocView = {
   type: DocTypeT; no: string | null; status: string; issueDate: string; validUntil: string; dueDate: string;
@@ -77,6 +79,21 @@ function bankList(banks: ShopHead["banks"]) {
 /** แถบท้ายเอกสารทุกใบ — สินค้า/บริการของร้าน (ค่าเริ่มต้น · แก้ได้ที่ ตั้งค่าร้าน → ข้อความท้ายเอกสาร) */
 export const DOC_TAGLINE_MAX = 200;
 export const DOC_TAGLINE = "ไฟใต้น้ำ | ไฟส่องน้ำพุ | ไฟสระน้ำ Pool villa | โคมไฟส่องต้นไม้ | ไฟส่องถนน | ไฟฝังพื้น | ไฟย้อมสีตึก | ดาวไลท์ฝังฝ้า ไฟแอลอีดีงานแสงสีทุกประเภท";
+
+/** รูปแบบแถบข้อความท้ายเอกสาร: A กรอบเหลี่ยมพื้นเทาอ่อน · B แถบสีแบรนด์ (ส้มเข้ม ตัวขาว) · C เส้นคู่บน–ล่าง ตัวคั่น • สีส้ม */
+export const DOC_TAGLINE_STYLES = {
+  A: { label: "กรอบเหลี่ยม", desc: "พื้นเทาอ่อน ขอบเหลี่ยม สุภาพ อ่านง่าย" },
+  B: { label: "แถบสีแบรนด์", desc: "พื้นส้มเข้ม ตัวอักษรขาว เด่น จำร้านได้ (ใช้หมึกสีมากกว่า)" },
+  C: { label: "เส้นคู่เรียบหรู", desc: "เส้นบน–ล่างบาง ไม่มีพื้น ตัวคั่นสีส้ม ประหยัดหมึก ดูเป็นทางการ" },
+} as const;
+export type DocTaglineStyle = keyof typeof DOC_TAGLINE_STYLES;
+export const isTaglineStyle = (v: unknown): v is DocTaglineStyle => v === "A" || v === "B" || v === "C";
+/** HTML ของแถบ (ใช้ทั้งหน้าเอกสาร/พิมพ์ และตัวอย่างในตั้งค่า): แบบ C แทน "|" ด้วยจุดสีส้ม */
+export function taglineHtml(text: string, style: DocTaglineStyle = "A") {
+  const parts = text.split(/\s*\|\s*/).filter(Boolean).map(esc);
+  const body = style === "C" ? parts.join('<i class="tl-sep">•</i>') : parts.join(" | ");
+  return `<div class="sh-thanks tl-${style.toLowerCase()}">${body}</div>`;
+}
 
 /** ข้อความท้ายเอกสารที่จะพิมพ์ ("" = ไม่แสดง) จากตั้งค่าร้าน */
 export const docTaglineOf = (s: { docTagline: string | null; docTaglineOn: boolean }) => (s.docTaglineOn ? s.docTagline?.trim() || DOC_TAGLINE : "");
@@ -262,7 +279,7 @@ export function buildDocParts(d: DocView): DocParts {
         <div class="sh-tr"><dl class="sh-tot"><dt>จำนวนรายการ</dt><dd>${d.items.length}</dd><dt class="g">รวมจำนวน</dt><dd class="g">${qtyShow(qtyTotal)}</dd></dl></div>
       </section>
       ${sign}
-      ${tagline ? `<div class="sh-thanks">${esc(tagline)}</div>` : ""}
+      ${tagline ? taglineHtml(tagline, d.shop.taglineStyle ?? "A") : ""}
     </div>`;
   // ใบแจ้งหนี้: แยกแถว "หักเงินมัดจำ" ตามใบเสร็จมัดจำ · ส่วนที่เหลือของยอดที่ชำระ = ชำระแล้ว
   const deps = d.type === "INVOICE" ? (d.deposits ?? []) : [];
@@ -282,7 +299,7 @@ export function buildDocParts(d: DocView): DocParts {
         ${ivOnline}</div>
       </section>
       ${sign}
-      ${tagline ? `<div class="sh-thanks">${esc(tagline)}</div>` : ""}
+      ${tagline ? taglineHtml(tagline, d.shop.taglineStyle ?? "A") : ""}
     </div>`;
   const foot = `<footer class="sh-foot"><span>${esc(label)} · พิมพ์เมื่อ ${esc(d.printedAt)}</span><span>หน้า {{P}} / {{N}}</span></footer>`;
   const mark = d.status === "VOID" ? `<div class="sh-mark void"><span>ยกเลิก</span>${d.voidReason ? `<em>${esc(d.voidReason)}</em>` : ""}</div>` : d.status === "DRAFT" ? '<div class="sh-mark draft"><span>ฉบับร่าง</span></div>' : "";

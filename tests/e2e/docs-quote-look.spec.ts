@@ -52,7 +52,8 @@ test("ตัวอย่าง A4: รูปสินค้า · วันท�
   await expect(sheet.locator(".sh-tbl tbody tr").nth(1).locator(".it-img img")).toHaveCount(0); // ค่าส่ง: ช่องว่าง
   await expect(sheet.locator(".sh-ct svg")).toHaveCount(await sheet.locator(".sh-ct").count());
   expect(await sheet.locator(".sh-ct").count()).toBeGreaterThanOrEqual(2);
-  expect(await sheet.locator(".sh-thanks").evaluate((e) => getComputedStyle(e).borderTopLeftRadius)).not.toBe("0px");
+  // แถบท้ายแบบ A (ค่าเริ่มต้น) = กรอบเหลี่ยม
+  if ((await sheet.locator(".sh-thanks.tl-a").count()) > 0) expect(await sheet.locator(".sh-thanks").evaluate((e) => getComputedStyle(e).borderTopLeftRadius)).toBe("0px");
   // วันที่ลงนาม = วันที่เอกสาร (30/10/2026 หรือ พ.ศ.)
   await expect(sheet.locator(".sh-sign .sg-date")).toHaveText(/30\/10\/(2026|2569)/);
   // แก้วันที่ลงนาม

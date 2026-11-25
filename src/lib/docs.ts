@@ -3,7 +3,7 @@ import "server-only";
 import QRCode from "qrcode";
 import type { Customer, DocType, Prisma, SalesDocument, ShopSetting } from "../../generated/prisma/client";
 import { addrText, calcTotals, docDateTime, fromYmd, promptPayPayload, ymdBkk, type DocTypeT } from "@/lib/doc-calc";
-import { DOC_META, displayStatus, docTaglineOf, type CustSnap, type DocSt, type DocView, type LabelData, type Sender, type ShopHead } from "@/lib/doc-render";
+import { DOC_META, displayStatus, docTaglineOf, isTaglineStyle, type CustSnap, type DocSt, type DocView, type LabelData, type Sender, type ShopHead } from "@/lib/doc-render";
 import { formatPhone } from "@/lib/format";
 import { customerPhones, formatPhoneEntry } from "@/lib/phones";
 import { mediaUrl } from "@/lib/media";
@@ -77,7 +77,7 @@ export function shopHead(s: ShopSetting): ShopHead {
     promptpayName: s.promptpayName,
     signature: (s.signatureKey && mediaUrl(s.signatureKey)) || "", stamp: (s.stampKey && mediaUrl(s.stampKey)) || "",
     signerName: s.signerName, signerTitle: s.signerTitle, quotePayInfo: s.quotePayInfo,
-    tagline: docTaglineOf(s),
+    tagline: docTaglineOf(s), taglineStyle: isTaglineStyle(s.docTaglineStyle) ? s.docTaglineStyle : "A",
   };
 }
 export const senderOf = (s: ShopSetting): Sender => ({ name: s.legalName, phone: s.phone, address: s.addressText, logo: (s.logoKey && mediaUrl(s.logoKey)) || DEFAULT_LOGO });
