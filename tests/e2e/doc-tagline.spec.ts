@@ -94,7 +94,7 @@ test("ใบแจ้งหนี้หลายหน้า: แถบท้า
 // ตั้งค่าร้าน → ข้อความท้ายเอกสาร: แก้ข้อความ (ตัวอย่างสด) → หน้าพิมพ์ใช้ข้อความใหม่ · ปิด → ไม่มีแถบ · "ใช้ข้อความเดิม" → กลับเป็นค่าเดิม (เก็บ null)
 test("ตั้งค่าข้อความท้ายเอกสาร: แก้ / ปิด / กลับค่าเดิม", async ({ page }) => {
   const V = ":visible";
-  const [old] = await q<{ t: string | null; on: boolean }>(`SELECT "docTagline" t, "docTaglineOn" "on" FROM "ShopSetting" WHERE id='shop'`);
+  const [old] = await q<{ t: string | null; on: boolean; st: string }>(`SELECT "docTagline" t, "docTaglineOn" "on", "docTaglineStyle" st FROM "ShopSetting" WHERE id='shop'`);
   const save = async () => {
     await page.locator("button[type=submit]:has-text('บันทึกการตั้งค่า')" + V).first().click();
   };
@@ -104,11 +104,25 @@ test("ตั้งค่าข้อความท้ายเอกสาร: 
     await login(page);
     await page.goto("/admin/settings#docTagline");
     const box = page.locator("#docTaglineText");
-    await expect(async () => { await box.fill(NEW); await expect(page.locator("[data-tagline-preview]")).toHaveText(NEW, { timeout: 500 }); }).toPass({ timeout: 10_000 });
+    await expect(async () => { await box.fill(NEW); await expect(page.locator(`[data-tagline-preview="A"]`)).toHaveText(NEW, { timeout: 500 }); }).toPass({ timeout: 10_000 });
     await save();
     await expect.poll(async () => (await q<{ t: string | null }>(`SELECT "docTagline" t FROM "ShopSetting" WHERE id='shop'`))[0].t).toBe(NEW);
     await page.goto(`/admin/print/doc/${IV}`);
     await expect(page.locator(".pp-sheets .sh-thanks")).toHaveText(NEW);
+
+    // รูปแบบ: ตัวอย่างครบ 3 แบบ · เลือก C (เส้นคู่ + จุดคั่นแทน |) → หน้าพิมพ์ใช้แบบ C
+    await page.goto("/admin/settings#docTagline");
+    await expect(page.locator("[data-tagline-preview]")).toHaveCount(3);
+    const optC = page.locator('.dtl-opt[data-style="C"]');
+    await expect(async () => { await optC.click(); await expect(optC).toHaveClass(/\bon\b/, { timeout: 500 }); }).toPass({ timeout: 10_000 });
+    await expect(optC.locator(".sh-thanks.tl-c .tl-sep")).toHaveCount(1);
+    await save();
+    await expect.poll(async () => (await q<{ st: string }>(`SELECT "docTaglineStyle" st FROM "ShopSetting" WHERE id='shop'`))[0].st).toBe("C");
+    await page.goto(`/admin/print/doc/${IV}`);
+    const band = page.locator(".pp-sheets .sh-thanks");
+    await expect(band).toHaveClass(/tl-c/);
+    await expect(band.locator(".tl-sep")).toHaveCount(1);
+    expect(await band.evaluate((e) => [getComputedStyle(e).borderLeftWidth, getComputedStyle(e).borderTopStyle])).toEqual(["0px", "solid"]);
 
     // ปิด → ไม่มีแถบ (ข้อความยังเก็บไว้)
     await page.goto("/admin/settings#docTagline");
@@ -124,11 +138,13 @@ test("ตั้งค่าข้อความท้ายเอกสาร: 
     await page.goto("/admin/settings#docTagline");
     await expect(async () => { await on.check(); await expect(box).toBeEnabled({ timeout: 500 }); }).toPass({ timeout: 10_000 });
     await page.getByRole("button", { name: "ใช้ข้อความเดิม" }).click();
+    await page.locator('.dtl-opt[data-style="A"]').click();
     await save();
     await expect.poll(async () => (await q<{ t: string | null; on: boolean }>(`SELECT "docTagline" t, "docTaglineOn" "on" FROM "ShopSetting" WHERE id='shop'`))[0]).toEqual({ t: null, on: true });
+    expect((await q<{ st: string }>(`SELECT "docTaglineStyle" st FROM "ShopSetting" WHERE id='shop'`))[0].st).toBe("A");
     await page.goto(`/admin/print/doc/${IV}`);
     await expect(page.locator(".pp-sheets .sh-thanks")).toContainText("ไฟใต้น้ำ | ไฟส่องน้ำพุ");
   } finally {
-    await q(`UPDATE "ShopSetting" SET "docTagline"=$1, "docTaglineOn"=$2 WHERE id='shop'`, [old.t, old.on]);
+    await q(`UPDATE "ShopSetting" SET "docTagline"=$1, "docTaglineOn"=$2, "docTaglineStyle"=$3 WHERE id='shop'`, [old.t, old.on, old.st]);
   }
 });

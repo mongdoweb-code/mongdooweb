@@ -51,4 +51,4 @@ html[data-adm-theme="dark"] .void-tg.on .void-sw{background:#16A37B}
 html[data-adm-theme="dark"] .void-tg .void-sw i{background:#fff}
 
 /* แถบค้นหา: ลูกศรของตัวเลือกแบบแคปซูล (กฎ .sel โหมดมืดใช้ background ย่อ ซึ่งรีเซ็ตค่าตำแหน่ง/ไม่ซ้ำ) */
-html[data-adm-theme="dark"] .toolbar2 .sel{background-repeat:no-repeat;background-position:right 14px center;background-size:14px}
+html[data-adm-theme="dark"] .toolbar2 select.sel{background-repeat:no-repeat;background-position:right 14px center;background-size:14px}

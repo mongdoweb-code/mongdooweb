@@ -32,11 +32,25 @@
 .cb-txt small{display:block;font-size:12px;color:#6B6862}
 @media (max-width:700px){.cb-opts{grid-template-columns:1fr}}
 
-/* ข้อความท้ายเอกสาร: ตัวอย่างกว้างเท่าพื้นที่พิมพ์ A4 (184 มม.) ย่อให้พอดีกล่องด้วย container */
-.dtl textarea{width:100%;resize:vertical;min-height:54px}
-.dtl-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:4px}
-.dtl-pv-wrap{margin-top:10px;overflow-x:auto}
-.dtl-pv-l{display:block;font-size:12px;color:var(--c-muted);margin-bottom:4px}
-.dtl-pv{width:184mm;max-width:none;box-sizing:border-box;border:.3mm solid #a3a3a3;border-radius:2.5mm;text-align:center;padding:1.8mm 2mm;font-family:var(--font-noto-thai),'Noto Sans Thai',sans-serif;font-size:7.8pt;font-weight:600;line-height:1.45;letter-spacing:-.05pt;background:#FAFAFA;color:#161616}
-.dtl-off{padding:10px 12px;border:1px dashed var(--c-line);color:var(--c-muted);font-size:13px}
-.dtl-warn{display:block;margin-top:6px;color:#9A5B00;font-weight:600}
+/* ข้อความท้ายเอกสาร: จังหวะระยะเท่ากัน (fieldset 18/24px · ระหว่างส่วน 14–20px) · การ์ดรูปแบบ 3 แบบ คลิกเลือกทั้งการ์ด
+   ตัวอย่างใช้ .sh-thanks จริง (admin.css) กว้าง 184 มม. = พื้นที่พิมพ์ A4 · กระดาษตัวอย่างสีขาวทั้งสองธีม */
+.dtl .dtl-docs{font-weight:400;color:var(--c-muted)}
+.dtl-text{margin:0}
+.dtl textarea{width:100%;resize:vertical;min-height:58px;padding:10px 12px;line-height:1.6}
+.dtl-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px}
+.dtl-row small{color:var(--c-muted)}
+.dtl-styles{display:grid;gap:12px;margin-top:6px}
+.dtl-h{margin:0;font-size:13px;font-weight:700;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.dtl-h small{font-weight:400;color:var(--c-muted);font-size:12px}
+.dtl-opt{display:grid;grid-template-columns:20px minmax(150px,190px) minmax(0,1fr);align-items:center;gap:16px;padding:14px 16px;border:1.5px solid var(--c-line);background:#FCFBF9;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
+.dtl-opt:hover{border-color:#C9C5BC}
+.dtl-opt.on{border-color:#F26B38;background:#FFF7F3;box-shadow:0 0 0 3px rgba(242,107,56,.12)}
+.dtl-opt input[type=radio]{width:18px;height:18px;margin:0;accent-color:#F26B38}
+.dtl-name b{display:block;font-size:14px;line-height:1.4}
+.dtl-name small{display:block;font-size:12px;color:var(--c-muted);line-height:1.5;margin-top:2px}
+.dtl-paper{display:block;background:#FFFFFF;border:1px solid #E7E4DD;padding:12px 16px;overflow-x:auto}
+.dtl-strip{display:block;width:184mm;margin:0 auto;font-family:var(--font-noto-thai),'Noto Sans Thai',sans-serif}
+.dtl-strip .sh-thanks{margin:0}
+.dtl-off{padding:12px 14px;border:1px dashed var(--c-line);color:var(--c-muted);font-size:13px}
+.dtl-warn{display:block;color:#9A5B00;font-weight:600}
+@media (max-width:860px){.dtl-opt{grid-template-columns:20px 1fr}.dtl-paper{grid-column:1/-1}}

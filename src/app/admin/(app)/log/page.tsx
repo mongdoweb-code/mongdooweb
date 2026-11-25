@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { FIELD_LABEL, visibleDiff, type Diff } from "@/lib/log-diff";
 import { prisma } from "@/lib/prisma";
 import { ALL_LOG_TYPES, LOG_TABS, ORDER_EVENT, adminLogWhere, logQuery, orderEventWhere, parseLogFilter, type LogTab } from "./types";
+import { DateRangeFilter } from "../../_components/DateRangeFilter";
 
 const fmt = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "medium", timeZone: "Asia/Bangkok" });
 const WARN = new Set(["LOGIN_FAIL", "LOCKOUT", "REJECTED", "CANCELLED", "DENIED"]);
@@ -77,13 +78,7 @@ export default async function LogPage({ searchParams }: PageProps<"/admin/log">)
             {users.map((u) => <option key={u.id} value={u.id}>{u.displayName} ({u.username})</option>)}
             <option value="none">ลูกค้า/ระบบ/ไม่ทราบตัวตน</option>
           </select>
-          <span className="date-custom">
-            <label className="sr-only" htmlFor="lf">ตั้งแต่วันที่</label>
-            <input id="lf" type="date" name="from" defaultValue={f.from} />
-            <span>ถึง</span>
-            <label className="sr-only" htmlFor="lt">ถึงวันที่</label>
-            <input id="lt" type="date" name="to" defaultValue={f.to} />
-          </span>
+          <DateRangeFilter key={`${f.from}|${f.to}`} from={f.from} to={f.to} fromId="lf" toId="lt" />
           <button className="btn btn-dark btn-sm" type="submit">กรอง</button>
           {filtered && <Link className="link" href={`/admin/log${logQuery({ ...f, q: "", user: "", from: "", to: "", entity: "" }, { page: "" })}`}>ล้างตัวกรอง</Link>}
         </form>

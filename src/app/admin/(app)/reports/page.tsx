@@ -9,6 +9,7 @@ import {
 } from "@/lib/sales-report";
 import { BarChart, RankTable, baht, qtyText, shortDate } from "./_ui";
 import "../../lot3.css";
+import { DateRangeFilter } from "../../_components/DateRangeFilter";
 
 export default async function ReportsPage({ searchParams }: PageProps<"/admin/reports">) {
   const admin = await requireAdmin();
@@ -50,14 +51,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
         <form className="l3-filter" action="/admin/reports">
           <input type="hidden" name="preset" value="custom" />
           {f.view !== "period" && <input type="hidden" name="view" value={f.view} />}
-          <div className="field">
-            <label htmlFor="rFrom">ตั้งแต่วันที่</label>
-            <input id="rFrom" type="date" name="from" defaultValue={f.from} required />
-          </div>
-          <div className="field">
-            <label htmlFor="rTo">ถึงวันที่</label>
-            <input id="rTo" type="date" name="to" defaultValue={f.to} required />
-          </div>
+          <DateRangeFilter key={`${f.from}|${f.to}`} from={f.from} to={f.to} fromId="rFrom" toId="rTo" required />
           <div className="field">
             <label htmlFor="rUnit">แสดงเป็น</label>
             <select id="rUnit" name="unit" defaultValue={f.unit}>

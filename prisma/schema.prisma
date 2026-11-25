@@ -427,6 +427,7 @@ model ShopSetting {
   quoteOnlineQr  Boolean @default(true) // ใบเสนอราคา/ใบแจ้งหนี้: QR เปิดดู/ยืนยันออนไลน์
   docTagline     String? @db.Text // แถบข้อความท้ายเอกสารทุกใบ (null = ข้อความเดิม DOC_TAGLINE)
   docTaglineOn   Boolean @default(true) // แสดงแถบข้อความท้ายเอกสาร
+  docTaglineStyle String @default("A") // รูปแบบแถบ: A กรอบเหลี่ยม · B แถบสีแบรนด์ · C เส้นคู่
 
   // หน้าร้าน: แถบประกาศ + วิเคราะห์การใช้งาน (โหลดเมื่อลูกค้ายินยอมคุกกี้เท่านั้น)
   announcementEnabled Boolean @default(true)

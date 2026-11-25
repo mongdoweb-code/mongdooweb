@@ -15,6 +15,7 @@ import { acceptQuote, convertQuote, createCreditNote, createDelivery, markDelive
 import { DepositForm, PaymentForm, QuoteToReceiptForm, VoidForm } from "../../DocForms";
 import { DocOnline } from "../../DocOnline";
 import { WorkPanel } from "../../WorkTag";
+import { workNoteSuggestions } from "../../work-data";
 import "../../../../_components/doc-status.css";
 
 export const instant = false;
@@ -189,7 +190,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
             </div>
           </div>
 
-          <WorkPanel id={d.id} state={d.workState} note={d.workNote} by={d.workBy?.displayName} at={d.workAt ? docDateTime(d.workAt, era) : null} />
+          <WorkPanel id={d.id} state={d.workState} note={d.workNote} by={d.workBy?.displayName} at={d.workAt ? docDateTime(d.workAt, era) : null} suggest={await workNoteSuggestions(d.type)} />
 
           {d.type === "QUOTATION" && d.status !== "DRAFT" && (() => {
             const vu = ymdOf(d.validUntil);

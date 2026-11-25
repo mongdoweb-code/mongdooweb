@@ -297,7 +297,7 @@ button.kpi:hover{border-top-color:var(--c-line)}
 .set-grid .box{display:grid;gap:14px;align-content:start}
 .set-grid .full{grid-column:1/-1}
 .set-grid .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.set-foot{display:flex;gap:10px;margin-top:16px;align-items:center;flex-wrap:wrap;max-width:900px}
+.set-foot{display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--c-line);align-items:center;flex-wrap:wrap}
 .unsaved{font-size:13px;color:var(--c-warn);font-weight:600;display:inline-flex;align-items:center;gap:6px}
 .unsaved::before{content:"";width:8px;height:8px;border-radius:50%;background:#F5B041}
 .warn-box{background:#FFF8EA;padding:12px 14px;font-size:13px;color:var(--c-warn)}
@@ -920,7 +920,11 @@ nav > span:first-of-type .nav-grp{margin-top:0}
 .sh-sign .sg-line{border-bottom:.3mm dotted #161616;height:11mm;margin-bottom:1.5mm}
 .sh-sign b{display:block}
 .sh-sign span{display:block;font-size:8pt;color:#555;margin-top:1mm}
-.sh-thanks{border:.3mm solid #a3a3a3;border-radius:2.5mm;text-align:center;padding:1.8mm 2mm;margin-top:6mm;font-size:7.8pt;font-weight:600;line-height:1.45;letter-spacing:-.05pt;background:#FAFAFA}
+.sh-thanks{border:.3mm solid #a3a3a3;border-radius:0;text-align:center;padding:1.8mm 2mm;margin-top:6mm;font-size:7.8pt;font-weight:600;line-height:1.45;letter-spacing:-.05pt;background:#FAFAFA;color:#161616;box-sizing:border-box}
+/* รูปแบบแถบ (ตั้งค่าร้าน → ข้อความท้ายเอกสาร): A กรอบเหลี่ยม (ค่าข้างบน) · B แถบสีแบรนด์ · C เส้นคู่บน–ล่าง + จุดคั่นสีส้ม */
+.sh-thanks.tl-b{background:#C2410C;color:#FFFFFF;border-color:#C2410C}
+.sh-thanks.tl-c{background:none;border-width:.35mm 0;border-color:#1C1C1C;color:#2B2B2B;font-weight:500;padding:1.6mm 2mm}
+.sh-thanks .tl-sep{font-style:normal;color:#C2410C;padding:0 .9mm}
 /* แถบท้าย (DOC_TAGLINE) ชิดล่างสุดของแผ่นสุดท้าย เหนือบรรทัด "พิมพ์เมื่อ · หน้า x/y" — ทุกเอกสาร/ทุกหน้าที่ใช้ DocSheets
    ตอนวัดแบ่งหน้า (#docMeasure) ยังอยู่ในเนื้อเอกสารตามปกติ → ความสูงถูกนับเผื่อไว้แล้ว ย้ายลงล่างจึงไม่ทับเนื้อหา */
 .sheet .sh-body > .sh-end > .sh-thanks{position:absolute;left:0;right:0;bottom:0;margin:0}
@@ -2048,8 +2052,8 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .sh-qpay h5{margin-bottom:1mm}
 .sh-oqr-iv{justify-self:end}
 .sh-oqr-iv .sh-qr{width:20mm;height:20mm}
-.set-sign{border:1px solid var(--c-line);padding:12px 14px;display:grid;gap:10px;margin:0}
-.set-sign legend{font-weight:700;font-size:14px;padding:0 6px}
+.set-sign{border:1px solid var(--c-line);padding:18px 24px 24px;display:grid;gap:14px;margin:0}
+.set-sign legend{font-weight:700;font-size:14px;padding:0 8px;margin-left:-8px}
 .sig-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .sig-prev{height:90px;border:1px dashed var(--c-line);background:#fff;display:grid;place-items:center;margin-bottom:6px}
 .sig-prev img{max-width:90%;max-height:80px;object-fit:contain;mix-blend-mode:multiply}
@@ -2221,7 +2225,17 @@ p:has(> .link.back-btn){margin:0 0 10px}
 .de-copied .act-row .btn{width:auto;flex:none}
 
 /* แถบค้นหา/กรอง (toolbar2) ทุกหน้า: ตัวเลือกหมวด + ปุ่ม เป็นแคปซูลโค้งมนแบบเดียวกับช่องค้นหา (2026-11-25) */
-.toolbar2 .sel{height:38px;border-radius:999px;padding:0 38px 0 16px;-webkit-appearance:none;appearance:none;background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:14px;cursor:pointer;min-width:180px}
-.toolbar2 .sel:hover{border-color:var(--c-ink)}
-.toolbar2 .sel:focus-visible{outline:2px solid var(--c-orange);outline-offset:1px}
+.toolbar2 select.sel{height:38px;border-radius:999px;padding:0 38px 0 16px;-webkit-appearance:none;appearance:none;background-color:#fff;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:14px;cursor:pointer;min-width:180px}
+.toolbar2 select.sel:hover{border-color:var(--c-ink)}
+.toolbar2 select.sel:focus-visible{outline:2px solid var(--c-orange);outline-offset:1px}
 .toolbar2 > .btn{height:38px;border-radius:999px;padding:0 20px}
+.toolbar2 input.sel{border-radius:999px;padding:0 16px}
+
+/* แท็กคำที่ใช้บ่อยในหมายเหตุสถานะงาน (หน้าเอกสาร + เมนูในรายการ) — แบบเดียวกับแท็ก "ใช้บ่อย" ของป้ายบนการ์ด */
+.wn-sugg{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:2px 0 10px;font-size:12.5px;color:#6B6862}
+.wn-sugg > span{font-weight:600;margin-right:2px}
+.wn-sugg button{height:28px;padding:0 10px;border:1px dashed #D9D5CC;border-radius:999px;background:#FFFFFF;font-size:12.5px;color:#3B3934;cursor:pointer;white-space:nowrap}
+.wn-sugg button:hover:not(:disabled){border-color:#F26B38;color:#B5461C}
+.wn-sugg button.on{border-style:solid;border-color:#BFE3CD;background:#ECF8F1;color:#166534;cursor:default}
+.wn-sugg.sm{gap:5px;margin:0}
+.wn-sugg.sm button{height:26px;padding:0 9px;font-size:12px}

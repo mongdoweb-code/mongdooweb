@@ -2,7 +2,7 @@
 // บันทึกตั้งค่าร้าน / โลโก้ / แถบประกาศ / รหัสวิเคราะห์ / งานอัตโนมัติ — เจ้าของร้านเท่านั้น
 // (รหัสผ่านย้ายไป /admin/account, ผู้ใช้ย้ายไป /admin/users)
 import { refresh } from "next/cache";
-import { cleanDocTagline } from "@/lib/doc-render";
+import { cleanDocTagline, isTaglineStyle } from "@/lib/doc-render";
 import { diffOf, refreshStorefront, logAdmin } from "@/lib/admin-log";
 import { requireOwner } from "@/lib/auth";
 import { isValidThaiTaxId } from "@/lib/format";
@@ -161,6 +161,7 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
       quoteOnlineQr: f.get("quoteOnlineQr") === "on",
       docTagline: cleanDocTagline(f.get("docTagline")),
       docTaglineOn: f.get("docTaglineOn") === "on",
+      docTaglineStyle: isTaglineStyle(f.get("docTaglineStyle")) ? String(f.get("docTaglineStyle")) : "A",
       datasheetStyle: f.get("datasheetStyle") === "A" ? "A" : "B",
       datasheetCompare: f.get("datasheetCompare") === "on",
       cardBadgeLayout: isBadgeLayout(f.get("cardBadgeLayout")) ? String(f.get("cardBadgeLayout")) : "1",

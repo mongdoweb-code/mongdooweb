@@ -4,7 +4,7 @@
 // WorkPanel = กล่องในหน้าเอกสาร: ปุ่มคู่ "ต้องดำเนินการ" · "เสร็จสิ้น" + หมายเหตุ + ผู้ตั้ง/เวลา
 // บันทึกด้วย setDocWork (ตรวจซ้ำที่เซิร์ฟเวอร์ + ประวัติเอกสาร) แล้วหน้ารีเฟรชเอง
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { WORK_META, WORK_NOTE_MAX, type WorkState } from "@/lib/doc-work";
+import { WORK_META, WORK_NOTE_MAX, addWorkNote, type WorkState } from "@/lib/doc-work";
 import { setDocWork } from "./actions";
 import { notifySave } from "../../_components/save-notify";
 
@@ -17,7 +17,22 @@ const DoneIcon = () => (
 );
 export const WorkIcon = ({ state }: { state: WorkState }) => (state === "TODO" ? <TodoIcon /> : <DoneIcon />);
 
-type Props = { id: string; state: WorkState | null; note: string | null; by?: string | null; at?: string | null; label: string };
+type Props = { id: string; state: WorkState | null; note: string | null; by?: string | null; at?: string | null; label: string; suggest?: string[] };
+
+/** แท็กช่วยเลือกคำที่ใช้บ่อย — กดแล้วเติมลงช่องหมายเหตุ (แท็กที่อยู่ในหมายเหตุแล้วแสดงเป็นเลือกแล้ว) */
+function NoteTags({ tags, text, onPick, small }: { tags: string[]; text: string; onPick: (t: string) => void; small?: boolean }) {
+  if (!tags.length) return null;
+  const has = new Set(text.split(/\s*·\s*/).map((x) => x.trim().toLowerCase()).filter(Boolean));
+  return (
+    <div className={`wn-sugg${small ? " sm" : ""}`} data-work-tags>
+      <span>ใช้บ่อย:</span>
+      {tags.map((t) => {
+        const on = has.has(t.toLowerCase());
+        return <button key={t} type="button" className={on ? "on" : undefined} aria-pressed={on} disabled={on} onClick={() => onPick(t)}>{on ? "✓" : "+"} {t}</button>;
+      })}
+    </div>
+  );
+}
 
 function useSave(id: string) {
   const [pending, start] = useTransition();
@@ -37,7 +52,7 @@ function useSave(id: string) {
 }
 
 /** ป้ายในตาราง + เมนูเปลี่ยนสถานะ */
-export function WorkTag({ id, state, note, by, at, label }: Props) {
+export function WorkTag({ id, state, note, by, at, label, suggest = [] }: Props) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [text, setText] = useState(note ?? "");
@@ -50,8 +65,8 @@ export function WorkTag({ id, state, note, by, at, label }: Props) {
     if (!open || !btn.current) return;
     const r = btn.current.getBoundingClientRect();
     const w = 280;
-    setPos({ top: Math.min(r.bottom + 6, innerHeight - 250), left: Math.max(8, Math.min(r.left, innerWidth - w - 8)) });
-  }, [open]);
+    setPos({ top: Math.min(r.bottom + 6, innerHeight - (suggest.length ? 380 : 250)), left: Math.max(8, Math.min(r.left, innerWidth - w - 8)) });
+  }, [open, suggest.length]);
   useEffect(() => {
     if (!open) return;
     const close = () => setOpen(false);
@@ -94,6 +109,7 @@ export function WorkTag({ id, state, note, by, at, label }: Props) {
             <input value={text} maxLength={WORK_NOTE_MAX} placeholder="เช่น รอลูกค้ายืนยันขนาด" onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(state ?? "TODO", text, () => setOpen(false)); } }} />
           </label>
+          <NoteTags tags={suggest} text={text} onPick={(t) => setText((x) => addWorkNote(x, t))} small />
           {err && <div className="wt-err" role="alert">{err}</div>}
           <div className="wt-foot">
             {state ? <button type="button" className="link" disabled={pending} onClick={() => save(null, "", () => setOpen(false))}>ล้างสถานะ</button> : <span />}
@@ -106,7 +122,7 @@ export function WorkTag({ id, state, note, by, at, label }: Props) {
 }
 
 /** กล่องในหน้าเอกสาร: ปุ่มคู่แบบ LINE OA + หมายเหตุ */
-export function WorkPanel({ id, state, note, by, at }: Omit<Props, "label">) {
+export function WorkPanel({ id, state, note, by, at, suggest = [] }: Omit<Props, "label">) {
   const [text, setText] = useState(note ?? "");
   const [seen, setSeen] = useState(note);
   if (note !== seen) { setSeen(note); setText(note ?? ""); }
@@ -129,6 +145,7 @@ export function WorkPanel({ id, state, note, by, at }: Omit<Props, "label">) {
           onKeyDown={(e) => { if (e.key === "Enter" && changed) { e.preventDefault(); save(state ?? "TODO", text); } }} />
         <button type="button" className="btn btn-outline btn-sm" disabled={pending || !changed} onClick={() => save(state ?? "TODO", text)}>บันทึก</button>
       </div>
+      <NoteTags tags={suggest} text={text} onPick={(t) => { setText((x) => addWorkNote(x, t)); document.getElementById("workNote")?.focus(); }} />
       {err && <div className="login-err" role="alert">{err}</div>}
       <small className="sub">
         {state ? <>ตั้งเป็น <b>{WORK_META[state].label}</b>{by ? ` โดย ${by}` : ""}{at ? ` · ${at}` : ""} · กดปุ่มเดิมอีกครั้งเพื่อล้าง</> : "ยังไม่ระบุ — เลือกเพื่อให้ทีมรู้ว่าเอกสารนี้ต้องทำอะไรต่อ หรือจบงานแล้ว"}
