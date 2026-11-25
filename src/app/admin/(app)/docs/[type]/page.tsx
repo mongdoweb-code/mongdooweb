@@ -1,4 +1,5 @@
 // /admin/docs/QUOTATION|INVOICE|RECEIPT|CREDIT_NOTE — รายการเอกสารขาย: KPI, แท็บสถานะ, ค้นหา, ช่วงวันที่, แบ่งหน้า, ส่งออก CSV
+import { Fragment } from "react";
 import Link from "next/link";
 import { ConfirmSubmit } from "../../../_components/AdminClient";
 import { Icons } from "../../../_components/RowActions";
@@ -191,7 +192,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
             </tr>
           </thead>
           <tbody>
-            {rows.map((d) => {
+            {rows.map((d, i) => {
               const st = statusOf(d, today);
               const [stl, stc] = DOC_ST[st];
               const href = `${base}/${d.id}`;
@@ -206,15 +207,28 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                 ) : (
                   <>{d.paymentMethod ?? "—"}{d.order && <span className="sub">{d.order.orderNo}</span>}</>
                 );
+              // เส้นแบ่งโซน: ใบที่ปักดาว (บนสุด) | ใบอื่น
+              const sep = !d.pinnedAt && i > 0 && !!rows[i - 1].pinnedAt;
               return (
-                <tr key={d.id} className={`ds-${st}${st === "void" ? " row-off" : ""}${d.pinnedAt ? " is-pinned" : ""}`} data-st={st} data-pinned={d.pinnedAt ? "" : undefined}>
+                <Fragment key={d.id}>
+                {sep && (
+                  <tr className="pin-sep" aria-hidden="true">
+                    <td colSpan={7}><span>เอกสารอื่น ๆ</span></td>
+                  </tr>
+                )}
+                <tr className={`ds-${st}${st === "void" ? " row-off" : ""}${d.pinnedAt ? " is-pinned" : ""}`} data-st={st} data-pinned={d.pinnedAt ? "" : undefined}>
                   <td>
                     <Link className="row-link" href={href}>
                       <b className={d.docNo ? "num" : "draft-no"}>{d.docNo ?? "ฉบับร่าง"}</b>{d.pinnedAt && <span className="pinned-tag">★ ปักไว้</span>}
                       <span className="sub">{d.issueDate ? docDate(ymdBkk(d.issueDate), era) : `สร้าง ${docDate(ymdBkk(d.createdAt), era)}`} · {d._count.items} รายการ</span>
                     </Link>
                   </td>
-                  <td><b>{d.customer?.name ?? "—"}</b>{d.customer && <span className="sub">รหัส {d.customer.code}</span>}</td>
+                  <td>
+                    {/* ชื่อลูกค้าคลิกเปิดเอกสารได้เหมือนเลขที่ */}
+                    <Link className="row-link" href={href} tabIndex={-1}>
+                      <b>{d.customer?.name ?? "—"}</b>{d.customer && <span className="sub">รหัส {d.customer.code}</span>}
+                    </Link>
+                  </td>
                   <td className="c-pin">
                     {(d.pinnedAt || st !== "void") && (
                       <form action={toggleDocPin} data-no-popup>
@@ -235,6 +249,7 @@ export default async function DocsListPage({ params, searchParams }: PageProps<"
                     <DocActions d={d} href={href} label={`${meta.th.split(" /")[0]} ${d.docNo ?? "ฉบับร่าง"}`} />
                   </td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>
