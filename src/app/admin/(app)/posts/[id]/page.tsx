@@ -38,7 +38,7 @@ export default async function PostEditPage({ params, searchParams }: PageProps<"
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/posts">← บทความทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/posts">← บทความทั้งหมด</Link></p>
           <h1>{p ? "แก้ไขบทความ" : "เขียนบทความใหม่"}</h1>
         </div>
         {p && admin.role === "OWNER" && (

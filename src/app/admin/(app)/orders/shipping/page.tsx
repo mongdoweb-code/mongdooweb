@@ -13,7 +13,7 @@ export default async function BulkShippingPage() {
     <main className="main" id="page-bulk-ship">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin?tab=PAID">← รอจัดส่ง</Link></p>
+          <p><Link className="link back-btn" href="/admin?tab=PAID">← รอจัดส่ง</Link></p>
           <h1>ใส่เลขพัสดุหลายรายการ</h1>
           <p>รอจัดส่ง {waiting} รายการ</p>
         </div>

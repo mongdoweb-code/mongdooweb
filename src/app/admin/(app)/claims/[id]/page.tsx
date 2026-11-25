@@ -28,7 +28,7 @@ export default async function ClaimDetailPage({ params, searchParams }: PageProp
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/claims">← เคลมทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/claims">← เคลมทั้งหมด</Link></p>
           <h1 className="num">{c.claimNo}</h1>
           <p>{CLAIM_KIND[c.kind]} · {CLAIM_STATUS[c.status]} · แจ้งเมื่อ {fmt(c.createdAt)}</p>
         </div>

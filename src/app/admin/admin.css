@@ -2200,3 +2200,9 @@ tr:hover .rq-links,tr:focus-within .rq-links{opacity:1;transform:none}
 .wpanel .sub{display:block;line-height:1.5}
 .timeline li.t-WORK::before{background:#B5461C}
 .wp-note .btn{width:auto;flex:none}
+
+/* ปุ่มกลับ "← …ทั้งหมด" เหนือหัวหน้า (2026-11-25): กล่องเหลี่ยมสูงเท่าแถบเมนูด่วนด้านบน สีฟ้าอ่อนต่างจากปุ่มอื่น กดง่าย */
+.link.back-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px 0 11px;background:#eaf1fb;border:1.5px solid #b9cde9;color:#1d4e96;font-size:13.5px;font-weight:600;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.link.back-btn:hover{background:#1d4e96;border-color:#1d4e96;color:#fff}
+.link.back-btn:focus-visible{outline:2px solid #1d4e96;outline-offset:2px}
+p:has(> .link.back-btn){margin:0 0 10px}

@@ -33,7 +33,7 @@ export default async function VariantGroupPage({ params, searchParams }: PagePro
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/products/variants">← ตัวเลือกสินค้า</Link></p>
+          <p><Link className="link back-btn" href="/admin/products/variants">← ตัวเลือกสินค้า</Link></p>
           <h1>{g.name}</h1>
           <p>
             {g.products.length} ตัวเลือก · {g.optionNames.join(" / ")}

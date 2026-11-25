@@ -31,7 +31,7 @@ export default async function CodPage({ searchParams }: PageProps<"/admin/orders
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin">← คำสั่งซื้อ</Link></p>
+          <p><Link className="link back-btn" href="/admin">← คำสั่งซื้อ</Link></p>
           <h1>กระทบยอดเก็บเงินปลายทาง (COD)</h1>
           <p>ติ๊กรายการที่ขนส่งโอนเงินคืนร้านแล้ว แล้วกด &quot;รับเงินแล้ว&quot;</p>
         </div>

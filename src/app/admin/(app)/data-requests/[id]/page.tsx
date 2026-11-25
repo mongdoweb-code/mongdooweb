@@ -31,7 +31,7 @@ export default async function DataRequestPage({ params, searchParams }: PageProp
     <main className="main" id="drDetail">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/data-requests">← คำขอทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/data-requests">← คำขอทั้งหมด</Link></p>
           <h1>{DR_KIND[r.kind]}</h1>
           <p><span className={`dst dst-${cls}`} id="drStatus">{label}</span> · ขอเมื่อ {when(r.createdAt)} · ครบกำหนดตอบ {due.toLocaleDateString("th-TH", { dateStyle: "medium", timeZone: "Asia/Bangkok" })}</p>
         </div>

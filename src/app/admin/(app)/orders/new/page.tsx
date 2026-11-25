@@ -22,7 +22,7 @@ export default async function NewOrderPage() {
     <main className="main" id="page-new-order">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin">← คำสั่งซื้อ</Link></p>
+          <p><Link className="link back-btn" href="/admin">← คำสั่งซื้อ</Link></p>
           <h1>สร้างคำสั่งซื้อ</h1>
           <p>สำหรับลูกค้าที่สั่งทางโทรศัพท์ LINE หรือหน้าร้าน — เลขที่คำสั่งซื้อรูปแบบเดียวกับหน้าเว็บ ลูกค้าติดตามสถานะได้</p>
         </div>

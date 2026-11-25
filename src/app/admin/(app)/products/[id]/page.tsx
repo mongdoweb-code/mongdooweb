@@ -89,7 +89,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/products">← สินค้าทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/products">← สินค้าทั้งหมด</Link></p>
           <h1>{v.id ? v.name : "เพิ่มสินค้าใหม่"}</h1>
           {v.id && <p><HistoryLink entity={`Product:${v.id}`} /></p>}
         </div>

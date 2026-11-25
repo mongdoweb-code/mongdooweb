@@ -267,7 +267,7 @@ export function DocEditor({ init, title, back, customers: cust0, products, shop,
     <main className="main doc-edit">
       <div className="page-head">
         <div>
-          <p><Link className="link" href={back}>← กลับ</Link></p>
+          <p><Link className="link back-btn" href={back}>← กลับ</Link></p>
           <h1>{title}</h1>
           <p>
             {init.docNo

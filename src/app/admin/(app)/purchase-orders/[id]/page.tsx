@@ -37,7 +37,7 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
     const v: PoValues = { id: "", supplierName: pre?.name ?? "", supplierContact: pre?.contact ?? "", note: "", items: [] };
     return (
       <main className="main">
-        <div className="page-head"><div><p><Link className="link" href="/admin/purchase-orders">← ใบสั่งซื้อทั้งหมด</Link></p><h1>สร้างใบสั่งซื้อ</h1></div></div>
+        <div className="page-head"><div><p><Link className="link back-btn" href="/admin/purchase-orders">← ใบสั่งซื้อทั้งหมด</Link></p><h1>สร้างใบสั่งซื้อ</h1></div></div>
         <PoForm v={v} products={products} suppliers={suppliers} />
       </main>
     );
@@ -64,7 +64,7 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
     return (
       <main className="main">
         <div className="page-head">
-          <div><p><Link className="link" href="/admin/purchase-orders">← ใบสั่งซื้อทั้งหมด</Link></p><h1>ใบสั่งซื้อฉบับร่าง</h1><p><span className={`dst dst-${cls}`}>{label}</span> · {po.supplierName}</p></div>
+          <div><p><Link className="link back-btn" href="/admin/purchase-orders">← ใบสั่งซื้อทั้งหมด</Link></p><h1>ใบสั่งซื้อฉบับร่าง</h1><p><span className={`dst dst-${cls}`}>{label}</span> · {po.supplierName}</p></div>
           <div className="head-actions">
             <form action={deletePo}><input type="hidden" name="id" value={po.id} /><ConfirmSubmit className="btn btn-outline" title="ลบฉบับร่างนี้?" body="ยังไม่ได้ออกเลขที่ จึงลบได้" confirmLabel="ลบ">ลบฉบับร่าง</ConfirmSubmit></form>
           </div>
@@ -80,7 +80,7 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
     <main className="main" id="poDetail">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/purchase-orders">← ใบสั่งซื้อทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/purchase-orders">← ใบสั่งซื้อทั้งหมด</Link></p>
           <h1>{po.poNo ?? "ใบสั่งซื้อฉบับร่าง"}</h1>
           <p><span className={`dst dst-${cls}`} id="poStatus">{label}</span> · {po.supplierId && owner ? <Link className="link" href={`/admin/suppliers/${po.supplierId}`}>{po.supplierName}</Link> : po.supplierName}{po.supplierContact ? ` · ${po.supplierContact}` : ""}</p>
         </div>

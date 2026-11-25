@@ -68,7 +68,7 @@ export default async function DocViewPage({ params, searchParams }: PageProps<"/
     <main className="main doc-view">
       <div className="page-head">
         <div>
-          <p><Link className="link" href={`/admin/docs/${d.type}`}>← {label}ทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href={`/admin/docs/${d.type}`}>← {label}ทั้งหมด</Link></p>
           <h1 className="dv-title"><span className={d.docNo ? "num" : "draft-no"}>{d.docNo ?? `${label} (ฉบับร่าง)`}</span><span className={`dst dst-${stc} ds-${st}`}>{stl}</span></h1>
           <p>{c.name ?? "—"}{d.issueDate ? ` · วันที่ ${docDate(ymdBkk(d.issueDate), era)}` : ""}</p>
         </div>

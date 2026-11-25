@@ -31,7 +31,7 @@ export default async function WhyAdminPage() {
     <main className="main" id="page-why">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/home">← หน้าแรกและความน่าเชื่อถือ</Link></p>
+          <p><Link className="link back-btn" href="/admin/home">← หน้าแรกและความน่าเชื่อถือ</Link></p>
           <h1>ทำไมต้องมองดูเว็บ (หน้าแรก)</h1>
           <p>แก้หัวข้อ จุดเด่นของร้าน (1–6 ข้อ) รูปกล่องซ้าย คำบรรยายบนรูป และลิงก์ — ดูผลได้ทันทีในตัวอย่าง</p>
         </div>

@@ -35,7 +35,7 @@ export default async function StockCountPage({ params, searchParams }: PageProps
     <main className="main" id="page-count-one">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/stock/count">← รอบนับสต็อกทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/stock/count">← รอบนับสต็อกทั้งหมด</Link></p>
           <h1>{c.title}</h1>
           <p><span className={`dst dst-${cls}`} id="countStatus">{label}</span> · <span className="num">{c.countNo}</span> · เปิดโดย {c.createdBy?.displayName ?? "—"} {when(c.createdAt)}{c.appliedAt ? ` · ปรับโดย ${c.appliedBy?.displayName ?? "—"} ${when(c.appliedAt)}` : ""}</p>
         </div>

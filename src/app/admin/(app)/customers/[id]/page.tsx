@@ -54,7 +54,7 @@ export default async function CustomerPage({ params, searchParams }: PageProps<"
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/customers">← ลูกค้าทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/customers">← ลูกค้าทั้งหมด</Link></p>
           <h1>{c ? `${c.code} · ${c.name}` : "เพิ่มลูกค้า"}</h1>
           {c && <p>สร้างเมื่อ {docDate(ymdBkk(c.createdAt), "AD")}{c.note ? ` · ${c.note}` : ""}{c.marketingOptOut && <> · <span className="dst dst-bad" id="cuOptOutBadge">ไม่รับข่าวสาร (คัดค้านการตลาด)</span></>}</p>}
         </div>

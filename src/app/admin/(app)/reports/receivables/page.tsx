@@ -38,7 +38,7 @@ export default async function ReceivablesPage({ searchParams }: PageProps<"/admi
     <main className="main" id="page-ar">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/reports">← รายงานยอดขาย</Link></p>
+          <p><Link className="link back-btn" href="/admin/reports">← รายงานยอดขาย</Link></p>
           <h1>ลูกหนี้ค้างชำระ</h1>
           <p>ใบแจ้งหนี้ที่ออกแล้วแต่ยังชำระไม่ครบ {r.invoiceCount} ใบ · {r.customers.length} ราย · ข้อมูล ณ {docDate(today, era)}</p>
         </div>

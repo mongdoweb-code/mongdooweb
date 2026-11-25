@@ -11,7 +11,7 @@ export default async function ProductImportPage() {
     <main className="main" id="page-import">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/products">← สินค้าทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/products">← สินค้าทั้งหมด</Link></p>
           <h1>นำเข้าสินค้าจาก CSV</h1>
           <p>แก้ราคา สต็อก สถานะ ชื่อ หมวด หลายรายการในครั้งเดียว</p>
         </div>

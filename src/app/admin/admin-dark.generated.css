@@ -2832,6 +2832,19 @@ html[data-adm-theme="dark"] .wp-note input {
 html[data-adm-theme="dark"] .timeline li.t-WORK::before {
     background: #B5461C
 }
+html[data-adm-theme="dark"] .link.back-btn {
+    background: #131923;
+    border: 1.5px solid #2B3749;
+    color: #6597E1
+}
+html[data-adm-theme="dark"] .link.back-btn:hover {
+    background: #1d4e96;
+    border-color: #1d4e96;
+    color: #fff
+}
+html[data-adm-theme="dark"] .link.back-btn:focus-visible {
+    outline: 2px solid #1d4e96
+}
 /*  src/app/admin/lot3.css  */
 html[data-adm-theme="dark"] .l3-kpi {
     background: #1E2127;

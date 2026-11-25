@@ -58,7 +58,7 @@ export default async function PopularAdminPage() {
     <main className="main" id="page-popular">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/home">← หน้าแรกและความน่าเชื่อถือ</Link></p>
+          <p><Link className="link back-btn" href="/admin/home">← หน้าแรกและความน่าเชื่อถือ</Link></p>
           <h1>หมวดยอดนิยม (หน้าแรก)</h1>
           <p>การ์ดหมวดพร้อมลิงก์ย่อยบนหน้าแรก — เลือกหมวด เรียงลำดับ สีพื้นรูป และลิงก์ (สูงสุด 5 ต่อการ์ด) · อัปโหลดรูปการ์ดเองได้ทุกใบ (ไม่ใส่ = ใช้รูปหมวดหรือรูปสินค้าตัวแรก)</p>
         </div>

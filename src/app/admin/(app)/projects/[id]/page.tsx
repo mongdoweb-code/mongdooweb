@@ -35,7 +35,7 @@ export default async function ProjectEditPage({ params, searchParams }: PageProp
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/projects">← ผลงานทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/projects">← ผลงานทั้งหมด</Link></p>
           <h1>{p ? "แก้ไขผลงาน" : "เพิ่มผลงานติดตั้ง"}</h1>
         </div>
         {p && admin.role === "OWNER" && (

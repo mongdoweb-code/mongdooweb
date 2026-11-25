@@ -26,7 +26,7 @@ export default async function VariantsPage({ searchParams }: PageProps<"/admin/p
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/products">← สินค้าทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/products">← สินค้าทั้งหมด</Link></p>
           <h1>ตัวเลือกสินค้า</h1>
           <p>รวมสินค้าที่ต่างกันแค่สี/วัตต์/ขนาด เป็นหน้าเดียวที่มีปุ่มเลือก — แต่ละตัวเลือกยังมีราคา รูป สต็อก และลิงก์ของตัวเอง</p>
         </div>

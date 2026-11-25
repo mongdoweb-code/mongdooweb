@@ -36,7 +36,7 @@ export default async function ProfitPage({ searchParams }: PageProps<"/admin/rep
     <main className="main" id="page-profit">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/reports">← รายงานยอดขาย</Link></p>
+          <p><Link className="link back-btn" href="/admin/reports">← รายงานยอดขาย</Link></p>
           <h1>รายงานกำไร</h1>
           <p>{shortDate(f.from, true)} – {shortDate(f.to, true)} · รายได้หักส่วนลดท้ายบิล ไม่รวมค่าส่ง · ต้นทุน = ต้นทุนล่าสุดของสินค้า</p>
         </div>

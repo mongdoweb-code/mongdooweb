@@ -14,7 +14,7 @@ export default async function LoginPageSettings() {
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/settings">← ตั้งค่าร้าน</Link></p>
+          <p><Link className="link back-btn" href="/admin/settings">← ตั้งค่าร้าน</Link></p>
           <h1>หน้าเข้าสู่ระบบ</h1>
           <p>ซ้าย = โซนจูงใจ/การตลาด + แอนิเมชันแสง LED · ขวา = ต้อนรับ ฟอร์มเข้าสู่ระบบ หมวดและสินค้าแนะนำ — หน้านี้ใครก็เปิดได้ ใส่เฉพาะข้อมูลที่เผยแพร่ได้</p>
         </div>

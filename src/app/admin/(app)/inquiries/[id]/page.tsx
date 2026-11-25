@@ -34,7 +34,7 @@ export default async function InquiryPage({ params, searchParams }: PageProps<"/
     <main className="main">
       <div className="page-head">
         <div>
-          <p><Link className="link" href="/admin/inquiries">← คำขอทั้งหมด</Link></p>
+          <p><Link className="link back-btn" href="/admin/inquiries">← คำขอทั้งหมด</Link></p>
           <h1 className="dv-title">{INQ_KIND[q.kind]} · {q.name} <span className={`chip ${INQ_STATUS_CLS[q.status]}`} id="inqStatus">{INQ_STATUS[q.status]}</span></h1>
           <p>ส่งเมื่อ {fmt(q.createdAt)}{others ? ` · เบอร์นี้เคยส่งคำขออีก ${others} ครั้ง` : ""}</p>
         </div>
