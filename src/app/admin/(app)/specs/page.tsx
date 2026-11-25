@@ -7,6 +7,7 @@ import { ConfirmSubmit } from "../../_components/AdminClient";
 import "../../lot3.css";
 import { deleteSpec } from "./actions";
 import { PresetButton, SpecForm, type SpecRow } from "./SpecForms";
+import { AutoSelect } from "../../_components/AutoSelect";
 
 export default async function SpecsPage({ searchParams }: PageProps<"/admin/specs">) {
   await requireAdmin();
@@ -32,14 +33,14 @@ export default async function SpecsPage({ searchParams }: PageProps<"/admin/spec
       </div>
       <form className="toolbar2" action="/admin/specs" style={{ marginBottom: 16 }}>
         <label htmlFor="specCat">หมวด</label>
-        <select id="specCat" name="cat" defaultValue={catId} className="sel">
+        <AutoSelect id="specCat" name="cat" defaultValue={catId} className="sel">
           <option value="">ทุกหมวด (สเปกกลาง)</option>
           {cats.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nameTh} ({c._count.specAttrs})
             </option>
           ))}
-        </select>
+        </AutoSelect>
         <button className="btn btn-outline btn-sm" type="submit">เปิด</button>
       </form>
       <p className="sub" style={{ marginBottom: 12 }}>

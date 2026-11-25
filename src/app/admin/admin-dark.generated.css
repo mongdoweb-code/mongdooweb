@@ -2866,6 +2866,16 @@ html[data-adm-theme="dark"] .dcp-ok {
 html[data-adm-theme="dark"] .dcp-list s {
     color: #999999
 }
+html[data-adm-theme="dark"] .toolbar2 .sel {
+    background-color: #1E2127;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+}
+html[data-adm-theme="dark"] .toolbar2 .sel:hover {
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .toolbar2 .sel:focus-visible {
+    outline: 2px solid var(--c-orange)
+}
 /*  src/app/admin/lot3.css  */
 html[data-adm-theme="dark"] .l3-kpi {
     background: #1E2127;

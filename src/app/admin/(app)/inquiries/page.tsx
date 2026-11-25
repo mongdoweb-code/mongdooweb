@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { formatPhone, phoneDigits } from "@/lib/format";
 import { INQ_KIND, INQ_STATUS, INQ_STATUS_CLS, isInqKind, isInqStatus, parseAttachments, parseInqItems } from "@/lib/inquiries";
 import { prisma } from "@/lib/prisma";
+import { AutoSelect } from "../../_components/AutoSelect";
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 const fmt = (d: Date) => d.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" });
@@ -61,10 +62,10 @@ export default async function InquiriesPage({ searchParams }: PageProps<"/admin/
           <label className="sr-only" htmlFor="iq">ค้นหาคำขอ</label>
           <input id="iq" className="sel inq-q" name="q" type="search" defaultValue={q} placeholder="ชื่อ, บริษัท, เบอร์โทร, ข้อความ" />
           <label className="sr-only" htmlFor="ik">ประเภท</label>
-          <select id="ik" className="sel" name="kind" defaultValue={kind}>
+          <AutoSelect id="ik" className="sel" name="kind" defaultValue={kind}>
             <option value="">ทุกประเภท</option>
             {Object.entries(INQ_KIND).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-          </select>
+          </AutoSelect>
           <button className="btn btn-dark btn-sm" type="submit">ค้นหา</button>
         </form>
         <ul className="inq-list">
