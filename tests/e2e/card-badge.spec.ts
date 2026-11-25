@@ -23,7 +23,9 @@ test("ตั้งค่าร้าน → แบบ A/B/C → หน้าร�
   const expectRadius: Record<string, (r: string) => boolean> = { A: (r) => parseFloat(r) > 50, B: (r) => r === "4px", C: (r) => r.startsWith("0px 0px 8px") };
   for (const k of ["B", "C", "A"]) {
     await page.goto("/admin/settings#cardBadge");
-    await page.locator(`#cardBadge input[name=cardBadgeStyle][value=${k}]` + V).check({ force: true });
+    // ฟอร์มเป็น client component: คลิกก่อน hydrate เสร็จ ค่าจะถูกรีเซ็ต → ลองซ้ำจนติด
+    const r = page.locator(`#cardBadge input[name=cardBadgeStyle][value=${k}]` + V);
+    await expect(async () => { await r.check({ force: true }); await expect(r).toBeChecked({ timeout: 500 }); }).toPass({ timeout: 10_000 });
     await page.locator('button[type=submit]:has-text("บันทึก")' + V).first().click();
     await expect.poll(async () => (await q<{ s: string }>(`SELECT "cardBadgeStyle" s FROM "ShopSetting" WHERE id='shop'`))[0].s).toBe(k);
     await shop.goto("/products");
@@ -58,8 +60,14 @@ test("หลายป้าย + การจัดวาง + ความท�
     const shop = await (await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: { width: 1300, height: 900 } })).newPage();
     for (const [layout, op] of [["2", 100], ["3", 70], ["1", 85]] as const) {
       await page.goto("/admin/settings#cardBadge");
-      await page.locator(`#cardBadge input[name=cardBadgeLayout][value="${layout}"]` + V).check({ force: true });
-      await page.locator("#cardBadgeOpacity" + V).fill(String(op));
+      const r = page.locator(`#cardBadge input[name=cardBadgeLayout][value="${layout}"]` + V);
+      const o = page.locator("#cardBadgeOpacity" + V);
+      await expect(async () => {
+        await r.check({ force: true });
+        await o.fill(String(op));
+        await expect(r).toBeChecked({ timeout: 500 });
+        await expect(o).toHaveValue(String(op), { timeout: 500 });
+      }).toPass({ timeout: 10_000 });
       await page.locator('button[type=submit]:has-text("บันทึก")' + V).first().click();
       await expect.poll(async () => (await q<{ l: string; o: number }>(`SELECT "cardBadgeLayout" l, "cardBadgeOpacity" o FROM "ShopSetting" WHERE id='shop'`))[0]).toEqual({ l: layout, o: op });
       await shop.goto("/search?q=E2E-BADGES");
