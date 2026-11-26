@@ -5,6 +5,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { STOREFRONT_TAG, getSettings } from "@/lib/settings";
 import { parseNavMenu } from "@/lib/nav-menu";
 import { cleanOpacity, isBadgeLayout } from "@/lib/badges";
+import { googleFontsUrl, parseTypography, typographyCss } from "@/lib/typography";
 
 export type FaqItem = { q: string; a: string };
 
@@ -41,7 +42,11 @@ export async function getStorefrontExtras() {
   cacheTag(STOREFRONT_TAG);
   const s = await getSettings();
   const text = s.announcementText.trim().slice(0, 200);
+  const typo = parseTypography(s.typography).shop;
   return {
+    /** ตัวอักษรที่ตั้งจากหลังร้าน (ตั้งค่า → ตัวอักษร → หน้าร้าน) · "" = หน้าตาเดิม */
+    typoCss: typographyCss(typo, "shop"),
+    typoUrl: googleFontsUrl([typo]),
     announcement: s.announcementEnabled && text ? { text, href: safeHref(s.announcementHref) } : null,
     ga4Id: validGa4(s.ga4Id),
     metaPixelId: validPixel(s.metaPixelId),

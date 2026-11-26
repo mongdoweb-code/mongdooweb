@@ -6,6 +6,7 @@ import { getCatalogExtras } from "@/lib/product-data";
 import { getPublicShopInfo } from "@/lib/settings";
 import { getStorefrontExtras } from "@/lib/shop-public";
 import { SHOP_THEME_BOOT } from "@/lib/shop-theme";
+import { TypographyStyle } from "@/components/TypographyStyle";
 import { getShopData, jsonForScript } from "@/lib/storefront";
 import QRCode from "qrcode";
 import { collapseVariants } from "./_components/ProductListing";
@@ -38,6 +39,7 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
       {/* รูปแบบป้ายบนการ์ดสินค้า (ตั้งค่าร้าน) — ตั้งที่ <html data-badge> ก่อนวาดหน้า ให้ครอบทุกการ์ดแม้ส่วนที่โหลดตามมาทีหลัง */}
       <script dangerouslySetInnerHTML={{ __html: `(function(d){d.dataset.badge=${JSON.stringify(extras.badge)};d.dataset.badgeLayout=${JSON.stringify(extras.badgeLayout)};d.style.setProperty("--bo",${JSON.stringify(String(extras.badgeOpacity))})})(document.documentElement)` }} />
       {!extras.announcement && <style>{":root{--tb-h:0px}"}</style>}
+      <TypographyStyle css={extras.typoCss} url={extras.typoUrl} />
       {/* display: contents → wrapper ไม่สร้างกล่อง ทำให้ header ยัง sticky ตาม body เหมือนต้นแบบ */}
       <div style={{ display: "contents" }} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: renderShellTop({ announcement: extras.announcement, freeShipMinBaht, hasFaq, productCount, nav: extras.nav }) }} />
       {children}

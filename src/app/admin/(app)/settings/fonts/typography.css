@@ -1,0 +1,113 @@
+/* ตั้งค่า → ตัวอักษร: แท็บ · กล่องระยะเท่ากัน 20/24px · แถวป้าย 160px + ตัวควบคุม · ตัวอย่างสดติดขวา (sticky)
+   ตัวอย่าง (.ty-pv) สีคงที่แบบธีมสว่างทั้งสองธีม (ไม่อยู่ใน gen-admin-dark) เพื่อให้เห็นสีที่ตั้งจริง */
+.ty-tabs{display:flex;gap:4px;border-bottom:1px solid var(--c-line);margin-bottom:18px}
+.ty-tabs button{position:relative;padding:10px 20px;font-weight:700;font-size:14.5px;color:var(--c-muted);background:none;border:0;cursor:pointer}
+.ty-tabs button.on{color:var(--c-ink);box-shadow:inset 0 -3px 0 var(--c-orange)}
+.ty-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c-orange);margin-left:6px;vertical-align:3px}
+.ty-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,460px);gap:20px;align-items:start}
+.ty-box{padding:20px 24px;margin-bottom:16px}
+.ty-box h3{margin:0 0 4px;font-size:15px}
+.ty-hint{margin:0 0 16px;font-size:12.5px;color:var(--c-muted)}
+.ty-note{font-size:12px;color:var(--c-muted);line-height:1.6;margin:8px 0 0}
+.ty-row{display:grid;grid-template-columns:160px minmax(0,1fr);gap:14px;align-items:center;margin-bottom:14px}
+.ty-row:last-child{margin-bottom:0}
+.ty-row > label,.ty-lbl{font-size:13px;font-weight:600;color:var(--c-ink)}
+.ty-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.ty-b{height:34px;min-width:34px;padding:0 10px;border:1.5px solid var(--c-line);background:#FFFFFF;font-weight:700;font-size:13px;color:var(--c-ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.ty-b:hover:not(:disabled){border-color:var(--c-ink)}
+.ty-b:disabled{opacity:.4;cursor:default}
+.ty-b.on{background:#1C1C1C;border-color:#1C1C1C;color:#FFFFFF}
+.ty-size{display:inline-flex;align-items:center;gap:6px}
+.ty-val{min-width:64px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.ty-val.ph{color:var(--c-muted);font-weight:600}
+.ty-fmt{display:inline-flex;gap:6px}
+.ty-seg{display:inline-flex;flex-wrap:wrap;border:1.5px solid var(--c-line)}
+.ty-seg button{height:32px;padding:0 11px;border:0;border-right:1px solid var(--c-line);background:#FFFFFF;font-size:12.5px;color:var(--c-ink);cursor:pointer}
+.ty-seg button:last-child{border-right:0}
+.ty-seg button.on{background:#1C1C1C;color:#FFFFFF}
+.ty-colors{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ty-sw{width:28px;height:28px;border:2px solid #FFFFFF;outline:1.5px solid var(--c-line);cursor:pointer;padding:0}
+.ty-sw.on{outline:2px solid var(--c-orange)}
+.ty-sw-none{width:auto;padding:0 8px;font-size:12px;background:#FFFFFF;color:var(--c-muted);outline-offset:0}
+.ty-pick{position:relative;display:inline-flex;align-items:center;height:32px;padding:0 10px;border:1.5px solid var(--c-line);background:#FFFFFF;font-size:12.5px;font-weight:600;cursor:pointer}
+.ty-pick input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.ty-warn{color:#9A5B00;font-weight:600}
+/* เลือกฟอนต์ */
+.ty-fp{position:relative;width:100%;max-width:420px}
+.ty-fp-btn{width:100%;height:42px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 12px;border:1.5px solid var(--c-line);background:#FFFFFF;cursor:pointer;text-align:left;color:var(--c-ink)}
+.ty-fp-btn span{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ty-fp-btn small{font-size:11.5px;color:var(--c-muted);white-space:nowrap}
+.ty-fp-btn[aria-expanded="true"]{border-color:var(--c-orange)}
+.ty-fp-pop{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:50;background:#FFFFFF;border:1px solid var(--c-line);box-shadow:0 16px 40px rgba(20,20,20,.16)}
+.ty-fp-pop input{display:block;width:calc(100% - 20px);margin:10px;height:36px;border:1.5px solid var(--c-line);padding:0 10px;font-size:13px}
+.ty-fp-list{max-height:320px;overflow-y:auto;padding-bottom:6px}
+.ty-fp-g{position:sticky;top:0;font-size:11.5px;font-weight:700;color:var(--c-muted);padding:6px 12px;background:#FAF9F6}
+.ty-fp-it{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;padding:8px 12px;border:0;background:#FFFFFF;cursor:pointer;text-align:left;font-size:15.5px;color:var(--c-ink)}
+.ty-fp-it:hover{background:#FAF9F6}
+.ty-fp-it.on{background:#FFF4EE}
+.ty-fp-it small{font-size:11px;color:var(--c-muted);white-space:nowrap}
+/* ชุดสำเร็จรูป */
+.ty-presets{display:flex;gap:8px;flex-wrap:wrap}
+.ty-presets button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 14px;border:1.5px solid var(--c-line);background:#FFFFFF;font-size:12.5px;color:var(--c-muted);cursor:pointer;text-align:left}
+.ty-presets button b{font-size:13.5px;color:var(--c-ink)}
+.ty-presets button:hover{border-color:#C9C5BC}
+.ty-presets button.on{border-color:var(--c-orange);background:#FFF7F3}
+/* แต่ละส่วน */
+.ty-areas{display:grid;gap:10px}
+.ty-area{border:1.5px solid var(--c-line);background:#FFFFFF}
+.ty-area.open{border-color:var(--c-orange);background:#FFFCFA}
+.ty-area-h{display:flex;align-items:center;gap:8px;padding-right:10px}
+.ty-area-t{flex:1;display:grid;grid-template-columns:170px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border:0;background:none;cursor:pointer;text-align:left;color:var(--c-ink);min-width:0}
+.ty-area-t b{display:block;font-size:13.5px}
+.ty-area-t small{display:block;font-size:11.5px;color:var(--c-muted)}
+.ty-sum{font-size:12.5px;color:var(--c-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ty-pill{font-size:11.5px;padding:2px 9px;border-radius:999px;background:#F1EFEA;color:var(--c-muted);white-space:nowrap}
+.ty-pill.c{background:#FFF1EA;color:#C2410C}
+.ty-edit{padding:4px 14px 16px;border-top:1px dashed var(--c-line)}
+.ty-edit .ty-row{grid-template-columns:110px minmax(0,1fr);margin:12px 0 0}
+.ty-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding-top:20px;border-top:1px solid var(--c-line)}
+.ty-foot .spacer{flex:1}
+.ty-foot + .login-err{margin-top:12px}
+/* ตัวอย่างสด */
+.ty-pv-col{position:sticky;top:16px}
+.ty-pv-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ty-pv-h b{font-size:14px}
+.ty-unsaved{font-size:11.5px;font-weight:700;color:#C2410C;background:#FFF1EA;padding:2px 9px;border-radius:999px}
+.ty-pv{border:1px solid #E3E0D8;background:#F1EFEA;color:#1C1C1C;overflow:hidden;font-size:15px;line-height:1.55;font-family:var(--font)}
+.ty-adm{display:grid;grid-template-columns:150px minmax(0,1fr);min-height:330px}
+.ty-adm .side{position:static;height:auto;padding:12px 8px;background:#161616;color:#CFCAC0;overflow:hidden}
+.ty-adm .side .nav-i{display:flex;padding:8px 10px;cursor:default;color:#CFCAC0}
+.ty-adm .side .nav-i.on{background:#262626;color:#FFFFFF;box-shadow:inset 3px 0 0 #F26B38}
+.ty-pv-sec{font-size:11px;font-weight:700;color:#F28B5C;background:#3A2418;padding:6px 10px;margin:0 0 6px;border-left:3px solid #F26B38}
+.ty-adm .main{padding:14px;min-width:0;background:#F1EFEA}
+.ty-pv-qb{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.ty-pv-qb .qb-a{height:32px;padding:0 10px;cursor:default;background:#FFFFFF;border:1.5px solid #E3E0D8;color:#1C1C1C}
+.ty-pv-qb .qb-a.on{background:#F26B38;border-color:#F26B38;color:#FFFFFF}
+.ty-adm .page-head{margin:0 0 10px;display:block}
+.ty-adm .page-head h1{margin:0;color:#1C1C1C}
+.ty-adm .page-head p{margin:2px 0 0;font-size:12px;color:#6B665E}
+.ty-pv-btns{display:flex;gap:6px;flex-wrap:wrap}
+.ty-pv-btns .btn{height:36px;padding:0 12px;cursor:default}
+.ty-pv-btns .btn-outline{background:#FFFFFF;border:1.5px solid #E3E0D8;color:#1C1C1C}
+.ty-pv-btns .btn-primary{background:#F26B38;color:#FFFFFF}
+.ty-pv-tbl{width:100%;border-collapse:collapse;margin-top:12px;background:#FFFFFF}
+.ty-pv-tbl td{padding:8px;border-top:1px solid #EEEBE5;color:#1C1C1C}
+.ty-pv-tbl td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.ty-shop{background:#FFFFFF;font-size:16px;line-height:1.65}
+.ty-sh-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid #EEEBE5}
+.ty-sh-logo{font-size:17px}
+.ty-shop .nav{display:flex;gap:16px;font-size:15px;font-weight:500}
+.ty-shop .nav > a{color:#1C1C1C;cursor:default}
+.ty-sh-body{padding:16px}
+.ty-shop .sec-title{margin:0 0 6px;font-size:28px;font-weight:700;line-height:1.3;color:#1C1C1C}
+.ty-sh-body p{margin:0 0 12px;color:#4A463F}
+.ty-sh-card{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;border:1px solid #EEEBE5;padding:10px}
+.ty-sh-img{background:linear-gradient(135deg,#FFE3D4,#F26B38);aspect-ratio:1}
+.ty-shop .prod-name{font-size:16px;font-weight:600;line-height:1.45;margin:0 0 4px;color:#1C1C1C}
+.ty-shop .prod-price{font-size:20px;font-weight:700;color:#1C1C1C}
+.ty-shop .prod-price s{font-size:.7em;font-weight:500;color:#8A867E}
+.ty-shop .btn{display:inline-flex;align-items:center;height:36px;padding:0 14px;margin-top:8px;background:#F26B38;color:#FFFFFF;font-size:16px;font-weight:600;cursor:default}
+.ty-shop .footer{background:#161616;color:#BDB8AE;padding:12px 16px;font-size:14px}
+.ty-shop .footer b{color:#FFFFFF}
+@media (max-width:1100px){.ty-layout{grid-template-columns:1fr}.ty-pv-col{position:static}}
+@media (max-width:700px){.ty-row,.ty-edit .ty-row{grid-template-columns:1fr;gap:6px}.ty-area-t{grid-template-columns:1fr}.ty-box{padding:16px}}

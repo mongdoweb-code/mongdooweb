@@ -428,6 +428,7 @@ model ShopSetting {
   docTagline     String? @db.Text // แถบข้อความท้ายเอกสารทุกใบ (null = ข้อความเดิม DOC_TAGLINE)
   docTaglineOn   Boolean @default(true) // แสดงแถบข้อความท้ายเอกสาร
   docTaglineStyle String @default("A") // รูปแบบแถบ: A กรอบเหลี่ยม · B แถบสีแบรนด์ · C เส้นคู่
+  typography     Json    @default("{}") // ตัวอักษร (ฟอนต์) หลังบ้าน/หน้าร้าน: ค่ารวม + ส่วนต่างๆ — src/lib/typography.ts ({} = หน้าตาเดิม)
 
   // หน้าร้าน: แถบประกาศ + วิเคราะห์การใช้งาน (โหลดเมื่อลูกค้ายินยอมคุกกี้เท่านั้น)
   announcementEnabled Boolean @default(true)
