@@ -4020,6 +4020,169 @@ html[data-adm-theme="dark"] .dr-days {
     background: #141F19;
     color: #61E593
 }
+/*  src/app/admin/(app)/settings/fonts/typography.css  */
+html[data-adm-theme="dark"] .ty-tabs {
+    border-bottom: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ty-tabs button {
+    color: var(--c-muted);
+    background: none;
+    border: 0
+}
+html[data-adm-theme="dark"] .ty-tabs button.on {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-dot {
+    background: var(--c-orange)
+}
+html[data-adm-theme="dark"] .ty-hint {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-note {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-row > label,
+html[data-adm-theme="dark"] .ty-lbl {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-b {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-b:hover:not(:disabled) {
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-b.on {
+    background: #1C1C1C;
+    border-color: #1C1C1C;
+    color: #FFFFFF
+}
+html[data-adm-theme="dark"] .ty-val.ph {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-seg {
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ty-seg button {
+    border: 0;
+    border-right: 1px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-seg button:last-child {
+    border-right: 0
+}
+html[data-adm-theme="dark"] .ty-seg button.on {
+    background: #1C1C1C;
+    color: #FFFFFF
+}
+html[data-adm-theme="dark"] .ty-sw {
+    border: 2px solid #2F333C;
+    outline: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ty-sw.on {
+    outline: 2px solid var(--c-orange)
+}
+html[data-adm-theme="dark"] .ty-sw-none {
+    background: #1E2127;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-pick {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ty-warn {
+    color: #F1B155
+}
+html[data-adm-theme="dark"] .ty-fp-btn {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-fp-btn small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-fp-btn[aria-expanded="true"] {
+    border-color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .ty-fp-pop {
+    background: #1E2127;
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ty-fp-pop input {
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ty-fp-g {
+    color: var(--c-muted);
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .ty-fp-it {
+    border: 0;
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-fp-it:hover {
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .ty-fp-it.on {
+    background: #281A13
+}
+html[data-adm-theme="dark"] .ty-fp-it small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-presets button {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-presets button b {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-presets button:hover {
+    border-color: #3B3935
+}
+html[data-adm-theme="dark"] .ty-presets button.on {
+    border-color: var(--c-orange);
+    background: #2A1B14
+}
+html[data-adm-theme="dark"] .ty-area {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .ty-area.open {
+    border-color: var(--c-orange);
+    background: #2C1F15
+}
+html[data-adm-theme="dark"] .ty-area-t {
+    border: 0;
+    background: none;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .ty-area-t small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-sum {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-pill {
+    background: #15171B;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .ty-pill.c {
+    background: #261912;
+    color: #F18355
+}
+html[data-adm-theme="dark"] .ty-edit {
+    border-top: 1px dashed var(--c-line)
+}
+html[data-adm-theme="dark"] .ty-foot {
+    border-top: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .ty-unsaved {
+    color: #F18355;
+    background: #261912
+}
 /*  src/app/admin/(app)/_lot10/lot10.css  */
 html[data-adm-theme="dark"] .l10-row {
     border-bottom: 1px solid var(--c-line)
