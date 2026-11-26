@@ -3,7 +3,7 @@
 // จอเล็ก: เหลือไอคอน เลื่อนซ้ายขวาได้ · รายการ/สิทธิ์อยู่ใน src/lib/quick-menu.ts · บันทึกด้วย saveQuickMenu (ตรวจซ้ำที่เซิร์ฟเวอร์)
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition, type Dispatch, type RefObject, type SetStateAction } from "react";
 import { QUICK_DEFAULT, QUICK_MAX, type QuickItem } from "@/lib/quick-menu";
 import { saveQuickMenu } from "../quick-menu-actions";
 import { Ico, type IconKey } from "./admin-icons";
@@ -63,12 +63,18 @@ function QuickSettings({ selected, available, onClose }: { selected: string[]; a
   const [pending, start] = useTransition();
   const dlg = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
+  /** กำลังลากอยู่: Esc ยกเลิกการลากแทนการปิดหน้าต่าง */
+  const dragRef = useRef<null | (() => void)>(null);
   useEffect(() => {
     closeRef.current = onClose;
   });
   useEffect(() => {
     dlg.current?.querySelector<HTMLElement>("input,button")?.focus();
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (dragRef.current) dragRef.current();
+      else closeRef.current();
+    };
     addEventListener("keydown", esc);
     return () => removeEventListener("keydown", esc);
   }, []);
@@ -76,14 +82,6 @@ function QuickSettings({ selected, available, onClose }: { selected: string[]; a
   const groups = [...new Set(available.map((i) => i.group))];
   const full = sel.length >= QUICK_MAX;
   const toggle = (k: string) => setSel((s) => (s.includes(k) ? s.filter((x) => x !== k) : s.length >= QUICK_MAX ? s : [...s, k]));
-  const move = (i: number, d: -1 | 1) =>
-    setSel((s) => {
-      const j = i + d;
-      if (j < 0 || j >= s.length) return s;
-      const n = [...s];
-      [n[i], n[j]] = [n[j], n[i]];
-      return n;
-    });
   const save = (keys: string[] | null) =>
     start(async () => {
       const r = await saveQuickMenu(keys);
@@ -132,25 +130,7 @@ function QuickSettings({ selected, available, onClose }: { selected: string[]; a
             {q.trim() && !available.some((i) => (i.label + i.group).toLowerCase().includes(q.trim().toLowerCase())) && <p className="qb-none">ไม่พบเมนู “{q.trim()}”</p>}
           </section>
           <section aria-labelledby="qbOrder" className="qb-order">
-            <h3 id="qbOrder">แสดงบนแถบ <span className={full ? "qb-n full" : "qb-n"}>{sel.length}/{QUICK_MAX}</span></h3>
-            {sel.length ? (
-              <ol>
-                {sel.map((k, i) => {
-                  const it = byKey.get(k)!;
-                  return (
-                    <li key={k}>
-                      <Icon it={it} />
-                      <span className="qb-ol-t">{it.label}</span>
-                      <button type="button" aria-label={`เลื่อนขึ้น: ${it.label}`} disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
-                      <button type="button" aria-label={`เลื่อนลง: ${it.label}`} disabled={i === sel.length - 1} onClick={() => move(i, 1)}>↓</button>
-                      <button type="button" aria-label={`เอาออก: ${it.label}`} onClick={() => toggle(k)}>✕</button>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <p className="qb-none">ยังไม่ได้เลือกเมนู — แถบจะเหลือแค่ปุ่มตั้งค่า</p>
-            )}
+            <OrderList sel={sel} setSel={setSel} byKey={byKey} available={available} toggle={toggle} dragRef={dragRef} />
           </section>
         </div>
         {msg.error && <div className="login-err" role="alert">{msg.error}</div>}
@@ -162,5 +142,153 @@ function QuickSettings({ selected, available, onClose }: { selected: string[]; a
         </div>
       </div>
     </div>
+  );
+}
+
+/** ย้ายรายการจากตำแหน่ง from ไป to (ตัวอื่นเลื่อนตาม) */
+export function moveItem<T>(list: T[], from: number, to: number): T[] {
+  const t = Math.max(0, Math.min(list.length - 1, to));
+  if (from === t || from < 0 || from >= list.length) return list;
+  const n = [...list];
+  const [x] = n.splice(from, 1);
+  n.splice(t, 0, x);
+  return n;
+}
+
+/**
+ * แผง "แสดงบนแถบ": เลขลำดับ (พิมพ์แล้ว Enter = ย้าย) · ลากวางด้วยเมาส์/นิ้ว (pointer events — แถวอื่นเลื่อนหลบ, ป้าย "วางที่ลำดับ n", Esc ยกเลิก)
+ * · ปุ่มจับ ⠿ ใช้คีย์บอร์ด ↑ ↓ Home End · ปุ่ม ↑ ↓ ✕ เดิม · เรียงด่วนตามหมวดเมนู / ก–ฮ
+ */
+function OrderList({ sel, setSel, byKey, available, toggle, dragRef }: {
+  sel: string[]; setSel: Dispatch<SetStateAction<string[]>>; byKey: Map<string, QuickItem>; available: QuickItem[]; toggle: (k: string) => void;
+  dragRef: RefObject<null | (() => void)>;
+}) {
+  const [drag, setDrag] = useState<{ from: number; over: number; dy: number; step: number } | null>(null);
+  const [edit, setEdit] = useState<{ key: string; text: string } | null>(null);
+  /** Esc ในช่องเลข = ไม่ย้าย (blur ทำงานก่อน state ใหม่จะมา) */
+  const skipEdit = useRef(false);
+  /** หลังย้ายด้วยคีย์บอร์ด/ปุ่ม ให้โฟกัสตามรายการที่ย้าย */
+  const focusKey = useRef<string | null>(null);
+  const listRef = useRef<HTMLOListElement>(null);
+  const moveTo = (from: number, to: number, refocus = true) => { setSel((s) => moveItem(s, from, to)); focusKey.current = refocus ? (sel[from] ?? null) : null; };
+  useLayoutEffect(() => {
+    if (!focusKey.current) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-qb-key="${focusKey.current}"] .qb-grip`)?.focus();
+    focusKey.current = null;
+  }, [sel]);
+
+  const startDrag = (e: React.PointerEvent<HTMLLIElement>, i: number) => {
+    if (e.button !== 0 || (e.target as HTMLElement).closest("button:not(.qb-grip),input")) return;
+    const rows = [...(listRef.current?.querySelectorAll<HTMLElement>(":scope > li[data-qb-key]") ?? [])];
+    if (rows.length < 2) return;
+    e.preventDefault();
+    // pointerdown ไม่กันการลากคลุมข้อความ → ล้าง selection ที่เกิดแล้ว (ไม่งั้นแถวอื่นถูกไฮไลต์ระหว่างลาก)
+    getSelection()?.removeAllRanges();
+    const li = e.currentTarget;
+    li.setPointerCapture(e.pointerId);
+    const mids = rows.map((r) => { const b = r.getBoundingClientRect(); return b.top + b.height / 2; });
+    const step = rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top;
+    const y0 = e.clientY;
+    let cur = { from: i, over: i, dy: 0, step };
+    setDrag(cur);
+    const onMove = (ev: PointerEvent) => {
+      const dy = ev.clientY - y0;
+      const y = mids[i] + dy;
+      let over = mids.findIndex((m) => y < m);
+      if (over === -1) over = mids.length - 1;
+      else if (over > i) over -= 1;
+      cur = { ...cur, dy, over };
+      setDrag(cur);
+    };
+    const end = (commit: boolean) => {
+      li.removeEventListener("pointermove", onMove);
+      li.removeEventListener("pointerup", up);
+      li.removeEventListener("pointercancel", cancel);
+      dragRef.current = null;
+      setDrag(null);
+      if (commit && cur.over !== cur.from) moveTo(cur.from, cur.over, false);
+    };
+    const up = () => end(true);
+    const cancel = () => end(false);
+    li.addEventListener("pointermove", onMove);
+    li.addEventListener("pointerup", up);
+    li.addEventListener("pointercancel", cancel);
+    dragRef.current = cancel;
+  };
+
+  /** แถวอื่นเลื่อนหลบระหว่างลาก */
+  const shift = (i: number) => {
+    if (!drag || i === drag.from) return 0;
+    if (drag.from < drag.over && i > drag.from && i <= drag.over) return -drag.step;
+    if (drag.from > drag.over && i >= drag.over && i < drag.from) return drag.step;
+    return 0;
+  };
+  /** ยืนยันเลขที่พิมพ์ (ครั้งเดียวตอนออกจากช่อง — Enter แค่ blur) · หาตำแหน่งจาก key ไม่ใช่ index เดิม */
+  const commitEdit = () => {
+    if (!edit) return;
+    if (skipEdit.current) { skipEdit.current = false; setEdit(null); return; }
+    const n = parseInt(edit.text, 10);
+    const from = sel.indexOf(edit.key);
+    setEdit(null);
+    if (from >= 0 && Number.isFinite(n) && n >= 1 && n - 1 !== from) moveTo(from, n - 1, false);
+  };
+  const order = new Map(available.map((it, k) => [it.key, k]));
+  /** เลขที่แสดงระหว่างลาก = ลำดับใหม่หลังวาง */
+  const preview = drag ? moveItem(sel, drag.from, drag.over) : sel;
+  const free = QUICK_MAX - sel.length;
+
+  return (
+    <>
+      <div className="qb-oh">
+        <h3 id="qbOrder">แสดงบนแถบ <span className={free <= 0 ? "qb-n full" : "qb-n"}>{sel.length}/{QUICK_MAX}</span></h3>
+        {sel.length > 1 && <span className="qb-oh-hint">ลาก ⠿ หรือพิมพ์เลขเพื่อย้าย</span>}
+      </div>
+      <p className="qb-hint">เลขด้านหน้า = ลำดับบนแถบจากซ้ายไปขวา</p>
+      {sel.length ? (
+        <ol ref={listRef} className={drag ? "qb-dragging" : undefined}>
+          {sel.map((k, i) => {
+            const it = byKey.get(k)!;
+            const lifted = drag?.from === i;
+            const editing = edit?.key === k;
+            return (
+              <li key={k} data-qb-key={k} className={lifted ? "lift" : undefined} onPointerDown={(e) => startDrag(e, i)}
+                onMouseDown={(e) => { if (!(e.target as HTMLElement).closest("input")) e.preventDefault(); }}
+                style={lifted ? { transform: `translateY(${drag!.dy}px)` } : shift(i) ? { transform: `translateY(${shift(i)}px)` } : undefined}>
+                {lifted && <span className="qb-drop-tip" role="status">วางที่ลำดับ {drag!.over + 1}</span>}
+                <button type="button" className="qb-grip" aria-label={`ลากเพื่อจัดลำดับ: ${it.label} (หรือกดลูกศรขึ้น/ลง)`} title="ลากเพื่อจัดลำดับ"
+                  onKeyDown={(e) => {
+                    const to = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : e.key === "Home" ? 0 : e.key === "End" ? sel.length - 1 : null;
+                    if (to === null) return;
+                    e.preventDefault();
+                    moveTo(i, to);
+                  }}>⠿</button>
+                <input className="qb-num" inputMode="numeric" aria-label={`ลำดับของ ${it.label}`} value={editing ? edit!.text : String(preview.indexOf(k) + 1)}
+                  onFocus={(e) => { setEdit({ key: k, text: String(i + 1) }); e.currentTarget.select(); }}
+                  onChange={(e) => setEdit({ key: k, text: e.target.value.replace(/\D/g, "").slice(0, 2) })}
+                  onBlur={commitEdit}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } else if (e.key === "Escape") { e.preventDefault(); e.nativeEvent.stopImmediatePropagation(); skipEdit.current = true; e.currentTarget.blur(); } }} />
+                <Icon it={it} />
+                <span className="qb-ol-t">{it.label}</span>
+                <span className="qb-ol-acts">
+                  <button type="button" aria-label={`เลื่อนขึ้น: ${it.label}`} disabled={i === 0} onClick={() => moveTo(i, i - 1)}>↑</button>
+                  <button type="button" aria-label={`เลื่อนลง: ${it.label}`} disabled={i === sel.length - 1} onClick={() => moveTo(i, i + 1)}>↓</button>
+                  <button type="button" className="qb-x" aria-label={`เอาออก: ${it.label}`} onClick={() => toggle(k)}>✕</button>
+                </span>
+              </li>
+            );
+          })}
+          {free > 0 && <li className="qb-free" aria-hidden="true">ช่องว่าง {free} ช่อง — ติ๊กเมนูทางซ้ายเพื่อเพิ่ม</li>}
+        </ol>
+      ) : (
+        <p className="qb-none">ยังไม่ได้เลือกเมนู — แถบจะเหลือแค่ปุ่มตั้งค่า</p>
+      )}
+      {sel.length > 1 && (
+        <div className="qb-sort" role="group" aria-label="เรียงด่วน">
+          <span>เรียงด่วน:</span>
+          <button type="button" onClick={() => setSel((s) => [...s].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0)))}>ตามหมวดเมนู</button>
+          <button type="button" onClick={() => setSel((s) => [...s].sort((a, b) => (byKey.get(a)?.label ?? "").localeCompare(byKey.get(b)?.label ?? "", "th")))}>ก–ฮ</button>
+        </div>
+      )}
+    </>
   );
 }

@@ -149,3 +149,81 @@ test("ทุกเมนูด้านซ้ายมีให้เลือ�
   expect(m).toContain("expenses");
   await q(`UPDATE "Admin" SET "quickMenu" = NULL WHERE username=$1`, [ADMIN_USER]);
 });
+
+test("จัดลำดับ: เลขลำดับ · พิมพ์เลขย้าย · ลากวางด้วยเมาส์ · คีย์บอร์ด · เรียงด่วน · Esc ยกเลิกการลาก", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await q(`UPDATE "Admin" SET "quickMenu" = NULL WHERE username=$1`, [ADMIN_USER]);
+  await login(page);
+  await page.goto("/admin/dashboard");
+  const bar = page.getByRole("navigation", { name: "เมนูด่วน" });
+  await bar.getByRole("button", { name: "ตั้งค่าเมนูด่วน" }).click();
+  const dlg = page.getByRole("dialog", { name: "ตั้งค่าเมนูด่วน" });
+  const rows = dlg.locator(".qb-order li[data-qb-key]");
+  const names = () => rows.locator(".qb-ol-t").allInnerTexts();
+  const start = await names();
+  expect(start.length).toBeGreaterThan(3);
+  expect(await rows.locator(".qb-num").evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value))).toEqual(start.map((_, i) => String(i + 1)));
+  await expect(dlg.locator(".qb-free")).toContainText(`ช่องว่าง ${10 - start.length} ช่อง`);
+  // แถวสูงเท่ากัน
+  const hs = await rows.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  expect(new Set(hs).size).toBe(1);
+
+  // พิมพ์เลข: แถวสุดท้าย → ลำดับ 1
+  const last = start.at(-1)!;
+  await expect(async () => {
+    const num = dlg.getByRole("textbox", { name: `ลำดับของ ${last}` });
+    await num.click();
+    await num.fill("1");
+    await num.press("Enter");
+    expect((await names())[0]).toBe(last);
+  }).toPass({ timeout: 10_000 });
+  let cur = await names();
+  expect(cur).toEqual([last, ...start.slice(0, -1)]);
+  // Esc ในช่องเลข = ไม่ย้าย และหน้าต่างยังเปิด
+  const n3 = dlg.getByRole("textbox", { name: `ลำดับของ ${cur[2]}` });
+  await n3.click();
+  await n3.fill("1");
+  await n3.press("Escape");
+  await expect(dlg).toBeVisible();
+  expect(await names()).toEqual(cur);
+
+  // ลากวางด้วยเมาส์: แถว 1 → ลงไปตำแหน่งที่ 3
+  const box = async (i: number) => (await rows.nth(i).boundingBox())!;
+  const a = await box(0), c = await box(2);
+  await page.mouse.move(a.x + 120, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + 120, a.y + a.height / 2 + 10, { steps: 3 });
+  await page.mouse.move(a.x + 120, c.y + c.height / 2 + 4, { steps: 8 });
+  await expect(dlg.locator(".qb-drop-tip")).toHaveText("วางที่ลำดับ 3");
+  await page.mouse.up();
+  await expect.poll(names).toEqual([cur[1], cur[2], cur[0], ...cur.slice(3)]);
+  cur = await names();
+
+  // Esc ระหว่างลาก = ยกเลิก (หน้าต่างยังเปิด ลำดับไม่เปลี่ยน)
+  const b0 = await box(0);
+  await page.mouse.move(b0.x + 120, b0.y + b0.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b0.x + 120, b0.y + b0.height * 2.5, { steps: 6 });
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(dlg).toBeVisible();
+  expect(await names()).toEqual(cur);
+
+  // คีย์บอร์ด: โฟกัส ⠿ ของแถวแรก → End = ไปท้ายสุด · Home = กลับบนสุด
+  await dlg.getByRole("button", { name: new RegExp(`^ลากเพื่อจัดลำดับ: ${cur[0]}`) }).focus();
+  await page.keyboard.press("End");
+  expect((await names()).at(-1)).toBe(cur[0]);
+  await expect(dlg.getByRole("button", { name: new RegExp(`^ลากเพื่อจัดลำดับ: ${cur[0]}`) })).toBeFocused();
+  await page.keyboard.press("Home");
+  expect((await names())[0]).toBe(cur[0]);
+
+  // เรียงด่วน ก–ฮ
+  await dlg.getByRole("button", { name: "ก–ฮ" }).click();
+  const az = await names();
+  expect(az).toEqual([...az].sort((x, y) => x.localeCompare(y, "th")));
+
+  // บันทึก → แถบเรียงตามนั้น
+  await dlg.getByRole("button", { name: "บันทึก", exact: true }).click();
+  await expect(dlg).toBeHidden();
+  await expect(bar.locator(".qb-a")).toHaveText(az);
+});
