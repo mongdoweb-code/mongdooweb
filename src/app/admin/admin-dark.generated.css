@@ -3887,17 +3887,6 @@ html[data-adm-theme="dark"] .qb-n.full {
     background: var(--c-orange);
     color: #fff
 }
-html[data-adm-theme="dark"] .qb-order li {
-    background: #1E2127;
-    border: 1.5px solid var(--c-line)
-}
-html[data-adm-theme="dark"] .qb-order li button {
-    border: 1px solid var(--c-line);
-    background: #1E2127
-}
-html[data-adm-theme="dark"] .qb-order li button:hover:not(:disabled) {
-    border-color: var(--c-ink)
-}
 html[data-adm-theme="dark"] .qb-none {
     color: var(--c-muted)
 }
@@ -3909,6 +3898,82 @@ html[data-adm-theme="dark"] .qb-foot {
         border-left: 0;
         border-top: 1px solid var(--c-line)
     }
+}
+html[data-adm-theme="dark"] .qb-oh-hint {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .qb-order li[data-qb-key] {
+    background: #1E2127;
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .qb-order li[data-qb-key]:hover {
+    border-color: #3B3935
+}
+html[data-adm-theme="dark"] .qb-order li.lift {
+    border-color: var(--c-orange);
+    background: #2A1B14
+}
+html[data-adm-theme="dark"] .qb-grip {
+    border: 0;
+    background: none;
+    color: #A29C90
+}
+html[data-adm-theme="dark"] .qb-grip:hover,
+html[data-adm-theme="dark"] .qb-grip:focus-visible,
+html[data-adm-theme="dark"] .qb-order li.lift .qb-grip {
+    color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .qb-grip:focus-visible {
+    outline: 2px solid var(--c-orange)
+}
+html[data-adm-theme="dark"] .qb-num {
+    border: 1.5px solid var(--c-line);
+    background: #1B1D22;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .qb-num:focus {
+    outline: none;
+    border-color: var(--c-orange);
+    background: #1E2127;
+    color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .qb-order li.lift .qb-num {
+    border-color: var(--c-orange);
+    color: var(--c-orange)
+}
+html[data-adm-theme="dark"] .qb-ol-acts button {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: #61E593
+}
+html[data-adm-theme="dark"] .qb-ol-acts button.qb-x {
+    color: #E76060
+}
+html[data-adm-theme="dark"] .qb-ol-acts button:hover:not(:disabled) {
+    border-color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .qb-ol-acts button:disabled {
+    color: #A49D8E
+}
+html[data-adm-theme="dark"] .qb-drop-tip {
+    background: #141414;
+    color: #fff
+}
+html[data-adm-theme="dark"] .qb-free {
+    border: 1.5px dashed var(--c-line);
+    color: #A09B92
+}
+html[data-adm-theme="dark"] .qb-sort {
+    border-top: 1px solid var(--c-line);
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .qb-sort button {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .qb-sort button:hover {
+    border-color: var(--c-ink)
 }
 /*  src/app/admin/_components/date-range.css  */
 html[data-adm-theme="dark"] .dr-box {
