@@ -15,10 +15,12 @@ export type Watermark = {
   opacity: number;
   /** ระยะจากขอบ % ของความกว้างรูป */
   margin: number;
-  /** ใช้กับรูปสินค้าหลักในหน้ารายละเอียดสินค้าด้วย (รูปย่อ/การ์ดสินค้าไม่ใส่) */
+  /** ใช้กับรูปสินค้าหลักในหน้ารายละเอียดสินค้าด้วย */
   main: boolean;
+  /** ใช้กับรูปบนการ์ดสินค้า (หน้าแรก / สินค้าทั้งหมด / หมวด / ค้นหา) — ค่าเดิมที่ไม่มีช่องนี้ = เปิด */
+  cards: boolean;
 };
-export const WM_DEFAULT: Watermark = { key: "", pos: "br", size: 22, opacity: 60, margin: 3, main: false };
+export const WM_DEFAULT: Watermark = { key: "", pos: "br", size: 22, opacity: 60, margin: 3, main: false, cards: true };
 export const WM_KEY_RE = /^logo\/[\w/.-]+\.webp$/;
 export const WM_LIMITS = { size: [5, 60], opacity: [10, 100], margin: [0, 10] } as const;
 
@@ -37,6 +39,7 @@ export function parseWatermark(raw: unknown): Watermark {
     opacity: int(o.opacity, WM_LIMITS.opacity, WM_DEFAULT.opacity),
     margin: int(o.margin, WM_LIMITS.margin, WM_DEFAULT.margin),
     main: o.main === true,
+    cards: o.cards !== false,
   };
 }
 
@@ -48,8 +51,15 @@ export function wmVersion(w: Watermark) {
   return (h >>> 0).toString(36).padStart(7, "0").slice(0, 8);
 }
 
-/** key รูปที่ใส่ลายน้ำได้: รูปเต็มของสินค้า (ไม่ใช่รูปย่อ) */
-export const WM_TARGET_RE = /^products\/[\w/.-]+(?<!-sm)\.webp$/;
+/** key รูปที่ใส่ลายน้ำได้: รูปสินค้า (รูปเต็ม หรือรูปย่อ -sm / -w320…-w1280 ที่สร้างจากรูปเต็ม) */
+export const WM_TARGET_RE = /^products\/[\w/.-]+\.webp$/;
+const WM_VARIANT_RE = /-(sm|w(?:320|640|960|1280))\.webp$/;
+/** key รูปย่อ → { รูปเต็ม, ความกว้าง } (ไม่ใช่รูปย่อ = null) */
+export function wmVariant(key: string): { src: string; width: number } | null {
+  const m = WM_VARIANT_RE.exec(key);
+  if (!m) return null;
+  return { src: key.slice(0, m.index) + ".webp", width: m[1] === "sm" ? 480 : Number(m[1].slice(1)) };
+}
 
 /** URL รูปที่ใส่ลายน้ำ (ไม่มีลายน้ำตั้งไว้ / key ใช้ไม่ได้ = URL เดิม) */
 export function wmUrl(key: string, w: Watermark | null): string {

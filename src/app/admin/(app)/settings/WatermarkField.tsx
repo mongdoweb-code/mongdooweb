@@ -14,7 +14,7 @@ export function WatermarkField({ init, url }: { init: Watermark; url: string | n
   return (
     <fieldset className="set-sign wmf" id="watermark">
       <legend>ลายน้ำรูปภาพ</legend>
-      <input type="hidden" name="watermark" value={JSON.stringify({ pos: w.pos, size: w.size, opacity: w.opacity, margin: w.margin, main: w.main })} />
+      <input type="hidden" name="watermark" value={JSON.stringify({ pos: w.pos, size: w.size, opacity: w.opacity, margin: w.margin, main: w.main, cards: w.cards })} />
       <p className="wmf-hint">ใส่ลายน้ำ (เช่น โลโก้ร้าน) บนรูปประกอบใต้ Data Sheet ของสินค้า (เปิด/ปิดได้ต่อสินค้า) และเลือกใช้กับรูปสินค้าหลักในหน้ารายละเอียดได้ · ใช้ไฟล์ PNG พื้นใส · ลายน้ำใส่ลงในไฟล์ที่ลูกค้าเห็น รูปต้นฉบับไม่เปลี่ยน</p>
       <div className="wmf-cols">
         <div className="wmf-ctl">
@@ -35,7 +35,8 @@ export function WatermarkField({ init, url }: { init: Watermark; url: string | n
           <Range id="wmSize" label="ขนาด (% ของความกว้างรูป)" value={w.size} lim={WM_LIMITS.size} onChange={(v) => set("size", v)} />
           <Range id="wmOpacity" label="ความทึบ (%)" value={w.opacity} lim={WM_LIMITS.opacity} onChange={(v) => set("opacity", v)} />
           <Range id="wmMargin" label="ระยะจากขอบ (%)" value={w.margin} lim={WM_LIMITS.margin} onChange={(v) => set("margin", v)} disabled={w.pos === "tile" || w.pos === "mc"} />
-          <label className="chk-row"><input type="checkbox" checked={w.main} onChange={(e) => set("main", e.target.checked)} /> ใส่ลายน้ำบนรูปสินค้าหลักในหน้ารายละเอียดสินค้าด้วย (รูปย่อ/การ์ดสินค้าไม่ใส่)</label>
+          <label className="chk-row"><input type="checkbox" checked={w.main} onChange={(e) => set("main", e.target.checked)} /> ใส่ลายน้ำบนรูปสินค้าหลักในหน้ารายละเอียดสินค้าด้วย</label>
+          <label className="chk-row"><input type="checkbox" checked={w.cards} onChange={(e) => set("cards", e.target.checked)} data-wm-cards /> ใส่ลายน้ำบนรูปการ์ดสินค้า (หน้าแรก / สินค้าทั้งหมด / หมวด / ค้นหา)</label>
         </div>
         <div className="wmf-pv" aria-label="ตัวอย่างลายน้ำ">
           <div className="wmf-photo">

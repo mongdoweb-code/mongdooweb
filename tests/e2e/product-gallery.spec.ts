@@ -142,6 +142,18 @@ test("ลายน้ำ (ตั้งค่าร้าน) + อัตรา�
     expect((await pix(marked, 0.1, 0.1))[0]).toBeLessThan(60);
     const orig = Buffer.from(await (await request.get(src!.replace(/^\/media\/wm\/[0-9a-z]+\//, "/media/"))).body());
     expect((await pix(orig, 0.85, 0.9))[0]).toBeLessThan(60);
+    // รูปย่อของการ์ดสินค้า (-sm 480 / -w320): ย่อจากรูปเต็มแล้วใส่ลายน้ำตำแหน่งเดียวกัน
+    for (const [suf, width] of [["-sm", 480], ["-w320", 320]] as const) {
+      const r = await request.get(src!.replace(/\.webp$/, `${suf}.webp`));
+      expect(r.status()).toBe(200);
+      const b = Buffer.from(await r.body());
+      expect((await sharp(b).metadata()).width).toBe(width);
+      expect((await pix(b, 0.85, 0.9)).every((c) => c > 220)).toBe(true);
+      expect((await pix(b, 0.1, 0.1))[0]).toBeLessThan(60);
+    }
+    // ตั้งค่า "การ์ดสินค้า" เปิดอยู่ (ค่าเริ่มต้น)
+    await page.goto("/admin/settings#watermark");
+    await expect(page.locator("#watermark [data-wm-cards]")).toBeChecked();
   } finally {
     await q(`UPDATE "ShopSetting" SET watermark=$1::jsonb WHERE id='shop'`, [JSON.stringify(oldWm ?? {})]);
   }
