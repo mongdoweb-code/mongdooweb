@@ -96,7 +96,7 @@ export async function getShopData() {
   "use cache";
   cacheTag(STOREFRONT_TAG);
 
-  const [categories, products, shop, synonyms] = await Promise.all([
+  const [categories, products, shop, synonyms, wmRow] = await Promise.all([
     prisma.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.product.findMany({
       where: { isActive: true, isService: false, category: { isActive: true } },
@@ -105,7 +105,12 @@ export async function getShopData() {
     }),
     getPublicShopInfo(),
     getSynonymGroups(),
+    prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { watermark: true } }),
   ]);
+  // ลายน้ำบนการ์ดสินค้า (ตั้งค่าร้าน → ลายน้ำ "การ์ดสินค้า"): รูปย่อ -sm ผ่าน /media/wm/… (รูปจาก URL ภายนอกไม่ใส่)
+  const wmSet = parseWatermark(wmRow?.watermark);
+  const cardImg = (k: string | undefined) =>
+    k && wmSet.key && wmSet.cards && !/^https?:/i.test(k) ? wmUrl(k.replace(/\.webp$/, "-sm.webp"), wmSet) : mediaUrl(k, "sm");
   // แคชหมดรอบพอดีเวลาที่ราคาลดเริ่ม/หมด (เบราว์เซอร์ก็คำนวณราคาตามเวลาเองอีกชั้น)
   const now = new Date();
   cacheLife({ stale: 300, revalidate: revalidateFor(nextPriceChange(products, now), now), expire: 86400 });
@@ -129,8 +134,8 @@ export async function getShopData() {
   }));
 
   const catalog: CatalogItem[] = products.map((p) => {
-    const img = mediaUrl(p.images[0], "sm");
-    const more = p.images.slice(1, 8).map((k) => mediaUrl(k, "sm")).filter((u): u is string => !!u);
+    const img = cardImg(p.images[0]);
+    const more = p.images.slice(1, 8).map((k) => cardImg(k)).filter((u): u is string => !!u);
     const dp = displayPrice(p, now);
     const sale = saleInfo(p, now);
     const tiers = tierInfo(p);
@@ -309,7 +314,7 @@ export async function getProductDetail(slug: string) {
   const dp = displayPrice(p, now);
   // Data Sheet (แบบ A/B ตามสินค้า → ค่าร้าน) + ตารางเทียบรุ่น (แบบ C) จาก Data Sheet ของสมาชิกในกลุ่มตัวเลือก
   const dsSet = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { datasheetStyle: true, datasheetCompare: true, watermark: true } });
-  // ลายน้ำ (ตั้งค่าร้าน): รูปประกอบใต้ Data Sheet (เปิดต่อสินค้า) + รูปสินค้าหลักในหน้านี้ (ถ้าเลือก) — รูปย่อ/การ์ดไม่ใส่
+  // ลายน้ำ (ตั้งค่าร้าน): รูปประกอบใต้ Data Sheet (เปิดต่อสินค้า) + รูปสินค้าหลักในหน้านี้ (ถ้าเลือก) · การ์ดสินค้าอยู่ใน getShopData
   const wm = parseWatermark(dsSet?.watermark);
   const datasheet = parseDatasheet(p.datasheet);
   const notices = noticesFor(await getNoticeLibrary(), p);

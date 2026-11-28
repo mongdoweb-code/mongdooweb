@@ -2,14 +2,17 @@
 import "server-only";
 import sharp, { type OverlayOptions } from "sharp";
 import { storage } from "@/lib/storage";
-import { wmVersion, type Watermark } from "@/lib/watermark";
+import { wmVariant, wmVersion, type Watermark } from "@/lib/watermark";
 
 export async function renderWatermarked(key: string, w: Watermark): Promise<Buffer | null> {
   const cacheKey = `wm/${wmVersion(w)}/${key}`;
   const cached = await storage().get(cacheKey).catch(() => null);
   if (cached) return cached;
-  const [base, mark] = await Promise.all([storage().get(key).catch(() => null), storage().get(w.key).catch(() => null)]);
-  if (!base) return null;
+  // รูปย่อ (-sm / -wNNN): ย่อจากรูปเต็มก่อนแล้วจึงใส่ลายน้ำ (ขนาด/ระยะเป็น % จึงตรงกับรูปเต็ม)
+  const v = wmVariant(key);
+  const [orig, mark] = await Promise.all([storage().get(v ? v.src : key).catch(() => null), storage().get(w.key).catch(() => null)]);
+  if (!orig) return null;
+  const base = v ? await sharp(orig).rotate().resize({ width: v.width, withoutEnlargement: true }).toBuffer() : orig;
   if (!mark) return base;
   const img = sharp(base).rotate();
   const meta = await img.metadata();

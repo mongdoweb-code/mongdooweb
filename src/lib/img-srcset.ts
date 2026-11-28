@@ -11,8 +11,8 @@ const MEDIA_RE = /^\/media\/(.+?)(-sm)?\.webp$/;
 /** "/media/products/x.webp" หรือ "/media/products/x-sm.webp" → "/media/products/x" (null = ไม่ใช่รูปที่อัปโหลด) */
 export const mediaBase = (url: string | null | undefined) => {
   const m = url ? MEDIA_RE.exec(url) : null;
-  // รูปใส่ลายน้ำ (/media/wm/…) ไม่มีรูปย่อหลายขนาด — ใช้ไฟล์เดียว
-  return m && !/-w\d+$/.test(m[1]) && !m[1].startsWith("wm/") ? `/media/${m[1]}` : null;
+  // รูปใส่ลายน้ำ (/media/wm/…) ก็มีรูปย่อหลายขนาด — /media/wm สร้างจากรูปเต็มให้
+  return m && !/-w\d+$/.test(m[1]) ? `/media/${m[1]}` : null;
 };
 
 /** srcset จาก URL ของรูป — maxW จำกัดขนาดใหญ่สุด (เช่น การ์ดสินค้าไม่ต้องใช้เกิน 640) */
