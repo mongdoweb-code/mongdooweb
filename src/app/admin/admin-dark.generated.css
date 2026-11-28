@@ -4218,6 +4218,36 @@ html[data-adm-theme="dark"] .gle-sl input[type=range]:focus-visible::-webkit-sli
 html[data-adm-theme="dark"] .gle-empty {
     color: var(--c-muted)
 }
+html[data-adm-theme="dark"] .gle-rt {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .gle-rt b {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .gle-rt small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .gle-rt-box i {
+    border: 2px solid #313335
+}
+html[data-adm-theme="dark"] .gle-rt:hover {
+    border-color: #3B3935
+}
+html[data-adm-theme="dark"] .gle-rt.on {
+    border-color: #F26B38;
+    background: #2A1B14
+}
+html[data-adm-theme="dark"] .gle-rt.on .gle-rt-box i {
+    border-color: #F26B38
+}
+html[data-adm-theme="dark"] .gle-wmrow {
+    background: #1B1D22;
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .gle-wmrow small {
+    color: var(--c-muted)
+}
 /*  src/app/admin/(app)/_lot10/lot10.css  */
 html[data-adm-theme="dark"] .l10-row {
     border-bottom: 1px solid var(--c-line)
@@ -5343,6 +5373,53 @@ html[data-adm-theme="dark"] .dtl-off {
 }
 html[data-adm-theme="dark"] .dtl-warn {
     color: #F1B155
+}
+html[data-adm-theme="dark"] .wmf-hint {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .wmf-pos {
+    border: 1.5px solid var(--c-line);
+    background: #1B1D22
+}
+html[data-adm-theme="dark"] .wmf-pos button {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .wmf-pos button i {
+    background: #121211
+}
+html[data-adm-theme="dark"] .wmf-pos button.on {
+    border-color: #F26B38;
+    background: #2A1B14
+}
+html[data-adm-theme="dark"] .wmf-pos button.on i {
+    background: #F26B38
+}
+html[data-adm-theme="dark"] .wmf-tile {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .wmf-tile.on {
+    border-color: #F26B38;
+    background: #2A1B14;
+    color: #F18355
+}
+html[data-adm-theme="dark"] .wmf-sl input[type=range] {
+    background: linear-gradient(to right,#F26B38 var(--p,0%),#101215 var(--p,0%))
+}
+html[data-adm-theme="dark"] .wmf-sl input[type=range]::-webkit-slider-thumb {
+    background: #1E2127;
+    border: 1.5px solid #3B3935
+}
+html[data-adm-theme="dark"] .wmf-photo {
+    background: linear-gradient(135deg,#2B3A2E,#0E120D 45%,#C9B36A);
+    border: 1px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .wmf-none {
+    color: #FFFFFF
+}
+html[data-adm-theme="dark"] .wmf-pv small {
+    color: var(--c-muted)
 }
 /*  src/app/admin/(app)/products/badges.css  */
 html[data-adm-theme="dark"] .bge-box {

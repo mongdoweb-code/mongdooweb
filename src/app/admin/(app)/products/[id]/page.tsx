@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "../../../../../../generated/prisma/client";
 import { EMPTY_DS, parseDatasheet, parseTemplate, type DsGroup } from "@/lib/datasheet";
 import { GALLERY_DEFAULT, parseGallery } from "@/lib/product-gallery";
+import { parseWatermark, wmPreviewStyle } from "@/lib/watermark";
 import { parseAttrs } from "@/lib/specs";
 import { getNoticeLibrary } from "@/lib/notices-db";
 import { badgesOf } from "@/lib/badges";
@@ -26,6 +27,9 @@ import { duplicateProduct } from "../actions";
 const baht = (s: number | null) => (s ? String(s / 100) : "");
 
 export default async function ProductEditPage({ params, searchParams }: PageProps<"/admin/products/[id]">) {
+  // ลายน้ำของร้าน (ตัวอย่างในตัวแก้ไขรูปประกอบ)
+  const wmCfg = parseWatermark((await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { watermark: true } }))?.watermark);
+  const watermark = wmCfg.key ? { url: mediaUrl(wmCfg.key)!, style: wmPreviewStyle(wmCfg) } : null;
   const admin = await requireAdmin();
   const { id } = await params;
   const sp = await searchParams;
@@ -55,7 +59,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
       includesPsu: false, isAccessory: false, orders: 0,
       extras: { salePrice: "", saleStartsAt: "", saleEndsAt: "", tiers: [], attrs: {}, group: null },
       datasheet: EMPTY_DS,
-      gallery: GALLERY_DEFAULT, galleryUrls: {},
+      gallery: GALLERY_DEFAULT, galleryUrls: {}, watermark,
       notices: { ids: [], off: [] },
     };
   } else {
@@ -83,7 +87,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
           : null,
       },
       datasheet: parseDatasheet(p.datasheet),
-      ...(() => { const g = parseGallery(p.gallery); return { gallery: g, galleryUrls: Object.fromEntries(g.items.map((it) => [it.key, mediaUrl(it.key, "sm")!])) }; })(),
+      ...(() => { const g = parseGallery(p.gallery); return { gallery: g, galleryUrls: Object.fromEntries(g.items.map((it) => [it.key, mediaUrl(it.key, "sm")!])), watermark }; })(),
       notices: { ids: p.noticeIds, off: p.noticeOff },
     };
     downloads = parseDownloads(p.downloads).map((d) => ({ key: d.key, name: d.name, size: fileSize(d.sizeBytes), href: downloadHref(p.slug, d.key) }));

@@ -2,6 +2,7 @@
 // เพื่อให้สคริปต์ที่ย้ายมา (public/js/*.js) ใช้ได้โดยไม่ต้องแก้ตรรกะ
 import { dsCompare, dsEmpty, dsStyleOf, parseDatasheet } from "@/lib/datasheet";
 import { parseGallery } from "@/lib/product-gallery";
+import { parseWatermark, wmUrl } from "@/lib/watermark";
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { mediaUrl } from "@/lib/media";
@@ -307,7 +308,9 @@ export async function getProductDetail(slug: string) {
   const attrs = parseAttrs(p.attrs);
   const dp = displayPrice(p, now);
   // Data Sheet (แบบ A/B ตามสินค้า → ค่าร้าน) + ตารางเทียบรุ่น (แบบ C) จาก Data Sheet ของสมาชิกในกลุ่มตัวเลือก
-  const dsSet = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { datasheetStyle: true, datasheetCompare: true } });
+  const dsSet = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { datasheetStyle: true, datasheetCompare: true, watermark: true } });
+  // ลายน้ำ (ตั้งค่าร้าน): รูปประกอบใต้ Data Sheet (เปิดต่อสินค้า) + รูปสินค้าหลักในหน้านี้ (ถ้าเลือก) — รูปย่อ/การ์ดไม่ใส่
+  const wm = parseWatermark(dsSet?.watermark);
   const datasheet = parseDatasheet(p.datasheet);
   const notices = noticesFor(await getNoticeLibrary(), p);
 
@@ -369,11 +372,11 @@ export async function getProductDetail(slug: string) {
     tiers: tierInfo(p),
     inStock: available(p),
     stockLeft: p.trackStock ? p.stock : null,
-    images: p.images.map((k) => ({ full: mediaUrl(k)!, sm: mediaUrl(k, "sm")! })),
+    images: p.images.map((k) => ({ full: wm.key && wm.main && !/^https?:/i.test(k) ? wmUrl(k, wm) : mediaUrl(k)!, sm: mediaUrl(k, "sm")! })),
     /** รูปภาพประกอบใต้ Data Sheet (null = ไม่มี) */
     gallery: (() => {
       const g = parseGallery(p.gallery);
-      return g.items.length ? { ...g, items: g.items.map((it) => ({ ...it, full: mediaUrl(it.key)!, sm: mediaUrl(it.key, "sm")! })) } : null;
+      return g.items.length ? { ...g, items: g.items.map((it) => ({ ...it, full: g.wm && wm.key ? wmUrl(it.key, wm) : mediaUrl(it.key)!, sm: mediaUrl(it.key, "sm")! })) } : null;
     })(),
     /** วิดีโอสินค้า (MP4) + ภาพปกวิดีโอ — แสดงในแกลเลอรีถัดจากภาพปก */
     video: p.videoKey

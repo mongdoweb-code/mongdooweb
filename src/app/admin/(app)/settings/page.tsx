@@ -1,5 +1,6 @@
 // /admin/settings — ตั้งค่าร้าน (เจ้าของร้านเท่านั้น): ข้อมูลร้าน, การชำระเงิน + ตัวอย่าง QR พร้อมเพย์, ค่าส่ง, แถบประกาศ,
 // รหัส GA4/Meta Pixel, งานอัตโนมัติ, เอกสารขาย — รหัสผ่านอยู่ที่ /admin/account, ผู้ใช้อยู่ที่ /admin/users
+import { parseWatermark } from "@/lib/watermark";
 import Link from "next/link";
 import { requireOwner } from "@/lib/auth";
 import { mediaUrl } from "@/lib/media";
@@ -46,6 +47,7 @@ export default async function SettingsPage() {
             logoUrl: mediaUrl(s.logoKey),
             signatureUrl: mediaUrl(s.signatureKey), stampUrl: mediaUrl(s.stampKey), signerName: s.signerName, signerTitle: s.signerTitle,
             quotePayInfo: s.quotePayInfo, quoteOnlineQr: s.quoteOnlineQr, docTagline: s.docTagline, docTaglineOn: s.docTaglineOn, docTaglineStyle: s.docTaglineStyle,
+            ...(() => { const w = parseWatermark(s.watermark); return { watermark: w, watermarkUrl: w.key ? mediaUrl(w.key) : null }; })(),
             datasheetStyle: s.datasheetStyle, datasheetCompare: s.datasheetCompare, cardBadgeStyle: s.cardBadgeStyle, cardBadgeLayout: s.cardBadgeLayout, cardBadgeOpacity: s.cardBadgeOpacity,
             announcementEnabled: s.announcementEnabled, announcementText: s.announcementText, announcementHref: s.announcementHref ?? "",
             ga4Id: s.ga4Id ?? "", metaPixelId: s.metaPixelId ?? "",

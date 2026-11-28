@@ -2,6 +2,8 @@
 // ฟอร์มตั้งค่าร้าน — บัญชีรับโอนและขั้นค่าส่งเพิ่ม/ลบได้, บันทึกด้วย server action
 import { useState } from "react";
 import { DocTaglineField } from "./DocTaglineField";
+import { WatermarkField } from "./WatermarkField";
+import type { Watermark } from "@/lib/watermark";
 import { useFormAction } from "../../_components/useFormAction";
 import { saveSettings, type FormState } from "./actions";
 import { PromptPayPreview } from "./PromptPayPreview";
@@ -19,7 +21,7 @@ export type SettingsValues = {
   prefixQuote: string; prefixInvoice: string; prefixReceipt: string; prefixCredit: string; prefixDelivery: string; dateEra: string;
   quoteValidDays: number; invoiceDueDays: number; termsQuote: string; termsInvoice: string; termsReceipt: string; showSignature: boolean;
   logoUrl: string | null;
-  signatureUrl: string | null; stampUrl: string | null; signerName: string; signerTitle: string; quotePayInfo: boolean; quoteOnlineQr: boolean; docTagline: string | null; docTaglineOn: boolean; docTaglineStyle: string;
+  signatureUrl: string | null; stampUrl: string | null; signerName: string; signerTitle: string; quotePayInfo: boolean; quoteOnlineQr: boolean; docTagline: string | null; docTaglineOn: boolean; docTaglineStyle: string; watermark: Watermark; watermarkUrl: string | null;
   announcementEnabled: boolean; announcementText: string; announcementHref: string;
   datasheetStyle: string; datasheetCompare: boolean; cardBadgeStyle: string; cardBadgeLayout: string; cardBadgeOpacity: number;
   ga4Id: string; metaPixelId: string;
@@ -334,6 +336,7 @@ export function SettingsForm({ v, banks }: { v: SettingsValues; banks: Record<st
             <label className="chk-row"><input type="checkbox" name="quoteOnlineQr" defaultChecked={v.quoteOnlineQr} /> พิมพ์ QR ให้ลูกค้าสแกนเปิดดู/ยืนยันสั่งซื้อออนไลน์ (ใบเสนอราคา) และแนบสลิป (ใบแจ้งหนี้)</label>
           </fieldset>
           <DocTaglineField init={v.docTagline} on={v.docTaglineOn} style={v.docTaglineStyle} />
+          <WatermarkField init={v.watermark} url={v.watermarkUrl} />
         </div>
       </div>
       <div className="set-foot">
