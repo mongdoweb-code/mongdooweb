@@ -6,6 +6,8 @@ import { AVIF_SUPPORTED, generateVariants, variantKey } from "@/lib/media";
 import { IMG_WIDTHS } from "@/lib/img-srcset";
 import { parsePopular } from "@/lib/popular-cats";
 import { parseWhyUs } from "@/lib/why-us";
+import { parseGallery } from "@/lib/product-gallery";
+import { Prisma } from "../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { storage } from "@/lib/storage";
 
@@ -17,7 +19,7 @@ export const PROBLEM_TH: Record<ImageIssue["problem"], string> = {
 
 /** ทุกรูปที่หน้าร้านใช้: สินค้า สไลด์ โลโก้ บทความ ผลงาน */
 export async function imageRefs(): Promise<ImageRef[]> {
-  const [products, slides, shop, posts, projects, cats, posters] = await Promise.all([
+  const [products, slides, shop, posts, projects, cats, posters, galleries] = await Promise.all([
     prisma.product.findMany({ where: { images: { isEmpty: false } }, select: { id: true, sku: true, name: true, images: true } }),
     prisma.heroSlide.findMany({ select: { id: true, title: true, imageKey: true, imageUrl: true } }),
     prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { logoKey: true, popularCats: true, whyUs: true } }),
@@ -25,6 +27,7 @@ export async function imageRefs(): Promise<ImageRef[]> {
     prisma.project.findMany({ where: { images: { isEmpty: false } }, select: { id: true, title: true, images: true } }),
     prisma.category.findMany({ where: { OR: [{ imageKey: { not: null } }, { iconKey: { not: null } }] }, select: { id: true, nameTh: true, imageKey: true, iconKey: true } }),
     prisma.product.findMany({ where: { videoPosterKey: { not: null } }, select: { id: true, sku: true, name: true, videoPosterKey: true } }),
+    prisma.product.findMany({ where: { gallery: { not: Prisma.DbNull } }, select: { id: true, sku: true, name: true, gallery: true } }),
   ]);
   const ext = (k: string) => /^https?:\/\//i.test(k);
   return [
@@ -34,6 +37,7 @@ export async function imageRefs(): Promise<ImageRef[]> {
     ]),
     ...products.flatMap((p) => p.images.map((k, i) => ({ where: "สินค้า", label: `${p.sku} · ${p.name} (รูปที่ ${i + 1})`, href: `/admin/products/${p.id}`, key: k, external: ext(k) }))),
     ...posters.map((p) => ({ where: "สินค้า", label: `${p.sku} · ${p.name} (ภาพปกวิดีโอ)`, href: `/admin/products/${p.id}`, key: p.videoPosterKey!, external: false })),
+    ...galleries.flatMap((p) => parseGallery(p.gallery).items.map((it, i) => ({ where: "สินค้า", label: `${p.sku} · ${p.name} (รูปประกอบที่ ${i + 1})`, href: `/admin/products/${p.id}#sec-gallery`, key: it.key, external: false }))),
     ...slides.flatMap((s) => {
       const k = s.imageKey ?? s.imageUrl;
       return k ? [{ where: "สไลด์", label: s.title, href: `/admin/slides/${s.id}`, key: k, external: !s.imageKey }] : [];

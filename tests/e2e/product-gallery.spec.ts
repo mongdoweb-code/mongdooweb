@@ -1,0 +1,86 @@
+// รูปภาพประกอบใต้ Data Sheet: อัปโหลดหลายรูปพร้อมกัน → เรียง/คำบรรยาย → รูปแบบ + แถบเลื่อน → บันทึก → หน้าสินค้าแสดงตามแบบ → คลิกเปิดเต็มจอ
+import { expect, test } from "@playwright/test";
+import pg from "pg";
+import sharp from "sharp";
+import { V, login } from "./helpers";
+
+async function q<T = Record<string, unknown>>(sql: string, args: unknown[] = []) {
+  const c = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await c.connect();
+  try {
+    return (await c.query(sql, args)).rows as T[];
+  } finally {
+    await c.end();
+  }
+}
+const TAG = Date.now().toString(36);
+const ID = `e2e-gal-${TAG}`, SLUG = `e2e-gallery-${TAG}`;
+const png = (r: number, g: number, b: number) => sharp({ create: { width: 640, height: 480, channels: 3, background: { r, g, b } } }).png().toBuffer();
+
+test.beforeAll(async () => {
+  const [cat] = await q<{ id: string }>(`SELECT id FROM "Category" WHERE "isActive" ORDER BY "sortOrder" LIMIT 1`);
+  await q(`INSERT INTO "Product" (id, sku, slug, name, "priceSatang", "categoryId", "sortOrder", "updatedAt") VALUES ($1, $2, $3, 'ทดสอบรูปประกอบ E2E', 50000, $4, 99997, now())`, [ID, `E2E-GAL-${TAG}`, SLUG, cat.id]);
+});
+test.afterAll(async () => { await q(`DELETE FROM "Product" WHERE id=$1`, [ID]); });
+
+test("หลังบ้าน: อัปโหลดหลายรูป + รูปแบบ + แถบเลื่อน → หน้าสินค้าแสดงตามแบบ", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await login(page);
+  await page.goto(`/admin/products/${ID}#sec-gallery`);
+  const box = page.locator("#sec-gallery");
+  await expect(box).toBeVisible();
+  const files = await Promise.all([png(30, 90, 160), png(40, 140, 90), png(200, 80, 30), png(90, 60, 180)]);
+  await expect(async () => {
+    await box.locator("[data-gallery-file]").setInputFiles(files.map((buffer, i) => ({ name: `g${i + 1}.png`, mimeType: "image/png", buffer })));
+    await expect(box.locator("[data-gallery-item]")).toHaveCount(4, { timeout: 20_000 });
+  }).toPass({ timeout: 60_000 });
+  // คำบรรยาย + ย้ายรูปที่ 4 ขึ้นก่อนด้วย ‹
+  await box.getByRole("textbox", { name: "คำบรรยายรูปที่ 1" }).fill("ทางเดินสวน");
+  for (let i = 0; i < 3; i++) await box.getByRole("button", { name: `เลื่อนรูปที่ ${4 - i} ไปก่อน` }).click({ force: true });
+  const firstKey = await box.locator("[data-gallery-item]").first().getAttribute("data-gallery-item");
+  await box.locator("#glTitle").fill("ภาพตัวอย่างงานติดตั้ง");
+  await box.locator('[data-layout="bigLeft"]').click();
+  // แถบเลื่อน: ระยะห่าง 20 · ระยะขอบ 12 · รัศมี 10 (ใช้คีย์บอร์ดบนแถบเลื่อน)
+  const setRange = async (id: string, v: number) => box.locator(`#${id}`).evaluate((el, val) => {
+    const s = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    s.call(el, String(val));
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }, v);
+  await setRange("glGap", 20);
+  await setRange("glPad", 12);
+  await setRange("glRadius", 10);
+  await expect(box.locator('output[for="glGap"]')).toHaveText("20");
+  // ตัวอย่างสดในหลังบ้าน
+  await expect(box.locator('[data-gallery-preview] [data-block="bigLeft"]')).toHaveCount(1);
+  await page.locator('button[form="productForm"], #productForm button[type=submit]').first().click();
+  await expect.poll(async () => (await q<{ g: { layout: string; gap: number; pad: number; radius: number; title: string; items: { key: string; cap: string }[] } | null }>(`SELECT gallery g FROM "Product" WHERE id=$1`, [ID]))[0].g, { timeout: 20_000 })
+    .toMatchObject({ layout: "bigLeft", gap: 20, pad: 12, radius: 10, title: "ภาพตัวอย่างงานติดตั้ง" });
+  const [{ g }] = await q<{ g: { items: { key: string; cap: string }[] } }>(`SELECT gallery g FROM "Product" WHERE id=$1`, [ID]);
+  expect(g.items).toHaveLength(4);
+  expect(g.items[0].key).toBe(firstKey);
+  expect(g.items[1].cap).toBe("ทางเดินสวน");
+
+  // หน้าสินค้า: ใต้ Data Sheet · 4 รูป = คอลลาจ 3 + เรียง 1 · ตัวแปรระยะ · คลิกเปิดเต็มจอ
+  await page.goto(`/product/${SLUG}`);
+  const sec = page.locator(".pg-sec" + V);
+  await expect(sec.locator("#pg-h")).toHaveText("ภาพตัวอย่างงานติดตั้ง");
+  await expect(sec.locator('[data-block="bigLeft"] .pg-cell')).toHaveCount(3);
+  await expect(sec.locator('[data-block="col1"] .pg-cell')).toHaveCount(1);
+  expect(await sec.evaluate((e) => [getComputedStyle(e).getPropertyValue("--pg-gap"), getComputedStyle(e).paddingTop])).toEqual(["20px", "12px"]);
+  await expect(sec.locator(".pg-cell").first()).toHaveCSS("border-top-left-radius", "10px");
+  await expect(sec.locator(".pg-cap-over", { hasText: "ทางเดินสวน" })).toBeVisible();
+  await sec.locator(".pg-img").nth(1).click();
+  await expect(page.locator(".lb-count")).toContainText("2");
+  await page.keyboard.press("Escape");
+
+  // ลบทุกรูป → บันทึก → ส่วนนี้หายจากหน้าสินค้า
+  await page.goto(`/admin/products/${ID}#sec-gallery`);
+  await expect(async () => {
+    while (await box.locator("[data-gallery-item]").count()) await box.getByRole("button", { name: /^ลบรูปที่ 1$/ }).click();
+    await expect(box.locator("[data-gallery-item]")).toHaveCount(0, { timeout: 500 });
+  }).toPass({ timeout: 10_000 });
+  await page.locator('button[form="productForm"], #productForm button[type=submit]').first().click();
+  await expect.poll(async () => (await q<{ g: unknown }>(`SELECT gallery g FROM "Product" WHERE id=$1`, [ID]))[0].g, { timeout: 20_000 }).toBeNull();
+  await page.goto(`/product/${SLUG}`);
+  await expect(page.locator(".pg-sec")).toHaveCount(0);
+});

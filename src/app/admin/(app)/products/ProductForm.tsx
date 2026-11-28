@@ -13,6 +13,8 @@ import { ProductMedia, type VideoValue } from "./ProductMedia";
 import { SectionNav, type NavSection } from "../../_components/SectionNav";
 import { SaveResultPopup } from "../../_components/SaveResultPopup";
 import type { Datasheet, DsGroup } from "@/lib/datasheet";
+import type { Gallery } from "@/lib/product-gallery";
+import { GalleryEditor } from "./GalleryEditor";
 import { DatasheetEditor } from "./DatasheetEditor";
 import { NoticePicker } from "./NoticePicker";
 import { BadgesEditor } from "./BadgesEditor";
@@ -29,6 +31,7 @@ const SECTIONS: NavSection[] = [
   { id: "sec-finder", label: "ตัวช่วยเลือกไฟ (หน้าแรก)" },
   { id: "sec-specs", label: "สเปกสินค้า" },
   { id: "sec-datasheet", label: "Data Sheet" },
+  { id: "sec-gallery", label: "รูปภาพประกอบ" },
   { id: "specBox", label: "สเปกตามหมวด" },
   { id: "sec-desc", label: "คำอธิบาย" },
   { id: "downloadsBox", label: "ไฟล์ดาวน์โหลด" },
@@ -49,6 +52,8 @@ export type ProductValues = {
   /** ล็อต 9: ราคาลดตามเวลา ราคาขายส่ง สเปกตามหมวด กลุ่มตัวเลือก */
   extras: ExtrasValues;
   datasheet: Datasheet;
+  /** รูปภาพประกอบใต้ Data Sheet + ลิงก์รูปย่อของ key เดิม */
+  gallery: Gallery; galleryUrls: Record<string, string>;
   /** ข้อความแจ้งเตือนหน้าสินค้า: เลือกจากคลัง · ปิดข้อความอัตโนมัติ */
   notices: { ids: string[]; off: string[] };
 };
@@ -146,6 +151,8 @@ export function ProductForm({ v, categories, saved, copied, owner, siteHost, sho
             </div>
 
             <DatasheetEditor init={v.datasheet} categoryId={cat} shopStyle={ds.shopStyle} templates={ds.templates} products={ds.products.filter((p) => p.id !== v.id)} specs={specs} />
+
+            <GalleryEditor init={v.gallery} urls={v.galleryUrls} productName={v.name} />
 
             <SpecFields v={v.extras} defs={specDefs} categoryId={cat} fields={state.fields} />
 

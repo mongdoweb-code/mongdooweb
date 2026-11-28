@@ -1357,9 +1357,6 @@ html[data-adm-theme="dark"] .seg a[aria-current="true"] {
     background: #3A404B;
     color: #fff
 }
-html[data-adm-theme="dark"] .pager .pg-size[aria-current="true"] {
-    color: var(--c-ink)
-}
 html[data-adm-theme="dark"] .bank-edit {
     border-bottom: 1px dashed var(--c-line)
 }
@@ -1744,26 +1741,6 @@ html[data-adm-theme="dark"] .inq-att img {
     border: 1px solid var(--c-line);
     background: var(--c-cream)
 }
-html[data-adm-theme="dark"] .pg-help {
-    color: var(--c-muted)
-}
-html[data-adm-theme="dark"] .pg-help code {
-    background: var(--c-cream);
-    color: var(--c-ink)
-}
-html[data-adm-theme="dark"] .pg-pv .lbl {
-    color: var(--c-muted)
-}
-html[data-adm-theme="dark"] .pg-doc {
-    background: #1E2127;
-    border: 1px solid var(--c-line)
-}
-html[data-adm-theme="dark"] .pg-doc a {
-    color: var(--c-orange-dk)
-}
-html[data-adm-theme="dark"] .pg-live {
-    border: 0
-}
 html[data-adm-theme="dark"] .faq-item {
     background: #1C1E24;
     border: 1px solid var(--c-line)
@@ -1914,67 +1891,6 @@ html[data-adm-theme="dark"] .sw-lbl {
 }
 html[data-adm-theme="dark"] .sw-lbl.on {
     color: #6CDBA4
-}
-html[data-adm-theme="dark"] .pg-foot {
-    border-top: 1px solid var(--c-line)
-}
-html[data-adm-theme="dark"] .pg-sum {
-    color: var(--c-muted);
-    border: 1px solid var(--c-line);
-    background: #1E2127
-}
-html[data-adm-theme="dark"] .pg-sum b {
-    color: var(--c-ink)
-}
-html[data-adm-theme="dark"] .pg-per {
-    border: 1px solid var(--c-line);
-    background: #1E2127;
-    color: var(--c-muted)
-}
-html[data-adm-theme="dark"] .pg-per .sel {
-    border: 1px solid var(--c-line);
-    background: #1E2127;
-    color: var(--c-ink)
-}
-html[data-adm-theme="dark"] .pg-chev {
-    color: var(--c-muted)
-}
-html[data-adm-theme="dark"] .pg-selw:hover .pg-chev {
-    color: var(--c-ink)
-}
-html[data-adm-theme="dark"] .pg-per .sel:hover {
-    border-color: var(--c-orange)
-}
-html[data-adm-theme="dark"] .pg-per .sel:focus-visible {
-    outline: none;
-    border-color: #16A37B
-}
-html[data-adm-theme="dark"] .pg-nav {
-    border: 1px solid var(--c-line);
-    background: #1E2127
-}
-html[data-adm-theme="dark"] .pg-btn {
-    border: 1px solid var(--c-line);
-    color: var(--c-ink);
-    background: #1E2127
-}
-html[data-adm-theme="dark"] a.pg-btn:hover {
-    border-color: var(--c-orange);
-    color: var(--c-orange-dk)
-}
-html[data-adm-theme="dark"] .pg-btn.on {
-    background: #16A37B;
-    border-color: #16A37B;
-    color: #fff
-}
-html[data-adm-theme="dark"] .pg-btn.on:hover {
-    color: #fff
-}
-html[data-adm-theme="dark"] .pg-btn[aria-disabled="true"] {
-    color: #A79E8B
-}
-html[data-adm-theme="dark"] .pg-gap {
-    color: var(--c-muted)
 }
 html[data-adm-theme="dark"] .rte {
     border: 1.5px solid var(--c-line);
@@ -4182,6 +4098,125 @@ html[data-adm-theme="dark"] .ty-foot {
 html[data-adm-theme="dark"] .ty-unsaved {
     color: #F18355;
     background: #261912
+}
+/*  src/app/admin/(app)/products/gallery-editor.css  */
+html[data-adm-theme="dark"] .gle-hint {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .gle-drop {
+    border: 2px dashed #292D35;
+    background: #1C1E24;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .gle-drop b {
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .gle-drop:hover,
+html[data-adm-theme="dark"] .gle-drop:focus-visible,
+html[data-adm-theme="dark"] .gle-drop.over {
+    border-color: #F26B38;
+    background: #2A1B14;
+    outline: none
+}
+html[data-adm-theme="dark"] .gle-pick {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .gle-msg {
+    color: #F1B155
+}
+html[data-adm-theme="dark"] .gle-th {
+    background: #15171B center/cover no-repeat;
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .gle-n {
+    background: #1C1C1C;
+    color: #FFFFFF
+}
+html[data-adm-theme="dark"] .gle-x {
+    border: 1px solid var(--c-line);
+    background: #1E2127;
+    color: #E76060
+}
+html[data-adm-theme="dark"] .gle-mv button {
+    border: 1px solid var(--c-line);
+    background: #1E2127
+}
+html[data-adm-theme="dark"] .gle-cap {
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .gle-bar {
+    background: rgba(255,255,255,.85)
+}
+html[data-adm-theme="dark"] .gle-bar i {
+    background: #F26B38
+}
+html[data-adm-theme="dark"] .gle-st {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .gle-up.err .gle-st {
+    color: #E76060
+}
+html[data-adm-theme="dark"] .gle-seg {
+    border: 1.5px solid var(--c-line)
+}
+html[data-adm-theme="dark"] .gle-seg button {
+    border: 0;
+    border-right: 1px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-ink)
+}
+html[data-adm-theme="dark"] .gle-seg button:last-child {
+    border-right: 0
+}
+html[data-adm-theme="dark"] .gle-seg button.on {
+    background: #1C1C1C;
+    color: #FFFFFF
+}
+html[data-adm-theme="dark"] .gle-lays-h small {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .gle-grp {
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .gle-lay {
+    border: 1.5px solid var(--c-line);
+    background: #1E2127;
+    color: var(--c-muted)
+}
+html[data-adm-theme="dark"] .gle-lay svg {
+    fill: none;
+    stroke: #919BA1
+}
+html[data-adm-theme="dark"] .gle-lay:hover {
+    border-color: #3B3935
+}
+html[data-adm-theme="dark"] .gle-lay.on {
+    border-color: #F26B38;
+    background: #2A1B14;
+    color: #F18355
+}
+html[data-adm-theme="dark"] .gle-lay.on svg {
+    stroke: #F18055
+}
+html[data-adm-theme="dark"] .gle-sl input[type=range] {
+    background: linear-gradient(to right,#F26B38 var(--p,0%),#101215 var(--p,0%));
+    outline: none
+}
+html[data-adm-theme="dark"] .gle-sl input[type=range]::-webkit-slider-thumb {
+    background: #1E2127;
+    border: 1.5px solid #3B3935
+}
+html[data-adm-theme="dark"] .gle-sl input[type=range]::-moz-range-thumb {
+    background: #1E2127;
+    border: 1.5px solid #3B3935
+}
+html[data-adm-theme="dark"] .gle-sl input[type=range]:focus-visible::-webkit-slider-thumb {
+    outline: 2px solid #F26B38
+}
+html[data-adm-theme="dark"] .gle-empty {
+    color: var(--c-muted)
 }
 /*  src/app/admin/(app)/_lot10/lot10.css  */
 html[data-adm-theme="dark"] .l10-row {

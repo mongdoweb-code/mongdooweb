@@ -28,8 +28,8 @@ test("ตั้งค่าร้าน → แบบ A/B/C → หน้าร�
     await expect(async () => { await r.check({ force: true }); await expect(r).toBeChecked({ timeout: 500 }); }).toPass({ timeout: 10_000 });
     await page.locator('button[type=submit]:has-text("บันทึก")' + V).first().click();
     await expect.poll(async () => (await q<{ s: string }>(`SELECT "cardBadgeStyle" s FROM "ShopSetting" WHERE id='shop'`))[0].s).toBe(k);
-    await shop.goto("/products");
-    await expect(shop.locator("html")).toHaveAttribute("data-badge", k.toLowerCase());
+    // แคชหน้าร้านถูกล้างหลังบันทึก DB เล็กน้อย (หลังบันทึกประวัติ) → โหลดซ้ำจนได้ค่าใหม่
+    await expect.poll(async () => { await shop.goto("/products"); return shop.locator("html").getAttribute("data-badge"); }, { timeout: 20_000 }).toBe(k.toLowerCase());
     const badge = shop.locator(".prod-card .prod-badge").first();
     if (await badge.count()) {
       const [radius, size] = await badge.evaluate((e) => [getComputedStyle(e).borderRadius, getComputedStyle(e).fontSize]);
@@ -70,8 +70,7 @@ test("หลายป้าย + การจัดวาง + ความท�
       }).toPass({ timeout: 10_000 });
       await page.locator('button[type=submit]:has-text("บันทึก")' + V).first().click();
       await expect.poll(async () => (await q<{ l: string; o: number }>(`SELECT "cardBadgeLayout" l, "cardBadgeOpacity" o FROM "ShopSetting" WHERE id='shop'`))[0]).toEqual({ l: layout, o: op });
-      await shop.goto("/search?q=E2E-BADGES");
-      await expect(shop.locator("html"), `layout ${layout}`).toHaveAttribute("data-badge-layout", layout);
+      await expect.poll(async () => { await shop.goto("/search?q=E2E-BADGES"); return shop.locator("html").getAttribute("data-badge-layout"); }, { message: `layout ${layout}`, timeout: 20_000 }).toBe(layout);
       const box = shop.locator(`.prod-card:has-text("ทดสอบหลายป้าย E2E") .prod-badges`).first();
       await expect(box).toHaveAttribute("data-n", "3");
       await expect(box.locator(".prod-badge")).toHaveText(["3000K", "12-24V", "IP68"]);
