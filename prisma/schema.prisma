@@ -156,6 +156,7 @@ model Product {
   specs            Json? // [{"label":"กำลังไฟ","value":"10W COB"}, ...]
   /// Data Sheet เต็มรูปแบบ (กลุ่ม/หัวข้อ ไทย+EN/ค่า/ไฮไลต์/หมายเหตุ/รูปแบบ) — src/lib/datasheet.ts · null = ไม่มี
   datasheet        Json?
+  gallery        Json? // รูปภาพประกอบใต้ Data Sheet: { title, layout, gap, pad, radius, caption, items[{key,cap}] } — src/lib/product-gallery.ts
   /// ข้อความแจ้งเตือนใต้ปุ่มสั่งซื้อ: เลือกจากคลังเอง (ProductNotice.id) · ปิดข้อความที่แสดงอัตโนมัติ (ทุกสินค้า/ตามหมวด) เฉพาะตัวนี้
   noticeIds        String[]  @default([])
   noticeOff        String[]  @default([])

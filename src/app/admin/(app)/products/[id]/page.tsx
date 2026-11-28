@@ -10,6 +10,7 @@ import { parseTiers } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "../../../../../../generated/prisma/client";
 import { EMPTY_DS, parseDatasheet, parseTemplate, type DsGroup } from "@/lib/datasheet";
+import { GALLERY_DEFAULT, parseGallery } from "@/lib/product-gallery";
 import { parseAttrs } from "@/lib/specs";
 import { getNoticeLibrary } from "@/lib/notices-db";
 import { badgesOf } from "@/lib/badges";
@@ -54,6 +55,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
       includesPsu: false, isAccessory: false, orders: 0,
       extras: { salePrice: "", saleStartsAt: "", saleEndsAt: "", tiers: [], attrs: {}, group: null },
       datasheet: EMPTY_DS,
+      gallery: GALLERY_DEFAULT, galleryUrls: {},
       notices: { ids: [], off: [] },
     };
   } else {
@@ -81,6 +83,7 @@ export default async function ProductEditPage({ params, searchParams }: PageProp
           : null,
       },
       datasheet: parseDatasheet(p.datasheet),
+      ...(() => { const g = parseGallery(p.gallery); return { gallery: g, galleryUrls: Object.fromEntries(g.items.map((it) => [it.key, mediaUrl(it.key, "sm")!])) }; })(),
       notices: { ids: p.noticeIds, off: p.noticeOff },
     };
     downloads = parseDownloads(p.downloads).map((d) => ({ key: d.key, name: d.name, size: fileSize(d.sizeBytes), href: downloadHref(p.slug, d.key) }));

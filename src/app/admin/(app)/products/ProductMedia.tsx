@@ -23,7 +23,7 @@ const mb = (n: number) => `${(n / 1024 / 1024).toFixed(1)} MB`;
 const clock = (s: number | null) => (s == null ? "" : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`);
 
 /** อัปโหลดผ่าน XHR (fetch ยังรายงานความคืบหน้าการส่งไม่ได้) */
-function upload(kind: "image" | "video" | "poster", file: Blob, name: string, onProgress?: (p: number) => void) {
+export function upload(kind: "image" | "video" | "poster", file: Blob, name: string, onProgress?: (p: number) => void) {
   return new Promise<{ key: string; url: string; seconds?: number }>((resolve, reject) => {
     const fd = new FormData();
     fd.set("kind", kind);

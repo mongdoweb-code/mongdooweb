@@ -1,0 +1,55 @@
+/* รูปภาพประกอบใต้ Data Sheet — ระยะห่าง (--pg-gap) ระยะขอบ (--pg-pad) รัศมีมุม (--pg-r) จากหลังบ้าน */
+.pg-sec{margin:48px 0 0;padding:var(--pg-pad,0)}
+/* ความสูงแถวคอลลาจคิดจากความกว้างของส่วนนี้ (cqw) — ตัวอย่างในหลังบ้านกับหน้าร้านสัดส่วนเดียวกัน */
+.pg-blocks{container-type:inline-size}
+.pg-title{margin:0 0 18px}
+.pg-blocks{display:grid;gap:var(--pg-gap,8px)}
+.pg-block{display:grid;gap:var(--pg-gap,8px)}
+.pg-cell{position:relative;margin:0;min-width:0;min-height:0;overflow:hidden;border-radius:var(--pg-r,0)}
+.pg-img{display:block;width:100%;height:100%;padding:0;border:0;background:#F1EFEA;cursor:zoom-in}
+.pg-img:disabled{cursor:default}
+.pg-img img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .4s ease}
+.pg-img:hover img{transform:scale(1.03)}
+.pg-img:focus-visible{outline:3px solid #F26B38;outline-offset:-3px}
+.pg-cap{font-size:13.5px;line-height:1.5}
+.pg-cap-over{position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);background:rgba(0,0,0,.6);color:#FFFFFF;padding:3px 10px;pointer-events:none}
+.pg-cap-below{padding:8px 2px 0;color:var(--c-muted,#6B665E)}
+/* เรียง 1–3 / ตาราง: รูปสัดส่วน 4:3 (ตาราง = จัตุรัส) */
+.pg-col1{grid-template-columns:1fr}
+.pg-col2,.pg-grid4{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pg-col3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pg-col1 .pg-img,.pg-col2 .pg-img,.pg-col3 .pg-img{aspect-ratio:4/3;height:auto}
+.pg-col1 .pg-img{aspect-ratio:16/9}
+.pg-grid4 .pg-img{aspect-ratio:1;height:auto}
+/* สไลด์: เลื่อนแนวนอน */
+.pg-slider{grid-auto-flow:column;grid-auto-columns:minmax(260px,46%);overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;scrollbar-width:thin}
+.pg-slider .pg-cell{scroll-snap-align:start}
+.pg-slider .pg-img{aspect-ratio:4/3;height:auto}
+/* masonry: คอลัมน์ CSS ตามความสูงจริงของรูป */
+.pg-masonry{display:block;columns:3;column-gap:var(--pg-gap,8px)}
+.pg-masonry .pg-cell{break-inside:avoid;margin-bottom:var(--pg-gap,8px)}
+.pg-masonry .pg-img,.pg-masonry .pg-img img{height:auto}
+/* คอลลาจ 3 รูป */
+.pg-bigLeft,.pg-bigRight,.pg-tallLeft{grid-template-rows:repeat(2,clamp(120px,24cqw,300px))}
+.pg-bigLeft{grid-template-columns:2fr 1fr}.pg-bigLeft .pg-cell:first-child{grid-row:1/3}
+.pg-bigRight{grid-template-columns:1fr 2fr}.pg-bigRight .pg-cell:first-child{grid-column:2;grid-row:1/3}
+.pg-tallLeft{grid-template-columns:3fr 2fr}.pg-tallLeft .pg-cell:first-child{grid-row:1/3}
+.pg-bigTop,.pg-bigBottom{grid-template-columns:1fr 1fr}
+.pg-bigTop{grid-template-rows:clamp(170px,36cqw,440px) clamp(120px,24cqw,300px)}.pg-bigTop .pg-cell:first-child{grid-column:1/3}
+.pg-bigBottom{grid-template-rows:clamp(120px,24cqw,300px) clamp(170px,36cqw,440px)}.pg-bigBottom .pg-cell:first-child{grid-column:1/3;grid-row:2}
+/* แบ่งเส้น 2 รูป + อิสระ: ซ้อนรูปในกรอบเดียว ตัดด้วย clip-path */
+.pg-split,.pg-free{position:relative;display:block;aspect-ratio:16/9;overflow:hidden;border-radius:var(--pg-r,0)}
+.pg-split .pg-cell,.pg-free .pg-cell{position:absolute;inset:0;border-radius:0}
+.pg-split .pg-over .pg-cap-over{left:auto;right:10px}
+.pg-free .pg-cell:nth-child(2) .pg-cap-over{left:auto;right:10px;bottom:auto;top:10px}
+.pg-split .pg-cap-below,.pg-free .pg-cap-below{display:none}
+@media (max-width:768px){
+  .pg-sec{margin-top:36px;padding:min(var(--pg-pad,0px),16px)}
+  .pg-col3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pg-masonry{columns:2}
+  .pg-bigLeft,.pg-bigRight,.pg-tallLeft{grid-template-columns:1fr 1fr;grid-template-rows:clamp(160px,54cqw,360px) clamp(110px,34cqw,240px)}
+  .pg-bigLeft .pg-cell:first-child,.pg-bigRight .pg-cell:first-child,.pg-tallLeft .pg-cell:first-child{grid-column:1/3;grid-row:1}
+  .pg-slider{grid-auto-columns:82%}
+  .pg-split,.pg-free{aspect-ratio:4/3}
+}
+@media (prefers-reduced-motion:reduce){.pg-img img{transition:none}.pg-img:hover img{transform:none}}

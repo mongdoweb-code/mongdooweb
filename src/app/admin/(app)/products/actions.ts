@@ -18,6 +18,7 @@ import { parseCsv } from "@/lib/csv";
 import { applyImport, checkImport, type ImportRow } from "@/lib/product-csv";
 import { readProductExtras } from "@/lib/product-extras";
 import { dsEmpty, parseDatasheet, type Datasheet } from "@/lib/datasheet";
+import { parseGallery } from "@/lib/product-gallery";
 import { parseProductNotices } from "@/lib/notices";
 import { parseBadges } from "@/lib/badges";
 import { moveProductToEdge, reorderProducts, topSortOrder } from "@/lib/product-order";
@@ -89,6 +90,11 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     return { error: "ข้อมูล Data Sheet ไม่ถูกต้อง — ลองโหลดหน้าใหม่", fields: ["datasheet"] };
   }
 
+  // รูปภาพประกอบใต้ Data Sheet (JSON จากตัวแก้ไข · ตรวจซ้ำ: รูปต้องเป็นไฟล์ของร้าน ขนาด/จำนวนถูกจำกัด) — ไม่มีรูป = ไม่มีส่วนนี้
+  // ฟอร์มที่ไม่มีช่องนี้ (เช่น แก้ไขด่วน) = ไม่แตะค่าเดิม
+  const galleryRaw = f.get("gallery");
+  const gallery = galleryRaw === null ? undefined : parseGallery(String(galleryRaw).slice(0, 40000));
+
   // ข้อความแจ้งเตือนหน้าสินค้า: เลือกจากคลัง + ปิดข้อความอัตโนมัติเฉพาะตัวนี้ (รับเฉพาะ id ที่มีอยู่จริง)
   const noticeLib = new Set((await prisma.productNotice.findMany({ select: { id: true } })).map((n) => n.id));
   const notices = f.has("notices") ? parseProductNotices(str(f, "notices", 5000), noticeLib) : undefined;
@@ -143,6 +149,7 @@ export async function saveProduct(_prev: ProductFormState, f: FormData): Promise
     weightGram,
     specs,
     datasheet: datasheet ? (datasheet as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+    ...(gallery === undefined ? {} : { gallery: gallery.items.length ? (gallery as unknown as Prisma.InputJsonValue) : Prisma.DbNull }),
     images,
     videoKey,
     videoPosterKey,
@@ -290,11 +297,11 @@ export async function duplicateProduct(f: FormData) {
     slug = `${p.slug.slice(0, 180).replace(/-+$/, "")}-copy${n}`;
   }
   // สำเนาไม่รับรีวิว/คะแนน ไม่อยู่ในกลุ่มตัวเลือกเดิม (ค่าตัวเลือกจะซ้ำกัน)
-  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, ratingAvg: _ra, ratingCount: _rc, variantGroupId: _vg, variantOptions: _vo, specs, tierPrices, attrs, downloads, datasheet, badges, ...rest } = p;
+  const { id: _id, createdAt: _c, updatedAt: _u, wooId: _w, legacyPath: _l, views: _v, stock: _s, ratingAvg: _ra, ratingCount: _rc, variantGroupId: _vg, variantOptions: _vo, specs, tierPrices, attrs, downloads, datasheet, badges, gallery, ...rest } = p;
   void [_id, _c, _u, _w, _l, _v, _s, _ra, _rc, _vg, _vo];
   const json = (v: Prisma.JsonValue) => (v === null ? Prisma.DbNull : (v as Prisma.InputJsonValue));
   const copy = await prisma.product.create({
-    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), datasheet: datasheet == null ? Prisma.DbNull : json(datasheet), downloads: downloads as Prisma.InputJsonValue, badges: badges as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), sortOrder: await topSortOrder(), isPinned: false, isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
+    data: { ...rest, specs: json(specs), tierPrices: json(tierPrices), attrs: json(attrs), datasheet: datasheet == null ? Prisma.DbNull : json(datasheet), gallery: gallery == null ? Prisma.DbNull : json(gallery), downloads: downloads as Prisma.InputJsonValue, badges: badges as Prisma.InputJsonValue, sku, slug, name: `${p.name} (สำเนา)`.slice(0, 250), sortOrder: await topSortOrder(), isPinned: false, isActive: false, isBestSeller: false, stock: 0, inStock: !p.trackStock && p.inStock },
   });
   await logAdmin(admin.id, "PRODUCT", `ทำสำเนาสินค้า ${p.sku} → ${sku}`);
   redirect(`/admin/products/${copy.id}?copied=1`);

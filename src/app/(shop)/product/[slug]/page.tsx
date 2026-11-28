@@ -3,6 +3,7 @@
 // ตารางสเปกแบบมีโครงสร้าง (U6), ลิงก์คำนวณหม้อแปลง (U8), ราคาขายส่ง (U10), ไฟล์ดาวน์โหลด (U11)
 import { NoticeList } from "@/components/notice/NoticeBox";
 import { DatasheetSection } from "./Datasheet";
+import { ProductGallery } from "./ProductGallery";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getVideos, visibleVideos } from "@/lib/videos";
@@ -396,6 +397,9 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
 
         {/* Data Sheet ใต้รายละเอียดสินค้า (แบบ A/B ตามตั้งค่า) + ตารางเทียบรุ่น (C) */}
         <DatasheetSection ds={p.datasheet} name={p.name} sku={p.sku} slug={p.slug} compare={p.datasheetCompare} />
+
+        {/* รูปภาพประกอบใต้ Data Sheet (ตั้งในหน้าแก้ไขสินค้า) */}
+        {p.gallery && <ProductGallery g={p.gallery} name={p.name} />}
 
         {related.length > 0 && (
           <section className="pdp-related" aria-labelledby="related-h">
