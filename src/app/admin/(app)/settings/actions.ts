@@ -3,6 +3,7 @@
 // (รหัสผ่านย้ายไป /admin/account, ผู้ใช้ย้ายไป /admin/users)
 import { refresh } from "next/cache";
 import { cleanDocTagline, isTaglineStyle } from "@/lib/doc-render";
+import { parseWatermark } from "@/lib/watermark";
 import { diffOf, refreshStorefront, logAdmin } from "@/lib/admin-log";
 import { requireOwner } from "@/lib/auth";
 import { isValidThaiTaxId } from "@/lib/format";
@@ -113,6 +114,11 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
   if ("error" in sig) return { error: sig.error, fields: ["signature"] };
   const stamp = await upImg("stamp", "ตราประทับ", 600);
   if ("error" in stamp) return { error: stamp.error, fields: ["stamp"] };
+  // ลายน้ำ: ไฟล์ใหม่ (เก็บเป็น WebP พื้นใส กว้างสุด 1200) · ลบ = ไม่มีลายน้ำ · ค่าอื่นตรวจด้วย parseWatermark
+  const wmFile = await upImg("watermarkFile", "ไฟล์ลายน้ำ", 1200);
+  if ("error" in wmFile) return { error: wmFile.error, fields: ["watermarkFile"] };
+  const wmPrev = parseWatermark((await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { watermark: true } }))?.watermark);
+  const watermark = parseWatermark({ ...parseWatermark(f.get("watermark") ?? "{}"), key: wmFile.key ?? (f.get("removeWatermark") === "on" ? "" : wmPrev.key) });
 
   const before = await prisma.shopSetting.findUnique({ where: { id: "shop" } });
   const after = await prisma.shopSetting.update({
@@ -161,6 +167,7 @@ export async function saveSettings(_prev: FormState, f: FormData): Promise<FormS
       quoteOnlineQr: f.get("quoteOnlineQr") === "on",
       docTagline: cleanDocTagline(f.get("docTagline")),
       docTaglineOn: f.get("docTaglineOn") === "on",
+      watermark: watermark.key ? watermark : {},
       docTaglineStyle: isTaglineStyle(f.get("docTaglineStyle")) ? String(f.get("docTaglineStyle")) : "A",
       datasheetStyle: f.get("datasheetStyle") === "A" ? "A" : "B",
       datasheetCompare: f.get("datasheetCompare") === "on",

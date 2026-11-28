@@ -7,6 +7,8 @@ import { getCurrentAdmin } from "@/lib/auth";
 import { AVIF_SUPPORTED, MEDIA_PREFIXES, generateVariant, parseVariant } from "@/lib/media";
 import { prisma } from "@/lib/prisma";
 import { storage } from "@/lib/storage";
+import { WM_TARGET_RE, parseWatermark, wmVersion } from "@/lib/watermark";
+import { renderWatermarked } from "@/lib/watermark-render";
 
 const TYPES: Record<string, string> = { webp: "image/webp", jpg: "image/jpeg", png: "image/png", avif: "image/avif", mp4: "video/mp4" };
 const FOREVER = "public, max-age=31536000, immutable";
@@ -44,6 +46,20 @@ async function reviewImageVisible(key: string) {
   return (await getCurrentAdmin().catch(() => null)) ? "private" : null;
 }
 
+/** รูปใส่ลายน้ำ /media/wm/<ver>/<products/…webp> — รุ่นตรงกับค่าตั้งปัจจุบัน = สร้าง/อ่านจากที่เก็บแล้วแคชถาวร · รุ่นเก่า = ส่งรูปตามค่าปัจจุบันแบบแคชสั้น */
+async function watermarked(key: string) {
+  const m = /^wm\/([0-9a-z]{1,12})\/(.+)$/.exec(key);
+  if (!m || !WM_TARGET_RE.test(m[2])) return new Response("Not found", { status: 404 });
+  const s = await prisma.shopSetting.findUnique({ where: { id: "shop" }, select: { watermark: true } }).catch(() => null);
+  const w = parseWatermark(s?.watermark);
+  const data = w.key ? await renderWatermarked(m[2], w).catch(() => null) : await read(m[2]);
+  if (!data) return new Response("Not found", { status: 404 });
+  const current = w.key && wmVersion(w) === m[1];
+  return new Response(new Uint8Array(data), {
+    headers: { "Content-Type": "image/webp", "Cache-Control": current ? FOREVER : "public, max-age=300", "X-Content-Type-Options": "nosniff" },
+  });
+}
+
 async function read(key: string) {
   try {
     return await storage().get(key);
@@ -55,6 +71,7 @@ async function read(key: string) {
 export async function GET(req: Request, ctx: RouteContext<"/media/[...key]">) {
   const { key: parts } = await ctx.params;
   const key = parts.join("/");
+  if (key.startsWith("wm/")) return watermarked(key);
   const ext = key.split(".").pop() ?? "";
   if (!MEDIA_PREFIXES.some((p) => key.startsWith(`${p}/`)) || !TYPES[ext]) return new Response("Not found", { status: 404 });
   if (ext === "mp4") return key.startsWith("videos/") ? video(req, key) : new Response("Not found", { status: 404 });

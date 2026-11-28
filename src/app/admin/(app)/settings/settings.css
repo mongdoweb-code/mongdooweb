@@ -54,3 +54,28 @@
 .dtl-off{padding:12px 14px;border:1px dashed var(--c-line);color:var(--c-muted);font-size:13px}
 .dtl-warn{display:block;color:#9A5B00;font-weight:600}
 @media (max-width:860px){.dtl-opt{grid-template-columns:20px 1fr}.dtl-paper{grid-column:1/-1}}
+
+/* ลายน้ำรูปภาพ */
+.wmf-hint{margin:0;font-size:12.5px;color:var(--c-muted)}
+.wmf-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,380px);gap:24px;align-items:start}
+.wmf-ctl{display:grid;gap:14px}
+.wmf-ctl .field{margin:0}
+.wmf-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.wmf-row .lbl{font-size:13px;font-weight:600;min-width:64px}
+.wmf-pos{display:grid;grid-template-columns:repeat(3,28px);gap:4px;padding:4px;border:1.5px solid var(--c-line);background:#FAF9F6}
+.wmf-pos button{width:28px;height:22px;border:1px solid var(--c-line);background:#FFFFFF;display:grid;place-items:center;cursor:pointer;padding:0}
+.wmf-pos button i{width:8px;height:8px;border-radius:50%;background:#C9C5BC}
+.wmf-pos button.on{border-color:#F26B38;background:#FFF7F3}
+.wmf-pos button.on i{background:#F26B38}
+.wmf-tile{height:34px;padding:0 12px;border:1.5px solid var(--c-line);background:#FFFFFF;font-size:12.5px;cursor:pointer}
+.wmf-tile.on{border-color:#F26B38;background:#FFF7F3;color:#C2410C;font-weight:700}
+.wmf-sl-h{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.wmf-sl-h output{font-weight:700;font-variant-numeric:tabular-nums}
+.wmf-sl input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:linear-gradient(to right,#F26B38 var(--p,0%),#E3E0D8 var(--p,0%));cursor:pointer}
+.wmf-sl input[type=range]:disabled{opacity:.45;cursor:default}
+.wmf-sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#FFFFFF;border:1.5px solid #C9C5BC;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.wmf-photo{position:relative;aspect-ratio:4/3;overflow:hidden;background:linear-gradient(135deg,#2B3A2E,#4E7A3C 45%,#C9B36A);border:1px solid var(--c-line)}
+.wmf-tilebg{position:absolute;inset:0;background-repeat:repeat;background-position:0 0}
+.wmf-none{position:absolute;inset:0;display:grid;place-items:center;color:#FFFFFF;font-size:13px;opacity:.85}
+.wmf-pv small{display:block;margin-top:6px;font-size:11.5px;color:var(--c-muted)}
+@media (max-width:900px){.wmf-cols{grid-template-columns:1fr}}

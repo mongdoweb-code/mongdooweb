@@ -61,7 +61,7 @@ export function visibleDiff(diff: unknown, owner: boolean): Diff | null {
 export const FIELD_LABEL: Record<string, string> = {
   name: "ชื่อ", slug: "ลิงก์ (slug)", sku: "รหัสสินค้า", categoryId: "หมวด", unit: "หน่วย", priceSatang: "ราคา (สตางค์)",
   compareAtSatang: "ราคาก่อนลด (สตางค์)", trackStock: "นับสต็อก", stock: "สต็อก", inStock: "มีของ", isActive: "เปิดขาย",
-  isBestSeller: "ขายดี", badge: "ป้าย", badges: "ป้ายบนการ์ด", docTagline: "ข้อความท้ายเอกสาร", docTaglineOn: "แสดงข้อความท้ายเอกสาร", docTaglineStyle: "รูปแบบข้อความท้ายเอกสาร", shortDescription: "คำอธิบายสั้น", description: "รายละเอียด", keywords: "คำค้น",
+  isBestSeller: "ขายดี", badge: "ป้าย", badges: "ป้ายบนการ์ด", docTagline: "ข้อความท้ายเอกสาร", docTaglineOn: "แสดงข้อความท้ายเอกสาร", docTaglineStyle: "รูปแบบข้อความท้ายเอกสาร", watermark: "ลายน้ำรูปภาพ", gallery: "รูปภาพประกอบ", shortDescription: "คำอธิบายสั้น", description: "รายละเอียด", keywords: "คำค้น",
   seoTitle: "SEO title", seoDescription: "SEO description", weightGram: "น้ำหนัก (กรัม)", specs: "สเปก", images: "รูป",
   useAreas: "พื้นที่ใช้งาน", lightColor: "สีไฟ", includesPsu: "มีหม้อแปลง", isAccessory: "อุปกรณ์เสริม", costSatang: "ต้นทุน (สตางค์)",
   customerName: "ชื่อผู้รับ", phone: "เบอร์โทร", email: "อีเมล", addressLine: "ที่อยู่", subdistrict: "ตำบล/แขวง", district: "อำเภอ/เขต",

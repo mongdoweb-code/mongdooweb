@@ -4,10 +4,11 @@
 // ส่งไปกับฟอร์มเป็น JSON ใน <input name="gallery"> (server ตรวจซ้ำด้วย parseGallery) · กำลังอัปโหลด = ส่ง mediaBusy กันกดบันทึกก่อนเสร็จ
 import { useRef, useState } from "react";
 import {
-  CAPTION_MAX, CAPTION_MODES, GALLERY_LAYOUTS, GALLERY_MAX, GAP_MAX, LAYOUT_GROUPS, LAYOUT_ICON, PAD_MAX, RADIUS_MAX, TITLE_MAX,
+  CAPTION_MAX, CAPTION_MODES, FITS, GALLERY_LAYOUTS, GALLERY_MAX, GALLERY_RATIOS, GAP_MAX, LAYOUT_GROUPS, LAYOUT_ICON, PAD_MAX, RADIUS_MAX, RATIO_LAYOUTS, TITLE_MAX,
+  type GalleryFit,
   type CaptionMode, type Gallery, type GalleryLayout,
 } from "@/lib/product-gallery";
-import { ProductGallery } from "@/app/(shop)/product/[slug]/ProductGallery";
+import { ProductGallery, type WmPreview } from "@/app/(shop)/product/[slug]/ProductGallery";
 import { upload } from "./ProductMedia";
 import "./gallery-editor.css";
 
@@ -15,7 +16,7 @@ type Item = { key: string; cap: string; url: string; seq?: number };
 type Pending = { id: string; name: string; pct: number; error?: string; preview: string };
 let seq = 0;
 
-export function GalleryEditor({ init, urls, productName }: { init: Gallery; urls: Record<string, string>; productName: string }) {
+export function GalleryEditor({ init, urls, productName, watermark }: { init: Gallery; urls: Record<string, string>; productName: string; watermark: WmPreview | null }) {
   const [g, setG] = useState({ ...init, items: undefined as never });
   const [items, setItems] = useState<Item[]>(init.items.map((it) => ({ ...it, url: urls[it.key] ?? "" })));
   const [pending, setPending] = useState<Pending[]>([]);
@@ -58,7 +59,7 @@ export function GalleryEditor({ init, urls, productName }: { init: Gallery; urls
     setItems(n);
   };
   const busy = pending.some((p) => !p.error);
-  const payload = JSON.stringify({ title: g.title, layout: g.layout, gap: g.gap, pad: g.pad, radius: g.radius, caption: g.caption, items: items.map(({ key, cap }) => ({ key, cap })) });
+  const payload = JSON.stringify({ title: g.title, layout: g.layout, gap: g.gap, pad: g.pad, radius: g.radius, caption: g.caption, ratio: g.ratio, fit: g.fit, wm: g.wm, items: items.map(({ key, cap }) => ({ key, cap })) });
   const groups = Object.keys(LAYOUT_GROUPS) as GalleryLayout["group"][];
 
   return (
@@ -147,6 +148,40 @@ export function GalleryEditor({ init, urls, productName }: { init: Gallery; urls
         ))}
       </div>
 
+      {RATIO_LAYOUTS.has(g.layout) && (
+        <div className="gle-ratio">
+          <div className="gle-lays-h"><b>อัตราส่วนภาพ</b><small>กว้าง : สูง · ใช้กับแบบเรียง 1 / 2 / 3 และสไลด์</small></div>
+          <div className="gle-ratio-row" role="radiogroup" aria-label="อัตราส่วนภาพ">
+            {GALLERY_RATIOS.map((r) => {
+              const [w, h] = r.key && r.key !== "auto" ? r.key.split(":").map(Number) : [0, 0];
+              const k = w ? Math.min(30 / w, 30 / h) : 0;
+              return (
+                <button key={r.key || "def"} type="button" role="radio" aria-checked={g.ratio === r.key} className={`gle-rt${g.ratio === r.key ? " on" : ""}`} onClick={() => set("ratio", r.key)} title={r.hint} data-ratio={r.key || "default"}>
+                  <span className="gle-rt-box" aria-hidden="true">{w ? <i style={{ width: w * k, height: h * k }} /> : <i className={r.key === "auto" ? "auto" : "def"} />}</span>
+                  <b>{r.label}</b><small>{r.hint}</small>
+                </button>
+              );
+            })}
+          </div>
+          <div className="gle-fit">
+            <span className="lbl">การแสดงภาพ</span>
+            <span className="gle-seg" role="radiogroup" aria-label="การแสดงภาพ">
+              {(Object.keys(FITS) as GalleryFit[]).map((k) => (
+                <button key={k} type="button" role="radio" aria-checked={g.fit === k} className={g.fit === k ? "on" : undefined} onClick={() => set("fit", k)}>{FITS[k]}</button>
+              ))}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="gle-wmrow">
+        <label className="chk-row">
+          <input type="checkbox" checked={g.wm} onChange={(e) => set("wm", e.target.checked)} disabled={!watermark} data-gallery-wm />
+          ใส่ลายน้ำบนรูปชุดนี้
+        </label>
+        <small>{watermark ? "ใช้ลายน้ำจาก ตั้งค่าร้าน → ลายน้ำรูปภาพ (ใส่ลงในไฟล์ที่ลูกค้าเห็น รูปต้นฉบับไม่เปลี่ยน)" : <>ยังไม่ได้ตั้งลายน้ำ — <a className="link" href="/admin/settings#watermark" target="_blank" rel="noopener">ตั้งค่าร้าน → ลายน้ำรูปภาพ</a></>}</small>
+      </div>
+
       <div className="gle-sliders">
         <Slider id="glGap" label="ระยะห่าง" value={g.gap} max={GAP_MAX} onChange={(v) => set("gap", v)} />
         <Slider id="glPad" label="ระยะขอบ" value={g.pad} max={PAD_MAX} onChange={(v) => set("pad", v)} />
@@ -159,7 +194,7 @@ export function GalleryEditor({ init, urls, productName }: { init: Gallery; urls
       </div>
       {pv && (items.length ? (
         <div className="gle-pv" data-gallery-preview>
-          <ProductGallery preview name={productName || "สินค้า"} g={{ ...g, items: items.map((it) => ({ key: it.key, cap: it.cap.trim(), full: it.url, sm: it.url })) }} />
+          <ProductGallery preview wmPreview={watermark} name={productName || "สินค้า"} g={{ ...g, items: items.map((it) => ({ key: it.key, cap: it.cap.trim(), full: it.url, sm: it.url })) }} />
         </div>
       ) : <p className="gle-empty">ยังไม่มีรูป — เพิ่มรูปด้านบนเพื่อดูตัวอย่าง</p>)}
     </div>

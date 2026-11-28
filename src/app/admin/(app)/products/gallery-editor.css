@@ -52,3 +52,21 @@
 .gle-pv .sec-title{font-size:20px;font-weight:700;color:#1C1C1C}
 .gle-empty{margin:10px 0 0;font-size:13px;color:var(--c-muted)}
 @media (max-width:900px){.gle-lay-row{grid-template-columns:repeat(3,minmax(0,1fr))}.gle-sliders{grid-template-columns:1fr}.gle-grid{grid-template-columns:1fr}}
+/* อัตราส่วนภาพ + การแสดงภาพ + ลายน้ำ */
+.gle-ratio{margin-top:20px}
+.gle-ratio-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:8px}
+.gle-rt{display:grid;justify-items:center;gap:2px;padding:8px 4px;border:1.5px solid var(--c-line);background:#FFFFFF;cursor:pointer;text-align:center}
+.gle-rt b{font-size:12.5px;color:var(--c-ink)}
+.gle-rt small{font-size:10.5px;color:var(--c-muted);line-height:1.3}
+.gle-rt-box{width:36px;height:36px;display:grid;place-items:center}
+.gle-rt-box i{display:block;border:2px solid #9AA3A8;border-radius:2px}
+.gle-rt-box i.def{width:30px;height:17px;border-style:dashed}
+.gle-rt-box i.auto{width:22px;height:28px;border-style:dotted}
+.gle-rt:hover{border-color:#C9C5BC}
+.gle-rt.on{border-color:#F26B38;background:#FFF7F3}
+.gle-rt.on .gle-rt-box i{border-color:#F26B38}
+.gle-fit{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px}
+.gle-fit .lbl{font-size:13px;font-weight:600}
+.gle-wmrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px;padding:12px 14px;background:#FAF9F6;border:1px solid var(--c-line)}
+.gle-wmrow small{font-size:12px;color:var(--c-muted)}
+@media (max-width:900px){.gle-ratio-row{grid-template-columns:repeat(3,minmax(0,1fr))}}

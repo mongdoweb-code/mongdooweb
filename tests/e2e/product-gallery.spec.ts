@@ -84,3 +84,65 @@ test("หลังบ้าน: อัปโหลดหลายรูป + ร
   await page.goto(`/product/${SLUG}`);
   await expect(page.locator(".pg-sec")).toHaveCount(0);
 });
+
+test("ลายน้ำ (ตั้งค่าร้าน) + อัตราส่วน 9:16: ไฟล์ที่ลูกค้าเห็นมีลายน้ำจริง ต้นฉบับไม่เปลี่ยน", async ({ page, request }) => {
+  const [{ w: oldWm }] = await q<{ w: unknown }>(`SELECT watermark w FROM "ShopSetting" WHERE id='shop'`);
+  try {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await login(page);
+    // ตั้งลายน้ำ: แถบขาวทึบ 400×120 ล่างขวา ขนาด 40% ความทึบ 100%
+    const mark = await sharp({ create: { width: 400, height: 120, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 1 } } }).png().toBuffer();
+    await page.goto("/admin/settings#watermark");
+    const wf = page.locator("#watermark");
+    await wf.locator("#watermarkFile").setInputFiles({ name: "wm.png", mimeType: "image/png", buffer: mark });
+    const setRange = async (id: string, v: number) => wf.locator(`#${id}`).evaluate((el, val) => {
+      const s = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+      s.call(el, String(val));
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }, v);
+    await expect(async () => { await setRange("wmSize", 40); await expect(wf.locator('output[for="wmSize"]')).toHaveText("40", { timeout: 500 }); }).toPass({ timeout: 10_000 });
+    await setRange("wmOpacity", 100);
+    await wf.getByRole("radio", { name: "ล่างขวา" }).click();
+    await page.locator("button[type=submit]:has-text('บันทึกการตั้งค่า')" + V).first().click();
+    await expect.poll(async () => (await q<{ w: { key?: string; size?: number; pos?: string } }>(`SELECT watermark w FROM "ShopSetting" WHERE id='shop'`))[0].w, { timeout: 20_000 })
+      .toMatchObject({ size: 40, opacity: 100, pos: "br", key: expect.stringMatching(/^logo\/.+\.webp$/) });
+
+    // รูปประกอบ: 1 รูป สีเข้ม · เรียง 1 · 9:16 · เปิดลายน้ำ
+    await page.goto(`/admin/products/${ID}#sec-gallery`);
+    const box = page.locator("#sec-gallery");
+    await expect(box.locator("[data-gallery-wm]")).toBeEnabled();
+    await expect(async () => {
+      await box.locator("[data-gallery-file]").setInputFiles({ name: "dark.png", mimeType: "image/png", buffer: await png(20, 40, 90) });
+      await expect(box.locator("[data-gallery-item]")).toHaveCount(1, { timeout: 20_000 });
+    }).toPass({ timeout: 60_000 });
+    await box.locator('[data-layout="col1"]').click();
+    await box.locator('[data-ratio="9:16"]').click();
+    await expect(box.locator("[data-gallery-wm]")).toBeChecked();
+    await expect(box.locator("[data-gallery-preview] .pg-wm")).toHaveCount(1); // ตัวอย่างลายน้ำในหลังบ้าน
+    await page.locator('button[form="productForm"]').first().click();
+    await expect.poll(async () => (await q<{ g: { ratio?: string; layout?: string } | null }>(`SELECT gallery g FROM "Product" WHERE id=$1`, [ID]))[0].g, { timeout: 20_000 }).toMatchObject({ layout: "col1", ratio: "9:16", wm: true });
+
+    await page.goto(`/product/${SLUG}`);
+    const img = page.locator(".pg-sec .pg-img img" + V).first();
+    const src = await img.getAttribute("src");
+    expect(src).toMatch(/^\/media\/wm\/[0-9a-z]+\/products\/.+\.webp$/);
+    const box9 = await page.locator(".pg-sec .pg-img" + V).first().boundingBox();
+    expect(Math.abs(box9!.height / box9!.width - 16 / 9)).toBeLessThan(0.03);
+    // ไฟล์จริง: มุมล่างขวาเป็นสีขาวของลายน้ำ · มุมบนซ้ายยังเป็นสีเดิม · ไฟล์ต้นฉบับไม่มีลายน้ำ
+    const res = await request.get(src!);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toBe("image/webp");
+    const pix = async (buf: Buffer, fx: number, fy: number) => {
+      const { data, info } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
+      const i = (Math.round(info.height * fy) * info.width + Math.round(info.width * fx)) * info.channels;
+      return [data[i], data[i + 1], data[i + 2]];
+    };
+    const marked = Buffer.from(await res.body());
+    expect((await pix(marked, 0.85, 0.9)).every((c) => c > 230)).toBe(true);
+    expect((await pix(marked, 0.1, 0.1))[0]).toBeLessThan(60);
+    const orig = Buffer.from(await (await request.get(src!.replace(/^\/media\/wm\/[0-9a-z]+\//, "/media/"))).body());
+    expect((await pix(orig, 0.85, 0.9))[0]).toBeLessThan(60);
+  } finally {
+    await q(`UPDATE "ShopSetting" SET watermark=$1::jsonb WHERE id='shop'`, [JSON.stringify(oldWm ?? {})]);
+  }
+});
